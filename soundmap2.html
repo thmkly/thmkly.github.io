@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8" />
+    <title>a soundmap of the pct, stereo 2023</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link href='https://api.mapbox.com/mapbox-gl-js/v2.8.1/mapbox-gl.css' rel='stylesheet' />
+    <style>
+        body { margin: 0; padding: 0; }
+        #map { position: absolute; top: 0; bottom: 0; width: 100%; }
+        .playlist {
+            position: absolute;
+            top: 25px;
+            left: 10px;
+            background-color: rgba(255, 255, 255, 0.875);
+            padding: 10px;
+            border-radius: 5px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.3);
+            width: 350px;
+            font-family: helvetica;
+            font-size: small;
+            overflow-y: auto;
+            max-height: 80vh;
+        }
+        .track {
+            cursor: pointer;
+            padding: 5px;
+            margin: 1px;
+            border-bottom: 1px solid #ccc;
+        }
+        .track:hover {
+            background-color: #f0f0f0;
+        }
+        .active-track {
+            background-color: #d0d0d0;
+        }
+
+    </style>
+</head>
+<body>
+    <div id='map'></div>
+    <div class="playlist" id="playlist"></div>
+    <audio id="audio-player" controls style="position: absolute; bottom: 49px; left: 10px;"></audio>
+
+    <script src='https://api.mapbox.com/mapbox-gl-js/v2.8.1/mapbox-gl.js'></script>
+    <script>
+        mapboxgl.accessToken = 'pk.eyJ1IjoidGhta2x5IiwiYSI6ImNseXVyMjhueDA3YTQybW9mcHJrZGJ3YnEifQ.Nv-LsNg5eKIE6SeOVVJpYg';
+        var map = new mapboxgl.Map({
+            container: 'map',
+            style: 'mapbox://styles/thmkly/clyup637d004201ri2tkpaywq',
+            center: [-122.50276223002062, 41.317267089349855],
+            zoom: 4.625
+        });
+
+        const audioData = [
+            { name: "La Posta Creek birds and cars", lat: 32.71534492431765, lng: -116.4992633554847, audioUrl: "https://www.dropbox.com/scl/fi/dbas7xhu5tt7jk2abp3o9/230424_1145.wav?rlkey=agfp5c1ajeamhfyhl069wla4j&dl=0&raw=1" },
+            { name: "Wind in grass", lat: 32.779093120710854, lng: -116.43751988872522, audioUrl: "https://www.dropbox.com/scl/fi/u7iy5dg5iw8kvkjfzu0lm/230424_1521.wav?rlkey=mgxc8tet7fw5ezlywplog89rj&dl=0&raw=1" },
+            { name: "Wind along a desert ridge", lat: 32.8258, lng: -116.41738, audioUrl: "https://www.dropbox.com/scl/fi/nsnooma48uh3gs7g2u05x/230425_0920.wav?rlkey=cgxm27h966hp59qff9sjuvn51&dl=0&raw=1" },
+            { name: "desert camp", lat: 33.06593, lng: -116.48227, audioUrl: "https://www.dropbox.com/scl/fi/tqdy4kfg2dwzddino9vuz/230426_2135.wav?rlkey=c93dr2rzwjj6u6ofbhpc8b1cc&dl=0&raw=1" },
+            { name: "dawn chorus inside of tent", lat: 33.06593, lng: -116.48227, audioUrl: "https://www.dropbox.com/scl/fi/ehep5r5fp8vf745z93ml3/230427_0736.wav?rlkey=eurpyo9q1iaplnqs386xqu85n&dl=0&raw=1" },
+            { name: "frogs and crickets along creek bank", lat: 33.24813, lng: -116.59994, audioUrl: "https://www.dropbox.com/scl/fi/jcufx2vsjdeskjl0y39br/230428_2355.wav?rlkey=wm60e4hnn5ml5fbh1gquu5sh7&dl=0&raw=1" },
+            { name: "Agua Caliente Creek", lat: 33.26643, lng: -116.63393, audioUrl: "https://www.dropbox.com/scl/fi/8mhbw81kvzw5vub363zr0/230429_0009.wav?rlkey=cg7z646xpeq4rmocdjk8z6syl&dl=0&raw=1" },
+            { name: "Agua Caliente Creek", lat: 33.29555, lng: -116.63819, audioUrl: "https://www.dropbox.com/scl/fi/t5ltlvb40mnks4optfdz2/230429_2049.wav?rlkey=o3fhibwcl14daewth44bawi70&dl=0&raw=1" },
+            { name: "Agua Caliente Creek", lat: 33.31691, lng: -116.62657, audioUrl: "https://www.dropbox.com/scl/fi/cmkfn8teaj4odfkzl32t3/230429_2155.wav?rlkey=a2aranozbbr7x5zhlw648n9wr&dl=0&raw=1" },
+            { name: "Wind in creeking foliage", lat: 33.42349, lng: -116.6084, audioUrl: "https://www.dropbox.com/scl/fi/dvhed3n93rzaotq50bzuw/230430_1924.wav?rlkey=jztudy8bqscqleptq1sk92uhj&dl=0&raw=1" },
+            { name: "Yucca vantage", lat: 33.49176, lng: -116.56587, audioUrl: "https://www.dropbox.com/scl/fi/3enh8w29e1ovbj93j71gi/230501_1321.wav?rlkey=dw09pqkm81ixt02hc38pl4p1r&dl=0&raw=1" },
+            { name: "Heavy wind in desert foliage", lat: 33.4947, lng: -116.56977, audioUrl: "https://www.dropbox.com/scl/fi/f5cuamf32w8lrgb8btqei/230501_1347.wav?rlkey=il5v078hy1m384lfx9o9jalou&dl=0&raw=1" },
+            { name: "Fobes trail jct", lat: 33.690319, lng: -116.609917, audioUrl: "https://www.dropbox.com/scl/fi/osmwqzmo24vvxxiz5r6ih/230502_2233.wav?rlkey=vtw2gw37f60o7vvyz87xdkpcr&dl=0&raw=1" },
+            { name: "Devils Slide stream", lat: 33.7601, lng: -116.67921, audioUrl: "https://www.dropbox.com/scl/fi/tl68kv22ekj0wefsaixf5/230503_1851.wav?rlkey=cx4mvrjzujsb4z9jwlxbrex7g&dl=0&raw=1" },
+            { name: "Black Mountain Road snow melting from the trees", lat: 33.82060664032223, lng: -116.75233386149907, audioUrl: "https://www.dropbox.com/scl/fi/xoxyoa84r21tv2wu5n7io/230505_1458_01.wav?rlkey=lrv6ghjf1k3ioh8x46vb265z9&dl=0&raw=1" },
+            { name: "Palm Springs windfarm", lat: 33.903696, lng: -116.684718, audioUrl: "https://www.dropbox.com/scl/fi/6se1ke3lp41s32536ei9x/230506_1155.wav?rlkey=x700t1dhi9azqf1jw6t6amxrp&dl=0&raw=1" },
+            { name: "I-10 Train + Traffic", lat: 33.924412, lng: -116.694611, audioUrl: "https://www.dropbox.com/scl/fi/hdesf9vbuzp976cepj149/230506_1256.wav?rlkey=f24o20rysbujcmhtoc07jfek1&dl=0&raw=1" },
+            { name: "Mission Creek 1", lat: 34.0526, lng: -116.67217, audioUrl: "https://www.dropbox.com/scl/fi/hinfrg3svmx108trcidah/230507_1513.wav?rlkey=vvgjqn3j7woc2ll5blabwcccq&dl=0&raw=1" },
+            { name: "Mission Creek 2", lat: 34.05423, lng: -116.67193, audioUrl: "https://www.dropbox.com/scl/fi/qp4jt6wx8hxfwjnp6aatl/230507_1542.wav?rlkey=ri57yv8mj2xpz5yv8j5z3yvtv&dl=0&raw=1" },
+            { name: "Mission Creek 3", lat: 34.05423, lng: -116.67193, audioUrl: "https://www.dropbox.com/scl/fi/sh89g0hg1uxibq66hfip1/230507_1543.wav?rlkey=j932evepmvpuf7vgyxk5wz1z8&dl=0&raw=1" },
+            { name: "Mission Creek walk", lat: 34.05423, lng: -116.67194, audioUrl: "https://www.dropbox.com/scl/fi/seal97sqxftt2n4mpyta5/230507_1545.wav?rlkey=fc4ye1xzbjimy1j11zxrryah1&dl=0&raw=1" },
+            { name: "Mission Creek desert bees", lat: 34.06648, lng: -116.66465, audioUrl: "https://www.dropbox.com/scl/fi/qjx6yat8c1658v7o3q420/230507_1642.wav?rlkey=kfsx9ez3ri0bkbn6qdzk108cl&dl=0&raw=1" },
+            { name: "Mission Creek morning birds", lat: 34.12629, lng: -116.7539, audioUrl: "https://www.dropbox.com/scl/fi/aay1nf9g862did68222ro/230508_1045.wav?rlkey=b94dvygwmhkygixb4020g90k6&dl=0&raw=1" },
+            { name: "Big Bear bush", lat: 34.23084, lng: -116.74968, audioUrl: "https://www.dropbox.com/scl/fi/70udprj4hk0zl5f8m8zps/230509_1058.wav?rlkey=hle417z0c54ywcrwvxn2zx2gi&dl=0&raw=1" },
+            { name: "Mojave River Forks Dam", lat: 34.34537, lng: -117.23047, audioUrl: "https://www.dropbox.com/scl/fi/33te3re6i7upq1ez8to71/230513_2000.wav?rlkey=f2hemws4ydhtkh2cou35gpzyw&dl=0&raw=1" },
+            { name: "Cajon AM transmission lines + crickets", lat: 34.31730895774053, lng: -117.43227778868852, audioUrl: "https://www.dropbox.com/scl/fi/x9g74hydv9f8thv5j305q/230515_1034.wav?rlkey=99z43j75a7lqerkp7tmg82a4o&dl=0&raw=1" },
+            { name: "Rickety fence + construction", lat: 34.355557225183794, lng: -117.68222275594347, audioUrl: "https://www.dropbox.com/scl/fi/hdl9im16f12zhh8uft5af/230517_1712.wav?rlkey=7yascpwxlqgckeprcmmzspfll&dl=0&raw=1" },
+            { name: "Baden-Powell ascent", lat: 34.37001, lng: -117.75767, audioUrl: "https://www.dropbox.com/scl/fi/cw5pjz3gt13s49tpbkcd5/230518_0728.wav?rlkey=p95ivffa7defidrh7nl1gnh73&dl=0&raw=1" },
+            { name: "Baden-Powell ascent 2", lat: 34.37001, lng: -117.75767, audioUrl: "https://www.dropbox.com/scl/fi/8l9q0rhjbgpyozx8k91yw/230518_0757.wav?rlkey=6ympamyveykoq5fcy9ggpb3fn&dl=0&raw=1" },
+            { name: "Tent recording", lat: 34.38985, lng: -118.02895, audioUrl: "https://www.dropbox.com/scl/fi/qxwatdb6ewi6w5n6labak/230519_2224.wav?rlkey=j1k490wxf9icmac9ai5xjcsl5&dl=0&raw=1" },
+            { name: "wind in grass", lat: 34.45902, lng: -118.2729, audioUrl: "https://www.dropbox.com/scl/fi/7m6bhasqx6ls7urmlul7d/230607_1512.wav?rlkey=t22lvzso3thckpq18jzno13r6&dl=0&raw=1" },
+            { name: "dawn chorus through foggy valley", lat: 34.57316, lng: -118.31746, audioUrl: "https://www.dropbox.com/scl/fi/tb903dtubm4w9rpzt3evu/230608_0933.wav?rlkey=taf79rz5674z1ypwox1sn2wrh&dl=0&raw=1" },
+            { name: "dawn chorus again", lat: 34.57464, lng: -118.32025, audioUrl: "https://www.dropbox.com/scl/fi/2jlg6um3yw80j08bu67mm/230608_0956.wav?rlkey=6ciqexinnsx3m1bf0yccju5iz&dl=0&raw=1" },
+            { name: "bees", lat: 34.61232, lng: -118.37955, audioUrl: "https://www.dropbox.com/scl/fi/wtpilz2iawpbpsyg7hmjo/230608_1345.wav?rlkey=2v6b7mkgy7qwcf577y5tdw2ro&dl=0&raw=1" },
+            { name: "wind in trees", lat: 34.64125, lng: -118.40444, audioUrl: "https://www.dropbox.com/scl/fi/htub2ms1alurogcfqbomp/230608_1731.wav?rlkey=qavxte6zbiwnpaa9nbuznhs4k&dl=0&raw=1" },
+            { name: "wind in trees", lat: 34.647, lng: -118.42821, audioUrl: "https://www.dropbox.com/scl/fi/eva1q67kd4oh9arsyl0re/230608_1842.wav?rlkey=e4v55vkbafw9vwp918d4g0ha9&dl=0&raw=1" },
+            { name: "bees", lat: 34.65502, lng: -118.45604, audioUrl: "https://www.dropbox.com/scl/fi/owsrcqk0g7ejuiak0bne5/230608_2035.wav?rlkey=glu2j98cl4r46fis1k8je92pf&dl=0&raw=1" },
+            { name: "night time birds", lat: 34.67031, lng: -118.4698, audioUrl: "https://www.dropbox.com/scl/fi/dje9zv295pwlw0vg9fz4o/230608_2211.wav?rlkey=izutzt7vrts30wkqmkrx0xime&dl=0&raw=1" },
+            { name: "forest soundscape", lat: 34.6853, lng: -118.53076, audioUrl: "https://www.dropbox.com/scl/fi/392ft1pb0o0ce1v7ph0w2/230609_1224.wav?rlkey=7mmft9pxt23t7eq8ptroub4ld&dl=0&raw=1" },
+            { name: "forest soundscape 2", lat: 34.6853, lng: -118.53076, audioUrl: "https://www.dropbox.com/scl/fi/3pe3grud9p4u89hrt6e0d/230609_1233.wav?rlkey=f4b5z989dqib249f2sglqvhsn&dl=0&raw=1" },
+            { name: "birds and bees", lat: 34.68911, lng: -118.54749, audioUrl: "https://www.dropbox.com/scl/fi/36e20jg5ge7qim08hcz2y/230609_1338.wav?rlkey=swjyj19s9wkyo4in6nplonlx5&dl=0&raw=1" },
+            { name: "wind in tall grass", lat: 34.76622, lng: -118.60792, audioUrl: "https://www.dropbox.com/scl/fi/memawaqd0ry03nnf5upwo/230610_1137.wav?rlkey=n4940z6o0gp9m0nkcjjs2ufh7&dl=0&raw=1" },
+            { name: "mojave at dusk", lat: 34.85406, lng: -118.5247, audioUrl: "https://www.dropbox.com/scl/fi/5qrv5kongk5k254njcgsw/230610_2245.wav?rlkey=8h5zw33g8l19jk0csvsbckjx3&dl=0&raw=1" },
+            { name: "mojave grasshoppers (?)", lat: 34.8531, lng: -118.47854, audioUrl: "https://www.dropbox.com/scl/fi/kl059qeqxeiaj6xi3najc/230610_2334.wav?rlkey=kj7qjlwshmmy1fnu9aupy4x17&dl=0&raw=1" },
+            { name: "cistern", lat: 34.88137615949817, lng: -118.45219654667261, audioUrl: "https://www.dropbox.com/scl/fi/ts4nqyob748r8pj90fj95/230611_0144.wav?rlkey=38jf2naqqvtn1lk9e6vto5hpu&dl=0&raw=1" },
+            { name: "edge of the windfarm", lat: 34.881349811840614, lng: -118.45205736845143, audioUrl: "https://www.dropbox.com/scl/fi/bvqwnzh5vemo2bhtdchm8/230611_0153.wav?rlkey=1g8dwuurjpo9h1kuun2abebrh&dl=0&raw=1" },
+            { name: "windmills in the mojave", lat: 34.88961, lng: -118.44796, audioUrl: "https://www.dropbox.com/scl/fi/p6s6uqozqb8p1slanxqdz/230611_1003.wav?rlkey=kr18a4xdl0afyq8n1llpztqcx&dl=0&raw=1" },
+            { name: "windmills in the mojave 2", lat: 34.89482, lng: -118.45358, audioUrl: "https://www.dropbox.com/scl/fi/av9yguk3ecdqbexojemcg/230611_1012.wav?rlkey=5ot7df38v39usu0q6z62u0s4c&dl=0&raw=1" },
+            { name: "windmills in the mojave 3", lat: 34.89744, lng: -118.45499, audioUrl: "https://www.dropbox.com/scl/fi/9g31s4gbugk3dnpp0aisc/230611_1044.wav?rlkey=jte91052gpiybk1kmlc684tga&dl=0&raw=1" },
+            { name: "windmills in the mojave 4", lat: 34.90089, lng: -118.45725, audioUrl: "https://www.dropbox.com/scl/fi/87wkhunyumbffo1jjbrov/230611_1104.wav?rlkey=q7hig1kh6yhc1pw7igduxhpvf&dl=0&raw=1" },
+            { name: "mojave soundscape", lat: 34.98432, lng: -118.43596, audioUrl: "https://www.dropbox.com/scl/fi/izjlklm96eu1jlulalos8/230611_1721.wav?rlkey=nwusw9nxj87umwsm8qcxfxiwu&dl=0&raw=1" },
+            { name: "wind in trees", lat: 35.0084, lng: -118.41322, audioUrl: "https://www.dropbox.com/scl/fi/1lz7h1ymugdw5tdhnolxb/230611_2058.wav?rlkey=vbvio40wj2z1h10xchzr6gveu&dl=0&raw=1" },
+            { name: "windfarm gusts in my tent", lat: 35.02318, lng: -118.39497, audioUrl: "https://www.dropbox.com/scl/fi/7tvytg25konkpzekasqls/230612_0244.wav?rlkey=oqkfnt0448gjvf452vpmdkl8s&dl=0&raw=1" },
+            { name: "windfarm descent into tehachapi", lat: 35.04, lng: -118.37352, audioUrl: "https://www.dropbox.com/scl/fi/gcsuumyc9yj87kbydtkp4/230612_1101.wav?rlkey=6t1idkstliybhcjc6hn4ty681&dl=0&raw=1" },
+            { name: "birdsong reflecting through valley", lat: 35.17037, lng: -118.24898, audioUrl: "https://www.dropbox.com/scl/fi/e5kvr08ynjrh6i22yl0uh/230614_1350.wav?rlkey=b4rbmu3b3bjzhhj6lq6h370rm&dl=0&raw=1" },
+            { name: "a cowboy vantage", lat: 35.30003, lng: -118.26703, audioUrl: "https://www.dropbox.com/scl/fi/il05geo4uoduxlsc23lfr/230615_0027.wav?rlkey=owc6w1u1xrwycig25tpxtkzg1&dl=0&raw=1" },
+            { name: "birds in mixed forest", lat: 35.32703, lng: -118.27239, audioUrl: "https://www.dropbox.com/scl/fi/sc8gmdgo6lkyzheld596x/230615_1017.wav?rlkey=pzakuznug0wib0h3h0n9r6yre&dl=0&raw=1" },
+            { name: "birds in forest", lat: 35.36396, lng: -118.29423, audioUrl: "https://www.dropbox.com/scl/fi/rtb05zx1ln3027rp1zpyp/230615_1216.wav?rlkey=rma2lhiw4xx6yu52ttew16nrx&dl=0&raw=1" },
+            { name: "light rain", lat: 35.38913, lng: -118.29953, audioUrl: "https://www.dropbox.com/scl/fi/ity9kk6hltfhq6ucn39zt/230615_1622.wav?rlkey=hqfiz0ffi8olr27nqh7e947yp&dl=0&raw=1" },
+            { name: "small stream", lat: 35.40479, lng: -118.30362, audioUrl: "https://www.dropbox.com/scl/fi/vmvv45tymazawqqa429h5/230615_1709.wav?rlkey=5s6hb8dlq468zngzo9ilsaqmu&dl=0&raw=1" },
+            { name: "mojave cicadas", lat: 35.46486, lng: -118.16242, audioUrl: "https://www.dropbox.com/scl/fi/ch7vfgxuiscp191w4jp7i/230616_1108.wav?rlkey=0djus93psgyzes95wkiqc4ld7&dl=0&raw=1" },
+            { name: "wind in grass among the joshua trees", lat: 35.50391, lng: -118.13226, audioUrl: "https://www.dropbox.com/scl/fi/266ghz0r8ilb8zag2rv74/230616_1339.wav?rlkey=abxj6607gajh5fkc3mlpjo10k&dl=0&raw=1" },
+            { name: "mojave thunder", lat: 35.55181, lng: -118.12931, audioUrl: "https://www.dropbox.com/scl/fi/9p4qub8w6zsxpymb2bpey/230616_1838.wav?rlkey=8byajlab5qf5udpo7jipea08e&dl=0&raw=1" },
+            { name: "mojave thunder 2", lat: 35.55181, lng: -118.12931, audioUrl: "https://www.dropbox.com/scl/fi/ou8l0n26y4e4jriwth38g/230616_1854.wav?rlkey=t8t9yd9ke9zyeiltgre2kwvld&dl=0&raw=1" },
+            { name: "mojave thunder 3", lat: 35.55181, lng: -118.12931, audioUrl: "https://www.dropbox.com/scl/fi/8qsidsk8aamu8rkxbfayq/230616_1902_01.wav?rlkey=wgea87ipnwxrrikllgv3lz0tx&dl=0&raw=1" },
+            { name: "cicadas on ATV trail", lat: 35.61969, lng: -118.10138, audioUrl: "https://www.dropbox.com/scl/fi/0z5jn5xj59iovgs26a54f/230617_1108.wav?rlkey=56lzimmb99c8985cedyp1p7im&dl=0&raw=1" },
+            { name: "desert walk", lat: 35.65617, lng: -118.04464, audioUrl: "https://www.dropbox.com/scl/fi/ptg5uasll9497ejil0mb2/230617_1458.wav?rlkey=m0sd8x897km10bijrbfnymp4b&dl=0&raw=1" },
+            { name: "walker pass wind", lat: 35.67677, lng: -118.01792, audioUrl: "https://www.dropbox.com/scl/fi/xfrwk97twwjkh4u7aoy8k/230618_1317.wav?rlkey=aaotet0bxldyrot8vx02ef3uf&dl=0&raw=1" },
+            { name: "wind across valley", lat: 35.71924, lng: -117.99559, audioUrl: "https://www.dropbox.com/scl/fi/3900qys1ql4vhcfpg77ws/230618_1701.wav?rlkey=nah5rzjok9j0rcxgbg6l2iz7x&dl=0&raw=1" },
+            { name: "cricket chorus", lat: 35.76885, lng: -118.02808, audioUrl: "https://www.dropbox.com/scl/fi/k0zsazaxoypkesz92quu8/230619_0007.wav?rlkey=2gv57sxevm29doxjutuwnqs0a&dl=0&raw=1" },
+            { name: "stream", lat: 35.77697, lng: -118.02724, audioUrl: "https://www.dropbox.com/scl/fi/14j660goaqyqlziijlmrr/230619_0845.wav?rlkey=bqgd0pcjliafmfvthba0dip3u&dl=0&raw=1" },
+            { name: "overnight tree ears 1", lat: 35.9651, lng: -118.15125, audioUrl: "https://www.dropbox.com/scl/fi/kxhegh0rxz88oz693leu4/230620_0020.wav?rlkey=8mg6p0wzktoqz5e63hlkpxmkw&dl=0&raw=1" },
+            { name: "overnight tree ears 2", lat: 35.9651, lng: -118.15126, audioUrl: "https://www.dropbox.com/scl/fi/8pfot3tzndpq7mb6znx32/230620_0224.wav?rlkey=yyzzl7j1b6emeeihrf5b09ikz&dl=0&raw=1" },
+            { name: "overnight tree ears 3", lat: 35.9651, lng: -118.15127, audioUrl: "https://www.dropbox.com/scl/fi/erq4h35c20xib3pqhfia3/230620_0428.wav?rlkey=4j73591lzscnra0u383m2ux7j&dl=0&raw=1" },
+            { name: "overnight tree ears 4", lat: 35.9651, lng: -118.15128, audioUrl: "https://www.dropbox.com/scl/fi/9c1iryxjmkt2pognzfv43/230620_0632.wav?rlkey=2pieuuzqrdo4nmq054brm8q2y&dl=0&raw=1" },
+            { name: "campsite cicadas", lat: 35.9651, lng: -118.15129, audioUrl: "https://www.dropbox.com/scl/fi/uzonblfdmhgvf949jt4an/230620_1026.wav?rlkey=otkq6rkjxqqjkwuenhy6kqwg4&dl=0&raw=1" },
+            { name: "tree ears cicadas", lat: 35.9651, lng: -118.1513, audioUrl: "https://www.dropbox.com/scl/fi/0ybvpy5tj2r56rwbmdjnp/230620_1045.wav?rlkey=ma7d2fw10030z5dih33v5uyfj&dl=0&raw=1" },
+            { name: "kern river", lat: 35.9774, lng: -118.15478, audioUrl: "https://www.dropbox.com/scl/fi/zcthrc5sgqgb88h0em8l6/230620_1208.wav?rlkey=cggngry7pov208pca07tp2qos&dl=0&raw=1" },
+            { name: "desert insects", lat: 35.99308, lng: -118.14359, audioUrl: "https://www.dropbox.com/scl/fi/756u7stmy9ppkj4i01r87/230620_1300.wav?rlkey=dxrzguv76ihx1we1et594of6w&dl=0&raw=1" },
+            { name: "kennedy meadows bridge", lat: 36.078906082161915, lng: -118.12394400027945, audioUrl: "https://www.dropbox.com/scl/fi/uk6co6sw1f2f79i5cq22c/230621_2020.wav?rlkey=8liwwn0n6p1dv5tzj2k9d12u1&dl=0&raw=1" },
+            { name: "snow walk to cottonwood pass trail junction", lat: 36.43834, lng: -118.22072, audioUrl: "https://www.dropbox.com/scl/fi/adx6524i229nrjs9d9vjl/230623_1805.wav?rlkey=t6sli5zyh4bl7itgimmam8dmv&dl=0&raw=1" },
+            { name: "hidden valley ranch 1", lat: 36.58916, lng: -118.09062, audioUrl: "https://www.dropbox.com/scl/fi/xeji62cjqw6jqmkl3a5x2/230624_2342.wav?rlkey=fp8ppiujr0egkorngks4hst31&dl=0&raw=1" },
+            { name: "hidden valley ranch 2", lat: 36.58916, lng: -118.09063, audioUrl: "https://www.dropbox.com/scl/fi/gwkxyvmsqwpryhhcsmiye/230625_0046.wav?rlkey=qsswpn41nnwvqh0w8bqu468u7&dl=0&raw=1" },
+            { name: "hidden valley ranch 3", lat: 36.58916, lng: -118.09064, audioUrl: "https://www.dropbox.com/scl/fi/90e3gaqo9md0ocwyob8we/230626_0327.wav?rlkey=dcvkvjlp0jjkdrv5tkkh2qvu6&dl=0&raw=1" },
+            { name: "terminal geyser 1", lat: 40.42111, lng: -121.37715, audioUrl: "https://www.dropbox.com/scl/fi/hpa4pke9diw2z2auhjzp9/230628_0927.wav?rlkey=hrn7wugm1ntfrmmy1x0di3h61&dl=0&raw=1" },
+            { name: "terminal geyser 2", lat: 40.42111, lng: -121.37715, audioUrl: "https://www.dropbox.com/scl/fi/vpk1n4qcj4piij4tdgb58/230628_0935.wav?rlkey=08jtwtvprmvw7ph59ybhnj2p1&dl=0&raw=1" },
+            { name: "terminal geyser 3", lat: 40.42111, lng: -121.37715, audioUrl: "https://www.dropbox.com/scl/fi/kmykxld3ieqp0ffqvuaa9/230628_0949.wav?rlkey=2edgs9utnfd949h8h1ogpk5gx&dl=0&raw=1" },
+            { name: "burn scar birds", lat: 40.42771, lng: -121.38589, audioUrl: "https://www.dropbox.com/scl/fi/33x34cuartb97qsr2qlzz/230628_1041.wav?rlkey=5m36yazcbpaiwab6mumi2tiom&dl=0&raw=1" },
+            { name: "forest meadow and stream", lat: 40.44181, lng: -121.40113, audioUrl: "https://www.dropbox.com/scl/fi/kl7bjirowf9u7wi97uo9t/230628_1128.wav?rlkey=62teqw5rc05eg71yig3uyekl1&dl=0&raw=1" },
+            { name: "bees in creekbed", lat: 40.72221, lng: -121.40095, audioUrl: "https://www.dropbox.com/scl/fi/sqzwwh6ij0ej1zzhrcbbh/230629_1525.wav?rlkey=087fmti0u0j6y1n1dqvxz8nzj&dl=0&raw=1" },
+            { name: "Hat Creek Rim", lat: 40.80013, lng: -121.41062, audioUrl: "https://www.dropbox.com/scl/fi/er9i5zf9xl8rwoqphvn6s/230629_1843.wav?rlkey=3uc0kg1j75g67bi2ineew5kgl&dl=0&raw=1" },
+            { name: "Tent recording", lat: 40.84287, lng: -121.42431, audioUrl: "https://www.dropbox.com/scl/fi/jgmsfeyu6ky0yrr7q9kj7/230629_2251.wav?rlkey=8qzxo9j94otbm6poetwstu6lf&dl=0&raw=1" },
+            { name: "Hat Creek Rim descent", lat: 40.8767, lng: -121.4339, audioUrl: "https://www.dropbox.com/scl/fi/70myja477nydeb68d9t82/230630_1014.wav?rlkey=u3raxfs5d35bsbeu6p72jscez&dl=0&raw=1" },
+            { name: "grasshoppers and helicopter", lat: 40.88161, lng: -121.43475, audioUrl: "https://www.dropbox.com/scl/fi/r1fospkpdmztykhzi6hwz/230630_1052.wav?rlkey=9t44yks0w7s9rdg49htrbu3b4&dl=0&raw=1" },
+            { name: "transmission lines and cicadas", lat: 40.9581, lng: -121.55565, audioUrl: "https://www.dropbox.com/scl/fi/h2qu4qtujbq95adb4dxxf/230630_1628.wav?rlkey=icdhdj78v4wdlg36npmk8c0mk&dl=0&raw=1" },
+            { name: "burney falls", lat: 41.01262, lng: -121.65095, audioUrl: "https://www.dropbox.com/scl/fi/myol61wd1w8wpwn6mf3n6/230701_1257.wav?rlkey=58ufno7ftxisjy05n1ae7jfup&dl=0&raw=1" },
+            { name: "bees in flower bush 1", lat: 41.15873, lng: -121.77638, audioUrl: "https://www.dropbox.com/scl/fi/8s15t51kfmehorp5tmoqj/230702_1130.wav?rlkey=xcf7pwq5pkbnp7fp1z888ncr3&dl=0&raw=1" },
+            { name: "bees in flower bush 2", lat: 41.15873, lng: -121.77638, audioUrl: "https://www.dropbox.com/scl/fi/a12ftew0b3wdw69ujoivp/230702_1133.wav?rlkey=x4s91v84okk1ha36epxggyf97&dl=0&raw=1" },
+            { name: "deer creek and forest", lat: 41.13396, lng: -121.98697, audioUrl: "https://www.dropbox.com/scl/fi/0kd2sreefrclbjqkyk313/230703_1020.wav?rlkey=9n544jq03mqn2m14agst75w1v&dl=0&raw=1" },
+            { name: "deer creek", lat: 41.12945, lng: -122.0005, audioUrl: "https://www.dropbox.com/scl/fi/bgw8cxzfg5ue9zw6xmc3w/230703_1104.wav?rlkey=watj2vrrqy3mpov5zeen9bz0p&dl=0&raw=1" },
+            { name: "pine forest + valley", lat: 41.11978, lng: -122.03129, audioUrl: "https://www.dropbox.com/scl/fi/al7xg2hvco82nmvf2uslv/230703_1254.wav?rlkey=pryd59ux8en2q74pbk9b4qxd6&dl=0&raw=1" },
+            { name: "wind in trees", lat: 41.13902, lng: -122.19783, audioUrl: "https://www.dropbox.com/scl/fi/3woqgawjq400goul0eluz/230704_1046.wav?rlkey=m0r63bys28y2n80ahkurcjg7i&dl=0&raw=1" },
+            { name: "bees in flower bush (again)", lat: 41.2094, lng: -122.37894, audioUrl: "https://www.dropbox.com/scl/fi/vhf22yjjagr3rmks9qn4f/230706_1303.wav?rlkey=8o0q0ijxugtm8n6mfvn46ku1j&dl=0&raw=1" },
+            { name: "hermit thrush", lat: 41.20739, lng: -122.41661, audioUrl: "https://www.dropbox.com/scl/fi/65ympb7iudxxw94k8dhwz/230706_1508.wav?rlkey=ecec3cw8rou4prcf3uv48jy6h&dl=0&raw=1" },
+            { name: "thunder in the distance", lat: 41.19861, lng: -122.50409, audioUrl: "https://www.dropbox.com/scl/fi/qnky1jw7xd0pld5a9e75q/230706_1836.wav?rlkey=pc22tsgid09pzo5uwmnvygofi&dl=0&raw=1" },
+        ];
+
+        let activeMarker = null;
+
+        audioData.forEach((track, index) => {
+            // Create a default Mapbox marker
+            const marker = new mapboxgl.Marker({ color: '#008b8b' })
+                .setLngLat([track.lng, track.lat])
+                .addTo(map);
+
+            marker.getElement().addEventListener('click', () => {
+                playAudio(index);
+
+                // Reset the previous active marker
+                if (activeMarker) {
+                    activeMarker.remove(); // Remove the old active marker
+                    activeMarker = new mapboxgl.Marker({ color: '#008b8b' }) // Original teal color
+                        .setLngLat(activeMarker.getLngLat())
+                        .addTo(map);
+                }
+
+                // Create a new active marker with the desired color
+                const newActiveMarker = new mapboxgl.Marker({ color: '#008000' }) // Green on click
+                    .setLngLat([track.lng, track.lat])
+                    .addTo(map);
+
+                activeMarker = newActiveMarker;
+
+                map.flyTo({
+                    center: [track.lng, track.lat],
+                    zoom: 8
+                });
+            });
+
+            const playlistItem = document.createElement('div');
+            playlistItem.className = 'track';
+            playlistItem.textContent = track.name;
+            playlistItem.addEventListener('click', () => {
+                playAudio(index);
+
+                // Reset the previous active marker
+                if (activeMarker) {
+                    activeMarker.remove(); // Remove the old active marker
+                    activeMarker = new mapboxgl.Marker({ color: '#008b8b' }) // Original teal color
+                        .setLngLat(activeMarker.getLngLat())
+                        .addTo(map);
+                }
+
+                // Create a new active marker with the desired color
+                const newActiveMarker = new mapboxgl.Marker({ color: '#008000' }) // Green on click
+                    .setLngLat([track.lng, track.lat])
+                    .addTo(map);
+
+                activeMarker = newActiveMarker;
+
+                map.flyTo({
+                    center: [track.lng, track.lat],
+                    zoom: 8
+                });
+            });
+
+            document.getElementById('playlist').appendChild(playlistItem);
+        });
+
+        function playAudio(index) {
+            const audioPlayer = document.getElementById('audio-player');
+            audioPlayer.src = audioData[index].audioUrl;
+            audioPlayer.play();
+
+            document.querySelectorAll('.track').forEach((element, idx) => {
+                element.classList.toggle('active-track', idx === index);
+            });
+        }
+    </script>
+
+    <script src='https://storage.ko-fi.com/cdn/scripts/overlay-widget.js'></script>
+    <script>
+      kofiWidgetOverlay.draw('thmkly', {
+        'type': 'floating-chat',
+        'floating-chat.donateButton.text': 'Support me',
+        'floating-chat.donateButton.background-color': '#ff5f5f',
+        'floating-chat.donateButton.text-color': '#fff'
+      });
+    </script>
+    <style>
+        .floatingchat-container-wrap { 
+          left: unset; 
+          right: 16px; 
+          bottom: 30px; /* Adjust this value to move the button up */
+        }
+        .floating-chat-kofi-popup-iframe { 
+          left: unset; 
+          right: 16px; 
+          bottom: 30px; /* Adjust this value to move the button up */
+        }
+      </style>
+
+</body>
+</html>
