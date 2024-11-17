@@ -13,11 +13,14 @@
       background-position: center;
     }
 
-    p {
+    .positioned-text {
+      position: absolute; /* Take the element out of normal document flow */
+      top: 50px;           /* 50px from the top of the container (or page) */
+      left: 100px;         /* 100px from the left of the container (or page) */
       font-family: Arial, sans-serif;
-      font-size: 20px;  /* Change this value to adjust the size */
-      color: rgb(255, 255, 255);     /* Change this to any color you like */
-  }
+      font-size: 60px;
+      color: rgb(255, 255, 255);
+    }
 
   </style>
 </head>
