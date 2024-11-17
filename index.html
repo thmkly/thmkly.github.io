@@ -11,6 +11,9 @@
       background-image: url('images/index-bg.jpg');
       background-size: cover;
       background-position: center;
+      display: flex; /* For better alignment */
+      justify-content: center;
+      align-items: center;
     }
 
     .spaced-text {
@@ -18,12 +21,24 @@
       font-size: 40px;
       font-weight: 400;
       color: rgb(255, 255, 255);
-      margin-top: 80px;  /* Space from the top */
-      margin-bottom: 20px; /* Space from the bottom */
-      margin-left: 60px;  /* Space from the left */
-      margin-right: 40px; /* Space from the right */
+      text-align: center;
+      margin: 0; /* Remove unnecessary margins */
     }
 
+    /* Adjust font size and positioning for smaller screens */
+    @media (max-width: 768px) {
+      .spaced-text {
+        font-size: 32px;
+        margin: 20px;
+      }
+    }
+
+    @media (max-width: 480px) {
+      .spaced-text {
+        font-size: 24px;
+        margin: 10px;
+      }
+    }
   </style>
 </head>
 <body>
