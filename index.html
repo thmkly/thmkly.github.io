@@ -7,7 +7,7 @@
   <style>
     body {
       margin: 0;
-      height: 100vh;
+      height: 100vh; /* Use full height of the viewport */
       background-image: url('images/index-bg.jpg');
       background-size: cover;
       background-position: center;
@@ -26,13 +26,15 @@
       color: rgb(255, 255, 255);
       text-align: left; /* Left-align the text */
       width: 100%; /* Make the text span the full width */
+      margin-bottom: 20px; /* Add some space between the text and the social icons */
     }
 
     .social-icons {
       display: flex;
       justify-content: center; /* Centers icons horizontally */
       width: 100%; /* Ensures icons are centered across full width */
-      margin-bottom: 20px; /* Adds spacing from the bottom */
+      margin-top: auto; /* Pushes icons to the bottom of the screen */
+      padding-bottom: 20px; /* Padding for spacing at the bottom */
     }
 
     .social-icon {
@@ -53,18 +55,15 @@
       }
 
       .social-icons {
-        margin-bottom: 10px; /* Reduce bottom margin for smaller screens */
+        margin-top: auto; /* Keeps social icons at the bottom */
+        padding-bottom: 10px; /* Reduce bottom margin for smaller screens */
       }
     }
 
-    @media (max-width: 400px) {
+    /* Handle iOS Safari Viewport Issue */
+    @media (max-width: 600px) and (max-height: 600px) {
       body {
-        padding-left: 10px; /* Reduce padding on small devices */
-        padding-right: 10px; /* Reduce padding on small devices */
-      }
-
-      .social-icons {
-        margin-bottom: 5px; /* Even smaller bottom margin */
+        height: calc(100vh - 40px); /* Subtract a bit from the total height to fit better */
       }
     }
 
