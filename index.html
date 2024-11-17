@@ -11,33 +11,18 @@
       background-image: url('images/index-bg.jpg');
       background-size: cover;
       background-position: center;
-      display: flex; /* For better alignment */
+      display: flex;
       justify-content: center;
       align-items: center;
     }
 
     .spaced-text {
       font-family: helvetica, sans-serif;
-      font-size: 40px;
+      font-size: clamp(20px, 5vw, 40px); /* Dynamically adjusts */
       font-weight: 400;
       color: rgb(255, 255, 255);
       text-align: center;
-      margin: 0; /* Remove unnecessary margins */
-    }
-
-    /* Adjust font size and positioning for smaller screens */
-    @media (max-width: 768px) {
-      .spaced-text {
-        font-size: 32px;
-        margin: 20px;
-      }
-    }
-
-    @media (max-width: 480px) {
-      .spaced-text {
-        font-size: 24px;
-        margin: 10px;
-      }
+      margin: 0; /* Center without offsets */
     }
   </style>
 </head>
