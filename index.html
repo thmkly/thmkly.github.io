@@ -23,7 +23,7 @@
       font-family: "Helvetica Neue", helvetica, Arial, sans-serif;
       font-size: clamp(20px, 10vw, 40px); /* Dynamically adjusts */
       font-weight: 400;
-      color: rgb(227, 237, 255);
+      color: rgb(255, 255, 255);
       text-align: left; /* Left-align the text */
       width: 100%; /* Make the text span the full width */
     }
@@ -44,6 +44,28 @@
 
     .social-icon:hover {
       text-decoration: underline; /* Hover effect */
+    }
+
+    /* Media Queries for smaller screens */
+    @media (max-width: 600px) {
+      .spaced-text {
+        font-size: clamp(18px, 8vw, 30px); /* Adjust font size for smaller screens */
+      }
+
+      .social-icons {
+        margin-bottom: 10px; /* Reduce bottom margin for smaller screens */
+      }
+    }
+
+    @media (max-width: 400px) {
+      body {
+        padding-left: 10px; /* Reduce padding on small devices */
+        padding-right: 10px; /* Reduce padding on small devices */
+      }
+
+      .social-icons {
+        margin-bottom: 5px; /* Even smaller bottom margin */
+      }
     }
 
   </style>
