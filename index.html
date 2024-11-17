@@ -12,9 +12,11 @@
       background-size: cover;
       background-position: center;
       display: flex;
-      justify-content: flex-start;
-      align-items: center;
-      padding-left: 20px; /* Adds some left padding */
+      flex-direction: column; /* Stack elements vertically */
+      justify-content: space-between; /* Pushes text up and social icons down */
+      align-items: center; /* Centers content horizontally */
+      padding-left: 20px;
+      padding-right: 20px;
     }
 
     .spaced-text {
@@ -22,12 +24,40 @@
       font-size: clamp(20px, 10vw, 40px); /* Dynamically adjusts */
       font-weight: 400;
       color: rgb(227, 237, 255);
-      text-align: left;
-      margin: 0; /* Left margin offset */
+      text-align: left; /* Left-align the text */
+      width: 100%; /* Make the text span the full width */
     }
+
+    .social-icons {
+      display: flex;
+      justify-content: center; /* Centers icons horizontally */
+      width: 100%; /* Ensures icons are centered across full width */
+      margin-bottom: 20px; /* Adds spacing from the bottom */
+    }
+
+    .social-icon {
+      margin: 0 10px; /* Space between icons */
+      text-decoration: none;
+      color: rgb(227, 237, 255);
+      font-size: 24px; /* Icon size */
+    }
+
+    .social-icon:hover {
+      text-decoration: underline; /* Hover effect */
+    }
+
   </style>
+
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" rel="stylesheet">
+
 </head>
 <body>
   <p class="spaced-text">thomas m kelly</p>
+  
+  <div class="social-icons">
+    <a href="https://www.youtube.com/@thmkly" target="_blank" class="social-icon"><i class="fab fa-youtube"></i></a>
+    <a href="https://instagram.com/___tomk" target="_blank" class="social-icon"><i class="fab fa-instagram"></i></a>
+    <a href="https://soundcloud.com/thmkly" target="_blank" class="social-icon"><i class="fab fa-soundcloud"></i></a>
+  </div>
 </body>
 </html>
