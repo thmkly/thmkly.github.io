@@ -9,99 +9,99 @@
   <style>
     body {
       margin: 0;
-      height: 100vh; /* Use full height of the viewport */
+      height: 100vh; 
       background-image: url('images/index-bg.jpg');
       background-size: cover;
       background-position: center;
       display: flex;
-      flex-direction: column; /* Stack elements vertically */
-      justify-content: space-between; /* Pushes text up and social icons down */
-      align-items: center; /* Centers content horizontally */
+      flex-direction: column; 
+      justify-content: space-between;
+      align-items: center;
       padding-left: 20px;
       padding-right: 20px;
     }
 
     .spaced-text {
       font-family: "Helvetica Neue", helvetica, Arial, sans-serif;
-      font-size: clamp(20px, 6vw, 40px); /* Dynamically adjusts */
+      font-size: clamp(20px, 6vw, 40px);
       font-weight: 400;
       color: rgb(255, 255, 255);
-      text-align: left; /* Left-align the text */
-      width: 100%; /* Make the text span the full width */
-      margin-bottom: 20px; /* Add some space between the text and the social icons */
+      text-align: left;
+      width: 100%;
+      margin-bottom: 20px;
       margin-top: 20px;
     }
 
     .link-text {
-      color: rgb(255, 255, 255); /* Keep the text color the same */
-      text-decoration: none; /* Remove the underline */
+      color: rgb(255, 255, 255);
+      text-decoration: none;
     }
 
     .link-text:hover {
-      color: rgb(255, 255, 255); /* Keep the color the same on hover */
-      text-decoration: none; /* Ensure no underline on hover */
+      color: rgb(255, 255, 255);
+      text-decoration: none;
     }
 
     .social-icons {
       display: flex;
-      justify-content: center; /* Centers icons horizontally */
-      width: 100%; /* Ensures icons are centered across full width */
-      margin-top: auto; /* Pushes icons to the bottom of the screen */
-      padding-bottom: 20px; /* Padding for spacing at the bottom */
+      justify-content: center;
+      width: 100%;
+      margin-top: auto;
+      padding-bottom: 20px;
     }
 
     .social-icon {
-      margin: 0 10px; /* Space between icons */
+      margin: 0 10px;
       text-decoration: none;
       color: rgb(255, 255, 255);
-      font-size: 24px; /* Icon size */
+      font-size: 24px;
     }
 
     .social-icon:hover {
-      text-decoration: underline; /* Hover effect */
+      text-decoration: underline;
     }
 
-/* Hamburger Menu */
-.hamburger-menu {
-  display: none;
-  position: absolute;
-  top: 20px;
-  right: 20px;
-  background-color: transparent;
-  border: none;
-  cursor: pointer;
-  z-index: 10;
-  transition: background-color 0.3s ease;
-}
+    /* Hamburger Menu */
+    .hamburger-menu {
+      display: none;
+      position: absolute;
+      top: 20px;
+      right: 20px;
+      background-color: transparent;
+      border: none;
+      cursor: pointer;
+      z-index: 10;
+      transition: background-color 0.3s ease;
+    }
 
-.hamburger-menu span {
-  display: block;
-  width: 30px;
-  height: 4px;
-  margin: 6px 0;
-  background-color: rgb(255, 255, 255); /* Default color */
-  transition: 0.4s;
-}
+    .hamburger-menu span {
+      display: block;
+      width: 30px;
+      height: 4px;
+      margin: 6px 0;
+      background-color: rgb(255, 255, 255);
+      transition: 0.4s;
+    }
 
-.hamburger-menu.open span {
-  background-color: rgb(31, 30, 34); /* Darker color when active */
-}
+    .hamburger-menu.open span {
+      background-color: rgb(31, 30, 34);
+    }
 
-.hamburger-menu:hover span {
-  background-color: rgb(31, 30, 34); /* Change icon color on hover */
-}
+    .hamburger-menu:hover span {
+      background-color: rgb(31, 30, 34);
+    }
 
-.hamburger-menu.open {
-  background-color: rgba(255, 255, 255, 0); /* Transparent background when active */
-}
+    .hamburger-menu.open {
+      background-color: rgba(255, 255, 255, 0);
+    }
 
     /* Dropdown Menu */
     .menu {
       position: absolute;
-      top: 70px; /* Adjusts the menu position below the hamburger button */
+      top: 70px;
       right: 20px;
-      background-color: rgba(255, 255, 255, 0); /* Transparent background */
-      display: none; /* Initially hidden */
+      background-color: rgba(255, 255, 255, 0);
+      display: none;
       flex-direction: column;
       padding: 10px;
       width: 200px;
@@ -110,7 +110,7 @@
     .menu a {
       color: rgb(255, 255, 255);
       font-family: "Helvetica Neue", helvetica, Arial, sans-serif;
-      font-size: clamp(20px, 10vw, 40px); /* Dynamically adjusts */
+      font-size: clamp(20px, 10vw, 40px);
       font-weight: 400;
       text-decoration: none;
       padding: 12px 0;
@@ -125,14 +125,20 @@
     /* Media Query for Mobile */
     @media (max-width: 768px) {
       .hamburger-menu {
-        display: block; /* Shows the hamburger menu on mobile */
+        display: block;
       }
+    }
+
+    /* Remove outline for clicked elements */
+    .hamburger-menu:focus,
+    .menu a:focus {
+      outline: none;
     }
 
     /* Handle iOS Safari Viewport Issue */
     @media (max-width: 600px) and (max-height: 600px) {
       body {
-        height: calc(100vh - 40px); /* Subtract a bit from the total height to fit better */
+        height: calc(100vh - 40px);
       }
     }
 
