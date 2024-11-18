@@ -29,6 +29,7 @@
       text-align: left; /* Left-align the text */
       width: 100%; /* Make the text span the full width */
       margin-bottom: 20px; /* Add some space between the text and the social icons */
+      margin-top: 20px;
     }
 
     .social-icons {
@@ -42,7 +43,7 @@
     .social-icon {
       margin: 0 10px; /* Space between icons */
       text-decoration: none;
-      color: rgb(227, 237, 255);
+      color: rgb(255, 255, 255);
       font-size: 24px; /* Icon size */
     }
 
@@ -59,6 +60,7 @@
       background-color: transparent;
       border: none;
       cursor: pointer;
+      z-index: 10; /* Ensure it's above other content */
     }
 
     .hamburger-menu span {
@@ -66,7 +68,7 @@
       width: 30px;
       height: 4px;
       margin: 6px 0;
-      background-color: rgb(227, 237, 255); /* White text color matching existing text */
+      background-color: rgb(255, 255, 255); /* White text color matching existing text */
       transition: 0.4s;
     }
 
@@ -75,15 +77,18 @@
       position: absolute;
       top: 70px; /* Adjusts the menu position below the hamburger button */
       right: 20px;
-      background-color: rgba(0, 0, 0, 0.7); /* Transparent background */
-      display: none;
+      background-color: rgba(255, 255, 255, 0); /* Transparent background */
+      display: none; /* Initially hidden */
       flex-direction: column;
       padding: 10px;
+      width: 200px;
     }
 
     .menu a {
-      color: rgb(227, 237, 255);
-      font-size: 18px;
+      color: rgb(255, 255, 255);
+      font-family: "Helvetica Neue", helvetica, Arial, sans-serif;
+      font-size: clamp(20px, 10vw, 40px); /* Dynamically adjusts */
+      font-weight: 400;
       text-decoration: none;
       padding: 8px 0;
       text-align: right;
@@ -91,7 +96,7 @@
     }
 
     .menu a:hover {
-      color: rgb(255, 255, 255);
+      color: rgb(227, 237, 255);
     }
 
     /* Media Query for Mobile */
@@ -141,11 +146,20 @@
     function toggleMenu() {
       const menu = document.querySelector('.menu');
       const hamburger = document.querySelector('.hamburger-menu');
-      menu.style.display = menu.style.display === 'flex' ? 'none' : 'flex';
+      if (menu.style.display === 'flex') {
+        menu.style.display = 'none';
+      } else {
+        menu.style.display = 'flex';
+      }
 
       // Animation for the hamburger icon
       hamburger.classList.toggle('open');
     }
+
+    // Ensure the hamburger menu toggles on load for debugging purposes
+    window.addEventListener('load', () => {
+      document.querySelector('.hamburger-menu').style.display = 'block';
+    });
   </script>
 
 </body>
