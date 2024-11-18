@@ -23,13 +23,23 @@
 
     .spaced-text {
       font-family: "Helvetica Neue", helvetica, Arial, sans-serif;
-      font-size: clamp(20px, 10vw, 40px); /* Dynamically adjusts */
+      font-size: clamp(20px, 5vw, 40px); /* Dynamically adjusts */
       font-weight: 400;
       color: rgb(255, 255, 255);
       text-align: left; /* Left-align the text */
       width: 100%; /* Make the text span the full width */
       margin-bottom: 20px; /* Add some space between the text and the social icons */
       margin-top: 20px;
+    }
+
+    .link-text {
+      color: rgb(255, 255, 255); /* Keep the text color the same */
+      text-decoration: none; /* Remove the underline */
+    }
+
+    .link-text:hover {
+      color: rgb(255, 255, 255); /* Keep the color the same on hover */
+      text-decoration: none; /* Ensure no underline on hover */
     }
 
     .social-icons {
@@ -90,7 +100,7 @@
       font-size: clamp(20px, 10vw, 40px); /* Dynamically adjusts */
       font-weight: 400;
       text-decoration: none;
-      padding: 8px 0;
+      padding: 12px 0;
       text-align: right;
       transition: 0.3s;
     }
@@ -119,7 +129,9 @@
 
 </head>
 <body>
-  <p class="spaced-text">thomas m kelly</p>
+  <p class="spaced-text">
+    <a href="https://www.yourwebsite.com" class="link-text">thomas m kelly</a>
+  </p>
   
   <div class="social-icons">
     <a href="https://www.youtube.com/@thmkly" target="_blank" class="social-icon"><i class="fab fa-youtube"></i></a>
@@ -136,9 +148,11 @@
 
   <!-- Menu -->
   <div class="menu">
-    <a href="#">Home</a>
-    <a href="#">About</a>
-    <a href="#">Contact</a>
+    <a href="#">audio</a>
+    <a href="#">visual</a>
+    <a href="#">cv</a>
+    <a href="#">bio</a>
+    <a href="#">contact</a>
   </div>
 
   <script>
