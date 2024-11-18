@@ -9,56 +9,56 @@
   <style>
     body {
       margin: 0;
-      height: 100vh; 
+      height: 100vh; /* Use full height of the viewport */
       background-image: url('images/index-bg.jpg');
       background-size: cover;
       background-position: center;
       display: flex;
-      flex-direction: column; 
-      justify-content: space-between;
-      align-items: center;
+      flex-direction: column; /* Stack elements vertically */
+      justify-content: space-between; /* Pushes text up and social icons down */
+      align-items: center; /* Centers content horizontally */
       padding-left: 20px;
       padding-right: 20px;
     }
 
     .spaced-text {
       font-family: "Helvetica Neue", helvetica, Arial, sans-serif;
-      font-size: clamp(20px, 6vw, 40px);
+      font-size: clamp(20px, 6vw, 40px); /* Dynamically adjusts */
       font-weight: 400;
       color: rgb(255, 255, 255);
-      text-align: left;
-      width: 100%;
-      margin-bottom: 20px;
+      text-align: left; /* Left-align the text */
+      width: 100%; /* Make the text span the full width */
+      margin-bottom: 20px; /* Add some space between the text and the social icons */
       margin-top: 20px;
     }
 
     .link-text {
-      color: rgb(255, 255, 255);
-      text-decoration: none;
+      color: rgb(255, 255, 255); /* Keep the text color the same */
+      text-decoration: none; /* Remove the underline */
     }
 
     .link-text:hover {
-      color: rgb(255, 255, 255);
-      text-decoration: none;
+      color: rgb(255, 255, 255); /* Keep the color the same on hover */
+      text-decoration: none; /* Ensure no underline on hover */
     }
 
     .social-icons {
       display: flex;
-      justify-content: center;
-      width: 100%;
-      margin-top: auto;
-      padding-bottom: 20px;
+      justify-content: center; /* Centers icons horizontally */
+      width: 100%; /* Ensures icons are centered across full width */
+      margin-top: auto; /* Pushes icons to the bottom of the screen */
+      padding-bottom: 20px; /* Padding for spacing at the bottom */
     }
 
     .social-icon {
-      margin: 0 10px;
+      margin: 0 10px; /* Space between icons */
       text-decoration: none;
       color: rgb(255, 255, 255);
-      font-size: 24px;
+      font-size: 24px; /* Icon size */
     }
 
     .social-icon:hover {
-      text-decoration: underline;
+      text-decoration: underline; /* Hover effect */
     }
 
     /* Hamburger Menu */
@@ -79,38 +79,38 @@
       width: 30px;
       height: 4px;
       margin: 6px 0;
-      background-color: rgb(255, 255, 255);
+      background-color: rgb(255, 255, 255); /* Default color */
       transition: 0.4s;
     }
 
     .hamburger-menu.open span {
-      background-color: rgb(31, 30, 34);
+      background-color: rgb(31, 30, 34); /* Darker color when active */
     }
 
     .hamburger-menu:hover span {
-      background-color: rgb(31, 30, 34);
+      background-color: rgb(31, 30, 34); /* Change icon color on hover */
     }
 
     .hamburger-menu.open {
-      background-color: rgba(255, 255, 255, 0);
+      background-color: rgba(255, 255, 255, 0); /* Transparent background when active */
     }
 
     /* Dropdown Menu */
     .menu {
       position: absolute;
-      top: 70px;
+      top: 70px; /* Adjusts the menu position below the hamburger button */
       right: 20px;
-      background-color: rgba(255, 255, 255, 0);
-      display: none;
+      background-color: rgba(255, 255, 255, 0.6); /* Semi-transparent background */
+      display: none; /* Initially hidden */
       flex-direction: column;
       padding: 10px;
       width: 200px;
     }
 
     .menu a {
-      color: rgb(255, 255, 255);
+      color: rgb(31, 30, 34); /* Dark text */
       font-family: "Helvetica Neue", helvetica, Arial, sans-serif;
-      font-size: clamp(20px, 10vw, 40px);
+      font-size: clamp(20px, 10vw, 40px); /* Dynamically adjusts */
       font-weight: 400;
       text-decoration: none;
       padding: 12px 0;
@@ -119,26 +119,26 @@
     }
 
     .menu a:hover {
-      color: rgb(31, 30, 34, 0);
+      color: rgb(255, 255, 255); /* White text on hover */
+      background-color: rgb(31, 30, 34, .7); /* Dark background on hover */
+    }
+
+    .menu a:active {
+      background-color: rgb(31, 30, 34); /* Keep dark background after click */
+      color: rgb(255, 255, 255, .2); /* White text after click */
     }
 
     /* Media Query for Mobile */
     @media (max-width: 768px) {
       .hamburger-menu {
-        display: block;
+        display: block; /* Shows the hamburger menu on mobile */
       }
-    }
-
-    /* Remove outline for clicked elements */
-    .hamburger-menu:focus,
-    .menu a:focus {
-      outline: none;
     }
 
     /* Handle iOS Safari Viewport Issue */
     @media (max-width: 600px) and (max-height: 600px) {
       body {
-        height: calc(100vh - 40px);
+        height: calc(100vh - 40px); /* Subtract a bit from the total height to fit better */
       }
     }
 
@@ -184,12 +184,20 @@ function toggleMenu() {
   // Toggle the display of the menu
   if (menu.style.display === 'flex') {
     menu.style.display = 'none';
+    hamburger.classList.remove('open'); // Revert the burger icon to its original color when closed
   } else {
     menu.style.display = 'flex';
+    hamburger.classList.add('open'); // Change the burger icon color when open
   }
-
-  // Toggle the "open" class on the hamburger menu to control the active state
-  hamburger.classList.toggle('open');
+  
+  // Add event listener to each menu item to hide the menu when clicked
+  const menuItems = document.querySelectorAll('.menu a');
+  menuItems.forEach(item => {
+    item.addEventListener('click', () => {
+      menu.style.display = 'none'; // Hide the menu
+      hamburger.classList.remove('open'); // Revert the burger icon color when menu item is clicked
+    });
+  });
 }
 
 // Ensure the hamburger menu toggles on load for debugging purposes
