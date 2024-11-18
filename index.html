@@ -50,15 +50,54 @@
       text-decoration: underline; /* Hover effect */
     }
 
-    /* Media Queries for smaller screens */
-    @media (max-width: 600px) {
-      .spaced-text {
-        font-size: clamp(18px, 8vw, 30px); /* Adjust font size for smaller screens */
-      }
+    /* Hamburger Menu */
+    .hamburger-menu {
+      display: none;
+      position: absolute;
+      top: 20px;
+      right: 20px;
+      background-color: transparent;
+      border: none;
+      cursor: pointer;
+    }
 
-      .social-icons {
-        margin-top: auto; /* Keeps social icons at the bottom */
-        padding-bottom: 10px; /* Reduce bottom margin for smaller screens */
+    .hamburger-menu span {
+      display: block;
+      width: 30px;
+      height: 4px;
+      margin: 6px 0;
+      background-color: rgb(227, 237, 255); /* White text color matching existing text */
+      transition: 0.4s;
+    }
+
+    /* Dropdown Menu */
+    .menu {
+      position: absolute;
+      top: 70px; /* Adjusts the menu position below the hamburger button */
+      right: 20px;
+      background-color: rgba(0, 0, 0, 0.7); /* Transparent background */
+      display: none;
+      flex-direction: column;
+      padding: 10px;
+    }
+
+    .menu a {
+      color: rgb(227, 237, 255);
+      font-size: 18px;
+      text-decoration: none;
+      padding: 8px 0;
+      text-align: right;
+      transition: 0.3s;
+    }
+
+    .menu a:hover {
+      color: rgb(255, 255, 255);
+    }
+
+    /* Media Query for Mobile */
+    @media (max-width: 768px) {
+      .hamburger-menu {
+        display: block; /* Shows the hamburger menu on mobile */
       }
     }
 
@@ -82,5 +121,32 @@
     <a href="https://instagram.com/___tomk" target="_blank" class="social-icon"><i class="fab fa-instagram"></i></a>
     <a href="https://soundcloud.com/thmkly" target="_blank" class="social-icon"><i class="fab fa-soundcloud"></i></a>
   </div>
+
+  <!-- Hamburger Icon -->
+  <button class="hamburger-menu" onclick="toggleMenu()">
+    <span></span>
+    <span></span>
+    <span></span>
+  </button>
+
+  <!-- Menu -->
+  <div class="menu">
+    <a href="#">Home</a>
+    <a href="#">About</a>
+    <a href="#">Contact</a>
+  </div>
+
+  <script>
+    // Function to toggle the menu
+    function toggleMenu() {
+      const menu = document.querySelector('.menu');
+      const hamburger = document.querySelector('.hamburger-menu');
+      menu.style.display = menu.style.display === 'flex' ? 'none' : 'flex';
+
+      // Animation for the hamburger icon
+      hamburger.classList.toggle('open');
+    }
+  </script>
+
 </body>
 </html>
