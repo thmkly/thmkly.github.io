@@ -75,11 +75,11 @@
 }
 
 .hamburger-menu:hover {
-  background-color: rgba(255, 255, 255, 0.2); /* Light background color on hover */
+  background-color: rgba(255, 255, 255, 0); /* bg transparent */
 }
 
-.hamburger-menu:active {
-  background-color: rgba(255, 255, 255, 0.4); /* Slightly darker background when clicked */
+.hamburger-menu.open {
+  background-color: rgba(255, 255, 255, 0); /* bg transparent */
 }
 
 .hamburger-menu span {
@@ -91,12 +91,12 @@
   transition: 0.4s;
 }
 
-.hamburger-menu:hover span {
-  background-color: rgb(31, 30, 34); /* Change icon color on hover */
+.hamburger-menu.open span {
+  background-color: rgb(31, 30, 34); /* Darker icon color when clicked */
 }
 
-.hamburger-menu:active span {
-  background-color: rgb(31, 30, 34); /* Darker icon color when clicked */
+.hamburger-menu:hover span {
+  background-color: rgb(31, 30, 34); /* Change icon color on hover */
 }
 
     /* Dropdown Menu */
