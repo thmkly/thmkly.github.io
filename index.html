@@ -61,26 +61,43 @@
       text-decoration: underline; /* Hover effect */
     }
 
-    /* Hamburger Menu */
-    .hamburger-menu {
-      display: none;
-      position: absolute;
-      top: 20px;
-      right: 20px;
-      background-color: transparent;
-      border: none;
-      cursor: pointer;
-      z-index: 10; /* Ensure it's above other content */
-    }
+/* Hamburger Menu */
+.hamburger-menu {
+  display: none;
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  background-color: transparent;
+  border: none;
+  cursor: pointer;
+  z-index: 10;
+  transition: background-color 0.3s ease;
+}
 
-    .hamburger-menu span {
-      display: block;
-      width: 30px;
-      height: 4px;
-      margin: 6px 0;
-      background-color: rgb(255, 255, 255); /* White text color matching existing text */
-      transition: 0.4s;
-    }
+.hamburger-menu:hover {
+  background-color: rgba(255, 255, 255, 0.2); /* Light background color on hover */
+}
+
+.hamburger-menu:active {
+  background-color: rgba(255, 255, 255, 0.4); /* Slightly darker background when clicked */
+}
+
+.hamburger-menu span {
+  display: block;
+  width: 30px;
+  height: 4px;
+  margin: 6px 0;
+  background-color: rgb(255, 255, 255);
+  transition: 0.4s;
+}
+
+.hamburger-menu:hover span {
+  background-color: rgb(31, 30, 34); /* Change icon color on hover */
+}
+
+.hamburger-menu:active span {
+  background-color: rgb(31, 30, 34); /* Darker icon color when clicked */
+}
 
     /* Dropdown Menu */
     .menu {
@@ -106,7 +123,7 @@
     }
 
     .menu a:hover {
-      color: rgb(227, 237, 255);
+      color: rgb(31, 30, 34);
     }
 
     /* Media Query for Mobile */
@@ -150,6 +167,7 @@
   <div class="menu">
     <a href="#">audio</a>
     <a href="#">visual</a>
+    <a href="#">outside</a>
     <a href="#">cv</a>
     <a href="#">bio</a>
     <a href="#">contact</a>
