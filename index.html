@@ -74,29 +74,25 @@
   transition: background-color 0.3s ease;
 }
 
-.hamburger-menu:hover {
-  background-color: rgba(255, 255, 255, 0); /* bg transparent */
-}
-
-.hamburger-menu.open {
-  background-color: rgba(255, 255, 255, 0); /* bg transparent */
-}
-
 .hamburger-menu span {
   display: block;
   width: 30px;
   height: 4px;
   margin: 6px 0;
-  background-color: rgb(255, 255, 255);
+  background-color: rgb(255, 255, 255); /* Default color */
   transition: 0.4s;
 }
 
 .hamburger-menu.open span {
-  background-color: rgb(31, 30, 34); /* Darker icon color when clicked */
+  background-color: rgb(31, 30, 34); /* Darker color when active */
 }
 
 .hamburger-menu:hover span {
   background-color: rgb(31, 30, 34); /* Change icon color on hover */
+}
+
+.hamburger-menu.open {
+  background-color: rgba(255, 255, 255, 0); /* Transparent background when active */
 }
 
     /* Dropdown Menu */
@@ -174,24 +170,26 @@
   </div>
 
   <script>
-    // Function to toggle the menu
-    function toggleMenu() {
-      const menu = document.querySelector('.menu');
-      const hamburger = document.querySelector('.hamburger-menu');
-      if (menu.style.display === 'flex') {
-        menu.style.display = 'none';
-      } else {
-        menu.style.display = 'flex';
-      }
+// Function to toggle the menu
+function toggleMenu() {
+  const menu = document.querySelector('.menu');
+  const hamburger = document.querySelector('.hamburger-menu');
+  
+  // Toggle the display of the menu
+  if (menu.style.display === 'flex') {
+    menu.style.display = 'none';
+  } else {
+    menu.style.display = 'flex';
+  }
 
-      // Animation for the hamburger icon
-      hamburger.classList.toggle('open');
-    }
+  // Toggle the "open" class on the hamburger menu to control the active state
+  hamburger.classList.toggle('open');
+}
 
-    // Ensure the hamburger menu toggles on load for debugging purposes
-    window.addEventListener('load', () => {
-      document.querySelector('.hamburger-menu').style.display = 'block';
-    });
+// Ensure the hamburger menu toggles on load for debugging purposes
+window.addEventListener('load', () => {
+  document.querySelector('.hamburger-menu').style.display = 'block';
+});
   </script>
 
 </body>
