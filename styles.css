@@ -24,8 +24,8 @@ body {
     margin-bottom: 20px;
     margin-top: 50px;
     cursor: pointer;
-    position: relative; /* Make sure it participates in the stacking context */
-    z-index: 0; /* Lower than the menu */
+    position: relative;
+    z-index: 0;
 }
 
 /* Link styling */
@@ -41,10 +41,10 @@ body {
 
 /* Social icons styling */
 .social-icons {
-    align-self: flex-start; /* Overrides centering applied by body alignment */
+    align-self: flex-start;
     display: flex;
-    justify-content: flex-start; /* Ensures icons align to the left */
-    gap: 10px; /* Controls spacing between icons */
+    justify-content: flex-start;
+    gap: 10px;
 }
 
 .social-icon {
@@ -68,27 +68,27 @@ body {
     flex-direction: column;
     padding: 10px;
     width: 200px;
-    transition: opacity 0.5s ease; /* For smooth fade effect */
-    z-index: 1; /* Keeps the menu above other content */
+    transition: opacity 0.5s ease;
+    z-index: 1;
 }
 
 .menu.open {
-    display: flex; /* Show menu when .open is added */
+    display: flex;
     opacity: 1;
 }
 
 .menu a {
-    color: rgb(31, 30, 34); /* Default text color */
+    color: rgb(31, 30, 34);
     font-family: "Helvetica Neue", helvetica, Arial, sans-serif;
-    font-size: clamp(20px, 10vw, 40px);
+    font-size: clamp(16px, 4vw, 24px);
     font-weight: 375;
     text-decoration: none;
-    padding: 12px 10;
+    padding: 12px 10px;
     text-align: left;
-    position: relative; /* Ensures text stacking context */
-    overflow: hidden; /* Prevents pseudo-elements from spilling */
-    z-index: 1; /* Keep the text above the hover background */
-    transition: color 0.3s ease; /* Smooth text color change */
+    position: relative;
+    overflow: hidden;
+    z-index: 1;
+    transition: color 0.3s ease;
     display: inline-block;
 }
 
@@ -98,21 +98,20 @@ body {
     position: absolute;
     top: 0;
     left: 0;
-    width: 0; /* Initially no width */
+    width: 0;
     height: 100%;
-    background-color: rgba(255, 255, 255, 0.3); /* Hover background color */
-    z-index: -1; /* Keeps it below the text */
+    background-color: rgba(255, 255, 255, 0.3);
+    z-index: -1;
     transition: width 0.0s ease;
 }
 
 /* Hover Effect for Links */
 .menu a:hover {
-    color: rgb(255, 255, 255); /* Ensure text turns white on hover */
+    color: rgb(255, 255, 255);
 }
 
-/* Hover Effect for the Pseudo-element */
 .menu a:hover::before {
-    width: 100%; /* Expands the dark background on hover */
+    width: 100%;
 }
 
 /* Ensure the menu items are still clickable */
@@ -148,9 +147,25 @@ body {
     }
 }
 
-/* Mobile-responsive styles */
+/* Mobile-responsive styles for .menu */
 @media (max-width: 768px) {
-    .hamburger-menu {
-        display: block;
+    .menu {
+        width: 150px;
+        padding: 8px;
+    }
+
+    .menu a {
+        font-size: clamp(14px, 3.5vw, 20px);
+    }
+}
+
+@media (max-width: 480px) {
+    .menu {
+        width: 120px;
+        padding: 6px;
+    }
+
+    .menu a {
+        font-size: clamp(12px, 3vw, 18px);
     }
 }
