@@ -104,7 +104,7 @@ body {
     .social-icons {
         position: fixed; /* Fixes the position on the screen */
         top: 20px; /* Positions the icons 20px from the top */
-        right: 20px; /* Positions 20px from the right */
+        right: 10px; /* Positions 20px from the right */
         display: flex;
         flex-direction: column; /* Stacks the icons vertically */
         align-items: flex-end; /* Aligns icons to the right */
