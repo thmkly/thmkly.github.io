@@ -80,10 +80,10 @@ body {
 .menu a {
     color: rgb(31, 30, 34); /* Default text color */
     font-family: "Helvetica Neue", helvetica, Arial, sans-serif;
-    font-size: clamp(20px, 10vw, 40px);
+    font-size: clamp(16px, 4vw, 24px); /* Updated font size with clamp for scaling */
     font-weight: 375;
     text-decoration: none;
-    padding: 12px 10;
+    padding: 12px 10px;
     text-align: left;
     position: relative; /* Ensures text stacking context */
     overflow: hidden; /* Prevents pseudo-elements from spilling */
@@ -91,7 +91,6 @@ body {
     transition: color 0.3s ease; /* Smooth text color change */
     display: inline-block;
 }
-
 /* Pseudo-element for Hover Background */
 .menu a::before {
     content: '';
@@ -153,7 +152,10 @@ body {
     .menu {
         width: 150px; /* Adjust width for mobile */
         padding: 8px; /* Reduce padding for smaller screens */
-        font-size: 16px; /* Adjust font size */
+    }
+
+    .menu a {
+        font-size: clamp(14px, 3.5vw, 20px); /* Responsive scaling for smaller screens */
     }
 }
 
@@ -161,6 +163,9 @@ body {
     .menu {
         width: 120px; /* Further reduce width for very small screens */
         padding: 6px; /* Adjust padding */
-        font-size: 14px; /* Smaller font size */
+    }
+
+    .menu a {
+        font-size: clamp(12px, 3vw, 18px); /* Smaller text size for very small screens */
     }
 }
