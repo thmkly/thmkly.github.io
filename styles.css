@@ -115,9 +115,13 @@ body {
     }
 
     .social-icons {
+        position: fixed; /* Keeps the icons in the same position */
+        top: 20px; /* Positions them 20px from the top */
+        right: 20px; /* Positions 20px from the right */
+        display: flex;
         flex-direction: column; /* Stacks the icons vertically */
-        align-items: flex-end; /* Aligns icons to the right */
-        gap: 12px; /* Adjust spacing between the stacked icons */
+        align-items: flex-start; /* Aligns the icons to the start (upper right) */
+        gap: 10px; /* Adjusts space between icons */
     }
 
     .social-icon {
