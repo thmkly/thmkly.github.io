@@ -80,7 +80,7 @@ body {
 .menu a {
     color: rgb(31, 30, 34);
     font-family: "Helvetica Neue", helvetica, Arial, sans-serif;
-    font-size: clamp(16px, 4vw, 24px);
+    font-size: clamp(20px, 10vw, 30px);
     font-weight: 375;
     text-decoration: none;
     padding: 12px 10px;
