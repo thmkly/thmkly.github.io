@@ -16,7 +16,7 @@ body {
 /* Style for the main text */
 .spaced-text {
     font-family: "Helvetica Neue", helvetica, Arial, sans-serif;
-    font-size: clamp(20px, 6vw, 40px);
+    font-size: clamp(20px, 6vw, 40px); /* Scales text size */
     font-weight: 420;
     color: rgb(255, 255, 255);
     text-align: left;
@@ -46,7 +46,7 @@ body {
     right: 20px; /* Positions 20px from the right */
     display: flex;
     flex-direction: row; /* Default: horizontal layout */
-    gap: 10px; /* Adjusts space between icons */
+    gap: 15px; /* Default spacing between icons */
 }
 
 .social-icon {
@@ -78,7 +78,7 @@ body {
 .menu a {
     color: rgb(31, 30, 34);
     font-family: "Helvetica Neue", helvetica, Arial, sans-serif;
-    font-size: clamp(20px, 10vw, 30px);
+    font-size: clamp(20px, 10vw, 30px); /* Adjusts the font size */
     font-weight: 375;
     text-decoration: none;
     padding: 12px 10px;
@@ -89,20 +89,8 @@ body {
     transition: color 0.3s ease;
     display: inline-block;
 }
-/* Pseudo-element for Hover Background */
-.menu a::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 0;
-    height: 100%;
-    background-color: rgba(255, 255, 255, 0.3);
-    z-index: -1;
-    transition: width 0.0s ease;
-}
 
-/* Hover Effect for Links */
+/* Hover Effect */
 .menu a:hover {
     color: rgb(255, 255, 255);
 }
@@ -111,72 +99,47 @@ body {
     width: 100%;
 }
 
-/* Ensure the menu items are still clickable */
-.menu a:focus {
-    outline: none;
-}
-
-/* Subpage Styles */
-.subpage {
-    font-family: "Helvetica Neue", helvetica, Arial, sans-serif;
-    color: rgb(255, 255, 255);
-    padding: 20px;
-    max-width: 1200px;
-    margin: 0 auto;
-    background-color: rgba(0, 0, 0, 0.5);
-    border-radius: 8px;
-    box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.5);
-}
-
-.subpage a {
-    color: rgb(255, 255, 255);
-    text-decoration: none;
-}
-
-.subpage a:hover {
-    text-decoration: underline;
-}
-
-/* Handle iOS Safari Viewport Issue */
-@media (max-width: 600px) and (max-height: 600px) {
-    body {
-        height: calc(100vh - 40px);
-    }
-}
-
-/* Mobile-responsive styles for .menu */
+/* Social icons on mobile */
 @media (max-width: 768px) {
     .spaced-text {
-        font-family: "Helvetica Neue", helvetica, Arial, sans-serif;
-        font-size: clamp(20px, 10vw, 40px);
+        font-size: clamp(18px, 8vw, 30px); /* Adjust text size on mobile */
     }
-    
+
     .menu {
-        width: 150px; /* Adjust width for mobile */
-        padding: 8px; /* Reduce padding for smaller screens */
+        width: 150px;
+        padding: 8px;
     }
 
     .menu a {
-        font-size: clamp(20px, 10vw, 40px); /* Responsive scaling for smaller screens */
+        font-size: clamp(18px, 8vw, 30px); /* Adjust font size for menu items */
     }
 
     .social-icons {
         flex-direction: column; /* Stacks the icons vertically */
-        align-items: flex-end; /* Aligns the icons to the right */
+        align-items: flex-end; /* Aligns icons to the right */
+        gap: 12px; /* Adjust spacing between the stacked icons */
     }
 
     .social-icon {
-        margin-bottom: 1vw; /* Adds space between stacked icons */
+        margin-bottom: 12px; /* Adds space between stacked icons */
     }
 }
 
 @media (max-width: 480px) {
     .menu {
-        width: 120px; /* Further reduce width for very small screens */
-        padding: 6px; /* Adjust padding */
+        width: 120px;
+        padding: 6px;
     }
 
     .menu a {
-        font-size: clamp(12px, 10vw, 18px); /* Smaller text size for very small screens */
+        font-size: clamp(14px, 10vw, 18px); /* Smaller text size on very small screens */
+    }
+
+    .social-icons {
+        gap: 10px; /* Further adjust spacing for very small screens */
+    }
+
+    .social-icon {
+        margin-bottom: 10px; /* Adjust spacing for very small screens */
     }
 }
