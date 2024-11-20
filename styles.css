@@ -9,14 +9,14 @@ body {
     flex-direction: column;
     justify-content: space-between;
     align-items: center;
-    padding-left: 20px;
-    padding-right: 20px;
+    padding-left: 10px;
+    padding-right: 10px;
 }
 
 /* Style for the main text */
 .spaced-text {
     font-family: "Helvetica Neue", helvetica, Arial, sans-serif;
-    font-size: clamp(20px, 6vw, 40px); /* Scales text size */
+    font-size: clamp(20px, 10vw, 40px); /* Scales text size */
     font-weight: 420;
     color: rgb(255, 255, 255);
     text-align: left;
