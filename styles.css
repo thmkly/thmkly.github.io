@@ -16,13 +16,13 @@ body {
 /* Style for the main text */
 .spaced-text {
     font-family: "Helvetica Neue", helvetica, Arial, sans-serif;
-    font-size: clamp(20px, 10vw, 40px); /* Scales text size */
+    font-size: clamp(20px, 100vw, 100px); /* Scales text size */
     font-weight: 420;
     color: rgb(255, 255, 255);
     text-align: left;
     width: 100%;
     margin-bottom: 20px;
-    margin-top: 50px;
+    margin-top: 110px;
     cursor: pointer;
     position: relative;
     z-index: 0;
@@ -56,14 +56,14 @@ body {
 /* Dropdown Menu */
 .menu {
     position: absolute;
-    top: 100px;
-    left: 12px;
+    top: 70px;
+    left: 16px;
     background-color: rgba(255, 255, 255, 0.6);
     display: none;
     flex-direction: column;
-    padding: 5px;
+    padding: 3px;
     width: 200px;
-    transition: opacity 0.5s ease;
+    transition: opacity .3s ease;
     z-index: 1;
 }
 
@@ -73,23 +73,24 @@ body {
 }
 
 .menu a {
-    color: rgb(31, 30, 34);
+    color: rgba(31, 30, 34, .8);
     font-family: "Helvetica Neue", helvetica, Arial, sans-serif;
     font-size: clamp(20px, 10vw, 40px); /* Adjusts the font size */
-    font-weight: 380;
+    font-weight: 350;
     text-decoration: none;
-    padding: 12px;
+    padding: 40px;
     text-align: left;
     position: relative;
     overflow: hidden;
-    z-index: 1;
+    z-index: 2;
     transition: color 0.3s ease;
     display: inline-block;
 }
 
 /* Hover Effect */
 .menu a:hover {
-    color: rgb(255, 255, 255);
+    color: rgb(255, 255, 255); /* Keeps the text color change */
+    background-color: rgba(31, 30, 34, 0.7); /* Sets the background color */
 }
 
 .menu a:hover::before {
