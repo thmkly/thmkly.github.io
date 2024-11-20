@@ -61,7 +61,7 @@ body {
     background-color: rgba(255, 255, 255, 0.6);
     display: none;
     flex-direction: column;
-    padding: 10px;
+    padding: 5px;
     width: 200px;
     transition: opacity 0.5s ease;
     z-index: 1;
@@ -75,10 +75,10 @@ body {
 .menu a {
     color: rgb(31, 30, 34);
     font-family: "Helvetica Neue", helvetica, Arial, sans-serif;
-    font-size: clamp(20px, 10vw, 30px); /* Adjusts the font size */
-    font-weight: 375;
+    font-size: clamp(20px, 10vw, 40px); /* Adjusts the font size */
+    font-weight: 380;
     text-decoration: none;
-    padding: 12px 10px;
+    padding: 12px;
     text-align: left;
     position: relative;
     overflow: hidden;
