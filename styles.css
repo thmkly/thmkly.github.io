@@ -61,7 +61,7 @@ body {
     background-color: rgba(255, 255, 255, 0.6);
     display: none;
     flex-direction: column;
-    padding: 3px;
+    padding: 0px;
     width: 200px;
     transition: opacity .3s ease;
     z-index: 1;
@@ -76,7 +76,7 @@ body {
     color: rgba(31, 30, 34, .8);
     font-family: "Helvetica Neue", helvetica, Arial, sans-serif;
     font-size: clamp(20px, 10vw, 40px); /* Adjusts the font size */
-    font-weight: 350;
+    font-weight: 300;
     text-decoration: none;
     padding: 40px;
     text-align: left;
@@ -117,7 +117,7 @@ body {
 /* Social icons on mobile */
 @media (max-width: 768px) {
     .spaced-text {
-        font-size: clamp(18px, 8vw, 30px); /* Adjust text size on mobile */
+        font-size: clamp(20px, 100vw, 100px); /* Adjust text size on mobile */
     }
 
     .menu {
