@@ -156,7 +156,7 @@ body {
     }
 
     .menu a {
-        font-size: clamp(14px, 10vw, 20px); /* Responsive scaling for smaller screens */
+        font-size: clamp(20px, 10vw, 40px); /* Responsive scaling for smaller screens */
     }
 
     .social-icons {
