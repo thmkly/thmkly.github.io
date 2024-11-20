@@ -148,9 +148,19 @@ body {
     }
 }
 
-/* Mobile-responsive styles */
+/* Mobile-responsive styles for .menu */
 @media (max-width: 768px) {
-    .hamburger-menu {
-        display: block;
+    .menu {
+        width: 150px; /* Adjust width for mobile */
+        padding: 8px; /* Reduce padding for smaller screens */
+        font-size: 16px; /* Adjust font size */
+    }
+}
+
+@media (max-width: 480px) {
+    .menu {
+        width: 120px; /* Further reduce width for very small screens */
+        padding: 6px; /* Adjust padding */
+        font-size: 14px; /* Smaller font size */
     }
 }
