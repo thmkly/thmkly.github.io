@@ -12,7 +12,7 @@
 <body>
   <!-- "Thomas m Kelly" text triggers the dropdown -->
   <p class="spaced-text">
-    <a href="#" class="link-text" onclick="toggleMenu()">thomas m kelly</a>
+    <a href="#" class="link-text">thomas m kelly</a>
   </p>
 
   <!-- Menu -->
@@ -35,42 +35,6 @@
   <!-- Subpage Content -->
   <div id="subpage-container" style="display:none; padding: 20px; color: white;"></div>
 
-  <script>
-    // Function to toggle the dropdown menu
-    function toggleMenu() {
-      const menu = document.querySelector('.menu');
-      
-      if (menu.style.display === 'flex') {
-        menu.style.display = 'none';
-      } else {
-        menu.style.display = 'flex';
-      }
-    }
-
-    // Load Subpage Content
-    function loadSubpage(page) {
-      const container = document.getElementById('subpage-container');
-      container.style.display = 'block';
-
-      // Fetch and load content from the specified HTML file
-      fetch(`${page}.html`)
-        .then(response => {
-          if (!response.ok) {
-            throw new Error(`Could not fetch ${page}.html`);
-          }
-          return response.text();
-        })
-        .then(html => {
-          container.innerHTML = html; // Inject the fetched HTML content
-        })
-        .catch(error => {
-          container.innerHTML = '<h2>Error</h2><p>Content could not be loaded.</p>';
-          console.error('Error loading subpage:', error);
-        });
-        
-      container.innerHTML = `<h2>${page.charAt(0).toUpperCase() + page.slice(1)} Page</h2><p>${content}</p>`;
-      toggleMenu(); // Close menu after loading page
-    }
-  </script>
+  <script src="main.js"></script> <!-- External JS file -->
 </body>
 </html>
