@@ -154,7 +154,7 @@ body {
     }
 
     .menu a {
-        font-size: clamp(14px, 3.5vw, 20px); /* Responsive scaling for smaller screens */
+        font-size: clamp(14px, 4vw, 20px); /* Responsive scaling for smaller screens */
     }
 }
 
@@ -165,6 +165,6 @@ body {
     }
 
     .menu a {
-        font-size: clamp(12px, 3vw, 18px); /* Smaller text size for very small screens */
+        font-size: clamp(12px, 4vw, 18px); /* Smaller text size for very small screens */
     }
 }
