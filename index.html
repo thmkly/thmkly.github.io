@@ -14,13 +14,6 @@
   <p class="spaced-text">
     <a href="#" class="link-text" onclick="toggleMenu()">thomas m kelly</a>
   </p>
-  
-  <div class="social-icons">
-    <a href="https://www.youtube.com/@thmkly" target="_blank" class="social-icon"><i class="fab fa-youtube"></i></a>
-    <a href="https://instagram.com/___tomk" target="_blank" class="social-icon"><i class="fab fa-instagram"></i></a>
-    <a href="https://soundcloud.com/thmkly" target="_blank" class="social-icon"><i class="fab fa-soundcloud"></i></a>
-    </a>
-  </div>
 
   <!-- Menu -->
   <div class="menu">
@@ -30,6 +23,13 @@
     <a href="#" onclick="loadSubpage('cv')">cv</a>
     <a href="#" onclick="loadSubpage('bio')">bio</a>
     <a href="#" onclick="loadSubpage('contact')">contact</a>
+
+    <!-- Social icons inside the dropdown -->
+    <div class="social-icons">
+      <a href="https://www.youtube.com/@thmkly" target="_blank" class="social-icon"><i class="fab fa-youtube"></i></a>
+      <a href="https://instagram.com/___tomk" target="_blank" class="social-icon"><i class="fab fa-instagram"></i></a>
+      <a href="https://soundcloud.com/thmkly" target="_blank" class="social-icon"><i class="fab fa-soundcloud"></i></a>
+    </div>
   </div>
 
   <!-- Subpage Content -->
@@ -48,26 +48,26 @@
     }
 
     // Load Subpage Content
-function loadSubpage(page) {
-  const container = document.getElementById('subpage-container');
-  container.style.display = 'block';
+    function loadSubpage(page) {
+      const container = document.getElementById('subpage-container');
+      container.style.display = 'block';
 
-  // Fetch and load content from the specified HTML file
-  fetch(`${page}.html`)
-    .then(response => {
-      if (!response.ok) {
-        throw new Error(`Could not fetch ${page}.html`);
-      }
-      return response.text();
-    })
-    .then(html => {
-      container.innerHTML = html; // Inject the fetched HTML content
-    })
-    .catch(error => {
-      container.innerHTML = '<h2>Error</h2><p>Content could not be loaded.</p>';
-      console.error('Error loading subpage:', error);
-    });
-      
+      // Fetch and load content from the specified HTML file
+      fetch(`${page}.html`)
+        .then(response => {
+          if (!response.ok) {
+            throw new Error(`Could not fetch ${page}.html`);
+          }
+          return response.text();
+        })
+        .then(html => {
+          container.innerHTML = html; // Inject the fetched HTML content
+        })
+        .catch(error => {
+          container.innerHTML = '<h2>Error</h2><p>Content could not be loaded.</p>';
+          console.error('Error loading subpage:', error);
+        });
+        
       container.innerHTML = `<h2>${page.charAt(0).toUpperCase() + page.slice(1)} Page</h2><p>${content}</p>`;
       toggleMenu(); // Close menu after loading page
     }

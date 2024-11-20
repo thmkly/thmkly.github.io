@@ -99,20 +99,46 @@ body {
     width: 100%;
 }
 
+/* Social icons in the dropdown */
+.menu .social-icons {
+    display: flex;
+    flex-direction: row; /* Horizontal layout for icons */
+    justify-content: space-between; /* Space icons evenly */
+    margin-top: auto; /* Push the icons to the bottom */
+    gap: 15px;
+    padding-top: 15px; /* Adds space above the icons */
+}
+
+.menu .social-icon {
+    margin: 0 10px;
+    text-decoration: none;
+    color: rgb(31, 30, 34);
+    font-size: 24px;
+}
+
 /* Social icons on mobile */
 @media (max-width: 768px) {
-    .social-icons {
-        position: fixed; /* Fixes the position on the screen */
-        top: 20px; /* Positions the icons 20px from the top */
-        right: 10px; /* Positions 20px from the right */
-        display: flex;
-        flex-direction: column; /* Stacks the icons vertically */
-        align-items: flex-end; /* Aligns icons to the right */
-        gap: 15px; /* Space between icons */
+    .spaced-text {
+        font-size: clamp(18px, 8vw, 30px); /* Adjust text size on mobile */
     }
 
-    .social-icon {
-        margin-bottom: 12px; /* Adds space between stacked icons */
+    .menu {
+        width: 150px;
+        padding: 8px;
+    }
+
+    .menu a {
+        font-size: clamp(18px, 8vw, 30px); /* Adjust font size for menu items */
+    }
+
+    /* Move social icons to the dropdown on mobile */
+    .menu .social-icons {
+        margin-top: auto; /* Ensures icons are at the bottom of the dropdown */
+        gap: 10px; /* Adjust spacing for mobile */
+    }
+
+    .menu .social-icon {
+        font-size: 20px; /* Adjust icon size on mobile */
     }
 }
 
