@@ -10,38 +10,17 @@ document.addEventListener('DOMContentLoaded', () => {
       menu.style.display = menuOpen ? 'flex' : 'none';
     });
   
-    // Open menu on hover
-    linkText.addEventListener('mouseenter', () => {
-      if (!menuOpen) {
-        menu.style.display = 'flex';
-      }
-    });
-  
-    // Close menu when mouse leaves the text (if not clicked)
-    linkText.addEventListener('mouseleave', () => {
-      if (!menuOpen) {
-        menu.style.display = 'none';
-      }
-    });
-  
-    // Keep menu open when mouse is over it
-    menu.addEventListener('mouseenter', () => {
-      menu.style.display = 'flex';
-    });
-  
-    // Close menu when mouse leaves it (if not clicked)
-    menu.addEventListener('mouseleave', () => {
-      if (!menuOpen) {
-        menu.style.display = 'none';
-      }
-    });
-  
-    // Handle click outside menu to close it
+    // Close menu when clicking outside of it
     document.addEventListener('click', (event) => {
       if (!menu.contains(event.target) && !linkText.contains(event.target)) {
         menu.style.display = 'none';
         menuOpen = false;
       }
+    });
+  
+    // Prevent menu from closing when interacting with it
+    menu.addEventListener('click', (event) => {
+      event.stopPropagation();
     });
   });
   

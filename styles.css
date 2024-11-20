@@ -41,9 +41,6 @@ body {
 
 /* Social icons styling */
 .social-icons {
-    position: fixed; /* Fixes the position on the screen */
-    bottom: 20px; /* Positions 20px from the bottom */
-    right: 20px; /* Positions 20px from the right */
     display: flex;
     flex-direction: row; /* Default: horizontal layout */
     gap: 15px; /* Default spacing between icons */
