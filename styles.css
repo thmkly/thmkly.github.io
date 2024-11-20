@@ -41,10 +41,12 @@ body {
 
 /* Social icons styling */
 .social-icons {
-    align-self: flex-start;
+    position: fixed; /* Fixes the position on the screen */
+    bottom: 20px; /* Positions 20px from the bottom */
+    right: 20px; /* Positions 20px from the right */
     display: flex;
-    justify-content: flex-start;
-    gap: 10px;
+    flex-direction: row; /* Default: horizontal layout */
+    gap: 10px; /* Adjusts space between icons */
 }
 
 .social-icon {
@@ -155,6 +157,15 @@ body {
 
     .menu a {
         font-size: clamp(14px, 10vw, 20px); /* Responsive scaling for smaller screens */
+    }
+
+    .social-icons {
+        flex-direction: column; /* Stacks the icons vertically */
+        align-items: flex-end; /* Aligns the icons to the right */
+    }
+
+    .social-icon {
+        margin-bottom: 10px; /* Adds space between stacked icons */
     }
 }
 
