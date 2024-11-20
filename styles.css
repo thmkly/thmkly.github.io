@@ -91,7 +91,6 @@ body {
     transition: color 0.3s ease;
     display: inline-block;
 }
-
 /* Pseudo-element for Hover Background */
 .menu a::before {
     content: '';
@@ -150,22 +149,22 @@ body {
 /* Mobile-responsive styles for .menu */
 @media (max-width: 768px) {
     .menu {
-        width: 150px;
-        padding: 8px;
+        width: 150px; /* Adjust width for mobile */
+        padding: 8px; /* Reduce padding for smaller screens */
     }
 
     .menu a {
-        font-size: clamp(14px, 3.5vw, 20px);
+        font-size: clamp(14px, 3.5vw, 20px); /* Responsive scaling for smaller screens */
     }
 }
 
 @media (max-width: 480px) {
     .menu {
-        width: 120px;
-        padding: 6px;
+        width: 120px; /* Further reduce width for very small screens */
+        padding: 6px; /* Adjust padding */
     }
 
     .menu a {
-        font-size: clamp(12px, 3vw, 18px);
+        font-size: clamp(12px, 3vw, 18px); /* Smaller text size for very small screens */
     }
 }
