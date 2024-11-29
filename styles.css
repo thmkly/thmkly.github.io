@@ -16,13 +16,13 @@ body {
 /* Style for the main text */
 .spaced-text {
     font-family: "Helvetica Neue", helvetica, Arial, sans-serif;
-    font-size: clamp(20px, 100vw, 100px); /* Scales text size */
+    font-size: clamp(20px, 20vw, 60px); /* Scales text size */
     font-weight: 420;
     color: rgb(255, 255, 255);
     text-align: left;
     width: 100%;
     margin-bottom: 20px;
-    margin-top: 110px;
+    margin-top: 10px;
     cursor: pointer;
     position: relative;
     z-index: 0;
