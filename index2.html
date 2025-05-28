@@ -16,6 +16,10 @@
     rel="stylesheet"
   />
   <style>
+    :root {
+      --profile-size: 200px; /* Default profile image size */
+    }
+
     body {
       margin: 0;
       padding: 0;
@@ -23,7 +27,7 @@
       background-size: cover;
       background-position: center;
       background-repeat: no-repeat;
-      height: 100vh;
+      min-height: 100vh;
       font-family: 'Inter', sans-serif;
       font-weight: 300;
       color: white;
@@ -32,14 +36,16 @@
       align-items: center;
       justify-content: flex-start;
       text-align: left;
+      padding-top: 10vh; /* Top spacing that's flexible */
+      box-sizing: border-box;
     }
 
     .profile-image {
-      width: 200px;
-      height: 200px;
+      width: var(--profile-size);
+      height: var(--profile-size);
       border-radius: 50%;
       object-fit: cover;
-      margin-top: 200px;
+      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
     }
 
     .container {
@@ -47,9 +53,10 @@
       padding: 1rem;
       border-radius: 5px;
       max-width: 750px;
-      margin-top: 30px;
+      margin-top: 5vh;
       font-weight: 300;
       text-align: center;
+      width: 90%;
     }
 
     a {
@@ -66,13 +73,18 @@
     }
 
     @media (max-width: 600px) {
-      .profile-image {
-        width: 90px;
-        height: 90px;
+      :root {
+        --profile-size: 130px; /* Smaller profile image on mobile */
+      }
+
+      body {
+        padding-top: 5vh;
       }
 
       .container {
-        margin: 20px;
+        margin-top: 4vh;
+        font-size: 0.95rem;
+        padding: 1rem 1.2rem;
       }
     }
   </style>
