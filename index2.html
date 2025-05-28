@@ -1,14 +1,20 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>thomasmkelly.com</title>
-  <link rel="icon" type="image/x-icon" href="favicon-sierra.ico?v=1">
-  <link rel="icon" href="favicon-sierra.png" type="image/png">
-  <link rel="stylesheet" href="styles.css">
-  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" rel="stylesheet">
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400&display=swap" rel="stylesheet">
+  <link rel="icon" type="image/x-icon" href="favicon-sierra.ico?v=1" />
+  <link rel="icon" href="favicon-sierra.png" type="image/png" />
+  <link rel="stylesheet" href="styles.css" />
+  <link
+    href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"
+    rel="stylesheet"
+  />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400&display=swap"
+    rel="stylesheet"
+  />
   <style>
     body {
       margin: 0;
@@ -22,9 +28,19 @@
       font-weight: 300;
       color: white;
       display: flex;
+      flex-direction: column;
       align-items: center;
-      justify-content: center;
+      justify-content: flex-start;
       text-align: left;
+    }
+
+    .profile-image {
+      width: 120px;
+      height: 120px;
+      border-radius: 50%;
+      object-fit: cover;
+      margin-top: 60px;
+      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.4);
     }
 
     .container {
@@ -32,9 +48,9 @@
       padding: 1rem;
       border-radius: 5px;
       max-width: 750px;
-      max-height: 300px;
-      margin-top: 80px;
+      margin-top: 30px;
       font-weight: 300;
+      text-align: left;
     }
 
     a {
@@ -49,10 +65,29 @@
     strong {
       font-weight: 300;
     }
+
+    @media (max-width: 600px) {
+      .profile-image {
+        width: 90px;
+        height: 90px;
+      }
+
+      .container {
+        margin: 20px;
+      }
+    }
   </style>
 </head>
 <body>
 
+  <!-- Profile Image -->
+  <img
+    src="/images/tom_index-profile.png"
+    alt="Tom Kelly"
+    class="profile-image"
+  />
+
+  <!-- Text Container -->
   <div class="container">
     <p>
       Hi everyone, I'm Tom Kelly—a field recordist, composer, bassist, photographer, and long-distance hiker based in Los Angeles, California.<br><br>
