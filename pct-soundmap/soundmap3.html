@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8" />
+    <title>Mapbox Soundmap with Info Bubbles</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link href="https://api.mapbox.com/mapbox-gl-js/v2.8.1/mapbox-gl.css" rel="stylesheet" />
+    <style>
+        body { margin: 0; padding: 0; font-family: sans-serif; }
+        #map { position: absolute; top: 0; bottom: 0; width: 100%; }
+        #playlist {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 300px;
+            height: 100%;
+            background: rgba(255,255,255,0.9);
+            overflow-y: auto;
+            padding: 10px;
+            box-shadow: 2px 0 5px rgba(0,0,0,0.1);
+        }
+        .track {
+            padding: 10px;
+            cursor: pointer;
+            border-bottom: 1px solid #ddd;
+        }
+        .track:hover,
+        .active-track {
+            background-color: #f0f0f0;
+        }
+        audio {
+            width: 100%;
+            position: absolute;
+            bottom: 0;
+            left: 0;
+        }
+    </style>
+</head>
+<body>
+
+<div id="map"></div>
+<div id="playlist"></div>
+<audio id="audioPlayer" controls></audio>
+
+<script src="https://api.mapbox.com/mapbox-gl-js/v2.8.1/mapbox-gl.js"></script>
+<script>
+    mapboxgl.accessToken = 'pk.eyJ1IjoidGhta2x5IiwiYSI6ImNseXVyMjhueDA3YTQybW9mcHJrZGJ3YnEifQ.Nv-LsNg5eKIE6SeOVVJpYg';
+
+    const audioData = [
+        {
+            name: "la posta creek birds and cars",
+            lat: 32.7153449243,
+            lng: -116.499263355,
+            audioUrl: "https://www.dropbox.com/scl/fi/dbas7xhu5tt7jk2abp3o9/230424_1145.wav?rlkey=agfp5c1ajeamhfyhl069wla4j&dl=0&raw=1",
+            timestamp: "2023-04-24 9:45am",
+            notes: "Birdsong with occasional passing cars, near La Posta Creek"
+        },
+        // Add more entries here
+    ];
+
+    const geojson = {
+        type: 'FeatureCollection',
+        features: audioData.map((track, index) => ({
+            type: 'Feature',
+            geometry: {
+                type: 'Point',
+                coordinates: [track.lng, track.lat]
+            },
+            properties: {
+                index
+            }
+        }))
+    };
+
+    const map = new mapboxgl.Map({
+        container: 'map',
+        style: 'mapbox://styles/thmkly/clyup637d004201ri2tkpaywq',
+        center: [-116.5, 32.7],
+        zoom: 8
+    });
+
+    const audioPlayer = document.getElementById('audioPlayer');
+    const playlistDiv = document.getElementById('playlist');
+
+    let popup = new mapboxgl.Popup({
+        closeOnClick: true,
+        closeButton: true,
+        offset: 25
+    });
+
+    function playAudio(index) {
+        const track = audioData[index];
+        audioPlayer.src = track.audioUrl;
+        audioPlayer.play();
+
+        const activeTrack = document.querySelector(`.track[data-id="${index}"]`);
+        if (activeTrack) {
+            document.querySelectorAll('.track').forEach(trackEl => trackEl.classList.remove('active-track'));
+            activeTrack.classList.add('active-track');
+            activeTrack.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+
+        const feature = geojson.features[index];
+        if (feature) {
+            map.flyTo({ center: feature.geometry.coordinates, zoom: 14 });
+
+            popup.setLngLat(feature.geometry.coordinates)
+                .setHTML(`
+                    <div style="font-family: Helvetica, sans-serif; font-size: 13px;">
+                        <strong>${track.name}</strong><br>
+                        <em>${track.timestamp || 'Unknown date'}</em><br>
+                        ${track.notes || ''}
+                    </div>
+                `)
+                .addTo(map);
+        }
+    }
+
+    function buildPlaylist() {
+        playlistDiv.innerHTML = '';
+        audioData.forEach((track, index) => {
+            const trackDiv = document.createElement('div');
+            trackDiv.className = 'track';
+            trackDiv.dataset.id = index;
+            trackDiv.innerText = track.name;
+            trackDiv.addEventListener('click', () => playAudio(index));
+            playlistDiv.appendChil
