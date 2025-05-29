@@ -66,7 +66,7 @@
                 lng: -116.499263355, 
                 audioUrl: "https://www.dropbox.com/scl/fi/dbas7xhu5tt7jk2abp3o9/230424_1145.wav?rlkey=agfp5c1ajeamhfyhl069wla4j&dl=0&raw=1", 
                 timestamp: "2023-04-24 09:45", 
-                notes: "Birdsong underneath the bridge, incredible acoustics, cars passing overhead" 
+                notes: "Incredible birdsong underneath the bridge, cars passing overhead" 
             },
 
             { 
@@ -89,31 +89,10 @@
             const popup = new mapboxgl.Popup({ offset: 25 })
                 .setLngLat(coordinates)
                 .setHTML(`
-                    <div style="
-                        font-family: 'Helvetica Neue', helvetica, Arial, sans-serif;
-                        font-weight: 300;
-                        font-size: 16px;
-                        color: rgba(31, 30, 34, 0.8);
-                        max-width: 280px;
-                        background: rgba(255, 255, 255, 0.85);
-                        padding: 12px;
-                        border-radius: 10px;
-                        box-shadow: 0 3px 10px rgba(0,0,0,0.15);
-                    ">
-                        <h3 style="
-                            margin: 0 0 8px 0; 
-                            font-weight: 700; 
-                            color: #1a1a1a; 
-                            font-size: 1.1em;
-                        ">
-                            ${data.name}
-                        </h3>
-                        <p style="margin: 0 0 6px 0;">
-                            ${data.timestamp}
-                        </p>
-                        <p style="margin: 0;">
-                            ${data.notes}
-                        </p>
+                    <div style="max-width: 250px;">
+                        <h3 style="margin: 0 0 4px 0;">${data.name}</h3>
+                        <p style="margin: 0; font-size: 0.9em; color: #555;"><strong>${data.timestamp}</strong></p>
+                        <p style="margin: 4px 0 0 0; font-size: 0.9em;">${data.notes}</p>
                     </div>
                 `)
                 .addTo(map);
@@ -249,83 +228,76 @@
 
                 const id = feature.properties.id;
                 const coords = feature.geometry.coordinates;
-                const data = {
-                    name: feature.properties.name,
-                    timestamp: feature.properties.timestamp,
-                    notes: feature.properties.notes,
-                    audioUrl: feature.properties.audioUrl
-                };
+                const data = audioData[id];
 
-                // Fly to point and show popup
-                map.flyTo({ center: coords, zoom: 12 });
+                map.flyTo({ center: coords, zoom: 14 });
                 showPopup(map, coords, data);
-
-                // Play audio
-                audioPlayer.src = data.audioUrl;
-                audioPlayer.play();
-
-                // Highlight track in playlist
-                setActiveTrack(id);
-            });
-
-            // Add markers for each point (alternative to symbol layer)
-            geojson.features.forEach(feature => {
-                const el = document.createElement('div');
-                el.className = 'marker';
-                el.style.backgroundImage = 'url(https://docs.mapbox.com/mapbox-gl-js/assets/custom_marker.png)';
-                el.style.width = '30px';
-                el.style.height = '30px';
-                el.style.backgroundSize = '100%';
-
-                const marker = new mapboxgl.Marker(el)
-                    .setLngLat(feature.geometry.coordinates)
-                    .addTo(map);
-
-                el.addEventListener('click', () => {
-                    const data = feature.properties;
-                    const coords = feature.geometry.coordinates;
-
-                    map.flyTo({ center: coords, zoom: 12 });
-                    showPopup(map, coords, data);
-
-                    audioPlayer.src = data.audioUrl;
-                    audioPlayer.play();
-
-                    setActiveTrack(data.id);
-                });
+                playAudio(id);
             });
 
             // Build playlist UI
-            function setActiveTrack(id) {
-                const tracks = document.querySelectorAll('.track');
-                tracks.forEach(t => t.classList.remove('active-track'));
-                const activeTrack = document.querySelector(`.track[data-id='${id}']`);
-                if (activeTrack) activeTrack.classList.add('active-track');
-            }
-
-            function buildPlaylist() {
+            function updatePlaylist() {
                 playlist.innerHTML = '';
-                audioData.forEach((track, idx) => {
+                audioData.forEach((track, index) => {
                     const div = document.createElement('div');
                     div.className = 'track';
-                    div.dataset.id = idx;
-                    div.textContent = `${track.name} — ${track.timestamp}`;
+                    div.textContent = track.name;
+                    div.setAttribute('data-id', index);
                     div.addEventListener('click', () => {
-                        const coords = [track.lng, track.lat];
-                        map.flyTo({ center: coords, zoom: 12 });
-                        showPopup(map, coords, track);
-
-                        audioPlayer.src = track.audioUrl;
-                        audioPlayer.play();
-
-                        setActiveTrack(idx);
+                        playAudio(index);
                     });
                     playlist.appendChild(div);
                 });
             }
 
-            buildPlaylist();
+            // Play audio by index and update map and popup
+            function playAudio(index) {
+                const track = audioData[index];
+                if (!track) return;
+
+                audioPlayer.src = track.audioUrl;
+                audioPlayer.play();
+
+                // Highlight active track
+                document.querySelectorAll('.track').forEach(el => el.classList.remove('active-track'));
+                const activeTrack = document.querySelector(`.track[data-id="${index}"]`);
+                if (activeTrack) {
+                    activeTrack.classList.add('active-track');
+                    activeTrack.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                }
+
+                // Fly to track location and show popup
+                const feature = geojson.features[index];
+                if (feature) {
+                    map.flyTo({ center: feature.geometry.coordinates, zoom: 14 });
+                    showPopup(map, feature.geometry.coordinates, track);
+                }
+            }
+
+            updatePlaylist();
         });
     </script>
+
+    <script src='https://storage.ko-fi.com/cdn/scripts/overlay-widget.js'></script>
+    <script>
+      kofiWidgetOverlay.draw('thmkly', {
+        'type': 'floating-chat',
+        'floating-chat.donateButton.text': 'Support me',
+        'floating-chat.donateButton.background-color': '#ff5f5f',
+        'floating-chat.donateButton.text-color': '#fff'
+      });
+    </script>
+    <style>
+        .floatingchat-container-wrap { 
+          left: unset; 
+          right: 16px; 
+          bottom: 30px; /* Adjust this value to move the button up */
+        }
+        .floating-chat-kofi-popup-iframe { 
+          left: unset; 
+          right: 16px; 
+          bottom: 30px; /* Adjust this value to move the button up */
+        }
+    </style>
 </body>
 </html>
