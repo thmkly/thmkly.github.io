@@ -41,6 +41,31 @@
         .mapboxgl-canvas.mapboxgl-interactive .mapboxgl-circle {
             cursor: pointer;
         }
+
+        /* Global popup styling */
+        .custom-popup {
+            font-family: 'Helvetica Neue', helvetica, Arial, sans-serif;
+            font-weight: 300;
+            font-size: 16px;
+            color: rgba(31, 30, 34, 0.8);
+            max-width: 280px;
+            background-color: rgba(255, 255, 255, 0.85); /* adjust opacity here */
+            padding: 12px;
+            border-radius: 10px;
+            box-shadow: 0 3px 10px rgba(0,0,0,0.15);
+        }
+        .custom-popup h3 {
+            margin: 0 0 8px 0;
+            font-weight: 700;
+            color: #1a1a1a;
+            font-size: 1.1em;
+        }
+        .custom-popup p {
+            margin: 0 0 6px 0;
+        }
+        .custom-popup p:last-child {
+            margin-bottom: 0;
+        }
     </style>
 </head>
 <body>
@@ -89,31 +114,10 @@
             const popup = new mapboxgl.Popup({ offset: 25 })
                 .setLngLat(coordinates)
                 .setHTML(`
-                    <div style="
-                        font-family: 'Helvetica Neue', helvetica, Arial, sans-serif;
-                        font-weight: 300;
-                        font-size: 16px;
-                        color: rgba(31, 30, 34, 0.8);
-                        max-width: 280px;
-                        background: rgba(255, 255, 255, 0.85);
-                        padding: 12px;
-                        border-radius: 10px;
-                        box-shadow: 0 3px 10px rgba(0,0,0,0.15);
-                    ">
-                        <h3 style="
-                            margin: 0 0 8px 0; 
-                            font-weight: 700; 
-                            color: #1a1a1a; 
-                            font-size: 1.1em;
-                        ">
-                            ${data.name}
-                        </h3>
-                        <p style="margin: 0 0 6px 0;">
-                            ${data.timestamp}
-                        </p>
-                        <p style="margin: 0;">
-                            ${data.notes}
-                        </p>
+                    <div class="custom-popup">
+                        <h3>${data.name}</h3>
+                        <p>${data.timestamp}</p>
+                        <p>${data.notes}</p>
                     </div>
                 `)
                 .addTo(map);
@@ -269,12 +273,12 @@
             });
 
             // Add markers for each point (alternative to symbol layer)
-            geojson.features.forEach(feature => {
+            geojson.features.forEach((feature) => {
                 const el = document.createElement('div');
                 el.className = 'marker';
                 el.style.backgroundImage = 'url(https://docs.mapbox.com/mapbox-gl-js/assets/custom_marker.png)';
                 el.style.width = '30px';
-                el.style.height = '30px';
+                el.style.height = '40px';
                 el.style.backgroundSize = '100%';
 
                 const marker = new mapboxgl.Marker(el)
@@ -282,49 +286,43 @@
                     .addTo(map);
 
                 el.addEventListener('click', () => {
-                    const data = feature.properties;
-                    const coords = feature.geometry.coordinates;
+                    const data = {
+                        name: feature.properties.name,
+                        timestamp: feature.properties.timestamp,
+                        notes: feature.properties.notes,
+                        audioUrl: feature.properties.audioUrl
+                    };
 
-                    map.flyTo({ center: coords, zoom: 12 });
-                    showPopup(map, coords, data);
-
+                    map.flyTo({ center: feature.geometry.coordinates, zoom: 12 });
+                    showPopup(map, feature.geometry.coordinates, data);
                     audioPlayer.src = data.audioUrl;
                     audioPlayer.play();
-
-                    setActiveTrack(data.id);
+                    setActiveTrack(feature.properties.id);
                 });
             });
 
             // Build playlist UI
-            function setActiveTrack(id) {
-                const tracks = document.querySelectorAll('.track');
-                tracks.forEach(t => t.classList.remove('active-track'));
-                const activeTrack = document.querySelector(`.track[data-id='${id}']`);
-                if (activeTrack) activeTrack.classList.add('active-track');
-            }
-
-            function buildPlaylist() {
-                playlist.innerHTML = '';
-                audioData.forEach((track, idx) => {
-                    const div = document.createElement('div');
-                    div.className = 'track';
-                    div.dataset.id = idx;
-                    div.textContent = `${track.name} — ${track.timestamp}`;
-                    div.addEventListener('click', () => {
-                        const coords = [track.lng, track.lat];
-                        map.flyTo({ center: coords, zoom: 12 });
-                        showPopup(map, coords, track);
-
-                        audioPlayer.src = track.audioUrl;
-                        audioPlayer.play();
-
-                        setActiveTrack(idx);
-                    });
-                    playlist.appendChild(div);
+            audioData.forEach((track, index) => {
+                const trackDiv = document.createElement('div');
+                trackDiv.className = 'track';
+                trackDiv.textContent = track.name;
+                trackDiv.addEventListener('click', () => {
+                    audioPlayer.src = track.audioUrl;
+                    audioPlayer.play();
+                    map.flyTo({ center: [track.lng, track.lat], zoom: 12 });
+                    showPopup(map, [track.lng, track.lat], track);
+                    setActiveTrack(index);
                 });
-            }
+                playlist.appendChild(trackDiv);
+            });
 
-            buildPlaylist();
+            // Track highlighting in playlist
+            function setActiveTrack(id) {
+                const tracks = playlist.getElementsByClassName('track');
+                for (let i = 0; i < tracks.length; i++) {
+                    tracks[i].classList.toggle('active-track', i === id);
+                }
+            }
         });
     </script>
 </body>
