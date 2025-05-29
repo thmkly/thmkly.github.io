@@ -51,6 +51,7 @@
     <script src='https://api.mapbox.com/mapbox-gl-js/v2.8.1/mapbox-gl.js'></script>
     <script>
         mapboxgl.accessToken = 'pk.eyJ1IjoidGhta2x5IiwiYSI6ImNseXVyMjhueDA3YTQybW9mcHJrZGJ3YnEifQ.Nv-LsNg5eKIE6SeOVVJpYg';
+
         var map = new mapboxgl.Map({
             container: 'map',
             style: 'mapbox://styles/thmkly/clyup637d004201ri2tkpaywq',
@@ -59,30 +60,38 @@
         });
 
         const audioData = [
-            { name: "la posta creek birds and cars", lat: 32.7153449243, lng: -116.499263355, audioUrl: "https://www.dropbox.com/scl/fi/dbas7xhu5tt7jk2abp3o9/230424_1145.wav?rlkey=agfp5c1ajeamhfyhl069wla4j&dl=0&raw=1", timestamp: "2023-04-24 09:45", notes: "Incredible birdsong underneath the bridge, cars passing overhead" }
+            { 
+                name: "la posta creek birds and cars", 
+                lat: 32.7153449243, 
+                lng: -116.499263355, 
+                audioUrl: "https://www.dropbox.com/scl/fi/dbas7xhu5tt7jk2abp3o9/230424_1145.wav?rlkey=agfp5c1ajeamhfyhl069wla4j&dl=0&raw=1", 
+                timestamp: "2023-04-24 09:45", 
+                notes: "Incredible birdsong underneath the bridge, cars passing overhead" 
+            }
             // Add more tracks here
         ];
 
-        function showPopup(map, markerElement, data) {
-              // Remove any existing popup
-              if (map.currentPopup) {
+        // Popup handling
+        function showPopup(map, coordinates, data) {
+            if (map.currentPopup) {
                 map.currentPopup.remove();
-              }
-            
-              const popup = new mapboxgl.Popup({ offset: 25 })
-                .setLngLat(data.coordinates)
-                .setHTML(`
-                  <div style="max-width: 250px;">
-                    <h3 style="margin: 0 0 4px 0;">${data.title}</h3>
-                    <p style="margin: 0; font-size: 0.9em; color: #555;"><strong>${data.timestamp}</strong></p>
-                    <p style="margin: 4px 0 0 0; font-size: 0.9em;">${data.notes}</p>
-                  </div>
-                `)
-                .addTo(map);
-            
-              map.currentPopup = popup;
             }
 
+            const popup = new mapboxgl.Popup({ offset: 25 })
+                .setLngLat(coordinates)
+                .setHTML(`
+                    <div style="max-width: 250px;">
+                        <h3 style="margin: 0 0 4px 0;">${data.name}</h3>
+                        <p style="margin: 0; font-size: 0.9em; color: #555;"><strong>${data.timestamp}</strong></p>
+                        <p style="margin: 4px 0 0 0; font-size: 0.9em;">${data.notes}</p>
+                    </div>
+                `)
+                .addTo(map);
+
+            map.currentPopup = popup;
+        }
+
+        // Create GeoJSON from audioData
         const geojson = {
             type: 'FeatureCollection',
             features: audioData.map((track, index) => ({
@@ -94,7 +103,9 @@
                 properties: {
                     name: track.name,
                     audioUrl: track.audioUrl,
-                    id: index // Add an ID for each feature
+                    timestamp: track.timestamp,
+                    notes: track.notes,
+                    id: index
                 }
             }))
         };
@@ -140,7 +151,6 @@
                 }
             });
 
-            // Use default Mapbox marker icon for unclustered points
             map.addLayer({
                 id: 'unclustered-point',
                 type: 'symbol',
@@ -152,24 +162,17 @@
                 }
             });
 
-            // Cursor pointer for clusters and points
-            map.on('mouseenter', 'clusters', () => {
-                map.getCanvas().style.cursor = 'pointer';
+            // Cursor pointer styling
+            ['clusters', 'unclustered-point'].forEach(layer => {
+                map.on('mouseenter', layer, () => {
+                    map.getCanvas().style.cursor = 'pointer';
+                });
+                map.on('mouseleave', layer, () => {
+                    map.getCanvas().style.cursor = '';
+                });
             });
 
-            map.on('mouseleave', 'clusters', () => {
-                map.getCanvas().style.cursor = '';
-            });
-
-            map.on('mouseenter', 'unclustered-point', () => {
-                map.getCanvas().style.cursor = 'pointer';
-            });
-
-            map.on('mouseleave', 'unclustered-point', () => {
-                map.getCanvas().style.cursor = '';
-            });
-
-            // Show clusters below zoom 10, points above
+            // Toggle visibility of clusters and points by zoom level
             map.on('zoom', () => {
                 const zoomLevel = map.getZoom();
                 const minZoomForPoints = 10;
@@ -183,11 +186,10 @@
                 }
             });
 
-            // Zoom into cluster on click and fit bounds
+            // Cluster click zoom and fit bounds
             map.on('click', 'clusters', (e) => {
-                const features = map.queryRenderedFeatures(e.point, {
-                    layers: ['clusters']
-                });
+                const features = map.queryRenderedFeatures(e.point, { layers: ['clusters'] });
+                if (!features.length) return;
                 const clusterId = features[0].properties.cluster_id;
 
                 map.getSource('audio').getClusterExpansionZoom(clusterId, (err, zoom) => {
@@ -202,26 +204,29 @@
                             bounds.extend(leaf.geometry.coordinates);
                         });
 
-                        map.fitBounds(bounds, {
-                            padding: 50
-                        });
+                        map.fitBounds(bounds, { padding: 50 });
                     });
                 });
             });
 
-            // Handle clicks on unclustered points: fly to and play audio
+            const audioPlayer = document.getElementById('audio-player');
+            const playlist = document.getElementById('playlist');
+
+            // Click on unclustered point: fly, popup, play audio
             map.on('click', 'unclustered-point', (e) => {
                 const feature = e.features[0];
-                const id = feature.properties.id;
+                if (!feature) return;
 
-                map.flyTo({ center: feature.geometry.coordinates, zoom: 14 });
-                showPopup(map, markerElement, data); // wherever "data" is the selected audioData item
+                const id = feature.properties.id;
+                const coords = feature.geometry.coordinates;
+                const data = audioData[id];
+
+                map.flyTo({ center: coords, zoom: 14 });
+                showPopup(map, coords, data);
                 playAudio(id);
             });
 
-            const playlist = document.getElementById('playlist');
-            const audioPlayer = document.getElementById('audio-player');
-
+            // Build playlist UI
             function updatePlaylist() {
                 playlist.innerHTML = '';
                 audioData.forEach((track, index) => {
@@ -236,24 +241,27 @@
                 });
             }
 
+            // Play audio by index and update map and popup
             function playAudio(index) {
                 const track = audioData[index];
+                if (!track) return;
+
                 audioPlayer.src = track.audioUrl;
                 audioPlayer.play();
 
-                // Scroll to the active track and highlight it
+                // Highlight active track
+                document.querySelectorAll('.track').forEach(el => el.classList.remove('active-track'));
                 const activeTrack = document.querySelector(`.track[data-id="${index}"]`);
                 if (activeTrack) {
-                    activeTrack.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                    document.querySelectorAll('.track').forEach(trackEl => trackEl.classList.remove('active-track'));
                     activeTrack.classList.add('active-track');
+                    activeTrack.scrollIntoView({ behavior: 'smooth', block: 'center' });
                 }
 
-                // Fly to the location of the track on the map
+                // Fly to track location and show popup
                 const feature = geojson.features[index];
                 if (feature) {
                     map.flyTo({ center: feature.geometry.coordinates, zoom: 14 });
-                    showPopup(map, markerElement, data); // wherever "data" is the selected audioData item
+                    showPopup(map, feature.geometry.coordinates, track);
                 }
             }
 
