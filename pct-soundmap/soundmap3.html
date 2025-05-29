@@ -2,126 +2,243 @@
 <html>
 <head>
     <meta charset="utf-8" />
-    <title>Mapbox Soundmap with Info Bubbles</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <link href="https://api.mapbox.com/mapbox-gl-js/v2.8.1/mapbox-gl.css" rel="stylesheet" />
+    <title>A Soundmap of the PCT, Stereo 2023</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link href='https://api.mapbox.com/mapbox-gl-js/v2.8.1/mapbox-gl.css' rel='stylesheet' />
     <style>
-        body { margin: 0; padding: 0; font-family: sans-serif; }
+        body { margin: 0; padding: 0; }
         #map { position: absolute; top: 0; bottom: 0; width: 100%; }
-        #playlist {
+        .playlist {
             position: absolute;
-            top: 0;
-            left: 0;
-            width: 300px;
-            height: 100%;
-            background: rgba(255,255,255,0.9);
-            overflow-y: auto;
+            top: 25px;
+            left: 10px;
+            background-color: rgba(255, 255, 255, 0.875);
             padding: 10px;
-            box-shadow: 2px 0 5px rgba(0,0,0,0.1);
+            border-radius: 5px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.3);
+            width: 350px;
+            font-family: helvetica;
+            font-size: small;
+            overflow-y: auto;
+            max-height: 80vh;
         }
         .track {
-            padding: 10px;
             cursor: pointer;
-            border-bottom: 1px solid #ddd;
+            padding: 5px;
+            margin: 1px;
+            border-bottom: 1px solid #ccc;
         }
-        .track:hover,
-        .active-track {
+        .track:hover {
             background-color: #f0f0f0;
         }
-        audio {
-            width: 100%;
-            position: absolute;
-            bottom: 0;
-            left: 0;
+        .active-track {
+            background-color: #d0d0d0;
+        }
+        .mapboxgl-canvas {
+            cursor: grab;
+        }
+        .mapboxgl-canvas.mapboxgl-interactive .mapboxgl-marker,
+        .mapboxgl-canvas.mapboxgl-interactive .mapboxgl-circle {
+            cursor: pointer;
         }
     </style>
 </head>
 <body>
+    <div id='map'></div>
+    <div class="playlist" id="playlist"></div>
+    <audio id="audio-player" controls style="position: absolute; bottom: 49px; left: 10px;"></audio>
 
-<div id="map"></div>
-<div id="playlist"></div>
-<audio id="audioPlayer" controls></audio>
+    <script src='https://api.mapbox.com/mapbox-gl-js/v2.8.1/mapbox-gl.js'></script>
+    <script>
+        mapboxgl.accessToken = 'pk.eyJ1IjoidGhta2x5IiwiYSI6ImNseXVyMjhueDA3YTQybW9mcHJrZGJ3YnEifQ.Nv-LsNg5eKIE6SeOVVJpYg';
+        var map = new mapboxgl.Map({
+            container: 'map',
+            style: 'mapbox://styles/thmkly/clyup637d004201ri2tkpaywq',
+            center: [-122.50276223002062, 41.317267089349855],
+            zoom: 4.625
+        });
 
-<script src="https://api.mapbox.com/mapbox-gl-js/v2.8.1/mapbox-gl.js"></script>
-<script>
-    mapboxgl.accessToken = 'pk.eyJ1IjoidGhta2x5IiwiYSI6ImNseXVyMjhueDA3YTQybW9mcHJrZGJ3YnEifQ.Nv-LsNg5eKIE6SeOVVJpYg';
+        const audioData = [
+            { name: "la posta creek birds and cars", lat: 32.7153449243, lng: -116.499263355, audioUrl: "https://www.dropbox.com/scl/fi/dbas7xhu5tt7jk2abp3o9/230424_1145.wav?rlkey=agfp5c1ajeamhfyhl069wla4j&dl=0&raw=1" }
+            // Add more tracks here
+        ];
 
-    const audioData = [
-        {
-            name: "la posta creek birds and cars",
-            lat: 32.7153449243,
-            lng: -116.499263355,
-            audioUrl: "https://www.dropbox.com/scl/fi/dbas7xhu5tt7jk2abp3o9/230424_1145.wav?rlkey=agfp5c1ajeamhfyhl069wla4j&dl=0&raw=1",
-            timestamp: "2023-04-24 9:45am",
-            notes: "Birdsong with occasional passing cars, near La Posta Creek"
-        },
-        // Add more entries here
-    ];
+        const geojson = {
+            type: 'FeatureCollection',
+            features: audioData.map((track, index) => ({
+                type: 'Feature',
+                geometry: {
+                    type: 'Point',
+                    coordinates: [track.lng, track.lat]
+                },
+                properties: {
+                    name: track.name,
+                    audioUrl: track.audioUrl,
+                    id: index
+                }
+            }))
+        };
 
-    const geojson = {
-        type: 'FeatureCollection',
-        features: audioData.map((track, index) => ({
-            type: 'Feature',
-            geometry: {
-                type: 'Point',
-                coordinates: [track.lng, track.lat]
-            },
-            properties: {
-                index
+        map.on('load', () => {
+            map.addSource('audio', {
+                type: 'geojson',
+                data: geojson,
+                cluster: true,
+                clusterMaxZoom: 14,
+                clusterRadius: 50
+            });
+
+            map.addLayer({
+                id: 'clusters',
+                type: 'circle',
+                source: 'audio',
+                filter: ['has', 'point_count'],
+                paint: {
+                    'circle-color': '#51bbd6',
+                    'circle-radius': [
+                        'step',
+                        ['get', 'point_count'],
+                        20,
+                        10,
+                        30,
+                        50,
+                        40
+                    ],
+                    'circle-opacity': 0.8
+                }
+            });
+
+            map.addLayer({
+                id: 'cluster-count',
+                type: 'symbol',
+                source: 'audio',
+                filter: ['has', 'point_count'],
+                layout: {
+                    'text-field': '{point_count_abbreviated}',
+                    'text-font': ['Open Sans Semibold', 'Arial Unicode MS Bold'],
+                    'text-size': 12
+                }
+            });
+
+            map.addLayer({
+                id: 'unclustered-point',
+                type: 'symbol',
+                source: 'audio',
+                filter: ['!', ['has', 'point_count']],
+                layout: {
+                    'icon-image': 'marker', // Use default marker icon
+                    'icon-size': 1
+                }
+            });
+
+            map.on('mouseenter', 'clusters', () => {
+                map.getCanvas().style.cursor = 'pointer';
+            });
+            map.on('mouseleave', 'clusters', () => {
+                map.getCanvas().style.cursor = '';
+            });
+            map.on('mouseenter', 'unclustered-point', () => {
+                map.getCanvas().style.cursor = 'pointer';
+            });
+            map.on('mouseleave', 'unclustered-point', () => {
+                map.getCanvas().style.cursor = '';
+            });
+
+            map.on('zoom', () => {
+                const zoomLevel = map.getZoom();
+                const minZoomForPoints = 10;
+
+                map.setLayoutProperty('clusters', 'visibility', zoomLevel >= minZoomForPoints ? 'none' : 'visible');
+                map.setLayoutProperty('unclustered-point', 'visibility', zoomLevel >= minZoomForPoints ? 'visible' : 'none');
+            });
+
+            map.on('click', 'clusters', (e) => {
+                const features = map.queryRenderedFeatures(e.point, {
+                    layers: ['clusters']
+                });
+                const clusterId = features[0].properties.cluster_id;
+
+                map.getSource('audio').getClusterExpansionZoom(clusterId, (err, zoom) => {
+                    if (err) return;
+
+                    map.getSource('audio').getClusterLeaves(clusterId, 100, 0, (err, leaves) => {
+                        if (err) return;
+
+                        const bounds = new mapboxgl.LngLatBounds();
+                        leaves.forEach(leaf => bounds.extend(leaf.geometry.coordinates));
+                        map.fitBounds(bounds, { padding: 50 });
+                    });
+                });
+            });
+
+            map.on('click', 'unclustered-point', (e) => {
+                const feature = e.features[0];
+                const id = feature.properties.id;
+                map.flyTo({ center: feature.geometry.coordinates, zoom: 14 });
+                playAudio(id);
+            });
+
+            const playlist = document.getElementById('playlist');
+            const audioPlayer = document.getElementById('audio-player');
+
+            function updatePlaylist() {
+                playlist.innerHTML = '';
+                audioData.forEach((track, index) => {
+                    const div = document.createElement('div');
+                    div.className = 'track';
+                    div.textContent = track.name;
+                    div.setAttribute('data-id', index);
+                    div.addEventListener('click', () => {
+                        playAudio(index);
+                    });
+                    playlist.appendChild(div);
+                });
             }
-        }))
-    };
 
-    const map = new mapboxgl.Map({
-        container: 'map',
-        style: 'mapbox://styles/thmkly/clyup637d004201ri2tkpaywq',
-        center: [-116.5, 32.7],
-        zoom: 8
-    });
+            function playAudio(index) {
+                const track = audioData[index];
+                audioPlayer.src = track.audioUrl;
+                audioPlayer.play();
 
-    const audioPlayer = document.getElementById('audioPlayer');
-    const playlistDiv = document.getElementById('playlist');
+                // Highlight and scroll to active track
+                const activeTrack = document.querySelector(`.track[data-id="${index}"]`);
+                if (activeTrack) {
+                    document.querySelectorAll('.track').forEach(trackEl => trackEl.classList.remove('active-track'));
+                    activeTrack.classList.add('active-track');
+                    activeTrack.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                }
 
-    let popup = new mapboxgl.Popup({
-        closeOnClick: true,
-        closeButton: true,
-        offset: 25
-    });
+                // Zoom to marker
+                const feature = geojson.features[index];
+                if (feature) {
+                    map.flyTo({ center: feature.geometry.coordinates, zoom: 14 });
+                }
+            }
 
-    function playAudio(index) {
-        const track = audioData[index];
-        audioPlayer.src = track.audioUrl;
-        audioPlayer.play();
+            updatePlaylist();
+        });
+    </script>
 
-        const activeTrack = document.querySelector(`.track[data-id="${index}"]`);
-        if (activeTrack) {
-            document.querySelectorAll('.track').forEach(trackEl => trackEl.classList.remove('active-track'));
-            activeTrack.classList.add('active-track');
-            activeTrack.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    <script src='https://storage.ko-fi.com/cdn/scripts/overlay-widget.js'></script>
+    <script>
+        kofiWidgetOverlay.draw('thmkly', {
+            'type': 'floating-chat',
+            'floating-chat.donateButton.text': 'Support me',
+            'floating-chat.donateButton.background-color': '#ff5f5f',
+            'floating-chat.donateButton.text-color': '#fff'
+        });
+    </script>
+    <style>
+        .floatingchat-container-wrap { 
+            left: unset; 
+            right: 16px; 
+            bottom: 30px;
         }
-
-        const feature = geojson.features[index];
-        if (feature) {
-            map.flyTo({ center: feature.geometry.coordinates, zoom: 14 });
-
-            popup.setLngLat(feature.geometry.coordinates)
-                .setHTML(`
-                    <div style="font-family: Helvetica, sans-serif; font-size: 13px;">
-                        <strong>${track.name}</strong><br>
-                        <em>${track.timestamp || 'Unknown date'}</em><br>
-                        ${track.notes || ''}
-                    </div>
-                `)
-                .addTo(map);
+        .floating-chat-kofi-popup-iframe { 
+            left: unset; 
+            right: 16px; 
+            bottom: 30px;
         }
-    }
-
-    function buildPlaylist() {
-        playlistDiv.innerHTML = '';
-        audioData.forEach((track, index) => {
-            const trackDiv = document.createElement('div');
-            trackDiv.className = 'track';
-            trackDiv.dataset.id = index;
-            trackDiv.innerText = track.name;
-            trackDiv.addEventListener('click', () => playAudio(index));
-            playlistDiv.appendChil
+    </style>
+</body>
+</html>
