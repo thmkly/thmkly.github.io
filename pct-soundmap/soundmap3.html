@@ -59,9 +59,29 @@
         });
 
         const audioData = [
-            { name: "la posta creek birds and cars", lat: 32.7153449243, lng: -116.499263355, audioUrl: "https://www.dropbox.com/scl/fi/dbas7xhu5tt7jk2abp3o9/230424_1145.wav?rlkey=agfp5c1ajeamhfyhl069wla4j&dl=0&raw=1" }
+            { name: "la posta creek birds and cars", lat: 32.7153449243, lng: -116.499263355, audioUrl: "https://www.dropbox.com/scl/fi/dbas7xhu5tt7jk2abp3o9/230424_1145.wav?rlkey=agfp5c1ajeamhfyhl069wla4j&dl=0&raw=1", timestamp: "2023-04-24 09:45", notes: "Incredible birdsong underneath the bridge, cars passing overhead" }
             // Add more tracks here
         ];
+
+        function showPopup(map, markerElement, data) {
+              // Remove any existing popup
+              if (map.currentPopup) {
+                map.currentPopup.remove();
+              }
+            
+              const popup = new mapboxgl.Popup({ offset: 25 })
+                .setLngLat(data.coordinates)
+                .setHTML(`
+                  <div style="max-width: 250px;">
+                    <h3 style="margin: 0 0 4px 0;">${data.title}</h3>
+                    <p style="margin: 0; font-size: 0.9em; color: #555;"><strong>${data.timestamp}</strong></p>
+                    <p style="margin: 4px 0 0 0; font-size: 0.9em;">${data.notes}</p>
+                  </div>
+                `)
+                .addTo(map);
+            
+              map.currentPopup = popup;
+            }
 
         const geojson = {
             type: 'FeatureCollection',
@@ -195,6 +215,7 @@
                 const id = feature.properties.id;
 
                 map.flyTo({ center: feature.geometry.coordinates, zoom: 14 });
+                showPopup(map, markerElement, data); // wherever "data" is the selected audioData item
                 playAudio(id);
             });
 
@@ -232,6 +253,7 @@
                 const feature = geojson.features[index];
                 if (feature) {
                     map.flyTo({ center: feature.geometry.coordinates, zoom: 14 });
+                    showPopup(map, markerElement, data); // wherever "data" is the selected audioData item
                 }
             }
 
