@@ -85,18 +85,18 @@
             if (map.currentPopup) {
                 map.currentPopup.remove();
             }
-
+        
             const popup = new mapboxgl.Popup({ offset: 25 })
                 .setLngLat(coordinates)
                 .setHTML(`
-                    <div style="max-width: 250px;">
+                    <div style="max-width: 250px; font-family: helvetica, sans-serif;">
                         <h3 style="margin: 0 0 4px 0;">${data.name}</h3>
                         <p style="margin: 0; font-size: 0.9em; color: #555;"><strong>${data.timestamp}</strong></p>
                         <p style="margin: 4px 0 0 0; font-size: 0.9em;">${data.notes}</p>
                     </div>
                 `)
                 .addTo(map);
-
+        
             map.currentPopup = popup;
         }
 
