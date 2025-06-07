@@ -124,6 +124,7 @@
       map.setLayoutProperty('unclustered-point', 'visibility', zoomLevel >= minZoomForPoints ? 'visible' : 'none');
     });
 
+    // ✅ Updated fetch URL with nocache query parameter
     fetch('https://script.google.com/macros/s/AKfycbyuCOdVvr7DlM1sMjZ7ybZBmKN6h23RPuZqZY54Y3iGUgkfZ0vHtpiNz8uNqCpL_a8U/exec?nocache=' + Date.now())
       .then(response => response.json())
       .then(audioData => {
@@ -145,7 +146,9 @@
           }))
         };
 
-        map.getSource('audio').setData(geojson);
+        if (map.getSource('audio')) {
+          map.getSource('audio').setData(geojson);
+        }
 
         const audioPlayer = document.getElementById('audio-player');
         const playlist = document.getElementById('playlist');
@@ -168,7 +171,7 @@
           const track = audioData[index];
           if (!track) return;
           audioPlayer.src = track.audioUrl;
-          audioPlayer.play();
+          audioPlayer.play().catch(e => console.error('Audio play error:', e));
 
           document.querySelectorAll('.track').forEach(el => el.classList.remove('active-track'));
           const activeTrack = document.querySelector(`.track[data-id="${index}"]`);
