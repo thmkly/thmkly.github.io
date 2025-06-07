@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <title>A Soundmap of the PCT, Stereo 2023</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <link href="https://api.mapbox.com/mapbox-gl-js/v2.8.1/mapbox-gl.css" rel="stylesheet" />
   <style>
     body { margin: 0; padding: 0; }
@@ -17,15 +17,16 @@
       border-radius: 5px;
       box-shadow: 0 2px 10px rgba(0,0,0,0.3);
       width: 350px;
-      font-family: helvetica;
+      font-family: helvetica, sans-serif;
       font-size: small;
       overflow-y: auto;
       max-height: 80vh;
+      z-index: 10;
     }
     .track {
       cursor: pointer;
       padding: 5px;
-      margin: 1px;
+      margin: 1px 0;
       border-bottom: 1px solid #ccc;
     }
     .track:hover {
@@ -38,8 +39,9 @@
       cursor: grab;
     }
     .mapboxgl-popup-content {
-      opacity: 0.8;
+      opacity: 0.9;
       transition: opacity 0.3s ease;
+      font-family: helvetica, sans-serif;
     }
     .mapboxgl-popup-close-button:focus {
       outline: none;
@@ -66,12 +68,14 @@
 
   let audioData = [];
 
+  // Sort by timestamp ascending, then update map and playlist
   function sortAndUpdate(data, playlist, updateMap = true) {
     audioData = data.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
     if (updateMap) updateMapData();
     updatePlaylist(playlist);
   }
 
+  // Update map source data with GeoJSON from audioData
   function updateMapData() {
     const geojson = {
       type: 'FeatureCollection',
@@ -93,51 +97,60 @@
     map.getSource('audio').setData(geojson);
   }
 
+  // Build playlist UI with track names only (no timestamp)
   function updatePlaylist(playlist) {
     playlist.innerHTML = '';
     audioData.forEach((track, index) => {
       const div = document.createElement('div');
       div.className = 'track';
-      div.textContent = `${track.timestamp} — ${track.name}`;
+      div.textContent = track.name; // No timestamp here
       div.setAttribute('data-id', index);
       div.addEventListener('click', () => playAudio(index));
       playlist.appendChild(div);
     });
   }
 
+  // Play audio & fly to location, show popup with audio player
   function playAudio(index) {
     const track = audioData[index];
     if (!track) return;
+
+    // Highlight active track
     document.querySelectorAll('.track').forEach(el => el.classList.remove('active-track'));
     const activeTrack = document.querySelector(`.track[data-id="${index}"]`);
     if (activeTrack) {
       activeTrack.classList.add('active-track');
       activeTrack.scrollIntoView({ behavior: 'smooth', block: 'center' });
     }
+
     const coords = [Number(track.lng), Number(track.lat)];
     showPopup(coords, track);
     map.flyTo({ center: coords, zoom: 14 });
   }
 
+  // Show popup on map with audio player and metadata
   function showPopup(coords, data) {
     if (map.currentPopup) map.currentPopup.remove();
+
+    const popupHtml = `
+      <div style="max-width: 250px;">
+        <h3 style="margin: 0 0 4px 0;">${data.name}</h3>
+        <p style="margin: 0; font-size: 0.9em; color: #555;"><strong>${data.timestamp}</strong></p>
+        <p style="margin: 4px 0 6px 0; font-size: 0.9em;">${data.notes}</p>
+        <audio controls style="width: 100%;">
+          <source src="${data.audioUrl}" type="audio/mpeg" />
+          Your browser does not support the audio element.
+        </audio>
+      </div>`;
+
     map.currentPopup = new mapboxgl.Popup({ offset: 25 })
       .setLngLat(coords)
-      .setHTML(`
-        <div style="max-width: 250px; font-family: helvetica, sans-serif;">
-          <h3 style="margin: 0 0 4px 0;">${data.name}</h3>
-          <p style="margin: 0; font-size: 0.9em; color: #555;"><strong>${data.timestamp}</strong></p>
-          <p style="margin: 4px 0; font-size: 0.9em;">${data.notes}</p>
-          <audio controls style="width: 100%; margin-top: 6px;">
-            <source src="${data.audioUrl}" type="audio/mpeg">
-            Your browser does not support the audio element.
-          </audio>
-        </div>
-      `)
+      .setHTML(popupHtml)
       .addTo(map);
   }
 
   map.on('load', () => {
+    // Add source and layers for clustering points
     map.addSource('audio', {
       type: 'geojson',
       data: { type: 'FeatureCollection', features: [] },
@@ -146,34 +159,78 @@
       clusterRadius: 50
     });
 
-    map.addLayer({ id: 'clusters', type: 'circle', source: 'audio', filter: ['has', 'point_count'], paint: { 'circle-color': '#51bbd6', 'circle-radius': ['step', ['get', 'point_count'], 20, 10, 30, 50, 40], 'circle-opacity': 0.8 } });
-    map.addLayer({ id: 'cluster-count', type: 'symbol', source: 'audio', filter: ['has', 'point_count'], layout: { 'text-field': '{point_count_abbreviated}', 'text-font': ['Open Sans Semibold', 'Arial Unicode MS Bold'], 'text-size': 12 } });
-    map.addLayer({ id: 'unclustered-point', type: 'symbol', source: 'audio', filter: ['!', ['has', 'point_count']], layout: { 'icon-image': 'marker', 'icon-size': 1 } });
-
-    map.on('zoom', () => {
-      const zoomLevel = map.getZoom();
-      map.setLayoutProperty('clusters', 'visibility', zoomLevel >= 10 ? 'none' : 'visible');
-      map.setLayoutProperty('unclustered-point', 'visibility', zoomLevel >= 10 ? 'visible' : 'none');
+    map.addLayer({
+      id: 'clusters',
+      type: 'circle',
+      source: 'audio',
+      filter: ['has', 'point_count'],
+      paint: {
+        'circle-color': '#51bbd6',
+        'circle-radius': [
+          'step',
+          ['get', 'point_count'],
+          20, 10,
+          30, 50,
+          40
+        ],
+        'circle-opacity': 0.8
+      }
     });
 
+    map.addLayer({
+      id: 'cluster-count',
+      type: 'symbol',
+      source: 'audio',
+      filter: ['has', 'point_count'],
+      layout: {
+        'text-field': '{point_count_abbreviated}',
+        'text-font': ['Open Sans Semibold', 'Arial Unicode MS Bold'],
+        'text-size': 12
+      }
+    });
+
+    map.addLayer({
+      id: 'unclustered-point',
+      type: 'symbol',
+      source: 'audio',
+      filter: ['!', ['has', 'point_count']],
+      layout: {
+        'icon-image': 'marker',
+        'icon-size': 1
+      }
+    });
+
+    // Toggle visibility based on zoom level
+    map.on('zoom', () => {
+      const zoom = map.getZoom();
+      map.setLayoutProperty('clusters', 'visibility', zoom >= 10 ? 'none' : 'visible');
+      map.setLayoutProperty('unclustered-point', 'visibility', zoom >= 10 ? 'visible' : 'none');
+    });
+
+    // Fetch data from Google Apps Script
     fetch('https://script.google.com/macros/s/AKfycbyuCOdVvr7DlM1sMjZ7ybZBmKN6h23RPuZqZY54Y3iGUgkfZ0vHtpiNz8uNqCpL_a8U/exec?nocache=' + Date.now())
-      .then(response => response.json())
+      .then(res => res.json())
       .then(data => sortAndUpdate(data, document.getElementById('playlist')))
       .catch(console.error);
 
+    // On click unclustered point, play that audio
     map.on('click', 'unclustered-point', (e) => {
       const id = e.features[0]?.properties?.id;
       if (id !== undefined) playAudio(Number(id));
     });
 
+    // On click clusters, zoom in and expand cluster
     map.on('click', 'clusters', (e) => {
       const features = map.queryRenderedFeatures(e.point, { layers: ['clusters'] });
       if (!features.length) return;
+
       const clusterId = features[0].properties.cluster_id;
       map.getSource('audio').getClusterExpansionZoom(clusterId, (err, zoom) => {
         if (err) return;
+
         map.getSource('audio').getClusterLeaves(clusterId, 100, 0, (err, leaves) => {
           if (err) return;
+
           const bounds = new mapboxgl.LngLatBounds();
           leaves.forEach(leaf => bounds.extend(leaf.geometry.coordinates));
           map.fitBounds(bounds, { padding: 50 });
@@ -183,7 +240,7 @@
   });
 </script>
 
-<!-- Ko-fi widget -->
+<!-- Ko-fi support widget -->
 <script src="https://storage.ko-fi.com/cdn/scripts/overlay-widget.js"></script>
 <script>
   kofiWidgetOverlay.draw('thmkly', {
@@ -194,8 +251,8 @@
   });
 </script>
 <style>
-  .floatingchat-container-wrap { left: unset; right: 16px; bottom: 30px; }
-  .floating-chat-kofi-popup-iframe { left: unset; right: 16px; bottom: 30px; }
+  .floatingchat-container-wrap { left: unset !important; right: 16px !important; bottom: 30px !important; }
+  .floating-chat-kofi-popup-iframe { left: unset !important; right: 16px !important; bottom: 30px !important; }
 </style>
 
 </body>
