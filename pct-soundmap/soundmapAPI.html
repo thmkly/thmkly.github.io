@@ -1,155 +1,132 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-  <meta charset="UTF-8" />
-  <title>Soundmap with Playlist</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta charset="utf-8" />
+  <title>A Soundmap of the PCT, Stereo 2023</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <link href="https://api.mapbox.com/mapbox-gl-js/v2.8.1/mapbox-gl.css" rel="stylesheet" />
   <style>
-    body, html {
-      margin: 0; padding: 0; height: 100%; width: 100%;
-      font-family: Arial, sans-serif;
-      display: flex; flex-direction: row;
-      overflow: hidden;
-    }
-    #map {
-      flex: 1;
-      height: 100vh;
-      position: relative;
-    }
-    #playlist {
-      width: 300px;
-      height: 100vh;
-      overflow-y: auto;
-      background: #f7f7f7;
-      border-left: 1px solid #ddd;
+    body { margin: 0; padding: 0; }
+    #map { position: absolute; top: 0; bottom: 0; width: 100%; }
+    .playlist {
+      position: absolute;
+      top: 25px;
+      left: 10px;
+      background-color: rgba(255, 255, 255, 0.875);
       padding: 10px;
-      box-sizing: border-box;
+      border-radius: 5px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.3);
+      width: 350px;
+      font-family: helvetica;
+      font-size: small;
+      overflow-y: auto;
+      max-height: 80vh;
     }
     .track {
-      padding: 8px;
-      margin-bottom: 5px;
-      background: white;
-      border-radius: 4px;
       cursor: pointer;
-      border: 1px solid transparent;
-      transition: border-color 0.3s;
+      padding: 5px;
+      margin: 1px;
+      border-bottom: 1px solid #ccc;
     }
     .track:hover {
-      border-color: #007aff;
-      background: #e6f0ff;
+      background-color: #f0f0f0;
     }
     .active-track {
-      background: #007aff;
-      color: white;
-      font-weight: bold;
-      border-color: #005ecb;
+      background-color: #d0d0d0;
+    }
+    .mapboxgl-canvas {
+      cursor: grab;
     }
     .mapboxgl-popup-content {
-      font-size: 14px;
+      opacity: 0.8;
+      transition: opacity 0.3s ease;
     }
-    audio {
-      width: 100%;
-      margin-top: 10px;
+    .mapboxgl-popup-close-button:focus {
       outline: none;
+      box-shadow: none;
     }
   </style>
 </head>
 <body>
 
-  <div id="map"></div>
+<div id="map"></div>
+<div class="playlist" id="playlist"></div>
+<audio id="audio-player" controls style="position: absolute; bottom: 49px; left: 10px;"></audio>
 
-  <div id="playlist">
-    <h3>Playlist</h3>
-    <!-- Tracks will be inserted here -->
-    <audio id="audioPlayer" controls></audio>
-  </div>
+<script src="https://api.mapbox.com/mapbox-gl-js/v2.8.1/mapbox-gl.js"></script>
+<script>
+  mapboxgl.accessToken = 'pk.eyJ1IjoidGhta2x5IiwiYSI6ImNseXVyMjhueDA3YTQybW9mcHJrZGJ3YnEifQ.Nv-LsNg5eKIE6SeOVVJpYg';
 
-  <script src="https://api.mapbox.com/mapbox-gl-js/v2.8.1/mapbox-gl.js"></script>
-  <script>
-    // Your Mapbox Access Token - REPLACE with your own
-    mapboxgl.accessToken = 'pk.eyJ1IjoidGhta2x5IiwiYSI6ImNseXVyMjhueDA3YTQybW9mcHJrZGJ3YnEifQ.Nv-LsNg5eKIE6SeOVVJpYg';
+  const map = new mapboxgl.Map({
+    container: 'map',
+    style: 'mapbox://styles/thmkly/clyup637d004201ri2tkpaywq',
+    center: [-122.50276, 41.31727],
+    zoom: 4.625
+  });
 
-    // Replace this URL with your actual published Google Apps Script web app URL
-    const DATA_URL = 'https://script.google.com/macros/s/AKfycby_0drJr9-e9TFqf12LIlgwWIC2nTvuegjJr4aDvu8DGQ3VOVE95GC7YksmZcWvqVI/exec';
-
-    const map = new mapboxgl.Map({
-      container: 'map',
-      style: 'mapbox://styles/thmkly/clyup637d004201ri2tkpaywq',
-      center: [-120, 38], // initial map center [lng, lat]
-      zoom: 5
+  map.on('load', () => {
+    map.addSource('audio', {
+      type: 'geojson',
+      data: { type: 'FeatureCollection', features: [] },
+      cluster: true,
+      clusterMaxZoom: 14,
+      clusterRadius: 50
     });
 
-    const playlist = document.getElementById('playlist');
-    const audioPlayer = document.getElementById('audioPlayer');
-
-    let audioData = [];
-
-    // Helper: Create a popup and show on the map
-    function showPopup(map, coordinates, data) {
-      const popupHtml = `
-        <strong>${data.name}</strong><br/>
-        ${data.timestamp ? `<em>${data.timestamp}</em><br/>` : ''}
-        ${data.notes ? `<p>${data.notes}</p>` : ''}
-        <audio controls src="${data.audioUrl}" style="width: 100%;"></audio>
-      `;
-
-      new mapboxgl.Popup()
-        .setLngLat(coordinates)
-        .setHTML(popupHtml)
-        .addTo(map);
-    }
-
-    // Populate the playlist sidebar
-    function updatePlaylist() {
-      // Clear existing tracks but keep the <h3> and audio controls
-      // We'll only replace tracks with class "track"
-      const existingTracks = playlist.querySelectorAll('.track');
-      existingTracks.forEach(t => t.remove());
-
-      audioData.forEach((track, index) => {
-        const div = document.createElement('div');
-        div.className = 'track';
-        div.textContent = track.name;
-        div.setAttribute('data-id', index);
-        div.addEventListener('click', () => {
-          playAudio(index);
-        });
-        playlist.insertBefore(div, audioPlayer);
-      });
-    }
-
-    // Play audio by index and update map popup and active playlist item
-    function playAudio(index) {
-      const track = audioData[index];
-      if (!track) return;
-
-      // Set audio source and play
-      audioPlayer.src = track.audioUrl;
-      audioPlayer.play();
-
-      // Highlight active track in playlist
-      document.querySelectorAll('.track').forEach(el => el.classList.remove('active-track'));
-      const activeTrack = document.querySelector(`.track[data-id="${index}"]`);
-      if (activeTrack) activeTrack.classList.add('active-track');
-
-      // Fly map to track location
-      if (track.lng && track.lat) {
-        map.flyTo({ center: [Number(track.lng), Number(track.lat)], zoom: 14 });
-
-        // Show popup on the marker location
-        showPopup(map, [Number(track.lng), Number(track.lat)], track);
+    map.addLayer({
+      id: 'clusters',
+      type: 'circle',
+      source: 'audio',
+      filter: ['has', 'point_count'],
+      paint: {
+        'circle-color': '#51bbd6',
+        'circle-radius': [
+          'step',
+          ['get', 'point_count'],
+          20, 10, 30, 50, 40
+        ],
+        'circle-opacity': 0.8
       }
-    }
+    });
 
-    // Fetch data from Google Apps Script and initialize map markers and playlist
-    fetch(DATA_URL)
-      .then(res => res.json())
-      .then(data => {
-        // Save the data globally
-        audioData = data;
+    map.addLayer({
+      id: 'cluster-count',
+      type: 'symbol',
+      source: 'audio',
+      filter: ['has', 'point_count'],
+      layout: {
+        'text-field': '{point_count_abbreviated}',
+        'text-font': ['Open Sans Semibold', 'Arial Unicode MS Bold'],
+        'text-size': 12
+      }
+    });
 
-        // Create GeoJSON from audioData for map source
+    map.addLayer({
+      id: 'unclustered-point',
+      type: 'symbol',
+      source: 'audio',
+      filter: ['!', ['has', 'point_count']],
+      layout: {
+        'icon-image': 'marker',
+        'icon-size': 1
+      }
+    });
+
+    map.on('mouseenter', 'clusters', () => map.getCanvas().style.cursor = 'pointer');
+    map.on('mouseleave', 'clusters', () => map.getCanvas().style.cursor = '');
+    map.on('mouseenter', 'unclustered-point', () => map.getCanvas().style.cursor = 'pointer');
+    map.on('mouseleave', 'unclustered-point', () => map.getCanvas().style.cursor = '');
+
+    map.on('zoom', () => {
+      const zoomLevel = map.getZoom();
+      const minZoomForPoints = 10;
+      map.setLayoutProperty('clusters', 'visibility', zoomLevel >= minZoomForPoints ? 'none' : 'visible');
+      map.setLayoutProperty('unclustered-point', 'visibility', zoomLevel >= minZoomForPoints ? 'visible' : 'none');
+    });
+
+    fetch('https://script.google.com/macros/s/AKfycbyuCOdVvr7DlM1sMjZ7ybZBmKN6h23RPuZqZY54Y3iGUgkfZ0vHtpiNz8uNqCpL_a8U/exec')
+      .then(response => response.json())
+      .then(audioData => {
         const geojson = {
           type: 'FeatureCollection',
           features: audioData.map((track, idx) => ({
@@ -168,98 +145,112 @@
           }))
         };
 
-        map.on('load', () => {
-          // Add source with clustering
-          map.addSource('audio', {
-            type: 'geojson',
-            data: geojson,
-            cluster: true,
-            clusterMaxZoom: 14,
-            clusterRadius: 50
+        map.getSource('audio').setData(geojson);
+
+        const audioPlayer = document.getElementById('audio-player');
+        const playlist = document.getElementById('playlist');
+
+        function showPopup(coords, data) {
+          if (map.currentPopup) map.currentPopup.remove();
+          map.currentPopup = new mapboxgl.Popup({ offset: 25 })
+            .setLngLat(coords)
+            .setHTML(`
+              <div style="max-width: 250px; font-family: helvetica, sans-serif;">
+                <h3 style="margin: 0 0 4px 0;">${data.name}</h3>
+                <p style="margin: 0; font-size: 0.9em; color: #555;"><strong>${data.timestamp}</strong></p>
+                <p style="margin: 4px 0 0 0; font-size: 0.9em;">${data.notes}</p>
+              </div>
+            `)
+            .addTo(map);
+        }
+
+        function playAudio(index) {
+          const track = audioData[index];
+          if (!track) return;
+          audioPlayer.src = track.audioUrl;
+          audioPlayer.play();
+
+          document.querySelectorAll('.track').forEach(el => el.classList.remove('active-track'));
+          const activeTrack = document.querySelector(`.track[data-id="${index}"]`);
+          if (activeTrack) {
+            activeTrack.classList.add('active-track');
+            activeTrack.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          }
+
+          const feature = geojson.features[index];
+          if (feature) {
+            map.flyTo({ center: feature.geometry.coordinates, zoom: 14 });
+            showPopup(feature.geometry.coordinates, track);
+          }
+        }
+
+        function updatePlaylist() {
+          playlist.innerHTML = '';
+          audioData.forEach((track, index) => {
+            const div = document.createElement('div');
+            div.className = 'track';
+            div.textContent = track.name;
+            div.setAttribute('data-id', index);
+            div.addEventListener('click', () => playAudio(index));
+            playlist.appendChild(div);
           });
+        }
 
-          // Cluster circles
-          map.addLayer({
-            id: 'clusters',
-            type: 'circle',
-            source: 'audio',
-            filter: ['has', 'point_count'],
-            paint: {
-              'circle-color': '#51bbd6',
-              'circle-radius': [
-                'step',
-                ['get', 'point_count'],
-                20, 10, 30, 50, 40
-              ],
-              'circle-opacity': 0.8
-            }
-          });
-
-          // Cluster count labels
-          map.addLayer({
-            id: 'cluster-count',
-            type: 'symbol',
-            source: 'audio',
-            filter: ['has', 'point_count'],
-            layout: {
-              'text-field': '{point_count_abbreviated}',
-              'text-font': ['Open Sans Semibold', 'Arial Unicode MS Bold'],
-              'text-size': 12
-            }
-          });
-
-          // Unclustered points
-          map.addLayer({
-            id: 'unclustered-point',
-            type: 'symbol',
-            source: 'audio',
-            filter: ['!', ['has', 'point_count']],
-            layout: {
-              'icon-image': 'marker-15',
-              'icon-size': 1
-            }
-          });
-
-          // Cursor pointer on hover for clusters and points
-          ['clusters', 'unclustered-point'].forEach(layer => {
-            map.on('mouseenter', layer, () => {
-              map.getCanvas().style.cursor = 'pointer';
-            });
-            map.on('mouseleave', layer, () => {
-              map.getCanvas().style.cursor = '';
-            });
-          });
-
-          // Zoom in on cluster click
-          map.on('click', 'clusters', (e) => {
-            const features = map.queryRenderedFeatures(e.point, { layers: ['clusters'] });
-            if (!features.length) return;
-
-            const clusterId = features[0].properties.cluster_id;
-
-            map.getSource('audio').getClusterExpansionZoom(clusterId, (err, zoom) => {
-              if (err) return;
-              map.easeTo({ center: features[0].geometry.coordinates, zoom: zoom });
-            });
-          });
-
-          // Click unclustered point to play audio & show popup
-          map.on('click', 'unclustered-point', (e) => {
-            const feature = e.features[0];
-            if (!feature) return;
-            const id = feature.properties.id;
-            playAudio(id);
-          });
-
-          // Populate playlist
-          updatePlaylist();
+        map.on('click', 'unclustered-point', (e) => {
+          const feature = e.features[0];
+          if (!feature) return;
+          const id = feature.properties.id;
+          const coords = feature.geometry.coordinates;
+          const data = audioData[id];
+          map.flyTo({ center: coords, zoom: 14 });
+          showPopup(coords, data);
+          playAudio(id);
         });
-      })
-      .catch(err => {
-        console.error('Error fetching audio data:', err);
-      });
 
-  </script>
+        map.on('click', 'clusters', (e) => {
+          const features = map.queryRenderedFeatures(e.point, { layers: ['clusters'] });
+          if (!features.length) return;
+
+          const clusterId = features[0].properties.cluster_id;
+          map.getSource('audio').getClusterExpansionZoom(clusterId, (err, zoom) => {
+            if (err) return;
+            map.getSource('audio').getClusterLeaves(clusterId, 100, 0, (err, leaves) => {
+              if (err) return;
+              const bounds = new mapboxgl.LngLatBounds();
+              leaves.forEach(leaf => bounds.extend(leaf.geometry.coordinates));
+              map.fitBounds(bounds, { padding: 50 });
+            });
+          });
+        });
+
+        updatePlaylist();
+      })
+      .catch(error => console.error('Error fetching audio data:', error));
+  });
+</script>
+
+<!-- Ko-fi widget -->
+<script src="https://storage.ko-fi.com/cdn/scripts/overlay-widget.js"></script>
+<script>
+  kofiWidgetOverlay.draw('thmkly', {
+    'type': 'floating-chat',
+    'floating-chat.donateButton.text': 'Support me',
+    'floating-chat.donateButton.background-color': '#ff5f5f',
+    'floating-chat.donateButton.text-color': '#fff'
+  });
+</script>
+<style>
+  .floatingchat-container-wrap {
+    left: unset;
+    right: 16px;
+    bottom: 30px;
+  }
+  .floating-chat-kofi-popup-iframe {
+    left: unset;
+    right: 16px;
+    bottom: 30px;
+  }
+</style>
 
 </body>
 </html>
