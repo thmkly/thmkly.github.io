@@ -124,7 +124,7 @@
       map.setLayoutProperty('unclustered-point', 'visibility', zoomLevel >= minZoomForPoints ? 'visible' : 'none');
     });
 
-    fetch('https://script.google.com/macros/s/AKfycbyuCOdVvr7DlM1sMjZ7ybZBmKN6h23RPuZqZY54Y3iGUgkfZ0vHtpiNz8uNqCpL_a8U/exec')
+    fetch('https://script.google.com/macros/s/AKfycbyuCOdVvr7DlM1sMjZ7ybZBmKN6h23RPuZqZY54Y3iGUgkfZ0vHtpiNz8uNqCpL_a8U/exec?nocache=' + Date.now())
       .then(response => response.json())
       .then(audioData => {
         const geojson = {
