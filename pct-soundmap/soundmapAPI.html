@@ -51,7 +51,7 @@
 
 <div id="map"></div>
 <div class="playlist" id="playlist"></div>
-<audio id="audio-player" controls style="position: absolute; bottom: 49px; left: 10px;"></audio>
+<audio id="audio-player" style="display: none;"></audio>
 
 <script src="https://api.mapbox.com/mapbox-gl-js/v2.8.1/mapbox-gl.js"></script>
 <script>
@@ -167,24 +167,21 @@
         function playAudio(index) {
           const track = audioData[index];
           if (!track) return;
-
-          audioPlayer.src = track.audioUrl;
-          audioPlayer.load();
-          audioPlayer.play().catch(err => console.error("Playback error:", err));
-
+        
           document.querySelectorAll('.track').forEach(el => el.classList.remove('active-track'));
           const activeTrack = document.querySelector(`.track[data-id="${index}"]`);
           if (activeTrack) {
             activeTrack.classList.add('active-track');
             activeTrack.scrollIntoView({ behavior: 'smooth', block: 'center' });
           }
-
+        
           const feature = geojson.features[index];
           if (feature) {
             map.flyTo({ center: feature.geometry.coordinates, zoom: 14 });
             showPopup(feature.geometry.coordinates, track);
           }
         }
+
 
         function updatePlaylist() {
           playlist.innerHTML = '';
