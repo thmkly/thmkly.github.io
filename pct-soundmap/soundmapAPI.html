@@ -158,7 +158,11 @@
               <div style="max-width: 250px; font-family: helvetica, sans-serif;">
                 <h3 style="margin: 0 0 4px 0;">${data.name}</h3>
                 <p style="margin: 0; font-size: 0.9em; color: #555;"><strong>${data.timestamp}</strong></p>
-                <p style="margin: 4px 0 0 0; font-size: 0.9em;">${data.notes}</p>
+                <p style="margin: 4px 0; font-size: 0.9em;">${data.notes}</p>
+                <audio controls style="width: 100%; margin-top: 6px;">
+                  <source src="${data.audioUrl}" type="audio/mpeg">
+                  Your browser does not support the audio element.
+                </audio>
               </div>
             `)
             .addTo(map);
@@ -167,21 +171,20 @@
         function playAudio(index) {
           const track = audioData[index];
           if (!track) return;
-        
+
           document.querySelectorAll('.track').forEach(el => el.classList.remove('active-track'));
           const activeTrack = document.querySelector(`.track[data-id="${index}"]`);
           if (activeTrack) {
             activeTrack.classList.add('active-track');
             activeTrack.scrollIntoView({ behavior: 'smooth', block: 'center' });
           }
-        
+
           const feature = geojson.features[index];
           if (feature) {
             map.flyTo({ center: feature.geometry.coordinates, zoom: 14 });
             showPopup(feature.geometry.coordinates, track);
           }
         }
-
 
         function updatePlaylist() {
           playlist.innerHTML = '';
