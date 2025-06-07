@@ -70,11 +70,12 @@
 
 fetch('https://script.google.com/macros/s/AKfycbyaURu4dIPtK6hAZrCHHaFLDjWIgOthnCNZyemLAK06OWJlNYz9QN0w48WLJ_hcFP1p/exec')
   .then(res => res.json())
-  .then(data => {
-    // convert to GeoJSON
+ .then(data => {
+    const audioData = data;
+
     const geojson = {
       type: 'FeatureCollection',
-      features: data.map((track, index) => ({
+      features: audioData.map((track, index) => ({
         type: 'Feature',
         geometry: {
           type: 'Point',
