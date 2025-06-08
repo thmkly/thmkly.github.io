@@ -51,7 +51,7 @@
 
 <div id="map"></div>
 <div class="playlist" id="playlist"></div>
-<audio id="audio-player" style="display: none;"></audio>
+<audio id="audio-player" style="position: fixed; bottom: 10px; left: 10px; width: 300px; z-index: 999;" controls></audio>
 
 <script src="https://api.mapbox.com/mapbox-gl-js/v2.8.1/mapbox-gl.js"></script>
 <script>
@@ -105,18 +105,28 @@
     });
   }
 
+  const audioPlayer = document.getElementById('audio-player');
+
   function playAudio(index) {
     const track = audioData[index];
     if (!track) return;
+
     document.querySelectorAll('.track').forEach(el => el.classList.remove('active-track'));
     const activeTrack = document.querySelector(`.track[data-id="${index}"]`);
     if (activeTrack) {
       activeTrack.classList.add('active-track');
       activeTrack.scrollIntoView({ behavior: 'smooth', block: 'center' });
     }
+
     const coords = [Number(track.lng), Number(track.lat)];
     showPopup(coords, track);
     map.flyTo({ center: coords, zoom: 14 });
+
+    audioPlayer.src = track.audioUrl;
+    audioPlayer.load();
+    audioPlayer.play().catch(err => {
+      console.warn("Autoplay failed:", err);
+    });
   }
 
   function showPopup(coords, data) {
@@ -128,10 +138,6 @@
           <h3 style="margin: 0 0 4px 0;">${data.name}</h3>
           <p style="margin: 0; font-size: 0.9em; color: #555;"><strong>${data.timestamp}</strong></p>
           <p style="margin: 4px 0; font-size: 0.9em;">${data.notes}</p>
-          <audio controls style="width: 100%; margin-top: 6px;">
-            <source src="${data.audioUrl}" type="audio/mpeg">
-            Your browser does not support the audio element.
-          </audio>
         </div>
       `)
       .addTo(map);
@@ -156,7 +162,7 @@
       map.setLayoutProperty('unclustered-point', 'visibility', zoomLevel >= 10 ? 'visible' : 'none');
     });
 
-    fetch('https://script.google.com/macros/s/AKfycbxBgg5BLTI9Vo4QqmT3w73yZ-3kTxA7emaUqLJNXg7YlKIQYcQ1cxKFlVm8XYTADpL5/exec?nocache=' + Date.now())
+    fetch('https://script.google.com/macros/s/AKfycbyuCOdVvr7DlM1sMjZ7ybZBmKN6h23RPuZqZY54Y3iGUgkfZ0vHtpiNz8uNqCpL_a8U/exec?nocache=' + Date.now())
       .then(response => response.json())
       .then(data => sortAndUpdate(data, document.getElementById('playlist')))
       .catch(console.error);
