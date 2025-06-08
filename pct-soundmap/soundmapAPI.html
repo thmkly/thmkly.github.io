@@ -45,24 +45,13 @@
       outline: none;
       box-shadow: none;
     }
-    #audio-player {
-      position: absolute;
-      bottom: 10px;
-      left: 50%;
-      transform: translateX(-50%);
-      z-index: 10;
-      background: white;
-      border: 1px solid #ccc;
-      border-radius: 5px;
-      padding: 5px;
-    }
   </style>
 </head>
 <body>
 
 <div id="map"></div>
 <div class="playlist" id="playlist"></div>
-<audio id="audio-player" controls></audio>
+<audio id="audio-player" controls style="display: none;"></audio>
 
 <script src="https://api.mapbox.com/mapbox-gl-js/v2.8.1/mapbox-gl.js"></script>
 <script>
@@ -76,6 +65,7 @@
   });
 
   let audioData = [];
+  const hiddenAudio = document.getElementById('audio-player');
 
   function sortAndUpdate(data, playlist, updateMap = true) {
     audioData = data.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
@@ -120,8 +110,6 @@
     });
   }
 
-  const audioPlayer = document.getElementById('audio-player');
-
   function playAudio(index) {
     const track = audioData[index];
     if (!track) return;
@@ -133,9 +121,9 @@
       activeTrack.scrollIntoView({ behavior: 'smooth', block: 'center' });
     }
 
-    audioPlayer.src = track.audioUrl;
-    audioPlayer.load();
-    audioPlayer.play().catch(err => console.warn('Autoplay blocked:', err));
+    hiddenAudio.src = track.audioUrl;
+    hiddenAudio.load();
+    hiddenAudio.play().catch(err => console.warn('Autoplay blocked:', err));
 
     const coords = [Number(track.lng), Number(track.lat)];
     showPopup(coords, track);
@@ -144,6 +132,7 @@
 
   function showPopup(coords, data) {
     if (map.currentPopup) map.currentPopup.remove();
+    const audioHTML = `<audio controls autoplay style="width: 100%; margin-top: 8px;"><source src="${data.audioUrl}" type="audio/mpeg">Your browser does not support the audio element.</audio>`;
     map.currentPopup = new mapboxgl.Popup({ offset: 25 })
       .setLngLat(coords)
       .setHTML(`
@@ -151,6 +140,7 @@
           <h3 style="margin: 0 0 4px 0;">${data.name}</h3>
           <p style="margin: 0; font-size: 0.9em; color: #555;"><strong>${data.timestamp}</strong></p>
           <p style="margin: 4px 0; font-size: 0.9em;">${data.notes}</p>
+          ${audioHTML}
         </div>
       `)
       .addTo(map);
