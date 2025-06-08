@@ -38,7 +38,7 @@
       cursor: grab;
     }
     .mapboxgl-popup-content {
-      opacity: 0.8;
+      opacity: 0.95;
       transition: opacity 0.3s ease;
     }
     .mapboxgl-popup-close-button:focus {
@@ -51,7 +51,7 @@
 
 <div id="map"></div>
 <div class="playlist" id="playlist"></div>
-<audio id="audio-player" style="position: fixed; bottom: 10px; left: 10px; width: 300px; z-index: 999;" controls></audio>
+<audio id="audio-player" style="display: none;" controls></audio>
 
 <script src="https://api.mapbox.com/mapbox-gl-js/v2.8.1/mapbox-gl.js"></script>
 <script>
@@ -73,6 +73,10 @@
   }
 
   function updateMapData() {
+    if (!map.getSource('audio')) {
+      console.warn("Map source 'audio' not yet initialized.");
+      return;
+    }
     const geojson = {
       type: 'FeatureCollection',
       features: audioData.map((track, idx) => ({
@@ -90,6 +94,7 @@
         }
       }))
     };
+    console.log("GeoJSON features:", geojson.features);
     map.getSource('audio').setData(geojson);
   }
 
@@ -98,7 +103,7 @@
     audioData.forEach((track, index) => {
       const div = document.createElement('div');
       div.className = 'track';
-      div.textContent = track.name;
+      div.textContent = track.name.replace(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}.*?\s+-\s+/, '');
       div.setAttribute('data-id', index);
       div.addEventListener('click', () => playAudio(index));
       playlist.appendChild(div);
@@ -121,12 +126,6 @@
     const coords = [Number(track.lng), Number(track.lat)];
     showPopup(coords, track);
     map.flyTo({ center: coords, zoom: 14 });
-
-    audioPlayer.src = track.audioUrl;
-    audioPlayer.load();
-    audioPlayer.play().catch(err => {
-      console.warn("Autoplay failed:", err);
-    });
   }
 
   function showPopup(coords, data) {
@@ -138,6 +137,7 @@
           <h3 style="margin: 0 0 4px 0;">${data.name}</h3>
           <p style="margin: 0; font-size: 0.9em; color: #555;"><strong>${data.timestamp}</strong></p>
           <p style="margin: 4px 0; font-size: 0.9em;">${data.notes}</p>
+          <audio src="${data.audioUrl}" style="width: 100%; margin-top: 6px;" controls autoplay></audio>
         </div>
       `)
       .addTo(map);
@@ -152,14 +152,37 @@
       clusterRadius: 50
     });
 
-    map.addLayer({ id: 'clusters', type: 'circle', source: 'audio', filter: ['has', 'point_count'], paint: { 'circle-color': '#51bbd6', 'circle-radius': ['step', ['get', 'point_count'], 20, 10, 30, 50, 40], 'circle-opacity': 0.8 } });
-    map.addLayer({ id: 'cluster-count', type: 'symbol', source: 'audio', filter: ['has', 'point_count'], layout: { 'text-field': '{point_count_abbreviated}', 'text-font': ['Open Sans Semibold', 'Arial Unicode MS Bold'], 'text-size': 12 } });
-    map.addLayer({ id: 'unclustered-point', type: 'symbol', source: 'audio', filter: ['!', ['has', 'point_count']], layout: { 'icon-image': 'marker', 'icon-size': 1 } });
-
-    map.on('zoom', () => {
-      const zoomLevel = map.getZoom();
-      map.setLayoutProperty('clusters', 'visibility', zoomLevel >= 10 ? 'none' : 'visible');
-      map.setLayoutProperty('unclustered-point', 'visibility', zoomLevel >= 10 ? 'visible' : 'none');
+    map.addLayer({
+      id: 'clusters',
+      type: 'circle',
+      source: 'audio',
+      filter: ['has', 'point_count'],
+      paint: {
+        'circle-color': '#51bbd6',
+        'circle-radius': ['step', ['get', 'point_count'], 20, 10, 30, 50, 40],
+        'circle-opacity': 0.8
+      }
+    });
+    map.addLayer({
+      id: 'cluster-count',
+      type: 'symbol',
+      source: 'audio',
+      filter: ['has', 'point_count'],
+      layout: {
+        'text-field': '{point_count_abbreviated}',
+        'text-font': ['Open Sans Semibold', 'Arial Unicode MS Bold'],
+        'text-size': 12
+      }
+    });
+    map.addLayer({
+      id: 'unclustered-point',
+      type: 'symbol',
+      source: 'audio',
+      filter: ['!', ['has', 'point_count']],
+      layout: {
+        'icon-image': 'rocket-15',
+        'icon-size': 1.5
+      }
     });
 
     fetch('https://script.google.com/macros/s/AKfycbyuCOdVvr7DlM1sMjZ7ybZBmKN6h23RPuZqZY54Y3iGUgkfZ0vHtpiNz8uNqCpL_a8U/exec?nocache=' + Date.now())
@@ -189,7 +212,6 @@
   });
 </script>
 
-<!-- Ko-fi widget -->
 <script src="https://storage.ko-fi.com/cdn/scripts/overlay-widget.js"></script>
 <script>
   kofiWidgetOverlay.draw('thmkly', {
