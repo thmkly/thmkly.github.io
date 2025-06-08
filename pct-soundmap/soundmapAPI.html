@@ -98,7 +98,7 @@
     audioData.forEach((track, index) => {
       const div = document.createElement('div');
       div.className = 'track';
-      div.textContent = `${track.timestamp} — ${track.name}`;
+      div.textContent = track.name;
       div.setAttribute('data-id', index);
       div.addEventListener('click', () => playAudio(index));
       playlist.appendChild(div);
@@ -156,7 +156,7 @@
       map.setLayoutProperty('unclustered-point', 'visibility', zoomLevel >= 10 ? 'visible' : 'none');
     });
 
-    fetch('https://script.google.com/macros/s/AKfycbwmK5VJsmUmcege7ivkDcp1-5XoHxJfpPNQpu1_Ld5fiDWsqy97q09cKp9xCLM_7An0/exec?nocache=' + Date.now())
+    fetch('https://script.google.com/macros/s/AKfycbxBgg5BLTI9Vo4QqmT3w73yZ-3kTxA7emaUqLJNXg7YlKIQYcQ1cxKFlVm8XYTADpL5/exec?nocache=' + Date.now())
       .then(response => response.json())
       .then(data => sortAndUpdate(data, document.getElementById('playlist')))
       .catch(console.error);
