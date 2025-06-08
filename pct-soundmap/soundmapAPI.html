@@ -45,13 +45,13 @@
       outline: none;
       box-shadow: none;
     }
+    .mapboxgl-marker { cursor: pointer; }
   </style>
 </head>
 <body>
 
 <div id="map"></div>
 <div class="playlist" id="playlist"></div>
-<audio id="audio-player" controls style="display: none;"></audio>
 
 <script src="https://api.mapbox.com/mapbox-gl-js/v2.8.1/mapbox-gl.js"></script>
 <script>
@@ -65,7 +65,7 @@
   });
 
   let audioData = [];
-  const hiddenAudio = document.getElementById('audio-player');
+  let currentAudio = null;
 
   function sortAndUpdate(data, playlist, updateMap = true) {
     audioData = data.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
@@ -74,10 +74,7 @@
   }
 
   function updateMapData() {
-    if (!map.getSource('audio')) {
-      console.warn("Map source 'audio' not yet initialized.");
-      return;
-    }
+    if (!map.getSource('audio')) return;
     const geojson = {
       type: 'FeatureCollection',
       features: audioData.map((track, idx) => ({
@@ -121,10 +118,6 @@
       activeTrack.scrollIntoView({ behavior: 'smooth', block: 'center' });
     }
 
-    hiddenAudio.src = track.audioUrl;
-    hiddenAudio.load();
-    hiddenAudio.play().catch(err => console.warn('Autoplay blocked:', err));
-
     const coords = [Number(track.lng), Number(track.lat)];
     showPopup(coords, track);
     map.flyTo({ center: coords, zoom: 14 });
@@ -132,17 +125,34 @@
 
   function showPopup(coords, data) {
     if (map.currentPopup) map.currentPopup.remove();
-    const audioHTML = `<audio controls autoplay style="width: 100%; margin-top: 8px;"><source src="${data.audioUrl}" type="audio/mpeg">Your browser does not support the audio element.</audio>`;
+    if (currentAudio) {
+      currentAudio.pause();
+      currentAudio = null;
+    }
+
+    const audio = document.createElement('audio');
+    audio.controls = true;
+    audio.autoplay = true;
+    audio.style.width = '100%';
+    audio.innerHTML = `<source src="${data.audioUrl}" type="audio/mpeg">Your browser does not support the audio element.`;
+
+    audio.addEventListener('error', () => console.warn('Audio failed to load or play.'));
+
+    currentAudio = audio;
+
+    const container = document.createElement('div');
+    container.style.maxWidth = '250px';
+    container.style.fontFamily = 'helvetica, sans-serif';
+    container.innerHTML = `
+      <h3 style="margin: 0 0 4px 0;">${data.name}</h3>
+      <p style="margin: 0; font-size: 0.9em; color: #555;"><strong>${data.timestamp}</strong></p>
+      <p style="margin: 4px 0; font-size: 0.9em;">${data.notes}</p>
+    `;
+    container.appendChild(audio);
+
     map.currentPopup = new mapboxgl.Popup({ offset: 25 })
       .setLngLat(coords)
-      .setHTML(`
-        <div style="max-width: 250px; font-family: helvetica, sans-serif;">
-          <h3 style="margin: 0 0 4px 0;">${data.name}</h3>
-          <p style="margin: 0; font-size: 0.9em; color: #555;"><strong>${data.timestamp}</strong></p>
-          <p style="margin: 4px 0; font-size: 0.9em;">${data.notes}</p>
-          ${audioHTML}
-        </div>
-      `)
+      .setDOMContent(container)
       .addTo(map);
   }
 
@@ -183,7 +193,7 @@
       source: 'audio',
       filter: ['!', ['has', 'point_count']],
       layout: {
-        'icon-image': 'rocket-15',
+        'icon-image': 'marker-15',
         'icon-size': 1.5
       }
     });
