@@ -139,7 +139,7 @@
     audio.style.width = '100%';
     audio.style.maxWidth = '100%';
     audio.innerHTML = `<source src="${data.audioUrl}" type="audio/mpeg">Your browser does not support the audio element.`;
-    audio.addEventListener('contextmenu', e => e.preventDefault()); // Disable right-click
+    audio.addEventListener('contextmenu', e => e.preventDefault());
     audio.addEventListener('error', () => console.warn('Audio failed to load or play.'));
     currentAudio = audio;
 
@@ -159,7 +159,6 @@
 
     map.currentPopup = popup;
     popup.addTo(map);
-
   }
 
   map.on('load', () => {
@@ -171,17 +170,29 @@
       clusterRadius: 50
     });
 
-  map.addLayer({
-    id: 'unclustered-point',
-    type: 'circle',
-    source: 'audio',
-    filter: ['!', ['has', 'point_count']],
-    paint: {
-      'circle-radius': 6,
-      'circle-color': '#f28cb1',
-      'circle-stroke-width': 1,
-      'circle-stroke-color': '#fff'
-    }
+    map.addLayer({
+      id: 'unclustered-point',
+      type: 'circle',
+      source: 'audio',
+      filter: ['!', ['has', 'point_count']],
+      paint: {
+        'circle-color': '#ff5500',
+        'circle-radius': 6,
+        'circle-stroke-width': 1,
+        'circle-stroke-color': '#fff'
+      }
+    });
+
+    map.addLayer({
+      id: 'clusters',
+      type: 'circle',
+      source: 'audio',
+      filter: ['has', 'point_count'],
+      paint: {
+        'circle-color': '#51bbd6',
+        'circle-radius': ['step', ['get', 'point_count'], 20, 10, 30, 50, 40],
+        'circle-opacity': 0.8
+      }
     });
 
     map.addLayer({
@@ -193,17 +204,9 @@
         'text-field': '{point_count_abbreviated}',
         'text-font': ['Open Sans Semibold', 'Arial Unicode MS Bold'],
         'text-size': 12
-      }
-    });
-
-    map.addLayer({
-      id: 'unclustered-point',
-      type: 'symbol',
-      source: 'audio',
-      filter: ['!', ['has', 'point_count']],
-      layout: {
-        'icon-image': 'marker-15',
-        'icon-size': 1.5
+      },
+      paint: {
+        'text-color': '#fff'
       }
     });
 
