@@ -133,20 +133,15 @@
     const audio = document.createElement('audio');
     audio.controls = true;
     audio.autoplay = true;
-    audio.controlsList = 'nodownload';
     audio.style.width = '100%';
-
-    // 🔒 Disable right-click context menu on audio
-    audio.addEventListener('contextmenu', e => e.preventDefault());
-
     audio.innerHTML = `<source src="${data.audioUrl}" type="audio/mpeg">Your browser does not support the audio element.`;
+    audio.addEventListener('contextmenu', e => e.preventDefault()); // Disable right-click
     audio.addEventListener('error', () => console.warn('Audio failed to load or play.'));
-
     currentAudio = audio;
 
     const container = document.createElement('div');
-    container.style.maxWidth = '250px';
     container.style.fontFamily = 'helvetica, sans-serif';
+    container.style.padding = '2px';
     container.innerHTML = `
       <h3 style="margin: 0 0 4px 0;">${data.name}</h3>
       <p style="margin: 0; font-size: 0.9em; color: #555;"><strong>${data.timestamp}</strong></p>
@@ -154,10 +149,17 @@
     `;
     container.appendChild(audio);
 
-    map.currentPopup = new mapboxgl.Popup({ offset: 25 })
+    const popup = new mapboxgl.Popup({ offset: 25 })
       .setLngLat(coords)
-      .setDOMContent(container)
-      .addTo(map);
+      .setDOMContent(container);
+
+    map.currentPopup = popup;
+    popup.addTo(map);
+
+    requestAnimationFrame(() => {
+      const audioWidth = audio.getBoundingClientRect().width;
+      container.style.minWidth = audioWidth + 'px';
+    });
   }
 
   map.on('load', () => {
@@ -180,6 +182,7 @@
         'circle-opacity': 0.8
       }
     });
+
     map.addLayer({
       id: 'cluster-count',
       type: 'symbol',
@@ -191,6 +194,7 @@
         'text-size': 12
       }
     });
+
     map.addLayer({
       id: 'unclustered-point',
       type: 'symbol',
