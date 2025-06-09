@@ -133,9 +133,13 @@
     const audio = document.createElement('audio');
     audio.controls = true;
     audio.autoplay = true;
+    audio.controlsList = 'nodownload';
     audio.style.width = '100%';
-    audio.innerHTML = `<source src="${data.audioUrl}" type="audio/mpeg">Your browser does not support the audio element.`;
 
+    // 🔒 Disable right-click context menu on audio
+    audio.addEventListener('contextmenu', e => e.preventDefault());
+
+    audio.innerHTML = `<source src="${data.audioUrl}" type="audio/mpeg">Your browser does not support the audio element.`;
     audio.addEventListener('error', () => console.warn('Audio failed to load or play.'));
 
     currentAudio = audio;
