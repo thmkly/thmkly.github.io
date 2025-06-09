@@ -40,9 +40,9 @@
     .mapboxgl-popup-content {
       opacity: 0.95;
       transition: opacity 0.3s ease;
-      display: inline-block;
-      min-width: fit-content;
+      min-width: 320px;
       max-width: 90vw;
+      box-sizing: border-box;
     }
     .mapboxgl-popup-close-button:focus {
       outline: none;
@@ -137,6 +137,7 @@
     audio.controls = true;
     audio.autoplay = true;
     audio.style.width = '100%';
+    audio.style.maxWidth = '100%';
     audio.innerHTML = `<source src="${data.audioUrl}" type="audio/mpeg">Your browser does not support the audio element.`;
     audio.addEventListener('contextmenu', e => e.preventDefault()); // Disable right-click
     audio.addEventListener('error', () => console.warn('Audio failed to load or play.'));
