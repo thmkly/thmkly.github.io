@@ -171,16 +171,18 @@
       clusterRadius: 50
     });
 
-    map.addLayer({
-      id: 'clusters',
-      type: 'circle',
-      source: 'audio',
-      filter: ['has', 'point_count'],
-      paint: {
-        'circle-color': '#51bbd6',
-        'circle-radius': ['step', ['get', 'point_count'], 20, 10, 30, 50, 40],
-        'circle-opacity': 0.8
-      }
+  map.addLayer({
+    id: 'unclustered-point',
+    type: 'circle',
+    source: 'audio',
+    filter: ['!', ['has', 'point_count']],
+    paint: {
+      'circle-radius': 8,
+      'circle-color': '#FF6F61',
+      'circle-stroke-width': 1,
+      'circle-stroke-color': '#fff'
+    }
+});
     });
 
     map.addLayer({
