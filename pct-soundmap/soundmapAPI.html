@@ -207,7 +207,7 @@ map.on('load', () => {
       'circle-stroke-opacity': .75
     }
   });
-  fetch('https://script.google.com/macros/s/AKfycbxHi1qtys4oNlyRljjeriBnKvdb9Lkbo29p-e6xal03axnF-bNfN5kW9nMVHdHIhwuW/exec?nocache=' + Date.now())
+  fetch('https://script.google.com/macros/s/AKfycbwtBuDyFe4jA7h8wz6r5opGazTumL2waehR6BwaAqXnUQc2VQCxMcedX8D-l6-y251d/exec?nocache=' + Date.now())
     .then(response => response.json())
     .then(data => sortAndUpdate(data, document.getElementById('playlist')))
     .catch(console.error);
