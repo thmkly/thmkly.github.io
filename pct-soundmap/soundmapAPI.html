@@ -68,6 +68,21 @@
   let audioData = [];
   let currentAudio = null;
 
+  function formatTimestamp(timestampStr) {
+    const date = new Date(timestampStr);
+    if (isNaN(date.getTime())) return timestampStr;
+
+    return date.toLocaleString('en-US', {
+      timeZone: 'America/Los_Angeles',
+      hour12: false,
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit'
+    }).replace(',', '');
+  }
+
   function sortAndUpdate(data, playlist, updateMap = true) {
     audioData = data.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
     if (updateMap) updateMapData();
@@ -146,7 +161,7 @@
     container.style.padding = '2px';
     container.innerHTML = `
       <h3 style="margin: 0 0 4px 0;">${data.name}</h3>
-      <p style="margin: 0; font-size: 0.9em; color: #555;"><strong>${data.timestamp}</strong></p>
+      <p style="margin: 0; font-size: 0.9em; color: #555;"><strong>${formatTimestamp(data.timestamp)}</strong></p>
       <p style="margin: 4px 0; font-size: 0.9em;">${data.notes}</p>
     `;
     container.appendChild(audio);
