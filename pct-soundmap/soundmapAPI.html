@@ -28,15 +28,13 @@
       margin: 1px;
       border-bottom: 1px solid #ccc;
     }
-    .track:hover {
+    .track:hover, .hovered-track {
       background-color: #f0f0f0;
     }
     .active-track {
       background-color: #d0d0d0;
     }
-    .mapboxgl-canvas {
-      cursor: grab;
-    }
+    .mapboxgl-canvas { cursor: grab; }
     .mapboxgl-popup-content {
       opacity: 0.80;
       transition: opacity 0.3s ease;
@@ -52,219 +50,187 @@
   </style>
 </head>
 <body>
-
 <div id="map"></div>
 <div class="playlist" id="playlist"></div>
-
 <script src="https://api.mapbox.com/mapbox-gl-js/v2.8.1/mapbox-gl.js"></script>
 <script>
-  mapboxgl.accessToken = 'pk.eyJ1IjoidGhta2x5IiwiYSI6ImNseXVyMjhueDA3YTQybW9mcHJrZGJ3YnEifQ.Nv-LsNg5eKIE6SeOVVJpYg';
-
-  const map = new mapboxgl.Map({
-    container: 'map',
-    style: 'mapbox://styles/thmkly/clyup637d004201ri2tkpaywq',
-    center: [-122.50276, 41.31727],
-    zoom: 4.625
+mapboxgl.accessToken = 'pk.eyJ1IjoidGhta2x5IiwiYSI6ImNseXVyMjhueDA3YTQybW9mcHJrZGJ3YnEifQ.Nv-LsNg5eKIE6SeOVVJpYg';
+const map = new mapboxgl.Map({
+  container: 'map',
+  style: 'mapbox://styles/thmkly/clyup637d004201ri2tkpaywq',
+  center: [-122.50276, 41.31727],
+  zoom: 4.625
+});
+let audioData = [];
+let currentAudio = null;
+let mapPopups = [];
+let visibleIds = new Set();
+function debounce(func, delay) {
+  let timer;
+  return (...args) => {
+    clearTimeout(timer);
+    timer = setTimeout(() => func(...args), delay);
+  };
+}
+function sortAndUpdate(data, playlist, updateMap = true) {
+  audioData = data.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
+  if (updateMap) updateMapData();
+  updatePlaylist(playlist, audioData);
+}
+function updateMapData() {
+  if (!map.getSource('audio')) return;
+  const geojson = {
+    type: 'FeatureCollection',
+    features: audioData.map((track, idx) => ({
+      type: 'Feature',
+      geometry: { type: 'Point', coordinates: [Number(track.lng), Number(track.lat)] },
+      properties: { name: track.name, audioUrl: track.audioUrl, timestamp: track.timestamp, notes: track.notes, id: idx }
+    }))
+  };
+  map.getSource('audio').setData(geojson);
+}
+function updatePlaylist(playlist, data) {
+  playlist.innerHTML = '';
+  data.forEach((track, index) => {
+    const div = document.createElement('div');
+    div.className = 'track';
+    div.textContent = track.name.replace(/^[^\s]+\s+-\s+/, '');
+    div.setAttribute('data-id', index);
+    div.addEventListener('click', () => playAudio(index));
+    div.addEventListener('mouseenter', () => highlightMarker(index));
+    div.addEventListener('mouseleave', () => clearHighlight());
+    playlist.appendChild(div);
   });
-
-  let audioData = [];
-  let currentAudio = null;
-
-  function sortAndUpdate(data, playlist, updateMap = true) {
-    audioData = data.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
-    if (updateMap) updateMapData();
-    updatePlaylist(playlist);
+}
+function playAudio(index) {
+  const track = audioData[index];
+  if (!track) return;
+  document.querySelectorAll('.track').forEach(el => el.classList.remove('active-track'));
+  const activeTrack = document.querySelector(`.track[data-id="${index}"]`);
+  if (activeTrack) {
+    activeTrack.classList.add('active-track');
+    activeTrack.scrollIntoView({ behavior: 'smooth', block: 'center' });
   }
-
-  function updateMapData() {
-    if (!map.getSource('audio')) return;
-    const geojson = {
-      type: 'FeatureCollection',
-      features: audioData.map((track, idx) => ({
-        type: 'Feature',
-        geometry: {
-          type: 'Point',
-          coordinates: [Number(track.lng), Number(track.lat)]
-        },
-        properties: {
-          name: track.name,
-          audioUrl: track.audioUrl,
-          timestamp: track.timestamp,
-          notes: track.notes,
-          id: idx
-        }
-      }))
-    };
-    map.getSource('audio').setData(geojson);
-  }
-
-  function updatePlaylist(playlist) {
-    playlist.innerHTML = '';
-    audioData.forEach((track, index) => {
-      const div = document.createElement('div');
-      div.className = 'track';
-      div.textContent = track.name.replace(/^[^\s]+\s+-\s+/, '');
-      div.setAttribute('data-id', index);
-      div.addEventListener('click', () => playAudio(index));
-      playlist.appendChild(div);
-    });
-  }
-
-  function playAudio(index) {
-    const track = audioData[index];
-    if (!track) return;
-
-    document.querySelectorAll('.track').forEach(el => el.classList.remove('active-track'));
-    const activeTrack = document.querySelector(`.track[data-id="${index}"]`);
-    if (activeTrack) {
-      activeTrack.classList.add('active-track');
-      activeTrack.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  const coords = [Number(track.lng), Number(track.lat)];
+  showPopup(coords, track);
+  map.flyTo({ center: coords, zoom: 14 });
+}
+function showPopup(coords, data, offsetIndex = 0) {
+  const offset = 0.01 * offsetIndex;
+  const shiftedCoords = [coords[0] + offset, coords[1] + offset];
+  const audio = document.createElement('audio');
+  audio.controls = true;
+  audio.autoplay = true;
+  audio.style.width = '100%';
+  audio.innerHTML = `<source src="${data.audioUrl}" type="audio/mpeg">Your browser does not support the audio element.`;
+  const container = document.createElement('div');
+  container.style.fontFamily = 'helvetica, sans-serif';
+  container.style.padding = '2px';
+  container.innerHTML = `
+    <h3 style="margin: 0 0 4px 0;">${data.name}</h3>
+    <p style="margin: 0; font-size: 0.9em; color: #555;"><strong>${data.timestamp}</strong></p>
+    <p style="margin: 4px 0; font-size: 0.9em;">${data.notes}</p>`;
+  container.appendChild(audio);
+  const popup = new mapboxgl.Popup({ offset: 25 })
+    .setLngLat(shiftedCoords)
+    .setDOMContent(container)
+    .addTo(map);
+  mapPopups.push(popup);
+}
+function clearPopups() {
+  mapPopups.forEach(p => p.remove());
+  mapPopups = [];
+}
+function highlightMarker(index) {
+  if (!visibleIds.has(index)) return;
+  const features = map.querySourceFeatures('audio', { sourceLayer: 'audio' });
+  // Highlight logic would be custom markers or CSS if markers were HTML. Here it's just example placeholder.
+}
+function clearHighlight() {
+  // Reset any highlight visuals
+}
+function updateVisiblePlaylist() {
+  const features = map.queryRenderedFeatures({ layers: ['unclustered-point'] });
+  const visible = new Set();
+  features.forEach(f => {
+    const id = parseInt(f.properties.id);
+    if (!isNaN(id)) visible.add(id);
+  });
+  visibleIds = visible;
+  const filtered = audioData.filter((_, i) => visible.has(i));
+  updatePlaylist(document.getElementById('playlist'), filtered);
+}
+map.on('load', () => {
+  map.addSource('audio', {
+    type: 'geojson',
+    data: { type: 'FeatureCollection', features: [] },
+    cluster: true,
+    clusterMaxZoom: 14,
+    clusterRadius: 50
+  });
+  map.addLayer({
+    id: 'clusters',
+    type: 'circle',
+    source: 'audio',
+    filter: ['has', 'point_count'],
+    paint: {
+      'circle-color': '#51bbd6',
+      'circle-radius': ['step', ['get', 'point_count'], 20, 10, 30, 50, 40],
+      'circle-opacity': 0.7,
+      'circle-stroke-width': 1,
+      'circle-stroke-color': '#197991',
+      'circle-stroke-opacity': .75
     }
-
-    const coords = [Number(track.lng), Number(track.lat)];
-    showPopup(coords, track);
-    map.flyTo({ center: coords, zoom: 14 });
-  }
-
-  function showPopup(coords, data) {
-    if (map.currentPopup) map.currentPopup.remove();
-    if (currentAudio) {
-      currentAudio.pause();
-      currentAudio = null;
+  });
+  map.addLayer({
+    id: 'cluster-count',
+    type: 'symbol',
+    source: 'audio',
+    filter: ['has', 'point_count'],
+    layout: {
+      'text-field': '{point_count_abbreviated}',
+      'text-font': ['Open Sans Semibold', 'Arial Unicode MS Bold'],
+      'text-size': 12
     }
-
-    const audio = document.createElement('audio');
-    audio.controls = true;
-    audio.autoplay = true;
-    audio.style.width = '100%';
-    audio.style.maxWidth = '100%';
-    audio.innerHTML = `<source src="${data.audioUrl}" type="audio/mpeg">Your browser does not support the audio element.`;
-    audio.addEventListener('contextmenu', e => e.preventDefault());
-    audio.addEventListener('error', () => console.warn('Audio failed to load or play.'));
-    currentAudio = audio;
-
-    const container = document.createElement('div');
-    container.style.fontFamily = 'helvetica, sans-serif';
-    container.style.padding = '2px';
-    container.innerHTML = `
-      <h3 style="margin: 0 0 4px 0;">${data.name}</h3>
-      <p style="margin: 0; font-size: 0.9em; color: #555;"><strong>${data.timestamp}</strong></p>
-      <p style="margin: 4px 0; font-size: 0.9em;">${data.notes}</p>
-    `;
-    container.appendChild(audio);
-
-    const popup = new mapboxgl.Popup({ offset: 25 })
-      .setLngLat(coords)
-      .setDOMContent(container);
-
-    map.currentPopup = popup;
-    popup.addTo(map);
-  }
-
-  map.on('load', () => {
-    map.addSource('audio', {
-      type: 'geojson',
-      data: { type: 'FeatureCollection', features: [] },
-      cluster: true,
-      clusterMaxZoom: 14,
-      clusterRadius: 50
-    });
-
-    map.addLayer({
-      id: 'clusters',
-      type: 'circle',
-      source: 'audio',
-      filter: ['has', 'point_count'],
-      paint: {
-        'circle-color': '#51bbd6',
-        'circle-radius': ['step', ['get', 'point_count'], 20, 10, 30, 50, 40],
-        'circle-opacity': 0.7,
-        'circle-stroke-width': 1,
-        'circle-stroke-color': '#197991',
-        'circle-stroke-opacity': .75
-      }
-    });
-
-    map.addLayer({
-      id: 'cluster-count',
-      type: 'symbol',
-      source: 'audio',
-      filter: ['has', 'point_count'],
-      layout: {
-        'text-field': '{point_count_abbreviated}',
-        'text-font': ['Open Sans Semibold', 'Arial Unicode MS Bold'],
-        'text-size': 12
-      }
-    });
-
-    map.addLayer({
-      id: 'unclustered-point',
-      type: 'circle',
-      source: 'audio',
-      filter: ['!', ['has', 'point_count']],
-      paint: {
-        'circle-color': '#000000',
-        'circle-radius': 2,
-        'circle-opacity': .8,
-        'circle-stroke-width': 1,
-        'circle-stroke-color': '#fff',
-        'circle-stroke-opacity': .75
-      }
-    });
-
-    fetch('https://script.google.com/macros/s/AKfycbyuCOdVvr7DlM1sMjZ7ybZBmKN6h23RPuZqZY54Y3iGUgkfZ0vHtpiNz8uNqCpL_a8U/exec?nocache=' + Date.now())
-      .then(response => response.json())
-      .then(data => sortAndUpdate(data, document.getElementById('playlist')))
-      .catch(console.error);
-
-    map.on('click', 'unclustered-point', (e) => {
-      const id = e.features[0]?.properties?.id;
-      if (id !== undefined) playAudio(Number(id));
-    });
-
-    map.on('click', 'clusters', (e) => {
-      const features = map.queryRenderedFeatures(e.point, { layers: ['clusters'] });
-      if (!features.length) return;
-      const clusterId = features[0].properties.cluster_id;
-      map.getSource('audio').getClusterExpansionZoom(clusterId, (err, zoom) => {
-        if (err) return;
-        map.getSource('audio').getClusterLeaves(clusterId, 100, 0, (err, leaves) => {
-          if (err) return;
-          const bounds = new mapboxgl.LngLatBounds();
-          leaves.forEach(leaf => bounds.extend(leaf.geometry.coordinates));
-          map.fitBounds(bounds, { padding: 50 });
-        });
+  });
+  map.addLayer({
+    id: 'unclustered-point',
+    type: 'circle',
+    source: 'audio',
+    filter: ['!', ['has', 'point_count']],
+    paint: {
+      'circle-color': '#000000',
+      'circle-radius': 2,
+      'circle-opacity': .8,
+      'circle-stroke-width': 1,
+      'circle-stroke-color': '#fff',
+      'circle-stroke-opacity': .75
+    }
+  });
+  fetch('https://script.google.com/macros/s/YOUR_DEPLOYED_SCRIPT_URL/exec?nocache=' + Date.now())
+    .then(response => response.json())
+    .then(data => sortAndUpdate(data, document.getElementById('playlist')))
+    .catch(console.error);
+  map.on('click', 'unclustered-point', e => {
+    const id = e.features[0]?.properties?.id;
+    if (id !== undefined) playAudio(Number(id));
+  });
+  map.on('click', 'clusters', e => {
+    const clusterId = map.queryRenderedFeatures(e.point, { layers: ['clusters'] })[0].properties.cluster_id;
+    map.getSource('audio').getClusterLeaves(clusterId, 10, 0, (err, leaves) => {
+      if (err) return;
+      clearPopups();
+      leaves.forEach((leaf, i) => {
+        const id = parseInt(leaf.properties.id);
+        if (!isNaN(id)) showPopup(leaf.geometry.coordinates, audioData[id], i);
       });
-    });
-
-    map.on('mouseenter', 'clusters', () => {
-      map.getCanvas().style.cursor = 'pointer';
-    });
-    map.on('mouseleave', 'clusters', () => {
-      map.getCanvas().style.cursor = '';
-    });
-    map.on('mouseenter', 'unclustered-point', () => {
-      map.getCanvas().style.cursor = 'pointer';
-    });
-    map.on('mouseleave', 'unclustered-point', () => {
-      map.getCanvas().style.cursor = '';
+      const bounds = new mapboxgl.LngLatBounds();
+      leaves.forEach(l => bounds.extend(l.geometry.coordinates));
+      map.fitBounds(bounds, { padding: 100 });
     });
   });
+  map.on('moveend', debounce(updateVisiblePlaylist, 400));
+});
 </script>
-
-<script src="https://storage.ko-fi.com/cdn/scripts/overlay-widget.js"></script>
-<script>
-  kofiWidgetOverlay.draw('thmkly', {
-    'type': 'floating-chat',
-    'floating-chat.donateButton.text': 'Support me',
-    'floating-chat.donateButton.background-color': '#ff5f5f',
-    'floating-chat.donateButton.text-color': '#fff'
-  });
-</script>
-<style>
-  .floatingchat-container-wrap { left: unset; right: 16px; bottom: 30px; }
-  .floating-chat-kofi-popup-iframe { left: unset; right: 16px; bottom: 30px; }
-</style>
-
 </body>
 </html>
