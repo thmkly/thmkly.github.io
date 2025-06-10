@@ -246,12 +246,23 @@
       const clusterId = features[0].properties.cluster_id;
       map.getSource('audio').getClusterExpansionZoom(clusterId, (err, zoom) => {
         if (err) return;
-        map.getSource('audio').getClusterLeaves(clusterId, 100, 0, (err, leaves) => {
-          if (err) return;
-          const bounds = new mapboxgl.LngLatBounds();
-          leaves.forEach(leaf => bounds.extend(leaf.geometry.coordinates));
-          map.fitBounds(bounds, { padding: 50 });
-        });
+map.getSource('audio').getClusterLeaves(clusterId, 100, 0, (err, leaves) => {
+  if (err) return;
+  const bounds = new mapboxgl.LngLatBounds();
+  leaves.forEach(leaf => bounds.extend(leaf.geometry.coordinates));
+
+  const playlist = document.getElementById('playlist');
+  const playlistWidth = playlist ? playlist.offsetWidth : 0;
+
+  map.fitBounds(bounds, {
+    padding: {
+      top: 50,
+      bottom: 50,
+      left: playlistWidth + 20,
+      right: 20
+    }
+  });
+});
       });
     });
 
