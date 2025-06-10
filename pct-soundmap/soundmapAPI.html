@@ -72,15 +72,20 @@
     const date = new Date(timestampStr);
     if (isNaN(date.getTime())) return timestampStr;
 
-    return date.toLocaleString('en-US', {
+    const options = {
       timeZone: 'America/Los_Angeles',
-      hour12: false,
       year: 'numeric',
       month: '2-digit',
       day: '2-digit',
       hour: '2-digit',
-      minute: '2-digit'
-    }).replace(',', '');
+      minute: '2-digit',
+      hour12: false
+    };
+
+    const parts = new Intl.DateTimeFormat('en-CA', options).formatToParts(date);
+    const get = (type) => parts.find(p => p.type === type)?.value;
+
+    return `${get('year')}-${get('month')}-${get('day')} ${get('hour')}:${get('minute')} PDT`;
   }
 
   function sortAndUpdate(data, playlist, updateMap = true) {
