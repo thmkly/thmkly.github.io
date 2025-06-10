@@ -34,9 +34,7 @@
     .active-track {
       background-color: #d0d0d0;
     }
-    .mapboxgl-canvas {
-      cursor: grab;
-    }
+    .mapboxgl-canvas { cursor: grab; }
     .mapboxgl-popup-content {
       opacity: 0.80;
       transition: opacity 0.3s ease;
@@ -115,7 +113,7 @@
     if (!track) return;
 
     document.querySelectorAll('.track').forEach(el => el.classList.remove('active-track'));
-    const activeTrack = document.querySelector(.track[data-id="${index}"]);
+    const activeTrack = document.querySelector(`.track[data-id="${index}"]`);
     if (activeTrack) {
       activeTrack.classList.add('active-track');
       activeTrack.scrollIntoView({ behavior: 'smooth', block: 'center' });
@@ -138,7 +136,7 @@
     audio.autoplay = true;
     audio.style.width = '100%';
     audio.style.maxWidth = '100%';
-    audio.innerHTML = <source src="${data.audioUrl}" type="audio/mpeg">Your browser does not support the audio element.;
+    audio.innerHTML = `<source src="${data.audioUrl}" type="audio/mpeg">Your browser does not support the audio element.`;
     audio.addEventListener('contextmenu', e => e.preventDefault());
     audio.addEventListener('error', () => console.warn('Audio failed to load or play.'));
     currentAudio = audio;
@@ -146,11 +144,11 @@
     const container = document.createElement('div');
     container.style.fontFamily = 'helvetica, sans-serif';
     container.style.padding = '2px';
-    container.innerHTML = 
+    container.innerHTML = `
       <h3 style="margin: 0 0 4px 0;">${data.name}</h3>
       <p style="margin: 0; font-size: 0.9em; color: #555;"><strong>${data.timestamp}</strong></p>
       <p style="margin: 4px 0; font-size: 0.9em;">${data.notes}</p>
-    ;
+    `;
     container.appendChild(audio);
 
     const popup = new mapboxgl.Popup({ offset: 25 })
@@ -181,7 +179,7 @@
         'circle-opacity': 0.7,
         'circle-stroke-width': 1,
         'circle-stroke-color': '#197991',
-        'circle-stroke-opacity': .75
+        'circle-stroke-opacity': 0.75
       }
     });
 
@@ -205,10 +203,10 @@
       paint: {
         'circle-color': '#000000',
         'circle-radius': 2,
-        'circle-opacity': .8,
+        'circle-opacity': 0.8,
         'circle-stroke-width': 1,
         'circle-stroke-color': '#fff',
-        'circle-stroke-opacity': .75
+        'circle-stroke-opacity': 0.75
       }
     });
 
