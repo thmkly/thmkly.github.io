@@ -57,8 +57,6 @@
 
     .track:hover { background-color: #f0f0f0; }
     .active-track { background-color: #d0d0d0; }
-    .mapboxgl-canvas { cursor: grab; }
-    .mapboxgl-marker { cursor: pointer; }
 
     .mapboxgl-popup-content {
       opacity: 0.80;
@@ -88,7 +86,7 @@
 
 <script src="https://api.mapbox.com/mapbox-gl-js/v2.8.1/mapbox-gl.js"></script>
 <script>
-mapboxgl.accessToken = 'YOUR_MAPBOX_ACCESS_TOKEN';
+mapboxgl.accessToken = 'pk.eyJ1IjoidGhta2x5IiwiYSI6ImNseXVyMjhueDA3YTQybW9mcHJrZGJ3YnEifQ.Nv-LsNg5eKIE6SeOVVJpYg';
 
 const map = new mapboxgl.Map({
   container: 'map',
@@ -104,17 +102,17 @@ let preventClick = false;
 function formatTimestamp(timestampStr) {
   const date = new Date(timestampStr);
   if (isNaN(date.getTime())) return timestampStr;
-  return new Intl.DateTimeFormat('en-CA', {
-    timeZone: 'America/Los_Angeles',
-    year: 'numeric', month: '2-digit', day: '2-digit',
-    hour: '2-digit', minute: '2-digit', hour12: false
-  }).format(date) + ' PDT';
+  const options = {
+    timeZone: 'America/Los_Angeles', year: 'numeric', month: '2-digit',
+    day: '2-digit', hour: '2-digit', minute: '2-digit', hour12: false
+  };
+  const parts = new Intl.DateTimeFormat('en-CA', options).formatToParts(date);
+  const get = (type) => parts.find(p => p.type === type)?.value;
+  return `${get('year')}-${get('month')}-${get('day')} ${get('hour')}:${get('minute')} PDT`;
 }
 
 function hasValidMile(mile) {
-  return mile !== null && mile !== undefined &&
-         mile.toString().trim() !== '' &&
-         mile.toString().toLowerCase() !== 'n/a';
+  return mile && mile.toString().trim() !== '' && mile.toString().toLowerCase() !== 'n/a';
 }
 
 function updatePlaylist(playlist) {
@@ -122,10 +120,8 @@ function updatePlaylist(playlist) {
   audioData.forEach((track, index) => {
     const div = document.createElement('div');
     div.className = 'track';
-
-    const mileText = hasValidMile(track.mile) ? `mi.${track.mile} - ` : '';
-
-    div.textContent = `${mileText}${track.name}`;
+    const mile = hasValidMile(track.mile) ? `mi.${track.mile} - ` : '';
+    div.textContent = `${mile}${track.name}`;
     div.setAttribute('data-id', index);
 
     div.addEventListener('click', (e) => {
@@ -185,7 +181,6 @@ function updateScrollArrows() {
   scrollDown.style.display = atBottom ? 'none' : 'block';
 }
 
-// Fetch and render
 map.on('load', () => {
   map.addSource('audio', {
     type: 'geojson',
@@ -195,18 +190,79 @@ map.on('load', () => {
     clusterRadius: 50
   });
 
-  map.addLayer({ /* ... cluster layers ... */ });
-  map.addLayer({ /* ... cluster count layer ... */ });
-  map.addLayer({ /* ... unclustered points layer ... */ });
+  map.addLayer({
+    id: 'clusters',
+    type: 'circle',
+    source: 'audio',
+    filter: ['has', 'point_count'],
+    paint: {
+      'circle-color': '#51bbd6',
+      'circle-radius': ['step', ['get', 'point_count'], 20, 10, 30, 50, 40],
+      'circle-opacity': 0.7,
+      'circle-stroke-width': 1,
+      'circle-stroke-color': '#197991',
+      'circle-stroke-opacity': 0.75
+    }
+  });
+
+  map.addLayer({
+    id: 'cluster-count',
+    type: 'symbol',
+    source: 'audio',
+    filter: ['has', 'point_count'],
+    layout: {
+      'text-field': '{point_count_abbreviated}',
+      'text-font': ['Open Sans Semibold', 'Arial Unicode MS Bold'],
+      'text-size': 12
+    }
+  });
+
+  map.addLayer({
+    id: 'unclustered-point',
+    type: 'circle',
+    source: 'audio',
+    filter: ['!', ['has', 'point_count']],
+    paint: {
+      'circle-color': '#000000',
+      'circle-radius': 6,
+      'circle-opacity': 0.4,
+      'circle-stroke-width': 1,
+      'circle-stroke-color': '#fff',
+      'circle-stroke-opacity': 0.8
+    }
+  });
 
   fetch('https://script.google.com/macros/s/AKfycbxwGoYBA6bAVUz7X2CrxdERyHphhEL_1I8cW4NmpCGP6czL1FPe-sk-ejrnNVAh-MWm/exec?nocache=' + Date.now())
     .then(response => response.json())
     .then(data => {
-      data.forEach(track => { if (!track.hasOwnProperty('mile')) track.mile = ''; });
+      data.forEach(track => {
+        if (!track.hasOwnProperty('mile')) track.mile = '';
+      });
       audioData = data;
       updatePlaylist(document.getElementById('playlist'));
-    });
+    })
+    .catch(console.error);
+
+  map.on('click', 'unclustered-point', (e) => {
+    const id = e.features[0]?.properties?.id;
+    if (id !== undefined) playAudio(Number(id));
+  });
 });
+
+function playAudio(index) {
+  const track = audioData[index];
+  if (!track) return;
+  document.querySelectorAll('.track').forEach(el => el.classList.remove('active-track'));
+  const activeTrack = document.querySelector(`.track[data-id="${index}"]`);
+  if (activeTrack) {
+    activeTrack.classList.add('active-track');
+    activeTrack.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }
+  const coords = [Number(track.lng), Number(track.lat)];
+  showPopup(coords, track);
+  map.flyTo({ center: coords, zoom: 14 });
+}
 </script>
+
 </body>
 </html>
