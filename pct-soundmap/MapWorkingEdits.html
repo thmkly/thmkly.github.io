@@ -18,7 +18,7 @@
       border-radius: 5px;
       box-shadow: 0 2px 10px rgba(0,0,0,0.3);
       background-color: rgba(255,255,255,0.875);
-      font-family: helvetica;
+      font-family: helvetica, sans-serif;
       font-size: small;
       overflow: hidden;
       z-index: 2;
@@ -36,35 +36,27 @@
       user-select: none;
     }
 
-    .playlist-wrapper::before,
-    .playlist-wrapper::after {
-      content: "";
+    .scroll-arrow {
       position: absolute;
-      left: 0;
-      right: 0;
-      height: 50px;
-      pointer-events: none;
+      left: 50%;
+      transform: translateX(-50%);
+      font-size: 16px;
+      color: black;
       z-index: 3;
-      transition: opacity 0.2s;
+      pointer-events: none;
+      opacity: 0.8;
     }
 
-    .playlist-wrapper::before {
-      top: 0;
-      background: linear-gradient(to bottom, rgba(255,255,255,1), rgba(255,255,255,0));
-      opacity: 1;
+    .scroll-arrow.up {
+      top: 3px;
     }
 
-    .playlist-wrapper::after {
-      bottom: 0;
-      background: linear-gradient(to top, rgba(255,255,255,1), rgba(255,255,255,0));
-      opacity: 1;
+    .scroll-arrow.down {
+      bottom: 3px;
     }
 
-    .playlist[data-at-top="true"] ~ .playlist-wrapper::before {
-      opacity: 1;
-    }
-    .playlist[data-at-bottom="true"] ~ .playlist-wrapper::after {
-      opacity: 1;
+    .scroll-arrow.hidden {
+      display: none;
     }
 
     .track {
@@ -105,7 +97,7 @@
     .loading-placeholder {
       text-align: center;
       color: #555;
-      padding: 2px;
+      padding: 5px 0;
     }
   </style>
 </head>
@@ -116,6 +108,8 @@
   <div class="playlist" id="playlist">
     <div class="loading-placeholder">loading recordings...</div>
   </div>
+  <div class="scroll-arrow up hidden" id="scrollArrowUp">▲</div>
+  <div class="scroll-arrow down hidden" id="scrollArrowDown">▼</div>
 </div>
 
 <script src="https://api.mapbox.com/mapbox-gl-js/v2.8.1/mapbox-gl.js"></script>
@@ -182,6 +176,8 @@
       });
       playlist.appendChild(div);
     });
+    // Trigger scroll update for arrow visibility
+    playlist.dispatchEvent(new Event('scroll'));
   }
 
   function playAudio(index) {
@@ -248,6 +244,7 @@
         'circle-stroke-color': '#fff', 'circle-stroke-opacity': 0.8
       }
     });
+
     fetch('https://script.google.com/macros/s/AKfycbxwGoYBA6bAVUz7X2CrxdERyHphhEL_1I8cW4NmpCGP6czL1FPe-sk-ejrnNVAh-MWm/exec?nocache=' + Date.now())
       .then(response => response.json())
       .then(data => sortAndUpdate(data, document.getElementById('playlist')))
@@ -276,9 +273,11 @@
     });
   });
 
-  // Drag-to-scroll with momentum
+  // Drag-to-scroll with momentum and arrow indicators
   (function enableMomentumDragScroll() {
     const playlist = document.getElementById('playlist');
+    const arrowUp = document.getElementById('scrollArrowUp');
+    const arrowDown = document.getElementById('scrollArrowDown');
     let isDragging = false;
     let startY = 0;
     let scrollTop = 0;
@@ -292,6 +291,14 @@
       playlist.scrollTop -= velocityY;
       velocityY *= 0.95;
       momentumID = requestAnimationFrame(applyMomentum);
+      updateArrowVisibility();
+    }
+
+    function updateArrowVisibility() {
+      const atTop = playlist.scrollTop <= 0;
+      const atBottom = playlist.scrollTop + playlist.clientHeight >= playlist.scrollHeight;
+      arrowUp.classList.toggle('hidden', atTop);
+      arrowDown.classList.toggle('hidden', atBottom);
     }
 
     playlist.addEventListener('mousedown', (e) => {
@@ -319,6 +326,7 @@
       playlist.scrollTop = scrollTop - (e.pageY - startY);
       lastY = e.pageY;
       lastTime = now;
+      updateArrowVisibility();
     });
 
     ['mouseup', 'mouseleave'].forEach(event => {
@@ -330,10 +338,7 @@
       });
     });
 
-    playlist.addEventListener('scroll', () => {
-      playlist.setAttribute('data-at-top', playlist.scrollTop <= 0);
-      playlist.setAttribute('data-at-bottom', playlist.scrollTop + playlist.clientHeight >= playlist.scrollHeight);
-    });
+    playlist.addEventListener('scroll', updateArrowVisibility);
   })();
 </script>
 
