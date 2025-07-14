@@ -29,11 +29,33 @@
       overflow-y: auto;
       padding: 10px;
       cursor: grab;
+      position: relative;
     }
 
     .playlist.dragging {
       cursor: grabbing;
       user-select: none;
+    }
+
+    .scroll-arrow {
+      position: absolute;
+      left: 50%;
+      transform: translateX(-50%);
+      font-size: 12px;
+      color: black;
+      z-index: 3;
+      pointer-events: none;
+      user-select: none;
+    }
+
+    .scroll-arrow.up {
+      top: 4px;
+      display: none;
+    }
+
+    .scroll-arrow.down {
+      bottom: 4px;
+      display: none;
     }
 
     .track {
@@ -84,6 +106,8 @@
 <div class="playlist-wrapper">
   <div class="playlist" id="playlist">
     <div class="loading-placeholder">loading playlist...</div>
+    <div class="scroll-arrow up" id="scrollUp">▲</div>
+    <div class="scroll-arrow down" id="scrollDown">▼</div>
   </div>
 </div>
 
@@ -135,7 +159,11 @@
   }
 
   function updatePlaylist(playlist) {
-    playlist.innerHTML = '';
+    playlist.innerHTML = `
+      <div class="scroll-arrow up" id="scrollUp">▲</div>
+      <div class="scroll-arrow down" id="scrollDown">▼</div>
+    `;
+
     audioData.forEach((track, index) => {
       const div = document.createElement('div');
       div.className = 'track';
@@ -157,6 +185,8 @@
       });
       playlist.appendChild(div);
     });
+
+    updateScrollArrows();
   }
 
   function playAudio(index) {
@@ -233,6 +263,7 @@
         'circle-stroke-color': '#fff', 'circle-stroke-opacity': 0.8
       }
     });
+
     fetch('https://script.google.com/macros/s/AKfycbxwGoYBA6bAVUz7X2CrxdERyHphhEL_1I8cW4NmpCGP6czL1FPe-sk-ejrnNVAh-MWm/exec?nocache=' + Date.now())
       .then(response => response.json())
       .then(data => sortAndUpdate(data, document.getElementById('playlist')))
@@ -260,6 +291,74 @@
       });
     });
   });
+
+  function updateScrollArrows() {
+    const playlist = document.getElementById('playlist');
+    const scrollUp = document.getElementById('scrollUp');
+    const scrollDown = document.getElementById('scrollDown');
+    const atTop = playlist.scrollTop <= 0;
+    const atBottom = playlist.scrollTop + playlist.clientHeight >= playlist.scrollHeight - 1;
+    scrollUp.style.display = atTop ? 'none' : 'block';
+    scrollDown.style.display = atBottom ? 'none' : 'block';
+  }
+
+  (function enableMomentumDragScroll() {
+    const playlist = document.getElementById('playlist');
+    let isDragging = false;
+    let startY = 0;
+    let scrollTop = 0;
+    let velocityY = 0;
+    let lastY = 0;
+    let lastTime = 0;
+    let momentumID = null;
+
+    function applyMomentum() {
+      if (Math.abs(velocityY) < 0.1) return;
+      playlist.scrollTop -= velocityY;
+      velocityY *= 0.95;
+      momentumID = requestAnimationFrame(applyMomentum);
+      updateScrollArrows();
+    }
+
+    playlist.addEventListener('mousedown', (e) => {
+      isDragging = true;
+      playlist.classList.add('dragging');
+      dragStartY = e.pageY;
+      startY = e.pageY;
+      scrollTop = playlist.scrollTop;
+      velocityY = 0;
+      lastY = e.pageY;
+      lastTime = Date.now();
+      preventClick = false;
+      if (momentumID) cancelAnimationFrame(momentumID);
+    });
+
+    playlist.addEventListener('mousemove', (e) => {
+      if (!isDragging) return;
+      e.preventDefault();
+      const now = Date.now();
+      const deltaY = e.pageY - lastY;
+      const deltaTime = now - lastTime;
+      if (deltaTime > 0) velocityY = deltaY / deltaTime * 16;
+      const distanceDragged = Math.abs(e.pageY - dragStartY);
+      if (distanceDragged > 5) preventClick = true;
+      playlist.scrollTop = scrollTop - (e.pageY - startY);
+      lastY = e.pageY;
+      lastTime = now;
+      updateScrollArrows();
+    });
+
+    ['mouseup', 'mouseleave'].forEach(event => {
+      playlist.addEventListener(event, () => {
+        if (!isDragging) return;
+        isDragging = false;
+        playlist.classList.remove('dragging');
+        applyMomentum();
+      });
+    });
+
+    playlist.addEventListener('scroll', updateScrollArrows);
+  })();
 </script>
 
 <script src="https://storage.ko-fi.com/cdn/scripts/overlay-widget.js"></script>
