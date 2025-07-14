@@ -46,6 +46,7 @@ function formatTimestamp(timestampStr) {
   };
   const parts = new Intl.DateTimeFormat('en-CA', options).formatToParts(date);
   const get = (type) => parts.find(p => p.type === type)?.value;
+  // Fix: use template literals with backticks and ${} properly
   return `${get('year')}-${get('month')}-${get('day')} ${get('hour')}:${get('minute')} PDT`;
 }
 
@@ -75,6 +76,7 @@ function updatePlaylist(playlist) {
     div.className = 'track';
 
     const mileRaw = track.mile?.toString().trim().toLowerCase();
+    // Fix: Use template literals with backticks
     const mile = (mileRaw && mileRaw !== 'n/a') ? `mi.${track.mile} - ` : '';
 
     div.textContent = `${mile}${track.name}`;
@@ -96,6 +98,7 @@ function playAudio(index) {
   const track = audioData[index];
   if (!track) return;
   document.querySelectorAll('.track').forEach(el => el.classList.remove('active-track'));
+  // Fix: wrap selector string in quotes
   const activeTrack = document.querySelector(`.track[data-id="${index}"]`);
   if (activeTrack) {
     activeTrack.classList.add('active-track');
@@ -114,6 +117,7 @@ function showPopup(coords, data) {
   audio.controls = true;
   audio.autoplay = true;
   audio.style.width = '100%';
+  // Fix: use template literal inside innerHTML with quotes around string
   audio.innerHTML = `<source src="${data.audioUrl}" type="audio/mpeg">Your browser does not support the audio element.`;
   currentAudio = audio;
 
@@ -132,6 +136,7 @@ function showPopup(coords, data) {
     mile.style.margin = '0';
     mile.style.fontSize = '0.9em';
     mile.style.color = '#555';
+    // Fix: use template literal in innerHTML with backticks
     mile.innerHTML = `<strong>mi.${data.mile}</strong>`;
     container.appendChild(mile);
   }
