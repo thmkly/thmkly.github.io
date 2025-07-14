@@ -48,15 +48,8 @@
       user-select: none;
     }
 
-    .scroll-arrow.up {
-      top: 0;
-      display: none;
-    }
-
-    .scroll-arrow.down {
-      bottom: 0;
-      display: none;
-    }
+    .scroll-arrow.up { top: 0; display: none; }
+    .scroll-arrow.down { bottom: 0; display: none; }
 
     .track {
       cursor: pointer;
@@ -65,14 +58,8 @@
       border-bottom: 1px solid #ccc;
     }
 
-    .track:hover {
-      background-color: #f0f0f0;
-    }
-
-    .active-track {
-      background-color: #d0d0d0;
-    }
-
+    .track:hover { background-color: #f0f0f0; }
+    .active-track { background-color: #d0d0d0; }
     .mapboxgl-canvas { cursor: grab; }
     .mapboxgl-marker { cursor: pointer; }
 
@@ -161,7 +148,9 @@ function updatePlaylist(playlist) {
   audioData.forEach((track, index) => {
     const div = document.createElement('div');
     div.className = 'track';
-    const mile = (track.mile && track.mile.toString().toLowerCase() !== 'n/a') ? `mi.${track.mile} - ` : '';
+    const mile = (track.mile && track.mile.toString().toLowerCase() !== 'n/a' && track.mile.toString().trim() !== '') 
+      ? `mi.${track.mile} - ` 
+      : '';
     div.textContent = `${mile}${track.name}`;
     div.setAttribute('data-id', index);
     div.addEventListener('click', (e) => {
@@ -206,13 +195,14 @@ function showPopup(coords, data) {
   container.style.fontFamily = 'helvetica, sans-serif';
   container.style.padding = '2px';
 
-  const mile = (data.mile && data.mile.toString().toLowerCase() !== 'n/a') ? 
-    `<p style="margin: 0; font-size: 0.9em; color: #555;"><strong>mi.${data.mile}</strong></p>` : '';
+  const mile = (data.mile && data.mile.toString().toLowerCase() !== 'n/a' && data.mile.toString().trim() !== '') 
+    ? `<p style="margin: 0 0 4px 0; font-size: 0.9em; color: #555;"><strong>mi.${data.mile}</strong></p>` 
+    : '';
 
   container.innerHTML = `
     <h3 style="margin: 0 0 4px 0;">${data.name}</h3>
     ${mile}
-    <p style="margin: 0; font-size: 0.9em; color: #555;"><strong>${formatTimestamp(data.timestamp)}</strong></p>
+    <p style="margin: 0 0 4px 0; font-size: 0.9em; color: #555;"><strong>${formatTimestamp(data.timestamp)}</strong></p>
     <p style="margin: 4px 0; font-size: 0.9em;">${data.notes}</p>
   `;
   container.appendChild(audio);
@@ -272,10 +262,7 @@ map.on('load', () => {
   fetch('https://script.google.com/macros/s/AKfycbxwGoYBA6bAVUz7X2CrxdERyHphhEL_1I8cW4NmpCGP6czL1FPe-sk-ejrnNVAh-MWm/exec?nocache=' + Date.now())
     .then(response => response.json())
     .then(data => {
-      // Ensure 'mile' is included in all track objects
-      data.forEach(track => {
-        if (!track.hasOwnProperty('mile')) track.mile = '';
-      });
+      data.forEach(track => { if (!track.hasOwnProperty('mile')) track.mile = ''; });
       sortAndUpdate(data, document.getElementById('playlist'));
     })
     .catch(console.error);
@@ -301,72 +288,6 @@ map.on('load', () => {
   });
 });
 
-function updateScrollArrows() {
-  const playlist = document.getElementById('playlist');
-  const scrollUp = document.getElementById('scrollUp');
-  const scrollDown = document.getElementById('scrollDown');
-  const atTop = playlist.scrollTop <= 0;
-  const atBottom = playlist.scrollTop + playlist.clientHeight >= playlist.scrollHeight - 1;
-  scrollUp.style.display = atTop ? 'none' : 'block';
-  scrollDown.style.display = atBottom ? 'none' : 'block';
-}
-
-(function enableMomentumDragScroll() {
-  const playlist = document.getElementById('playlist');
-  let isDragging = false;
-  let startY = 0;
-  let scrollTop = 0;
-  let velocityY = 0;
-  let lastY = 0;
-  let lastTime = 0;
-  let momentumID = null;
-
-  function applyMomentum() {
-    if (Math.abs(velocityY) < 0.1) return;
-    playlist.scrollTop -= velocityY;
-    velocityY *= 0.95;
-    momentumID = requestAnimationFrame(applyMomentum);
-    updateScrollArrows();
-  }
-
-  playlist.addEventListener('mousedown', (e) => {
-    isDragging = true;
-    playlist.classList.add('dragging');
-    startY = e.pageY;
-    scrollTop = playlist.scrollTop;
-    velocityY = 0;
-    lastY = e.pageY;
-    lastTime = Date.now();
-    preventClick = false;
-    if (momentumID) cancelAnimationFrame(momentumID);
-  });
-
-  playlist.addEventListener('mousemove', (e) => {
-    if (!isDragging) return;
-    e.preventDefault();
-    const now = Date.now();
-    const deltaY = e.pageY - lastY;
-    const deltaTime = now - lastTime;
-    if (deltaTime > 0) velocityY = deltaY / deltaTime * 16;
-    const distanceDragged = Math.abs(e.pageY - startY);
-    if (distanceDragged > 5) preventClick = true;
-    playlist.scrollTop = scrollTop - (e.pageY - startY);
-    lastY = e.pageY;
-    lastTime = now;
-    updateScrollArrows();
-  });
-
-  ['mouseup', 'mouseleave'].forEach(event => {
-    playlist.addEventListener(event, () => {
-      if (!isDragging) return;
-      isDragging = false;
-      playlist.classList.remove('dragging');
-      applyMomentum();
-    });
-  });
-
-  playlist.addEventListener('scroll', updateScrollArrows);
-})();
 </script>
 
 <script src="https://storage.ko-fi.com/cdn/scripts/overlay-widget.js"></script>
