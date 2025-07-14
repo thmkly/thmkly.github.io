@@ -49,12 +49,12 @@
     }
 
     .scroll-arrow.up {
-      top: 4px;
+      top: 0;
       display: none;
     }
 
     .scroll-arrow.down {
-      bottom: 4px;
+      bottom: 0;
       display: none;
     }
 
@@ -74,6 +74,7 @@
     }
 
     .mapboxgl-canvas { cursor: grab; }
+    .mapboxgl-marker { cursor: pointer; }
 
     .mapboxgl-popup-content {
       opacity: 0.80;
@@ -87,8 +88,6 @@
       outline: none;
       box-shadow: none;
     }
-
-    .mapboxgl-marker { cursor: pointer; }
 
     .floatingchat-container-wrap { right: 16px !important; left: unset !important; bottom: 30px !important; }
     .floating-chat-kofi-popup-iframe { right: 16px !important; left: unset !important; bottom: 30px !important; }
@@ -104,251 +103,270 @@
 
 <div id="map"></div>
 <div class="playlist-wrapper">
+  <div class="scroll-arrow up" id="scrollUp">▲</div>
   <div class="playlist" id="playlist">
     <div class="loading-placeholder">loading recordings...</div>
-    <div class="scroll-arrow up" id="scrollUp">▲</div>
-    <div class="scroll-arrow down" id="scrollDown">▼</div>
   </div>
+  <div class="scroll-arrow down" id="scrollDown">▼</div>
 </div>
 
 <script src="https://api.mapbox.com/mapbox-gl-js/v2.8.1/mapbox-gl.js"></script>
 <script>
-  mapboxgl.accessToken = 'pk.eyJ1IjoidGhta2x5IiwiYSI6ImNseXVyMjhueDA3YTQybW9mcHJrZGJ3YnEifQ.Nv-LsNg5eKIE6SeOVVJpYg';
+mapboxgl.accessToken = 'pk.eyJ1IjoidGhta2x5IiwiYSI6ImNseXVyMjhueDA3YTQybW9mcHJrZGJ3YnEifQ.Nv-LsNg5eKIE6SeOVVJpYg';
 
-  const map = new mapboxgl.Map({
-    container: 'map',
-    style: 'mapbox://styles/thmkly/clyup637d004201ri2tkpaywq',
-    center: [-122.50276, 41.31727],
-    zoom: 4.625
+const map = new mapboxgl.Map({
+  container: 'map',
+  style: 'mapbox://styles/thmkly/clyup637d004201ri2tkpaywq',
+  center: [-122.50276, 41.31727],
+  zoom: 4.625
+});
+
+let audioData = [];
+let currentAudio = null;
+let preventClick = false;
+
+function formatTimestamp(timestampStr) {
+  const date = new Date(timestampStr);
+  if (isNaN(date.getTime())) return timestampStr;
+  const options = {
+    timeZone: 'America/Los_Angeles', year: 'numeric', month: '2-digit',
+    day: '2-digit', hour: '2-digit', minute: '2-digit', hour12: false
+  };
+  const parts = new Intl.DateTimeFormat('en-CA', options).formatToParts(date);
+  const get = (type) => parts.find(p => p.type === type)?.value;
+  return `${get('year')}-${get('month')}-${get('day')} ${get('hour')}:${get('minute')} PDT`;
+}
+
+function sortAndUpdate(data, playlist, updateMap = true) {
+  audioData = data.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
+  if (updateMap) updateMapData();
+  updatePlaylist(playlist);
+}
+
+function updateMapData() {
+  if (!map.getSource('audio')) return;
+  const geojson = {
+    type: 'FeatureCollection',
+    features: audioData.map((track, idx) => ({
+      type: 'Feature',
+      geometry: { type: 'Point', coordinates: [Number(track.lng), Number(track.lat)] },
+      properties: { ...track, id: idx }
+    }))
+  };
+  map.getSource('audio').setData(geojson);
+}
+
+function updatePlaylist(playlist) {
+  playlist.innerHTML = '';
+  audioData.forEach((track, index) => {
+    const div = document.createElement('div');
+    div.className = 'track';
+    const mile = (track.mile && track.mile.toString().toLowerCase() !== 'n/a') ? `mi.${track.mile} - ` : '';
+    div.textContent = `${mile}${track.name}`;
+    div.setAttribute('data-id', index);
+    div.addEventListener('click', (e) => {
+      if (preventClick) {
+        e.preventDefault();
+        preventClick = false;
+        return;
+      }
+      playAudio(index);
+    });
+    playlist.appendChild(div);
+  });
+  updateScrollArrows();
+}
+
+function playAudio(index) {
+  const track = audioData[index];
+  if (!track) return;
+  document.querySelectorAll('.track').forEach(el => el.classList.remove('active-track'));
+  const activeTrack = document.querySelector(`.track[data-id="${index}"]`);
+  if (activeTrack) {
+    activeTrack.classList.add('active-track');
+    activeTrack.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }
+  const coords = [Number(track.lng), Number(track.lat)];
+  showPopup(coords, track);
+  map.flyTo({ center: coords, zoom: 14 });
+}
+
+function showPopup(coords, data) {
+  if (map.currentPopup) map.currentPopup.remove();
+  if (currentAudio) { currentAudio.pause(); currentAudio = null; }
+
+  const audio = document.createElement('audio');
+  audio.controls = true;
+  audio.autoplay = true;
+  audio.style.width = '100%';
+  audio.innerHTML = `<source src="${data.audioUrl}" type="audio/mpeg">Your browser does not support the audio element.`;
+  currentAudio = audio;
+
+  const container = document.createElement('div');
+  container.style.fontFamily = 'helvetica, sans-serif';
+  container.style.padding = '2px';
+
+  const mile = (data.mile && data.mile.toString().toLowerCase() !== 'n/a') ? 
+    `<p style="margin: 0; font-size: 0.9em; color: #555;"><strong>mi.${data.mile}</strong></p>` : '';
+
+  container.innerHTML = `
+    <h3 style="margin: 0 0 4px 0;">${data.name}</h3>
+    ${mile}
+    <p style="margin: 0; font-size: 0.9em; color: #555;"><strong>${formatTimestamp(data.timestamp)}</strong></p>
+    <p style="margin: 4px 0; font-size: 0.9em;">${data.notes}</p>
+  `;
+  container.appendChild(audio);
+
+  const popup = new mapboxgl.Popup({ offset: 25 }).setLngLat(coords).setDOMContent(container);
+  map.currentPopup = popup;
+  popup.addTo(map);
+}
+
+map.on('load', () => {
+  map.addSource('audio', {
+    type: 'geojson',
+    data: { type: 'FeatureCollection', features: [] },
+    cluster: true,
+    clusterMaxZoom: 14,
+    clusterRadius: 50
   });
 
-  let audioData = [];
-  let currentAudio = null;
-  let preventClick = false;
-  let dragStartY = 0;
+  map.addLayer({
+    id: 'clusters', type: 'circle', source: 'audio', filter: ['has', 'point_count'],
+    paint: {
+      'circle-color': '#51bbd6',
+      'circle-radius': ['step', ['get', 'point_count'], 20, 10, 30, 50, 40],
+      'circle-opacity': 0.7,
+      'circle-stroke-width': 1,
+      'circle-stroke-color': '#197991',
+      'circle-stroke-opacity': 0.75
+    }
+  });
 
-  function formatTimestamp(timestampStr) {
-    const date = new Date(timestampStr);
-    if (isNaN(date.getTime())) return timestampStr;
-    const options = {
-      timeZone: 'America/Los_Angeles', year: 'numeric', month: '2-digit',
-      day: '2-digit', hour: '2-digit', minute: '2-digit', hour12: false
-    };
-    const parts = new Intl.DateTimeFormat('en-CA', options).formatToParts(date);
-    const get = (type) => parts.find(p => p.type === type)?.value;
-    return `${get('year')}-${get('month')}-${get('day')} ${get('hour')}:${get('minute')} PDT`;
-  }
+  map.addLayer({
+    id: 'cluster-count', type: 'symbol', source: 'audio', filter: ['has', 'point_count'],
+    layout: {
+      'text-field': '{point_count_abbreviated}',
+      'text-font': ['Open Sans Semibold', 'Arial Unicode MS Bold'],
+      'text-size': 12
+    }
+  });
 
-  function sortAndUpdate(data, playlist, updateMap = true) {
-    audioData = data.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
-    if (updateMap) updateMapData();
-    updatePlaylist(playlist);
-  }
+  map.addLayer({
+    id: 'unclustered-point', type: 'circle', source: 'audio', filter: ['!', ['has', 'point_count']],
+    paint: {
+      'circle-color': '#000000',
+      'circle-radius': 6,
+      'circle-opacity': 0.4,
+      'circle-stroke-width': 1,
+      'circle-stroke-color': '#fff',
+      'circle-stroke-opacity': 0.8
+    }
+  });
 
-  function updateMapData() {
-    if (!map.getSource('audio')) return;
-    const geojson = {
-      type: 'FeatureCollection',
-      features: audioData.map((track, idx) => ({
-        type: 'Feature',
-        geometry: { type: 'Point', coordinates: [Number(track.lng), Number(track.lat)] },
-        properties: { ...track, id: idx }
-      }))
-    };
-    map.getSource('audio').setData(geojson);
-  }
+  map.on('mouseenter', 'clusters', () => map.getCanvas().style.cursor = 'pointer');
+  map.on('mouseleave', 'clusters', () => map.getCanvas().style.cursor = '');
+  map.on('mouseenter', 'unclustered-point', () => map.getCanvas().style.cursor = 'pointer');
+  map.on('mouseleave', 'unclustered-point', () => map.getCanvas().style.cursor = '');
 
-  function updatePlaylist(playlist) {
-    playlist.innerHTML = `
-      <div class="scroll-arrow up" id="scrollUp">▲</div>
-      <div class="scroll-arrow down" id="scrollDown">▼</div>
-    `;
-    audioData.forEach((track, index) => {
-      const div = document.createElement('div');
-      div.className = 'track';
-      const mile = (track.mile && track.mile.toString().toLowerCase() !== 'n/a') ? `mi.${track.mile} - ` : '';
-      div.textContent = `${mile}${track.name.replace(/^[^\s]+\s+-\s+/, '')}`;
-      div.setAttribute('data-id', index);
-      div.addEventListener('click', (e) => {
-        if (preventClick) {
-          e.preventDefault();
-          preventClick = false;
-          return;
-        }
-        playAudio(index);
+  fetch('https://script.google.com/macros/s/AKfycbxwGoYBA6bAVUz7X2CrxdERyHphhEL_1I8cW4NmpCGP6czL1FPe-sk-ejrnNVAh-MWm/exec?nocache=' + Date.now())
+    .then(response => response.json())
+    .then(data => {
+      // Ensure 'mile' is included in all track objects
+      data.forEach(track => {
+        if (!track.hasOwnProperty('mile')) track.mile = '';
       });
-      playlist.appendChild(div);
+      sortAndUpdate(data, document.getElementById('playlist'));
+    })
+    .catch(console.error);
+
+  map.on('click', 'unclustered-point', (e) => {
+    const id = e.features[0]?.properties?.id;
+    if (id !== undefined) playAudio(Number(id));
+  });
+
+  map.on('click', 'clusters', (e) => {
+    const features = map.queryRenderedFeatures(e.point, { layers: ['clusters'] });
+    if (!features.length) return;
+    const clusterId = features[0].properties.cluster_id;
+    map.getSource('audio').getClusterExpansionZoom(clusterId, (err, zoom) => {
+      if (err) return;
+      map.getSource('audio').getClusterLeaves(clusterId, 100, 0, (err, leaves) => {
+        if (err) return;
+        const bounds = new mapboxgl.LngLatBounds();
+        leaves.forEach(leaf => bounds.extend(leaf.geometry.coordinates));
+        map.fitBounds(bounds, { padding: { top: 50, bottom: 50, left: 370, right: 20 } });
+      });
     });
+  });
+});
+
+function updateScrollArrows() {
+  const playlist = document.getElementById('playlist');
+  const scrollUp = document.getElementById('scrollUp');
+  const scrollDown = document.getElementById('scrollDown');
+  const atTop = playlist.scrollTop <= 0;
+  const atBottom = playlist.scrollTop + playlist.clientHeight >= playlist.scrollHeight - 1;
+  scrollUp.style.display = atTop ? 'none' : 'block';
+  scrollDown.style.display = atBottom ? 'none' : 'block';
+}
+
+(function enableMomentumDragScroll() {
+  const playlist = document.getElementById('playlist');
+  let isDragging = false;
+  let startY = 0;
+  let scrollTop = 0;
+  let velocityY = 0;
+  let lastY = 0;
+  let lastTime = 0;
+  let momentumID = null;
+
+  function applyMomentum() {
+    if (Math.abs(velocityY) < 0.1) return;
+    playlist.scrollTop -= velocityY;
+    velocityY *= 0.95;
+    momentumID = requestAnimationFrame(applyMomentum);
     updateScrollArrows();
   }
 
-  function playAudio(index) {
-    const track = audioData[index];
-    if (!track) return;
-    document.querySelectorAll('.track').forEach(el => el.classList.remove('active-track'));
-    const activeTrack = document.querySelector(`.track[data-id="${index}"]`);
-    if (activeTrack) {
-      activeTrack.classList.add('active-track');
-      activeTrack.scrollIntoView({ behavior: 'smooth', block: 'center' });
-    }
-    const coords = [Number(track.lng), Number(track.lat)];
-    showPopup(coords, track);
-    map.flyTo({ center: coords, zoom: 14 });
-  }
+  playlist.addEventListener('mousedown', (e) => {
+    isDragging = true;
+    playlist.classList.add('dragging');
+    startY = e.pageY;
+    scrollTop = playlist.scrollTop;
+    velocityY = 0;
+    lastY = e.pageY;
+    lastTime = Date.now();
+    preventClick = false;
+    if (momentumID) cancelAnimationFrame(momentumID);
+  });
 
-  function showPopup(coords, data) {
-    if (map.currentPopup) map.currentPopup.remove();
-    if (currentAudio) { currentAudio.pause(); currentAudio = null; }
-    const audio = document.createElement('audio');
-    audio.controls = true;
-    audio.autoplay = true;
-    audio.style.width = '100%';
-    audio.innerHTML = `<source src="${data.audioUrl}" type="audio/mpeg">Your browser does not support the audio element.`;
-    currentAudio = audio;
-    const container = document.createElement('div');
-    container.style.fontFamily = 'helvetica, sans-serif';
-    container.style.padding = '2px';
-    const mileInfo = (data.mile && data.mile.toString().toLowerCase() !== 'n/a') ?
-      `<p style="margin: 0; font-size: 0.9em; color: #555;"><strong>mi.${data.mile}</strong></p>` : '';
-    container.innerHTML = `
-      <h3 style="margin: 0 0 4px 0;">${data.name}</h3>
-      ${mileInfo}
-      <p style="margin: 0; font-size: 0.9em; color: #555;"><strong>${formatTimestamp(data.timestamp)}</strong></p>
-      <p style="margin: 4px 0; font-size: 0.9em;">${data.notes}</p>
-    `;
-    container.appendChild(audio);
-    const popup = new mapboxgl.Popup({ offset: 25 }).setLngLat(coords).setDOMContent(container);
-    map.currentPopup = popup;
-    popup.addTo(map);
-  }
+  playlist.addEventListener('mousemove', (e) => {
+    if (!isDragging) return;
+    e.preventDefault();
+    const now = Date.now();
+    const deltaY = e.pageY - lastY;
+    const deltaTime = now - lastTime;
+    if (deltaTime > 0) velocityY = deltaY / deltaTime * 16;
+    const distanceDragged = Math.abs(e.pageY - startY);
+    if (distanceDragged > 5) preventClick = true;
+    playlist.scrollTop = scrollTop - (e.pageY - startY);
+    lastY = e.pageY;
+    lastTime = now;
+    updateScrollArrows();
+  });
 
-  map.on('load', () => {
-    map.addSource('audio', {
-      type: 'geojson', data: { type: 'FeatureCollection', features: [] }, cluster: true,
-      clusterMaxZoom: 14, clusterRadius: 50
-    });
-    map.addLayer({ id: 'clusters', type: 'circle', source: 'audio', filter: ['has', 'point_count'],
-      paint: {
-        'circle-color': '#51bbd6',
-        'circle-radius': ['step', ['get', 'point_count'], 20, 10, 30, 50, 40],
-        'circle-opacity': 0.7, 'circle-stroke-width': 1,
-        'circle-stroke-color': '#197991', 'circle-stroke-opacity': 0.75
-      }
-    });
-    map.addLayer({ id: 'cluster-count', type: 'symbol', source: 'audio', filter: ['has', 'point_count'],
-      layout: {
-        'text-field': '{point_count_abbreviated}',
-        'text-font': ['Open Sans Semibold', 'Arial Unicode MS Bold'],
-        'text-size': 12
-      }
-    });
-    map.addLayer({ id: 'unclustered-point', type: 'circle', source: 'audio', filter: ['!', ['has', 'point_count']],
-      paint: {
-        'circle-color': '#000000', 'circle-radius': 6,
-        'circle-opacity': 0.4, 'circle-stroke-width': 1,
-        'circle-stroke-color': '#fff', 'circle-stroke-opacity': 0.8
-      }
-    });
-    map.on('mouseenter', 'clusters', () => map.getCanvas().style.cursor = 'pointer');
-    map.on('mouseleave', 'clusters', () => map.getCanvas().style.cursor = '');
-    map.on('mouseenter', 'unclustered-point', () => map.getCanvas().style.cursor = 'pointer');
-    map.on('mouseleave', 'unclustered-point', () => map.getCanvas().style.cursor = '');
-
-    fetch('https://script.google.com/macros/s/AKfycbxwGoYBA6bAVUz7X2CrxdERyHphhEL_1I8cW4NmpCGP6czL1FPe-sk-ejrnNVAh-MWm/exec?nocache=' + Date.now())
-      .then(response => response.json())
-      .then(data => sortAndUpdate(data, document.getElementById('playlist')))
-      .catch(console.error);
-
-    map.on('click', 'unclustered-point', (e) => {
-      const id = e.features[0]?.properties?.id;
-      if (id !== undefined) playAudio(Number(id));
-    });
-
-    map.on('click', 'clusters', (e) => {
-      const features = map.queryRenderedFeatures(e.point, { layers: ['clusters'] });
-      if (!features.length) return;
-      const clusterId = features[0].properties.cluster_id;
-      map.getSource('audio').getClusterExpansionZoom(clusterId, (err, zoom) => {
-        if (err) return;
-        map.getSource('audio').getClusterLeaves(clusterId, 100, 0, (err, leaves) => {
-          if (err) return;
-          const bounds = new mapboxgl.LngLatBounds();
-          leaves.forEach(leaf => bounds.extend(leaf.geometry.coordinates));
-          map.fitBounds(bounds, {
-            padding: { top: 50, bottom: 50, left: 370, right: 20 }
-          });
-        });
-      });
+  ['mouseup', 'mouseleave'].forEach(event => {
+    playlist.addEventListener(event, () => {
+      if (!isDragging) return;
+      isDragging = false;
+      playlist.classList.remove('dragging');
+      applyMomentum();
     });
   });
 
-  function updateScrollArrows() {
-    const playlist = document.getElementById('playlist');
-    const scrollUp = document.getElementById('scrollUp');
-    const scrollDown = document.getElementById('scrollDown');
-    const atTop = playlist.scrollTop <= 0;
-    const atBottom = playlist.scrollTop + playlist.clientHeight >= playlist.scrollHeight - 1;
-    scrollUp.style.display = atTop ? 'none' : 'block';
-    scrollDown.style.display = atBottom ? 'none' : 'block';
-  }
-
-  (function enableMomentumDragScroll() {
-    const playlist = document.getElementById('playlist');
-    let isDragging = false;
-    let startY = 0;
-    let scrollTop = 0;
-    let velocityY = 0;
-    let lastY = 0;
-    let lastTime = 0;
-    let momentumID = null;
-
-    function applyMomentum() {
-      if (Math.abs(velocityY) < 0.1) return;
-      playlist.scrollTop -= velocityY;
-      velocityY *= 0.95;
-      momentumID = requestAnimationFrame(applyMomentum);
-      updateScrollArrows();
-    }
-
-    playlist.addEventListener('mousedown', (e) => {
-      isDragging = true;
-      playlist.classList.add('dragging');
-      dragStartY = e.pageY;
-      startY = e.pageY;
-      scrollTop = playlist.scrollTop;
-      velocityY = 0;
-      lastY = e.pageY;
-      lastTime = Date.now();
-      preventClick = false;
-      if (momentumID) cancelAnimationFrame(momentumID);
-    });
-
-    playlist.addEventListener('mousemove', (e) => {
-      if (!isDragging) return;
-      e.preventDefault();
-      const now = Date.now();
-      const deltaY = e.pageY - lastY;
-      const deltaTime = now - lastTime;
-      if (deltaTime > 0) velocityY = deltaY / deltaTime * 16;
-      const distanceDragged = Math.abs(e.pageY - dragStartY);
-      if (distanceDragged > 5) preventClick = true;
-      playlist.scrollTop = scrollTop - (e.pageY - startY);
-      lastY = e.pageY;
-      lastTime = now;
-      updateScrollArrows();
-    });
-
-    ['mouseup', 'mouseleave'].forEach(event => {
-      playlist.addEventListener(event, () => {
-        if (!isDragging) return;
-        isDragging = false;
-        playlist.classList.remove('dragging');
-        applyMomentum();
-      });
-    });
-
-    playlist.addEventListener('scroll', updateScrollArrows);
-  })();
+  playlist.addEventListener('scroll', updateScrollArrows);
+})();
 </script>
 
 <script src="https://storage.ko-fi.com/cdn/scripts/overlay-widget.js"></script>
@@ -360,5 +378,6 @@
     'floating-chat.donateButton.text-color': '#fff'
   });
 </script>
+
 </body>
 </html>
