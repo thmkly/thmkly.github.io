@@ -304,31 +304,60 @@
   });
 
   // Drag scroll
-  (function enableDragScroll() {
-    let isDown = false;
-    let startY;
-    let scrollTop;
+  (function enableMomentumDragScroll() {
+    const playlist = document.getElementById('playlist');
+    let isDragging = false;
+    let startY = 0;
+    let scrollTop = 0;
+    let velocityY = 0;
+    let lastY = 0;
+    let lastTime = 0;
+    let momentumID = null;
+
+    function applyMomentum() {
+      if (Math.abs(velocityY) < 0.1) return;
+
+      playlist.scrollTop -= velocityY;
+      velocityY *= 0.95; // friction
+
+      momentumID = requestAnimationFrame(applyMomentum);
+    }
 
     playlist.addEventListener('mousedown', (e) => {
-      isDown = true;
+      isDragging = true;
       playlist.classList.add('dragging');
-      startY = e.pageY - playlist.getBoundingClientRect().top;
+      startY = e.pageY;
       scrollTop = playlist.scrollTop;
-    });
-
-    ['mouseleave', 'mouseup'].forEach(evt => {
-      playlist.addEventListener(evt, () => {
-        isDown = false;
-        playlist.classList.remove('dragging');
-      });
+      velocityY = 0;
+      lastY = e.pageY;
+      lastTime = Date.now();
+      if (momentumID) cancelAnimationFrame(momentumID);
     });
 
     playlist.addEventListener('mousemove', (e) => {
-      if (!isDown) return;
+      if (!isDragging) return;
       e.preventDefault();
-      const y = e.pageY - playlist.getBoundingClientRect().top;
-      const walk = (y - startY) * 1.5;
-      playlist.scrollTop = scrollTop - walk;
+
+      const now = Date.now();
+      const deltaY = e.pageY - lastY;
+      const deltaTime = now - lastTime;
+
+      if (deltaTime > 0) {
+        velocityY = deltaY / deltaTime * 16; // normalize for ~60fps
+      }
+
+      playlist.scrollTop = scrollTop - (e.pageY - startY);
+      lastY = e.pageY;
+      lastTime = now;
+    });
+
+    ['mouseup', 'mouseleave'].forEach(event => {
+      playlist.addEventListener(event, () => {
+        if (!isDragging) return;
+        isDragging = false;
+        playlist.classList.remove('dragging');
+        applyMomentum();
+      });
     });
   })();
 </script>
