@@ -14,7 +14,7 @@
       top: 25px;
       left: 10px;
       width: 350px;
-      max-height: 80vh;
+      max-height: 85vh;
       border-radius: 5px;
       box-shadow: 0 2px 10px rgba(0,0,0,0.3);
       background-color: rgba(255,255,255,0.875);
@@ -25,9 +25,9 @@
     }
 
     .playlist {
-      max-height: 80vh;
+      max-height: 85vh;
       overflow-y: auto;
-      padding: 10px;
+      padding: 5px;
       cursor: grab;
       position: relative;
     }
@@ -161,7 +161,10 @@ function updatePlaylist(playlist) {
   audioData.forEach((track, index) => {
     const div = document.createElement('div');
     div.className = 'track';
-    const mile = (track.mile && track.mile.toString().toLowerCase() !== 'n/a') ? `mi.${track.mile} - ` : '';
+
+    const mileRaw = track.mile?.toString().trim().toLowerCase();
+    const mile = (mileRaw && mileRaw !== 'n/a') ? `mi.${track.mile} - ` : '';
+
     div.textContent = `${mile}${track.name}`;
     div.setAttribute('data-id', index);
     div.addEventListener('click', (e) => {
@@ -206,15 +209,36 @@ function showPopup(coords, data) {
   container.style.fontFamily = 'helvetica, sans-serif';
   container.style.padding = '2px';
 
-  const mile = (data.mile && data.mile.toString().toLowerCase() !== 'n/a') ? 
-    `<p style="margin: 0; font-size: 0.9em; color: #555;"><strong>mi.${data.mile}</strong></p>` : '';
+  const title = document.createElement('h3');
+  title.style.margin = '0 0 4px 0';
+  title.textContent = data.name;
+  container.appendChild(title);
 
-  container.innerHTML = `
-    <h3 style="margin: 0 0 4px 0;">${data.name}</h3>
-    ${mile}
-    <p style="margin: 0; font-size: 0.9em; color: #555;"><strong>${formatTimestamp(data.timestamp)}</strong></p>
-    <p style="margin: 4px 0; font-size: 0.9em;">${data.notes}</p>
-  `;
+  const mileRaw = data.mile?.toString().trim().toLowerCase();
+  if (mileRaw && mileRaw !== 'n/a') {
+    const mile = document.createElement('p');
+    mile.style.margin = '0';
+    mile.style.fontSize = '0.9em';
+    mile.style.color = '#555';
+    mile.innerHTML = `<strong>mi.${data.mile}</strong>`;
+    container.appendChild(mile);
+  }
+
+  const timestamp = document.createElement('p');
+  timestamp.style.margin = '0';
+  timestamp.style.fontSize = '0.9em';
+  timestamp.style.color = '#555';
+  timestamp.innerHTML = `<strong>${formatTimestamp(data.timestamp)}</strong>`;
+  container.appendChild(timestamp);
+
+  if (data.notes?.trim()) {
+    const notes = document.createElement('p');
+    notes.style.margin = '4px 0';
+    notes.style.fontSize = '0.9em';
+    notes.textContent = data.notes;
+    container.appendChild(notes);
+  }
+
   container.appendChild(audio);
 
   const popup = new mapboxgl.Popup({ offset: 25 }).setLngLat(coords).setDOMContent(container);
@@ -272,7 +296,7 @@ map.on('load', () => {
   fetch('https://script.google.com/macros/s/AKfycbxwGoYBA6bAVUz7X2CrxdERyHphhEL_1I8cW4NmpCGP6czL1FPe-sk-ejrnNVAh-MWm/exec?nocache=' + Date.now())
     .then(response => response.json())
     .then(data => {
-      // Ensure 'mile' is included in all track objects
+      // Ensure 'mile' exists for all tracks
       data.forEach(track => {
         if (!track.hasOwnProperty('mile')) track.mile = '';
       });
