@@ -21,7 +21,6 @@
       font-family: helvetica;
       font-size: small;
       overflow: hidden;
-      pointer-events: auto;
       z-index: 2;
     }
 
@@ -32,36 +31,39 @@
       cursor: grab;
     }
 
-    .playlist.dragging,
-    .playlist.dragging * {
+    .playlist.dragging {
       cursor: grabbing;
-      user-select: none !important;
-      -webkit-user-select: none !important;
-      -moz-user-select: none !important;
+      user-select: none;
     }
 
-    .fade-top,
-    .fade-bottom {
+    .playlist-wrapper::before,
+    .playlist-wrapper::after {
+      content: "";
       position: absolute;
       left: 0;
       right: 0;
-      height: 30px;
+      height: 20px;
       pointer-events: none;
       z-index: 3;
-      transition: opacity 0.2s ease;
+      transition: opacity 0.2s;
     }
 
-    .fade-top {
+    .playlist-wrapper::before {
       top: 0;
-      background: linear-gradient(to bottom, rgba(255,255,255,0.95), rgba(255,255,255,0));
+      background: linear-gradient(to bottom, rgba(255,255,255,0.9), rgba(255,255,255,0));
+      opacity: 1;
     }
 
-    .fade-bottom {
+    .playlist-wrapper::after {
       bottom: 0;
-      background: linear-gradient(to top, rgba(255,255,255,0.95), rgba(255,255,255,0));
+      background: linear-gradient(to top, rgba(255,255,255,0.9), rgba(255,255,255,0));
+      opacity: 1;
     }
 
-    .fade-hidden {
+    .playlist[data-at-top="true"] ~ .playlist-wrapper::before {
+      opacity: 0;
+    }
+    .playlist[data-at-bottom="true"] ~ .playlist-wrapper::after {
       opacity: 0;
     }
 
@@ -97,35 +99,25 @@
 
     .mapboxgl-marker { cursor: pointer; }
 
-    /* Ko-fi Button (force bottom right) */
-    .floatingchat-container-wrap,
-    .floating-chat-kofi-popup-iframe {
-      left: unset !important;
-      right: 16px !important;
-      bottom: 30px !important;
+    .floatingchat-container-wrap { right: 16px !important; left: unset !important; bottom: 30px !important; }
+    .floating-chat-kofi-popup-iframe { right: 16px !important; left: unset !important; bottom: 30px !important; }
+
+    .loading-placeholder {
+      text-align: center;
+      color: #555;
+      padding: 12px;
+      border-bottom: 1px solid #ccc;
     }
   </style>
 </head>
 <body>
 
 <div id="map"></div>
-
 <div class="playlist-wrapper">
-  <div class="fade-top" id="fadeTop"></div>
-  <div class="fade-bottom" id="fadeBottom"></div>
-  <div class="playlist" id="playlist"></div>
+  <div class="playlist" id="playlist">
+    <div class="loading-placeholder">Loading playlist...</div>
+  </div>
 </div>
-
-<!-- Ko-fi -->
-<script src="https://storage.ko-fi.com/cdn/scripts/overlay-widget.js"></script>
-<script>
-  kofiWidgetOverlay.draw('thmkly', {
-    'type': 'floating-chat',
-    'floating-chat.donateButton.text': 'Support me',
-    'floating-chat.donateButton.background-color': '#ff5f5f',
-    'floating-chat.donateButton.text-color': '#fff'
-  });
-</script>
 
 <script src="https://api.mapbox.com/mapbox-gl-js/v2.8.1/mapbox-gl.js"></script>
 <script>
@@ -140,32 +132,25 @@
 
   let audioData = [];
   let currentAudio = null;
+  let preventClick = false;
+  let dragStartY = 0;
 
-  const playlist = document.getElementById('playlist');
-  const fadeTop = document.getElementById('fadeTop');
-  const fadeBottom = document.getElementById('fadeBottom');
-
-  function updateFades() {
-    fadeTop.classList.toggle('fade-hidden', playlist.scrollTop === 0);
-    fadeBottom.classList.toggle('fade-hidden', playlist.scrollTop + playlist.clientHeight >= playlist.scrollHeight - 1);
+  function formatTimestamp(timestampStr) {
+    const date = new Date(timestampStr);
+    if (isNaN(date.getTime())) return timestampStr;
+    const options = {
+      timeZone: 'America/Los_Angeles', year: 'numeric', month: '2-digit',
+      day: '2-digit', hour: '2-digit', minute: '2-digit', hour12: false
+    };
+    const parts = new Intl.DateTimeFormat('en-CA', options).formatToParts(date);
+    const get = (type) => parts.find(p => p.type === type)?.value;
+    return `${get('year')}-${get('month')}-${get('day')} ${get('hour')}:${get('minute')} PDT`;
   }
 
-  playlist.addEventListener('scroll', updateFades);
-
-  function formatTimestamp(ts) {
-    const date = new Date(ts);
-    if (isNaN(date.getTime())) return ts;
-    return new Intl.DateTimeFormat('en-CA', {
-      timeZone: 'America/Los_Angeles',
-      year: 'numeric', month: '2-digit', day: '2-digit',
-      hour: '2-digit', minute: '2-digit', hour12: false
-    }).format(date).replace(',', '') + ' PDT';
-  }
-
-  function sortAndUpdate(data, updateMap = true) {
+  function sortAndUpdate(data, playlist, updateMap = true) {
     audioData = data.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
     if (updateMap) updateMapData();
-    updatePlaylist();
+    updatePlaylist(playlist);
   }
 
   function updateMapData() {
@@ -181,17 +166,23 @@
     map.getSource('audio').setData(geojson);
   }
 
-  function updatePlaylist() {
+  function updatePlaylist(playlist) {
     playlist.innerHTML = '';
     audioData.forEach((track, index) => {
       const div = document.createElement('div');
       div.className = 'track';
       div.textContent = track.name.replace(/^[^\s]+\s+-\s+/, '');
-      div.dataset.id = index;
-      div.addEventListener('click', () => playAudio(index));
+      div.setAttribute('data-id', index);
+      div.addEventListener('click', (e) => {
+        if (preventClick) {
+          e.preventDefault();
+          preventClick = false;
+          return;
+        }
+        playAudio(index);
+      });
       playlist.appendChild(div);
     });
-    updateFades();
   }
 
   function playAudio(index) {
@@ -210,19 +201,13 @@
 
   function showPopup(coords, data) {
     if (map.currentPopup) map.currentPopup.remove();
-    if (currentAudio) {
-      currentAudio.pause();
-      currentAudio = null;
-    }
-
+    if (currentAudio) { currentAudio.pause(); currentAudio = null; }
     const audio = document.createElement('audio');
     audio.controls = true;
     audio.autoplay = true;
     audio.style.width = '100%';
     audio.innerHTML = `<source src="${data.audioUrl}" type="audio/mpeg">Your browser does not support the audio element.`;
-    audio.addEventListener('contextmenu', e => e.preventDefault());
     currentAudio = audio;
-
     const container = document.createElement('div');
     container.style.fontFamily = 'helvetica, sans-serif';
     container.style.padding = '2px';
@@ -232,78 +217,67 @@
       <p style="margin: 4px 0; font-size: 0.9em;">${data.notes}</p>
     `;
     container.appendChild(audio);
-
-    const popup = new mapboxgl.Popup({ offset: 25 })
-      .setLngLat(coords)
-      .setDOMContent(container)
-      .addTo(map);
-
+    const popup = new mapboxgl.Popup({ offset: 25 }).setLngLat(coords).setDOMContent(container);
     map.currentPopup = popup;
+    popup.addTo(map);
   }
 
   map.on('load', () => {
     map.addSource('audio', {
-      type: 'geojson',
-      data: { type: 'FeatureCollection', features: [] },
-      cluster: true,
-      clusterMaxZoom: 14,
-      clusterRadius: 50
+      type: 'geojson', data: { type: 'FeatureCollection', features: [] }, cluster: true,
+      clusterMaxZoom: 14, clusterRadius: 50
     });
-
-    map.addLayer({
-      id: 'clusters',
-      type: 'circle',
-      source: 'audio',
-      filter: ['has', 'point_count'],
+    map.addLayer({ id: 'clusters', type: 'circle', source: 'audio', filter: ['has', 'point_count'],
       paint: {
         'circle-color': '#51bbd6',
         'circle-radius': ['step', ['get', 'point_count'], 20, 10, 30, 50, 40],
-        'circle-opacity': 0.7,
-        'circle-stroke-width': 1,
-        'circle-stroke-color': '#197991',
-        'circle-stroke-opacity': 0.75
+        'circle-opacity': 0.7, 'circle-stroke-width': 1,
+        'circle-stroke-color': '#197991', 'circle-stroke-opacity': 0.75
       }
     });
-
-    map.addLayer({
-      id: 'cluster-count',
-      type: 'symbol',
-      source: 'audio',
-      filter: ['has', 'point_count'],
+    map.addLayer({ id: 'cluster-count', type: 'symbol', source: 'audio', filter: ['has', 'point_count'],
       layout: {
         'text-field': '{point_count_abbreviated}',
         'text-font': ['Open Sans Semibold', 'Arial Unicode MS Bold'],
         'text-size': 12
       }
     });
-
-    map.addLayer({
-      id: 'unclustered-point',
-      type: 'circle',
-      source: 'audio',
-      filter: ['!', ['has', 'point_count']],
+    map.addLayer({ id: 'unclustered-point', type: 'circle', source: 'audio', filter: ['!', ['has', 'point_count']],
       paint: {
-        'circle-color': '#000',
-        'circle-radius': 6,
-        'circle-opacity': 0.4,
-        'circle-stroke-width': 1,
-        'circle-stroke-color': '#fff',
-        'circle-stroke-opacity': 0.8
+        'circle-color': '#000000', 'circle-radius': 6,
+        'circle-opacity': 0.4, 'circle-stroke-width': 1,
+        'circle-stroke-color': '#fff', 'circle-stroke-opacity': 0.8
       }
     });
-
     fetch('https://script.google.com/macros/s/AKfycbxwGoYBA6bAVUz7X2CrxdERyHphhEL_1I8cW4NmpCGP6czL1FPe-sk-ejrnNVAh-MWm/exec?nocache=' + Date.now())
-      .then(res => res.json())
-      .then(data => sortAndUpdate(data))
+      .then(response => response.json())
+      .then(data => sortAndUpdate(data, document.getElementById('playlist')))
       .catch(console.error);
 
     map.on('click', 'unclustered-point', (e) => {
       const id = e.features[0]?.properties?.id;
       if (id !== undefined) playAudio(Number(id));
     });
+
+    map.on('click', 'clusters', (e) => {
+      const features = map.queryRenderedFeatures(e.point, { layers: ['clusters'] });
+      if (!features.length) return;
+      const clusterId = features[0].properties.cluster_id;
+      map.getSource('audio').getClusterExpansionZoom(clusterId, (err, zoom) => {
+        if (err) return;
+        map.getSource('audio').getClusterLeaves(clusterId, 100, 0, (err, leaves) => {
+          if (err) return;
+          const bounds = new mapboxgl.LngLatBounds();
+          leaves.forEach(leaf => bounds.extend(leaf.geometry.coordinates));
+          map.fitBounds(bounds, {
+            padding: { top: 50, bottom: 50, left: 370, right: 20 }
+          });
+        });
+      });
+    });
   });
 
-  // Drag scroll
+  // Drag-to-scroll with momentum
   (function enableMomentumDragScroll() {
     const playlist = document.getElementById('playlist');
     let isDragging = false;
@@ -316,36 +290,33 @@
 
     function applyMomentum() {
       if (Math.abs(velocityY) < 0.1) return;
-
       playlist.scrollTop -= velocityY;
-      velocityY *= 0.95; // friction
-
+      velocityY *= 0.95;
       momentumID = requestAnimationFrame(applyMomentum);
     }
 
     playlist.addEventListener('mousedown', (e) => {
       isDragging = true;
       playlist.classList.add('dragging');
+      dragStartY = e.pageY;
       startY = e.pageY;
       scrollTop = playlist.scrollTop;
       velocityY = 0;
       lastY = e.pageY;
       lastTime = Date.now();
+      preventClick = false;
       if (momentumID) cancelAnimationFrame(momentumID);
     });
 
     playlist.addEventListener('mousemove', (e) => {
       if (!isDragging) return;
       e.preventDefault();
-
       const now = Date.now();
       const deltaY = e.pageY - lastY;
       const deltaTime = now - lastTime;
-
-      if (deltaTime > 0) {
-        velocityY = deltaY / deltaTime * 16; // normalize for ~60fps
-      }
-
+      if (deltaTime > 0) velocityY = deltaY / deltaTime * 16;
+      const distanceDragged = Math.abs(e.pageY - dragStartY);
+      if (distanceDragged > 5) preventClick = true;
       playlist.scrollTop = scrollTop - (e.pageY - startY);
       lastY = e.pageY;
       lastTime = now;
@@ -359,8 +330,22 @@
         applyMomentum();
       });
     });
+
+    playlist.addEventListener('scroll', () => {
+      playlist.setAttribute('data-at-top', playlist.scrollTop <= 0);
+      playlist.setAttribute('data-at-bottom', playlist.scrollTop + playlist.clientHeight >= playlist.scrollHeight);
+    });
   })();
 </script>
 
+<script src="https://storage.ko-fi.com/cdn/scripts/overlay-widget.js"></script>
+<script>
+  kofiWidgetOverlay.draw('thmkly', {
+    'type': 'floating-chat',
+    'floating-chat.donateButton.text': 'Support me',
+    'floating-chat.donateButton.background-color': '#ff5f5f',
+    'floating-chat.donateButton.text-color': '#fff'
+  });
+</script>
 </body>
 </html>
