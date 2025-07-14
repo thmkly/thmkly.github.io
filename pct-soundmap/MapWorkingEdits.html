@@ -162,8 +162,8 @@ function updatePlaylist(playlist) {
     const div = document.createElement('div');
     div.className = 'track';
 
-    const mileRaw = track.mile?.toString().trim().toLowerCase();
-    const mile = (mileRaw && mileRaw !== 'n/a') ? `mi.${track.mile} - ` : '';
+    const mileValue = track.mile?.toString().trim();
+    const mile = (mileValue && mileValue.toLowerCase() !== 'n/a') ? `mi.${mileValue} - ` : '';
 
     div.textContent = `${mile}${track.name}`;
     div.setAttribute('data-id', index);
@@ -296,7 +296,6 @@ map.on('load', () => {
   fetch('https://script.google.com/macros/s/AKfycbxwGoYBA6bAVUz7X2CrxdERyHphhEL_1I8cW4NmpCGP6czL1FPe-sk-ejrnNVAh-MWm/exec?nocache=' + Date.now())
     .then(response => response.json())
     .then(data => {
-      // Ensure 'mile' exists for all tracks
       data.forEach(track => {
         if (!track.hasOwnProperty('mile')) track.mile = '';
       });
