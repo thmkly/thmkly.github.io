@@ -8,7 +8,95 @@
   <style>
     body { margin: 0; padding: 0; }
     #map { position: absolute; top: 0; bottom: 0; width: 100%; }
-    /* (Your existing CSS unchanged) */
+
+    .playlist-wrapper {
+      position: absolute;
+      top: 25px;
+      left: 10px;
+      width: 350px;
+      max-height: 85vh;
+      border-radius: 5px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.3);
+      background-color: rgba(255,255,255,0.875);
+      font-family: helvetica;
+      font-size: small;
+      overflow: hidden;
+      z-index: 2;
+    }
+
+    .playlist {
+      max-height: 85vh;
+      overflow-y: auto;
+      padding: 5px;
+      cursor: grab;
+      position: relative;
+    }
+
+    .playlist.dragging {
+      cursor: grabbing;
+      user-select: none;
+    }
+
+    .scroll-arrow {
+      position: absolute;
+      left: 50%;
+      transform: translateX(-50%);
+      font-size: 12px;
+      color: black;
+      z-index: 3;
+      pointer-events: none;
+      user-select: none;
+    }
+
+    .scroll-arrow.up {
+      top: 0;
+      display: none;
+    }
+
+    .scroll-arrow.down {
+      bottom: 0;
+      display: none;
+    }
+
+    .track {
+      cursor: pointer;
+      padding: 5px;
+      margin: 1px;
+      border-bottom: 1px solid #ccc;
+    }
+
+    .track:hover {
+      background-color: #f0f0f0;
+    }
+
+    .active-track {
+      background-color: #d0d0d0;
+    }
+
+    .mapboxgl-canvas { cursor: grab; }
+    .mapboxgl-marker { cursor: pointer; }
+
+    .mapboxgl-popup-content {
+      opacity: 0.80;
+      transition: opacity 0.3s ease;
+      min-width: 320px;
+      max-width: 90vw;
+      box-sizing: border-box;
+    }
+
+    .mapboxgl-popup-close-button:focus {
+      outline: none;
+      box-shadow: none;
+    }
+
+    .floatingchat-container-wrap { right: 16px !important; left: unset !important; bottom: 30px !important; }
+    .floating-chat-kofi-popup-iframe { right: 16px !important; left: unset !important; bottom: 30px !important; }
+
+    .loading-placeholder {
+      text-align: center;
+      color: #555;
+      padding: 8px;
+    }
   </style>
 </head>
 <body>
@@ -74,8 +162,10 @@ function updatePlaylist(playlist) {
     const div = document.createElement('div');
     div.className = 'track';
 
-    // Only track name in playlist, no mile marker here
-    div.textContent = track.name || 'Untitled';
+    const mileRaw = track.mile?.toString().trim().toLowerCase();
+    const mile = (mileRaw && mileRaw !== 'n/a') ? `mi.${track.mile} - ` : '';
+
+    div.textContent = `${mile}${track.name}`;
     div.setAttribute('data-id', index);
     div.addEventListener('click', (e) => {
       if (preventClick) {
@@ -203,10 +293,10 @@ map.on('load', () => {
   map.on('mouseenter', 'unclustered-point', () => map.getCanvas().style.cursor = 'pointer');
   map.on('mouseleave', 'unclustered-point', () => map.getCanvas().style.cursor = '');
 
-  fetch('https://script.google.com/macros/s/AKfycbwX9x4uNR9ytE-PTTxP19Lzhv9vwL7oxbzt_hzV66tkVflRBDra_u3uGZbxGgE--MkW/exec?nocache=' + Date.now())
+  fetch('https://script.google.com/macros/s/AKfycbxwGoYBA6bAVUz7X2CrxdERyHphhEL_1I8cW4NmpCGP6czL1FPe-sk-ejrnNVAh-MWm/exec?nocache=' + Date.now())
     .then(response => response.json())
     .then(data => {
-      console.log('Fetched data:', data);
+      // Ensure 'mile' exists for all tracks
       data.forEach(track => {
         if (!track.hasOwnProperty('mile')) track.mile = '';
       });
