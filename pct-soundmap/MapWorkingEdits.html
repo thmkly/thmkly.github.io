@@ -18,7 +18,7 @@
       border-radius: 5px;
       box-shadow: 0 2px 10px rgba(0,0,0,0.3);
       background-color: rgba(255,255,255,0.875);
-      font-family: helvetica, sans-serif;
+      font-family: helvetica;
       font-size: small;
       overflow: hidden;
       z-index: 2;
@@ -34,29 +34,6 @@
     .playlist.dragging {
       cursor: grabbing;
       user-select: none;
-    }
-
-    .scroll-arrow {
-      position: absolute;
-      left: 50%;
-      transform: translateX(-50%);
-      font-size: 16px;
-      color: black;
-      z-index: 3;
-      pointer-events: none;
-      opacity: 0.8;
-    }
-
-    .scroll-arrow.up {
-      top: 3px;
-    }
-
-    .scroll-arrow.down {
-      bottom: 3px;
-    }
-
-    .scroll-arrow.hidden {
-      display: none;
     }
 
     .track {
@@ -97,7 +74,7 @@
     .loading-placeholder {
       text-align: center;
       color: #555;
-      padding: 5px 0;
+      padding: 8px;
     }
   </style>
 </head>
@@ -106,10 +83,8 @@
 <div id="map"></div>
 <div class="playlist-wrapper">
   <div class="playlist" id="playlist">
-    <div class="loading-placeholder">loading recordings...</div>
+    <div class="loading-placeholder">loading playlist...</div>
   </div>
-  <div class="scroll-arrow up hidden" id="scrollArrowUp">▲</div>
-  <div class="scroll-arrow down hidden" id="scrollArrowDown">▼</div>
 </div>
 
 <script src="https://api.mapbox.com/mapbox-gl-js/v2.8.1/mapbox-gl.js"></script>
@@ -164,7 +139,13 @@
     audioData.forEach((track, index) => {
       const div = document.createElement('div');
       div.className = 'track';
-      div.textContent = track.name.replace(/^[^\s]+\s+-\s+/, '');
+
+      let milePrefix = '';
+      if (track.mile && track.mile.toString().toLowerCase() !== 'n/a') {
+        milePrefix = `mi.${track.mile} - `;
+      }
+
+      div.textContent = `${milePrefix}${track.name.replace(/^[^\s]+\s+-\s+/, '')}`;
       div.setAttribute('data-id', index);
       div.addEventListener('click', (e) => {
         if (preventClick) {
@@ -176,8 +157,6 @@
       });
       playlist.appendChild(div);
     });
-    // Trigger scroll update for arrow visibility
-    playlist.dispatchEvent(new Event('scroll'));
   }
 
   function playAudio(index) {
@@ -197,21 +176,31 @@
   function showPopup(coords, data) {
     if (map.currentPopup) map.currentPopup.remove();
     if (currentAudio) { currentAudio.pause(); currentAudio = null; }
+
     const audio = document.createElement('audio');
     audio.controls = true;
     audio.autoplay = true;
     audio.style.width = '100%';
     audio.innerHTML = `<source src="${data.audioUrl}" type="audio/mpeg">Your browser does not support the audio element.`;
     currentAudio = audio;
+
     const container = document.createElement('div');
     container.style.fontFamily = 'helvetica, sans-serif';
     container.style.padding = '2px';
+
+    let mileInfo = '';
+    if (data.mile && data.mile.toString().toLowerCase() !== 'n/a') {
+      mileInfo = `<p style="margin: 0; font-size: 0.9em; color: #555;"><strong>mi.${data.mile}</strong></p>`;
+    }
+
     container.innerHTML = `
       <h3 style="margin: 0 0 4px 0;">${data.name}</h3>
+      ${mileInfo}
       <p style="margin: 0; font-size: 0.9em; color: #555;"><strong>${formatTimestamp(data.timestamp)}</strong></p>
       <p style="margin: 4px 0; font-size: 0.9em;">${data.notes}</p>
     `;
     container.appendChild(audio);
+
     const popup = new mapboxgl.Popup({ offset: 25 }).setLngLat(coords).setDOMContent(container);
     map.currentPopup = popup;
     popup.addTo(map);
@@ -244,8 +233,7 @@
         'circle-stroke-color': '#fff', 'circle-stroke-opacity': 0.8
       }
     });
-
-    fetch('https://script.google.com/macros/s/AKfycbyFAigLMOMkGPYdE25Flls7r3zbo7q7nx_Q_4SLUKDZ0XUYLSpod9WCWJGHUuOESk_-/exec?nocache=' + Date.now())
+    fetch('https://script.google.com/macros/s/AKfycbxwGoYBA6bAVUz7X2CrxdERyHphhEL_1I8cW4NmpCGP6czL1FPe-sk-ejrnNVAh-MWm/exec?nocache=' + Date.now())
       .then(response => response.json())
       .then(data => sortAndUpdate(data, document.getElementById('playlist')))
       .catch(console.error);
@@ -272,74 +260,6 @@
       });
     });
   });
-
-  // Drag-to-scroll with momentum and arrow indicators
-  (function enableMomentumDragScroll() {
-    const playlist = document.getElementById('playlist');
-    const arrowUp = document.getElementById('scrollArrowUp');
-    const arrowDown = document.getElementById('scrollArrowDown');
-    let isDragging = false;
-    let startY = 0;
-    let scrollTop = 0;
-    let velocityY = 0;
-    let lastY = 0;
-    let lastTime = 0;
-    let momentumID = null;
-
-    function applyMomentum() {
-      if (Math.abs(velocityY) < 0.1) return;
-      playlist.scrollTop -= velocityY;
-      velocityY *= 0.95;
-      momentumID = requestAnimationFrame(applyMomentum);
-      updateArrowVisibility();
-    }
-
-    function updateArrowVisibility() {
-      const atTop = playlist.scrollTop <= 0;
-      const atBottom = playlist.scrollTop + playlist.clientHeight >= playlist.scrollHeight;
-      arrowUp.classList.toggle('hidden', atTop);
-      arrowDown.classList.toggle('hidden', atBottom);
-    }
-
-    playlist.addEventListener('mousedown', (e) => {
-      isDragging = true;
-      playlist.classList.add('dragging');
-      dragStartY = e.pageY;
-      startY = e.pageY;
-      scrollTop = playlist.scrollTop;
-      velocityY = 0;
-      lastY = e.pageY;
-      lastTime = Date.now();
-      preventClick = false;
-      if (momentumID) cancelAnimationFrame(momentumID);
-    });
-
-    playlist.addEventListener('mousemove', (e) => {
-      if (!isDragging) return;
-      e.preventDefault();
-      const now = Date.now();
-      const deltaY = e.pageY - lastY;
-      const deltaTime = now - lastTime;
-      if (deltaTime > 0) velocityY = deltaY / deltaTime * 16;
-      const distanceDragged = Math.abs(e.pageY - dragStartY);
-      if (distanceDragged > 5) preventClick = true;
-      playlist.scrollTop = scrollTop - (e.pageY - startY);
-      lastY = e.pageY;
-      lastTime = now;
-      updateArrowVisibility();
-    });
-
-    ['mouseup', 'mouseleave'].forEach(event => {
-      playlist.addEventListener(event, () => {
-        if (!isDragging) return;
-        isDragging = false;
-        playlist.classList.remove('dragging');
-        applyMomentum();
-      });
-    });
-
-    playlist.addEventListener('scroll', updateArrowVisibility);
-  })();
 </script>
 
 <script src="https://storage.ko-fi.com/cdn/scripts/overlay-widget.js"></script>
@@ -351,5 +271,6 @@
     'floating-chat.donateButton.text-color': '#fff'
   });
 </script>
+
 </body>
 </html>
