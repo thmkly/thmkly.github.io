@@ -161,7 +161,16 @@ function updatePlaylist(playlist) {
   audioData.forEach((track, index) => {
     const div = document.createElement('div');
     div.className = 'track';
-    div.textContent = track.name;
+
+    let mileText = '';
+    if (track.mile !== undefined && track.mile !== null) {
+      const mileClean = track.mile.toString().trim();
+      if (mileClean && mileClean.toLowerCase() !== 'n/a') {
+        mileText = `mi.${mileClean} - `;
+      }
+    }
+
+    div.textContent = `${mileText}${track.name}`;
     div.setAttribute('data-id', index);
     div.addEventListener('click', (e) => {
       if (preventClick) {
@@ -190,7 +199,6 @@ function playAudio(index) {
   map.flyTo({ center: coords, zoom: 14 });
 }
 
-// --- MILE MARKER INFOBOX FIX ---
 function showPopup(coords, data) {
   if (map.currentPopup) map.currentPopup.remove();
   if (currentAudio) { currentAudio.pause(); currentAudio = null; }
@@ -206,24 +214,22 @@ function showPopup(coords, data) {
   container.style.fontFamily = 'helvetica, sans-serif';
   container.style.padding = '2px';
 
-  // Title
   const title = document.createElement('h3');
   title.style.margin = '0 0 4px 0';
-  title.textContent = data.name || 'Untitled';
+  title.textContent = data.name;
   container.appendChild(title);
 
-  // Mile marker (always show if exists)
-  const mileText = data.mile?.toString().trim();
-  if (mileText && mileText.toLowerCase() !== 'n/a') {
+  // Insert mile marker below title and above timestamp
+  const mileRaw = data.mile?.toString().trim().toLowerCase();
+  if (mileRaw && mileRaw !== 'n/a' && mileRaw !== '') {
     const mile = document.createElement('p');
-    mile.style.margin = '0 0 4px 0';
+    mile.style.margin = '0';
     mile.style.fontSize = '0.9em';
     mile.style.color = '#555';
-    mile.innerHTML = `<strong>mi.${mileText}</strong>`;
+    mile.innerHTML = `<strong>mi.${data.mile}</strong>`;
     container.appendChild(mile);
   }
 
-  // Timestamp
   const timestamp = document.createElement('p');
   timestamp.style.margin = '0';
   timestamp.style.fontSize = '0.9em';
@@ -231,7 +237,6 @@ function showPopup(coords, data) {
   timestamp.innerHTML = `<strong>${formatTimestamp(data.timestamp)}</strong>`;
   container.appendChild(timestamp);
 
-  // Notes
   if (data.notes?.trim()) {
     const notes = document.createElement('p');
     notes.style.margin = '4px 0';
@@ -246,7 +251,6 @@ function showPopup(coords, data) {
   map.currentPopup = popup;
   popup.addTo(map);
 }
-// --- END FIX ---
 
 map.on('load', () => {
   map.addSource('audio', {
