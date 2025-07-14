@@ -163,17 +163,11 @@
       <div class="scroll-arrow up" id="scrollUp">▲</div>
       <div class="scroll-arrow down" id="scrollDown">▼</div>
     `;
-
     audioData.forEach((track, index) => {
       const div = document.createElement('div');
       div.className = 'track';
-
-      let milePrefix = '';
-      if (track.mile && track.mile.toString().toLowerCase() !== 'n/a') {
-        milePrefix = `mi.${track.mile} - `;
-      }
-
-      div.textContent = `${milePrefix}${track.name.replace(/^[^\s]+\s+-\s+/, '')}`;
+      const mile = (track.mile && track.mile.toString().toLowerCase() !== 'n/a') ? `mi.${track.mile} - ` : '';
+      div.textContent = `${mile}${track.name.replace(/^[^\s]+\s+-\s+/, '')}`;
       div.setAttribute('data-id', index);
       div.addEventListener('click', (e) => {
         if (preventClick) {
@@ -185,7 +179,6 @@
       });
       playlist.appendChild(div);
     });
-
     updateScrollArrows();
   }
 
@@ -206,23 +199,17 @@
   function showPopup(coords, data) {
     if (map.currentPopup) map.currentPopup.remove();
     if (currentAudio) { currentAudio.pause(); currentAudio = null; }
-
     const audio = document.createElement('audio');
     audio.controls = true;
     audio.autoplay = true;
     audio.style.width = '100%';
     audio.innerHTML = `<source src="${data.audioUrl}" type="audio/mpeg">Your browser does not support the audio element.`;
     currentAudio = audio;
-
     const container = document.createElement('div');
     container.style.fontFamily = 'helvetica, sans-serif';
     container.style.padding = '2px';
-
-    let mileInfo = '';
-    if (data.mile && data.mile.toString().toLowerCase() !== 'n/a') {
-      mileInfo = `<p style="margin: 0; font-size: 0.9em; color: #555;"><strong>mi.${data.mile}</strong></p>`;
-    }
-
+    const mileInfo = (data.mile && data.mile.toString().toLowerCase() !== 'n/a') ?
+      `<p style="margin: 0; font-size: 0.9em; color: #555;"><strong>mi.${data.mile}</strong></p>` : '';
     container.innerHTML = `
       <h3 style="margin: 0 0 4px 0;">${data.name}</h3>
       ${mileInfo}
@@ -230,7 +217,6 @@
       <p style="margin: 4px 0; font-size: 0.9em;">${data.notes}</p>
     `;
     container.appendChild(audio);
-
     const popup = new mapboxgl.Popup({ offset: 25 }).setLngLat(coords).setDOMContent(container);
     map.currentPopup = popup;
     popup.addTo(map);
@@ -263,19 +249,10 @@
         'circle-stroke-color': '#fff', 'circle-stroke-opacity': 0.8
       }
     });
-    map.on('mouseenter', 'clusters', () => {
-      map.getCanvas().style.cursor = 'pointer';
-    });
-    map.on('mouseleave', 'clusters', () => {
-      map.getCanvas().style.cursor = '';
-    });
-    
-    map.on('mouseenter', 'unclustered-point', () => {
-      map.getCanvas().style.cursor = 'pointer';
-    });
-    map.on('mouseleave', 'unclustered-point', () => {
-      map.getCanvas().style.cursor = '';
-    });
+    map.on('mouseenter', 'clusters', () => map.getCanvas().style.cursor = 'pointer');
+    map.on('mouseleave', 'clusters', () => map.getCanvas().style.cursor = '');
+    map.on('mouseenter', 'unclustered-point', () => map.getCanvas().style.cursor = 'pointer');
+    map.on('mouseleave', 'unclustered-point', () => map.getCanvas().style.cursor = '');
 
     fetch('https://script.google.com/macros/s/AKfycbxwGoYBA6bAVUz7X2CrxdERyHphhEL_1I8cW4NmpCGP6czL1FPe-sk-ejrnNVAh-MWm/exec?nocache=' + Date.now())
       .then(response => response.json())
@@ -383,6 +360,5 @@
     'floating-chat.donateButton.text-color': '#fff'
   });
 </script>
-
 </body>
 </html>
