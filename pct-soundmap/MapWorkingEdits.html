@@ -32,7 +32,8 @@
       cursor: grab;
     }
 
-    .playlist.dragging {
+    .playlist.dragging,
+    .playlist.dragging * {
       cursor: grabbing;
       user-select: none;
     }
@@ -43,19 +44,28 @@
       position: absolute;
       left: 0;
       right: 0;
-      height: 20px;
+      height: 40px;
       pointer-events: none;
       z-index: 3;
+      transition: opacity 0.2s;
     }
 
     .playlist-wrapper::before {
       top: 0;
-      background: linear-gradient(to bottom, rgba(255,255,255,0.9), rgba(255,255,255,0));
+      background: linear-gradient(to bottom, rgba(255,255,255,1), rgba(255,255,255,0));
     }
 
     .playlist-wrapper::after {
       bottom: 0;
-      background: linear-gradient(to top, rgba(255,255,255,0.9), rgba(255,255,255,0));
+      background: linear-gradient(to top, rgba(255,255,255,1), rgba(255,255,255,0));
+    }
+
+    .playlist-wrapper.hide-top::before {
+      opacity: 0;
+    }
+
+    .playlist-wrapper.hide-bottom::after {
+      opacity: 0;
     }
 
     .track {
@@ -97,7 +107,7 @@
 <body>
 
 <div id="map"></div>
-<div class="playlist-wrapper">
+<div class="playlist-wrapper" id="playlistWrapper">
   <div class="playlist" id="playlist"></div>
 </div>
 
@@ -118,20 +128,13 @@
   function formatTimestamp(timestampStr) {
     const date = new Date(timestampStr);
     if (isNaN(date.getTime())) return timestampStr;
-
     const options = {
       timeZone: 'America/Los_Angeles',
-      year: 'numeric',
-      month: '2-digit',
-      day: '2-digit',
-      hour: '2-digit',
-      minute: '2-digit',
-      hour12: false
+      year: 'numeric', month: '2-digit', day: '2-digit',
+      hour: '2-digit', minute: '2-digit', hour12: false
     };
-
     const parts = new Intl.DateTimeFormat('en-CA', options).formatToParts(date);
     const get = (type) => parts.find(p => p.type === type)?.value;
-
     return `${get('year')}-${get('month')}-${get('day')} ${get('hour')}:${get('minute')} PDT`;
   }
 
@@ -147,10 +150,7 @@
       type: 'FeatureCollection',
       features: audioData.map((track, idx) => ({
         type: 'Feature',
-        geometry: {
-          type: 'Point',
-          coordinates: [Number(track.lng), Number(track.lat)]
-        },
+        geometry: { type: 'Point', coordinates: [Number(track.lng), Number(track.lat)] },
         properties: {
           name: track.name,
           audioUrl: track.audioUrl,
@@ -173,6 +173,7 @@
       div.addEventListener('click', () => playAudio(index));
       playlist.appendChild(div);
     });
+    updateFadeVisibility();
   }
 
   function playAudio(index) {
@@ -318,37 +319,47 @@
     map.on('mouseleave', 'unclustered-point', () => map.getCanvas().style.cursor = '');
   });
 
-  // Drag-to-scroll functionality
+  // Drag-to-scroll + fade visibility
   (function enableDragScroll() {
     const el = document.getElementById('playlist');
+    const wrapper = document.getElementById('playlistWrapper');
     let isDown = false;
     let startY;
     let scrollTop;
 
+    const updateFadeVisibility = () => {
+      const atTop = el.scrollTop === 0;
+      const atBottom = el.scrollTop + el.clientHeight >= el.scrollHeight - 1;
+      wrapper.classList.toggle('hide-top', atTop);
+      wrapper.classList.toggle('hide-bottom', atBottom);
+    };
+
+    el.addEventListener('scroll', updateFadeVisibility);
+
     el.addEventListener('mousedown', (e) => {
       isDown = true;
       el.classList.add('dragging');
-      startY = e.pageY - el.offsetTop;
+      startY = e.pageY - el.getBoundingClientRect().top;
       scrollTop = el.scrollTop;
     });
 
-    el.addEventListener('mouseleave', () => {
-      isDown = false;
-      el.classList.remove('dragging');
-    });
-
-    el.addEventListener('mouseup', () => {
-      isDown = false;
-      el.classList.remove('dragging');
-    });
+    ['mouseleave', 'mouseup'].forEach(evt =>
+      el.addEventListener(evt, () => {
+        isDown = false;
+        el.classList.remove('dragging');
+      })
+    );
 
     el.addEventListener('mousemove', (e) => {
       if (!isDown) return;
       e.preventDefault();
-      const y = e.pageY - el.offsetTop;
+      const y = e.pageY - el.getBoundingClientRect().top;
       const walk = (y - startY) * 1.5;
       el.scrollTop = scrollTop - walk;
     });
+
+    // Initial fade state
+    window.addEventListener('load', updateFadeVisibility);
   })();
 </script>
 
@@ -361,11 +372,6 @@
     'floating-chat.donateButton.text-color': '#fff'
   });
 </script>
-<style>
-  .floatingchat-container-wrap { left: unset; right: 16px; bottom: 30px; }
-  .floating-chat-kofi-popup-iframe { left: unset; right: 16px; bottom: 30px; }
-</style>
-
 
 </body>
 </html>
