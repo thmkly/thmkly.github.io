@@ -263,6 +263,19 @@
         'circle-stroke-color': '#fff', 'circle-stroke-opacity': 0.8
       }
     });
+    map.on('mouseenter', 'clusters', () => {
+      map.getCanvas().style.cursor = 'pointer';
+    });
+    map.on('mouseleave', 'clusters', () => {
+      map.getCanvas().style.cursor = '';
+    });
+    
+    map.on('mouseenter', 'unclustered-point', () => {
+      map.getCanvas().style.cursor = 'pointer';
+    });
+    map.on('mouseleave', 'unclustered-point', () => {
+      map.getCanvas().style.cursor = '';
+    });
 
     fetch('https://script.google.com/macros/s/AKfycbxwGoYBA6bAVUz7X2CrxdERyHphhEL_1I8cW4NmpCGP6czL1FPe-sk-ejrnNVAh-MWm/exec?nocache=' + Date.now())
       .then(response => response.json())
