@@ -35,36 +35,33 @@
     .playlist.dragging,
     .playlist.dragging * {
       cursor: grabbing;
-      user-select: none;
+      user-select: none !important;
+      -webkit-user-select: none !important;
+      -moz-user-select: none !important;
     }
 
-    .playlist-wrapper::before,
-    .playlist-wrapper::after {
-      content: "";
+    .fade-top,
+    .fade-bottom {
       position: absolute;
       left: 0;
       right: 0;
-      height: 40px;
+      height: 30px;
       pointer-events: none;
       z-index: 3;
-      transition: opacity 0.2s;
+      transition: opacity 0.2s ease;
     }
 
-    .playlist-wrapper::before {
+    .fade-top {
       top: 0;
-      background: linear-gradient(to bottom, rgba(255,255,255,1), rgba(255,255,255,0));
+      background: linear-gradient(to bottom, rgba(255,255,255,0.95), rgba(255,255,255,0));
     }
 
-    .playlist-wrapper::after {
+    .fade-bottom {
       bottom: 0;
-      background: linear-gradient(to top, rgba(255,255,255,1), rgba(255,255,255,0));
+      background: linear-gradient(to top, rgba(255,255,255,0.95), rgba(255,255,255,0));
     }
 
-    .playlist-wrapper.hide-top::before {
-      opacity: 0;
-    }
-
-    .playlist-wrapper.hide-bottom::after {
+    .fade-hidden {
       opacity: 0;
     }
 
@@ -100,16 +97,35 @@
 
     .mapboxgl-marker { cursor: pointer; }
 
-    .floatingchat-container-wrap { left: unset; right: 16px; bottom: 30px; }
-    .floating-chat-kofi-popup-iframe { left: unset; right: 16px; bottom: 30px; }
+    /* Ko-fi Button (force bottom right) */
+    .floatingchat-container-wrap,
+    .floating-chat-kofi-popup-iframe {
+      left: unset !important;
+      right: 16px !important;
+      bottom: 30px !important;
+    }
   </style>
 </head>
 <body>
 
 <div id="map"></div>
-<div class="playlist-wrapper" id="playlistWrapper">
+
+<div class="playlist-wrapper">
+  <div class="fade-top" id="fadeTop"></div>
+  <div class="fade-bottom" id="fadeBottom"></div>
   <div class="playlist" id="playlist"></div>
 </div>
+
+<!-- Ko-fi -->
+<script src="https://storage.ko-fi.com/cdn/scripts/overlay-widget.js"></script>
+<script>
+  kofiWidgetOverlay.draw('thmkly', {
+    'type': 'floating-chat',
+    'floating-chat.donateButton.text': 'Support me',
+    'floating-chat.donateButton.background-color': '#ff5f5f',
+    'floating-chat.donateButton.text-color': '#fff'
+  });
+</script>
 
 <script src="https://api.mapbox.com/mapbox-gl-js/v2.8.1/mapbox-gl.js"></script>
 <script>
@@ -125,23 +141,31 @@
   let audioData = [];
   let currentAudio = null;
 
-  function formatTimestamp(timestampStr) {
-    const date = new Date(timestampStr);
-    if (isNaN(date.getTime())) return timestampStr;
-    const options = {
+  const playlist = document.getElementById('playlist');
+  const fadeTop = document.getElementById('fadeTop');
+  const fadeBottom = document.getElementById('fadeBottom');
+
+  function updateFades() {
+    fadeTop.classList.toggle('fade-hidden', playlist.scrollTop === 0);
+    fadeBottom.classList.toggle('fade-hidden', playlist.scrollTop + playlist.clientHeight >= playlist.scrollHeight - 1);
+  }
+
+  playlist.addEventListener('scroll', updateFades);
+
+  function formatTimestamp(ts) {
+    const date = new Date(ts);
+    if (isNaN(date.getTime())) return ts;
+    return new Intl.DateTimeFormat('en-CA', {
       timeZone: 'America/Los_Angeles',
       year: 'numeric', month: '2-digit', day: '2-digit',
       hour: '2-digit', minute: '2-digit', hour12: false
-    };
-    const parts = new Intl.DateTimeFormat('en-CA', options).formatToParts(date);
-    const get = (type) => parts.find(p => p.type === type)?.value;
-    return `${get('year')}-${get('month')}-${get('day')} ${get('hour')}:${get('minute')} PDT`;
+    }).format(date).replace(',', '') + ' PDT';
   }
 
-  function sortAndUpdate(data, playlist, updateMap = true) {
+  function sortAndUpdate(data, updateMap = true) {
     audioData = data.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
     if (updateMap) updateMapData();
-    updatePlaylist(playlist);
+    updatePlaylist();
   }
 
   function updateMapData() {
@@ -151,42 +175,34 @@
       features: audioData.map((track, idx) => ({
         type: 'Feature',
         geometry: { type: 'Point', coordinates: [Number(track.lng), Number(track.lat)] },
-        properties: {
-          name: track.name,
-          audioUrl: track.audioUrl,
-          timestamp: track.timestamp,
-          notes: track.notes,
-          id: idx
-        }
+        properties: { ...track, id: idx }
       }))
     };
     map.getSource('audio').setData(geojson);
   }
 
-  function updatePlaylist(playlist) {
+  function updatePlaylist() {
     playlist.innerHTML = '';
     audioData.forEach((track, index) => {
       const div = document.createElement('div');
       div.className = 'track';
       div.textContent = track.name.replace(/^[^\s]+\s+-\s+/, '');
-      div.setAttribute('data-id', index);
+      div.dataset.id = index;
       div.addEventListener('click', () => playAudio(index));
       playlist.appendChild(div);
     });
-    updateFadeVisibility();
+    updateFades();
   }
 
   function playAudio(index) {
     const track = audioData[index];
     if (!track) return;
-
     document.querySelectorAll('.track').forEach(el => el.classList.remove('active-track'));
     const activeTrack = document.querySelector(`.track[data-id="${index}"]`);
     if (activeTrack) {
       activeTrack.classList.add('active-track');
       activeTrack.scrollIntoView({ behavior: 'smooth', block: 'center' });
     }
-
     const coords = [Number(track.lng), Number(track.lat)];
     showPopup(coords, track);
     map.flyTo({ center: coords, zoom: 14 });
@@ -205,7 +221,6 @@
     audio.style.width = '100%';
     audio.innerHTML = `<source src="${data.audioUrl}" type="audio/mpeg">Your browser does not support the audio element.`;
     audio.addEventListener('contextmenu', e => e.preventDefault());
-    audio.addEventListener('error', () => console.warn('Audio failed to load or play.'));
     currentAudio = audio;
 
     const container = document.createElement('div');
@@ -220,10 +235,10 @@
 
     const popup = new mapboxgl.Popup({ offset: 25 })
       .setLngLat(coords)
-      .setDOMContent(container);
+      .setDOMContent(container)
+      .addTo(map);
 
     map.currentPopup = popup;
-    popup.addTo(map);
   }
 
   map.on('load', () => {
@@ -268,7 +283,7 @@
       source: 'audio',
       filter: ['!', ['has', 'point_count']],
       paint: {
-        'circle-color': '#000000',
+        'circle-color': '#000',
         'circle-radius': 6,
         'circle-opacity': 0.4,
         'circle-stroke-width': 1,
@@ -278,99 +293,44 @@
     });
 
     fetch('https://script.google.com/macros/s/AKfycbxwGoYBA6bAVUz7X2CrxdERyHphhEL_1I8cW4NmpCGP6czL1FPe-sk-ejrnNVAh-MWm/exec?nocache=' + Date.now())
-      .then(response => response.json())
-      .then(data => sortAndUpdate(data, document.getElementById('playlist')))
+      .then(res => res.json())
+      .then(data => sortAndUpdate(data))
       .catch(console.error);
 
     map.on('click', 'unclustered-point', (e) => {
       const id = e.features[0]?.properties?.id;
       if (id !== undefined) playAudio(Number(id));
     });
-
-    map.on('click', 'clusters', (e) => {
-      const features = map.queryRenderedFeatures(e.point, { layers: ['clusters'] });
-      if (!features.length) return;
-      const clusterId = features[0].properties.cluster_id;
-      map.getSource('audio').getClusterExpansionZoom(clusterId, (err, zoom) => {
-        if (err) return;
-        map.getSource('audio').getClusterLeaves(clusterId, 100, 0, (err, leaves) => {
-          if (err) return;
-          const bounds = new mapboxgl.LngLatBounds();
-          leaves.forEach(leaf => bounds.extend(leaf.geometry.coordinates));
-
-          const wrapper = document.querySelector('.playlist-wrapper');
-          const wrapperWidth = wrapper ? wrapper.offsetWidth : 0;
-
-          map.fitBounds(bounds, {
-            padding: {
-              top: 50,
-              bottom: 50,
-              left: wrapperWidth + 20,
-              right: 20
-            }
-          });
-        });
-      });
-    });
-
-    map.on('mouseenter', 'clusters', () => map.getCanvas().style.cursor = 'pointer');
-    map.on('mouseleave', 'clusters', () => map.getCanvas().style.cursor = '');
-    map.on('mouseenter', 'unclustered-point', () => map.getCanvas().style.cursor = 'pointer');
-    map.on('mouseleave', 'unclustered-point', () => map.getCanvas().style.cursor = '');
   });
 
-  // Drag-to-scroll + fade visibility
+  // Drag scroll
   (function enableDragScroll() {
-    const el = document.getElementById('playlist');
-    const wrapper = document.getElementById('playlistWrapper');
     let isDown = false;
     let startY;
     let scrollTop;
 
-    const updateFadeVisibility = () => {
-      const atTop = el.scrollTop === 0;
-      const atBottom = el.scrollTop + el.clientHeight >= el.scrollHeight - 1;
-      wrapper.classList.toggle('hide-top', atTop);
-      wrapper.classList.toggle('hide-bottom', atBottom);
-    };
-
-    el.addEventListener('scroll', updateFadeVisibility);
-
-    el.addEventListener('mousedown', (e) => {
+    playlist.addEventListener('mousedown', (e) => {
       isDown = true;
-      el.classList.add('dragging');
-      startY = e.pageY - el.getBoundingClientRect().top;
-      scrollTop = el.scrollTop;
+      playlist.classList.add('dragging');
+      startY = e.pageY - playlist.getBoundingClientRect().top;
+      scrollTop = playlist.scrollTop;
     });
 
-    ['mouseleave', 'mouseup'].forEach(evt =>
-      el.addEventListener(evt, () => {
+    ['mouseleave', 'mouseup'].forEach(evt => {
+      playlist.addEventListener(evt, () => {
         isDown = false;
-        el.classList.remove('dragging');
-      })
-    );
+        playlist.classList.remove('dragging');
+      });
+    });
 
-    el.addEventListener('mousemove', (e) => {
+    playlist.addEventListener('mousemove', (e) => {
       if (!isDown) return;
       e.preventDefault();
-      const y = e.pageY - el.getBoundingClientRect().top;
+      const y = e.pageY - playlist.getBoundingClientRect().top;
       const walk = (y - startY) * 1.5;
-      el.scrollTop = scrollTop - walk;
+      playlist.scrollTop = scrollTop - walk;
     });
-
-    // Initial fade state
-    window.addEventListener('load', updateFadeVisibility);
   })();
-</script>
-
-<script src="https://storage.ko-fi.com/cdn/scripts/overlay-widget.js"></script>
-<script>
-  kofiWidgetOverlay.draw('thmkly', {
-    'type': 'floating-chat',
-    'floating-chat.donateButton.text': 'Support me',
-    'floating-chat.donateButton.background-color': '#ff5f5f',
-    'floating-chat.donateButton.text-color': '#fff'
-  });
 </script>
 
 </body>
