@@ -8,6 +8,7 @@
   <style>
     body { margin: 0; padding: 0; }
     #map { position: absolute; top: 0; bottom: 0; width: 100%; }
+
     .playlist-wrapper {
       position: absolute;
       top: 25px;
@@ -22,6 +23,7 @@
       overflow: hidden;
       z-index: 2;
     }
+
     .playlist {
       max-height: 85vh;
       overflow-y: auto;
@@ -29,7 +31,12 @@
       cursor: grab;
       position: relative;
     }
-    .playlist.dragging { cursor: grabbing; user-select: none; }
+
+    .playlist.dragging {
+      cursor: grabbing;
+      user-select: none;
+    }
+
     .scroll-arrow {
       position: absolute;
       left: 50%;
@@ -40,18 +47,35 @@
       pointer-events: none;
       user-select: none;
     }
-    .scroll-arrow.up { top: 0; display: none; }
-    .scroll-arrow.down { bottom: 0; display: none; }
+
+    .scroll-arrow.up {
+      top: 0;
+      display: none;
+    }
+
+    .scroll-arrow.down {
+      bottom: 0;
+      display: none;
+    }
+
     .track {
       cursor: pointer;
       padding: 5px;
       margin: 1px;
       border-bottom: 1px solid #ccc;
     }
-    .track:hover { background-color: #f0f0f0; }
-    .active-track { background-color: #d0d0d0; }
+
+    .track:hover {
+      background-color: #f0f0f0;
+    }
+
+    .active-track {
+      background-color: #d0d0d0;
+    }
+
     .mapboxgl-canvas { cursor: grab; }
     .mapboxgl-marker { cursor: pointer; }
+
     .mapboxgl-popup-content {
       opacity: 0.80;
       transition: opacity 0.3s ease;
@@ -59,12 +83,15 @@
       max-width: 90vw;
       box-sizing: border-box;
     }
+
     .mapboxgl-popup-close-button:focus {
       outline: none;
       box-shadow: none;
     }
+
     .floatingchat-container-wrap { right: 16px !important; left: unset !important; bottom: 30px !important; }
     .floating-chat-kofi-popup-iframe { right: 16px !important; left: unset !important; bottom: 30px !important; }
+
     .loading-placeholder {
       text-align: center;
       color: #555;
@@ -134,18 +161,8 @@ function updatePlaylist(playlist) {
   audioData.forEach((track, index) => {
     const div = document.createElement('div');
     div.className = 'track';
+    div.textContent = track.name;
     div.setAttribute('data-id', index);
-
-    let mileText = '';
-    if (track.mile !== undefined && track.mile !== null) {
-      const mileClean = track.mile.toString().trim();
-      if (mileClean && mileClean.toLowerCase() !== 'n/a') {
-        mileText = `mi.${mileClean} - `;
-      }
-    }
-
-    div.textContent = `${mileText}${track.name}`;
-
     div.addEventListener('click', (e) => {
       if (preventClick) {
         e.preventDefault();
@@ -154,10 +171,8 @@ function updatePlaylist(playlist) {
       }
       playAudio(index);
     });
-
     playlist.appendChild(div);
   });
-
   updateScrollArrows();
 }
 
@@ -175,6 +190,7 @@ function playAudio(index) {
   map.flyTo({ center: coords, zoom: 14 });
 }
 
+// --- MILE MARKER INFOBOX FIX ---
 function showPopup(coords, data) {
   if (map.currentPopup) map.currentPopup.remove();
   if (currentAudio) { currentAudio.pause(); currentAudio = null; }
@@ -196,7 +212,7 @@ function showPopup(coords, data) {
   container.appendChild(title);
 
   const mileRaw = data.mile?.toString().trim().toLowerCase();
-  if (mileRaw && mileRaw !== 'n/a') {
+  if (mileRaw && mileRaw !== 'n/a' && mileRaw !== '') {
     const mile = document.createElement('p');
     mile.style.margin = '0 0 4px 0';
     mile.style.fontSize = '0.9em';
@@ -226,6 +242,7 @@ function showPopup(coords, data) {
   map.currentPopup = popup;
   popup.addTo(map);
 }
+// --- END FIX ---
 
 map.on('load', () => {
   map.addSource('audio', {
@@ -268,6 +285,11 @@ map.on('load', () => {
       'circle-stroke-opacity': 0.8
     }
   });
+
+  map.on('mouseenter', 'clusters', () => map.getCanvas().style.cursor = 'pointer');
+  map.on('mouseleave', 'clusters', () => map.getCanvas().style.cursor = '');
+  map.on('mouseenter', 'unclustered-point', () => map.getCanvas().style.cursor = 'pointer');
+  map.on('mouseleave', 'unclustered-point', () => map.getCanvas().style.cursor = '');
 
   fetch('https://script.google.com/macros/s/AKfycbxwGoYBA6bAVUz7X2CrxdERyHphhEL_1I8cW4NmpCGP6czL1FPe-sk-ejrnNVAh-MWm/exec?nocache=' + Date.now())
     .then(response => response.json())
