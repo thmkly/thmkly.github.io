@@ -297,7 +297,8 @@ map.on('load', () => {
     .then(response => response.json())
     .then(data => {
       data.forEach(track => {
-        if (!track.hasOwnProperty('mile')) track.mile = '';
+        const raw = track.mile?.toString().trim().toLowerCase();
+        track.mile = (raw && raw !== 'n/a') ? raw : '';
       });
       sortAndUpdate(data, document.getElementById('playlist'));
     })
