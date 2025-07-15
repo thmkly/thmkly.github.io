@@ -129,17 +129,17 @@
       h.style.margin = '0 0 4px 0';
       container.appendChild(h);
 
+      const ts = document.createElement('p');
+      ts.style.margin = '0'; ts.style.fontSize = '0.9em'; ts.style.color = '#555';
+      ts.innerHTML = `<strong>${formatTimestamp(t.timestamp)}</strong>`;
+      container.appendChild(ts);
+
       if (t.mile && t.mile.toString().trim().toLowerCase() !== 'n/a') {
         const m = document.createElement('p');
         m.style.margin = '0'; m.style.fontSize = '0.9em'; m.style.color = '#555';
         m.innerHTML = `<strong>mi.${t.mile}</strong>`;
         container.appendChild(m);
       }
-
-      const ts = document.createElement('p');
-      ts.style.margin = '0'; ts.style.fontSize = '0.9em'; ts.style.color = '#555';
-      ts.innerHTML = `<strong>${formatTimestamp(t.timestamp)}</strong>`;
-      container.appendChild(ts);
 
       if (t.notes?.trim()) {
         const n = document.createElement('p');
