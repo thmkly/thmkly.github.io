@@ -227,7 +227,7 @@ function playAudio(i) {
     const targetCenter = bounds.getCenter();
     const currentCenter = map.getCenter();
 
-    // Haversine formula to get distance in meters
+    // Calculate haversine distance in meters
     const R = 6371e3;
     const toRad = deg => deg * Math.PI / 180;
     const lat1 = toRad(currentCenter.lat);
@@ -240,12 +240,12 @@ function playAudio(i) {
     const cDist = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
     const distance = R * cDist;
 
-    // Set a base speed of 0.75 km/sec
-    const speed = 750; // meters per second
+    // 🎯 Slower base speed: 400 meters/sec
+    const speed = 400;
     let duration = distance / speed;
 
-    // Clamp duration for UX sanity
-    duration = Math.max(1800, Math.min(duration, 5000)); // between 1.8s and 5s
+    // Clamp duration for UX: min 2s, max 6s
+    duration = Math.max(2000, Math.min(duration, 6000));
 
     map.fitBounds(bounds, {
       padding: { top: 120, bottom: 120, left: 420, right: 80 },
