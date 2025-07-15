@@ -191,19 +191,47 @@
       updateScrollArrows();
     }
 
-    function playAudio(i) {
-      const t = audioData[i];
-      if (!t) return;
-      document.querySelectorAll('.track').forEach(el => el.classList.remove('active-track'));
-      const act = document.querySelector(`.track[data-id="${i}"]`);
-      if (act) {
-        act.classList.add('active-track');
-        act.scrollIntoView({ behavior: 'smooth', block: 'center' });
-      }
-      const c = [+t.lng, +t.lat];
-      showPopup(c, t);
-      map.flyTo({ center: c, zoom: 14 });
+function playAudio(i) {
+  const t = audioData[i];
+  if (!t) return;
+
+  document.querySelectorAll('.track').forEach(el => el.classList.remove('active-track'));
+  const act = document.querySelector(`.track[data-id="${i}"]`);
+  if (act) {
+    act.classList.add('active-track');
+    act.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }
+
+  const c = [+t.lng, +t.lat];
+  showPopup(c, t);
+
+  // Try to zoom in while also showing at least one other point
+  const others = audioData.filter((_, index) => index !== i);
+  let nearest = null;
+  let minDist = Infinity;
+
+  for (const o of others) {
+    const dx = o.lng - t.lng;
+    const dy = o.lat - t.lat;
+    const distSq = dx * dx + dy * dy;
+    if (distSq < minDist) {
+      minDist = distSq;
+      nearest = o;
     }
+  }
+
+  if (nearest) {
+    const bounds = new mapboxgl.LngLatBounds();
+    bounds.extend(c);
+    bounds.extend([+nearest.lng, +nearest.lat]);
+    map.fitBounds(bounds, {
+      padding: { top: 80, bottom: 80, left: 380, right: 40 },
+      duration: 1200
+    });
+  } else {
+    map.flyTo({ center: c, zoom: 14 });
+  }
+}
 
     function showPopup(coords, t) {
       if (map.currentPopup) map.currentPopup.remove();
