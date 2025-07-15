@@ -227,6 +227,7 @@ function playAudio(i) {
     const targetCenter = bounds.getCenter();
     const currentCenter = map.getCenter();
 
+    // Haversine formula to get distance in meters
     const R = 6371e3;
     const toRad = deg => deg * Math.PI / 180;
     const lat1 = toRad(currentCenter.lat);
@@ -239,9 +240,12 @@ function playAudio(i) {
     const cDist = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
     const distance = R * cDist;
 
-    // ✅ Logarithmic duration scaling
-    let duration = 1500 + 600 * Math.log10(distance + 1); // +1 avoids log(0)
-    duration = Math.min(Math.max(duration, 1800), 4500); // clamp between 1.8s and 4.5s
+    // Set a base speed of 0.75 km/sec
+    const speed = 750; // meters per second
+    let duration = distance / speed;
+
+    // Clamp duration for UX sanity
+    duration = Math.max(1800, Math.min(duration, 5000)); // between 1.8s and 5s
 
     map.fitBounds(bounds, {
       padding: { top: 120, bottom: 120, left: 420, right: 80 },
