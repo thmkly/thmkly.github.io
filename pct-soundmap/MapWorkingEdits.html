@@ -195,7 +195,6 @@ function playAudio(i) {
   const t = audioData[i];
   if (!t) return;
 
-  // Highlight active track
   document.querySelectorAll('.track').forEach(el => el.classList.remove('active-track'));
   const act = document.querySelector(`.track[data-id="${i}"]`);
   if (act) {
@@ -206,7 +205,6 @@ function playAudio(i) {
   const c = [+t.lng, +t.lat];
   showPopup(c, t);
 
-  // Find nearest *other* point
   const others = audioData.filter((_, index) => index !== i);
   let nearest = null;
   let minDist = Infinity;
@@ -226,39 +224,33 @@ function playAudio(i) {
     bounds.extend(c);
     bounds.extend([+nearest.lng, +nearest.lat]);
 
-    // Calculate distance from current view center to new center
     const targetCenter = bounds.getCenter();
     const currentCenter = map.getCenter();
 
-    const R = 6371e3; // meters
-    function toRad(deg) { return deg * Math.PI / 180; }
-
+    const R = 6371e3;
+    const toRad = deg => deg * Math.PI / 180;
     const lat1 = toRad(currentCenter.lat);
     const lat2 = toRad(targetCenter.lat);
     const dLat = toRad(targetCenter.lat - currentCenter.lat);
     const dLng = toRad(targetCenter.lng - currentCenter.lng);
 
     const a = Math.sin(dLat / 2) ** 2 +
-              Math.cos(lat1) * Math.cos(lat2) *
-              Math.sin(dLng / 2) ** 2;
+              Math.cos(lat1) * Math.cos(lat2) * Math.sin(dLng / 2) ** 2;
     const cDist = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-    const distance = R * cDist; // in meters
+    const distance = R * cDist;
 
-    // Adjust duration based on distance (min 1500ms, max 6000ms)
-    const baseDuration = 1500;
-    const extraPerKm = 30; // 30ms per km
-    let duration = baseDuration + (distance / 1000) * extraPerKm;
-    duration = Math.min(duration, 6000);
+    // ✅ Logarithmic duration scaling
+    let duration = 1500 + 600 * Math.log10(distance + 1); // +1 avoids log(0)
+    duration = Math.min(Math.max(duration, 1800), 4500); // clamp between 1.8s and 4.5s
 
     map.fitBounds(bounds, {
       padding: { top: 120, bottom: 120, left: 420, right: 80 },
-      duration: duration,
+      duration,
       easing: t => t < 0.5
         ? 2 * t * t
         : -1 + (4 - 2 * t) * t
     });
   } else {
-    // fallback if no nearby point
     map.flyTo({
       center: c,
       zoom: 14,
