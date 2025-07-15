@@ -225,7 +225,7 @@ function playAudio(i) {
     bounds.extend(c);
     bounds.extend([+nearest.lng, +nearest.lat]);
     map.fitBounds(bounds, {
-      padding: { top: 80, bottom: 80, left: 380, right: 40 },
+      padding: { top: 100, bottom: 100, left: 400, right: 60 },
       duration: 2500,
       easing: t => t < 0.5
         ? 2 * t * t
