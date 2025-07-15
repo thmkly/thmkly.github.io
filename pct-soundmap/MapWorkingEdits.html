@@ -258,8 +258,8 @@
         type: 'geojson',
         data: { type: 'FeatureCollection', features: [] },
         cluster: true,
-        clusterMaxZoom: 14,
-        clusterRadius: 50
+        clusterMaxZoom: 12,
+        clusterRadius: 30
       });
       map.addLayer({
         id: 'clusters',
@@ -268,7 +268,7 @@
         filter: ['has', 'point_count'],
         paint: {
           'circle-color': '#51bbd6',
-          'circle-radius': ['step', ['get', 'point_count'], 20, 10, 30, 50, 40],
+          'circle-radius': ['step', ['get', 'point_count'], 15, 5, 22, 15, 28, 30, 34],
           'circle-opacity': 0.7,
           'circle-stroke-width': 1,
           'circle-stroke-color': '#197991',
