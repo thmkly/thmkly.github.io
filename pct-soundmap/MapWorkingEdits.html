@@ -38,18 +38,6 @@
   </div>
 
   <!-- Mapbox -->
-  <script src="https://api.mapbox.com/mapbox-gl-js/v2.8.1/mapbox-gl.js"></script>
-  <!-- Ko-Fi widget -->
-  <script src="https://storage.ko-fi.com/cdn/scripts/overlay-widget.js"></script>
-  <script>
-    kofiWidgetOverlay.draw('thmkly', {
-      type: 'floating-chat',
-      'floating-chat.donateButton.text': 'Support me',
-      'floating-chat.donateButton.background-color': '#ff5f5f',
-      'floating-chat.donateButton.text-color': '#fff'
-    });
-  </script>
-
   <script>
     mapboxgl.accessToken = 'pk.eyJ1IjoidGhta2x5IiwiYSI6ImNseXVyMjhueDA3YTQybW9mcHJrZGJ3YnEifQ.Nv-LsNg5eKIE6SeOVVJpYg';
     const map = new mapboxgl.Map({
@@ -292,5 +280,20 @@
       });
     })();
   </script>
+
+  <script src="https://storage.ko-fi.com/cdn/scripts/overlay-widget.js"></script>
+<script>
+  kofiWidgetOverlay.draw('thmkly', {
+    'type': 'floating-chat',
+    'floating-chat.donateButton.text': 'Support me',
+    'floating-chat.donateButton.background-color': '#ff5f5f',
+    'floating-chat.donateButton.text-color': '#fff'
+  });
+</script>
+<style>
+  .floatingchat-container-wrap { left: unset; right: 16px; bottom: 30px; }
+  .floating-chat-kofi-popup-iframe { left: unset; right: 16px; bottom: 30px; }
+</style>
+  
 </body>
 </html>
