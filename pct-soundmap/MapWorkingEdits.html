@@ -225,11 +225,11 @@ function playAudio(i) {
     bounds.extend(c);
     bounds.extend([+nearest.lng, +nearest.lat]);
     map.fitBounds(bounds, {
-      padding: { top: 100, bottom: 100, left: 400, right: 60 },
+      padding: { top: 120, bottom: 120, left: 420, right: 80 }, // bigger left padding for playlist
       duration: 2500,
       easing: t => t < 0.5
         ? 2 * t * t
-        : -1 + (4 - 2 * t) * t  // slower "top speed", smoother entry/exit
+        : -1 + (4 - 2 * t) * t
     });
   } else {
     map.flyTo({ center: c, zoom: 14 });
