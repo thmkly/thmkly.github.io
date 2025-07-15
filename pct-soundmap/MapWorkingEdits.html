@@ -205,29 +205,27 @@ function playAudio(i) {
   const c = [+t.lng, +t.lat];
   showPopup(c, t);
 
-  const others = audioData.filter((_, index) => index !== i);
-  let nearest = null;
-  let minDist = Infinity;
+  // Find the 2 nearest *other* points
+  const distances = audioData
+    .map((p, index) => {
+      if (index === i) return null;
+      const dx = p.lng - t.lng;
+      const dy = p.lat - t.lat;
+      return { index, distSq: dx * dx + dy * dy, lng: +p.lng, lat: +p.lat };
+    })
+    .filter(Boolean)
+    .sort((a, b) => a.distSq - b.distSq)
+    .slice(0, 2); // take 2 nearest
 
-  for (const o of others) {
-    const dx = o.lng - t.lng;
-    const dy = o.lat - t.lat;
-    const distSq = dx * dx + dy * dy;
-    if (distSq < minDist) {
-      minDist = distSq;
-      nearest = o;
-    }
-  }
-
-  if (nearest) {
+  if (distances.length) {
     const bounds = new mapboxgl.LngLatBounds();
-    bounds.extend(c);
-    bounds.extend([+nearest.lng, +nearest.lat]);
+    bounds.extend(c); // main point
+    distances.forEach(p => bounds.extend([p.lng, p.lat]));
 
+    // Distance to center for animation timing
     const targetCenter = bounds.getCenter();
     const currentCenter = map.getCenter();
 
-    // Haversine distance in meters
     const R = 6371e3;
     const toRad = deg => deg * Math.PI / 180;
     const lat1 = toRad(currentCenter.lat);
@@ -239,11 +237,10 @@ function playAudio(i) {
     const cDist = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
     const distance = R * cDist;
 
-    // 🎯 Duration scaled by sqrt of distance (natural feel)
     const duration = Math.max(2200, Math.min(5000, 700 * Math.sqrt(distance / 1000)));
 
     map.fitBounds(bounds, {
-      padding: { top: 120, bottom: 120, left: 420, right: 80 },
+      padding: { top: 120, bottom: 120, left: 420, right: 120 }, // <-- More right padding
       duration,
       easing: t => t < 0.5
         ? 2 * t * t
@@ -258,7 +255,7 @@ function playAudio(i) {
     });
   }
 }
-
+    
     function showPopup(coords, t) {
       if (map.currentPopup) map.currentPopup.remove();
       if (currentAudio) { currentAudio.pause(); currentAudio = null; }
