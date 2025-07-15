@@ -91,7 +91,7 @@
       audioData.forEach((t, i) => {
         const d = document.createElement('div');
         d.className = 'track';
-        d.textContent = t.name;
+        d.textContent = t.name.replace(/^[^\s]+\s+-\s+/, '');
         d.dataset.id = i;
         d.addEventListener('click', e => {
           if (preventClick) { e.preventDefault(); preventClick = false; return; }
@@ -151,6 +151,8 @@
       const audio = document.createElement('audio');
       audio.controls = true; audio.autoplay = true; audio.style.width = '100%';
       audio.innerHTML = `<source src="${t.audioUrl}" type="audio/mpeg">`;
+      audio.addEventListener('contextmenu', e => e.preventDefault());
+      audio.addEventListener('error', () => console.warn('Audio failed to load or play.'));
       currentAudio = audio;
       container.appendChild(audio);
 
