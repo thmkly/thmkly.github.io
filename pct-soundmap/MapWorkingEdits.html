@@ -3,22 +3,11 @@
 <head>
   <meta charset="utf-8" />
   <title>A Soundmap of the PCT, Stereo 2023</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <link
-    href="https://api.mapbox.com/mapbox-gl-js/v2.8.1/mapbox-gl.css"
-    rel="stylesheet"
-  />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link href="https://api.mapbox.com/mapbox-gl-js/v2.8.1/mapbox-gl.css" rel="stylesheet" />
   <style>
-    body {
-      margin: 0;
-      padding: 0;
-    }
-    #map {
-      position: absolute;
-      top: 0;
-      bottom: 0;
-      width: 100%;
-    }
+    body { margin: 0; padding: 0; }
+    #map { position: absolute; top: 0; bottom: 0; width: 100%; }
 
     .playlist-wrapper {
       position: absolute;
@@ -27,8 +16,8 @@
       width: 350px;
       max-height: 85vh;
       border-radius: 5px;
-      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
-      background-color: rgba(255, 255, 255, 0.875);
+      box-shadow: 0 2px 10px rgba(0,0,0,0.3);
+      background-color: rgba(255,255,255,0.875);
       font-family: helvetica;
       font-size: small;
       overflow: hidden;
@@ -84,15 +73,11 @@
       background-color: #d0d0d0;
     }
 
-    .mapboxgl-canvas {
-      cursor: grab;
-    }
-    .mapboxgl-marker {
-      cursor: pointer;
-    }
+    .mapboxgl-canvas { cursor: grab; }
+    .mapboxgl-marker { cursor: pointer; }
 
     .mapboxgl-popup-content {
-      opacity: 0.8;
+      opacity: 0.80;
       transition: opacity 0.3s ease;
       min-width: 320px;
       max-width: 90vw;
@@ -104,16 +89,8 @@
       box-shadow: none;
     }
 
-    .floatingchat-container-wrap {
-      right: 16px !important;
-      left: unset !important;
-      bottom: 30px !important;
-    }
-    .floating-chat-kofi-popup-iframe {
-      right: 16px !important;
-      left: unset !important;
-      bottom: 30px !important;
-    }
+    .floatingchat-container-wrap { right: 16px !important; left: unset !important; bottom: 30px !important; }
+    .floating-chat-kofi-popup-iframe { right: 16px !important; left: unset !important; bottom: 30px !important; }
 
     .loading-placeholder {
       text-align: center;
@@ -123,257 +100,312 @@
   </style>
 </head>
 <body>
-  <div id="map"></div>
-  <div class="playlist-wrapper">
-    <div class="scroll-arrow up" id="scrollUp">▲</div>
-    <div class="playlist" id="playlist">
-      <div class="loading-placeholder">loading recordings...</div>
-    </div>
-    <div class="scroll-arrow down" id="scrollDown">▼</div>
+
+<div id="map"></div>
+<div class="playlist-wrapper">
+  <div class="scroll-arrow up" id="scrollUp">▲</div>
+  <div class="playlist" id="playlist">
+    <div class="loading-placeholder">loading recordings...</div>
   </div>
+  <div class="scroll-arrow down" id="scrollDown">▼</div>
+</div>
 
-  <script src="https://api.mapbox.com/mapbox-gl-js/v2.8.1/mapbox-gl.js"></script>
-  <script>
-    mapboxgl.accessToken =
-      'pk.eyJ1IjoidGhta2x5IiwiYSI6ImNseXVyMjhueDA3YTQybW9mcHJrZGJ3YnEifQ.Nv-LsNg5eKIE6SeOVVJpYg';
+<script src="https://api.mapbox.com/mapbox-gl-js/v2.8.1/mapbox-gl.js"></script>
+<script>
+mapboxgl.accessToken = 'pk.eyJ1IjoidGhta2x5IiwiYSI6ImNseXVyMjhueDA3YTQybW9mcHJrZGJ3YnEifQ.Nv-LsNg5eKIE6SeOVVJpYg';
 
-    const map = new mapboxgl.Map({
-      container: 'map',
-      style: 'mapbox://styles/thmkly/clyup637d004201ri2tkpaywq',
-      center: [-122.50276, 41.31727],
-      zoom: 4.625,
+const map = new mapboxgl.Map({
+  container: 'map',
+  style: 'mapbox://styles/thmkly/clyup637d004201ri2tkpaywq',
+  center: [-122.50276, 41.31727],
+  zoom: 4.625
+});
+
+let audioData = [];
+let currentAudio = null;
+let preventClick = false;
+
+function formatTimestamp(timestampStr) {
+  const date = new Date(timestampStr);
+  if (isNaN(date.getTime())) return timestampStr;
+  const options = {
+    timeZone: 'America/Los_Angeles', year: 'numeric', month: '2-digit',
+    day: '2-digit', hour: '2-digit', minute: '2-digit', hour12: false
+  };
+  const parts = new Intl.DateTimeFormat('en-CA', options).formatToParts(date);
+  const get = (type) => parts.find(p => p.type === type)?.value;
+  return ${get('year')}-${get('month')}-${get('day')} ${get('hour')}:${get('minute')} PDT;
+}
+
+function sortAndUpdate(data, playlist, updateMap = true) {
+  audioData = data.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
+  if (updateMap) updateMapData();
+  updatePlaylist(playlist);
+}
+
+function updateMapData() {
+  if (!map.getSource('audio')) return;
+  const geojson = {
+    type: 'FeatureCollection',
+    features: audioData.map((track, idx) => ({
+      type: 'Feature',
+      geometry: { type: 'Point', coordinates: [Number(track.lng), Number(track.lat)] },
+      properties: { ...track, id: idx }
+    }))
+  };
+  map.getSource('audio').setData(geojson);
+}
+
+function updatePlaylist(playlist) {
+  playlist.innerHTML = '';
+  audioData.forEach((track, index) => {
+    const div = document.createElement('div');
+    div.className = 'track';
+
+    let mileText = '';
+    if (track.mile !== undefined && track.mile !== null) {
+      const mileClean = track.mile.toString().trim();
+      if (mileClean && mileClean.toLowerCase() !== 'n/a') {
+        mileText = mi.${mileClean} - ;
+      }
+    }
+
+    div.textContent = ${mileText}${track.name};
+    div.setAttribute('data-id', index);
+    div.addEventListener('click', (e) => {
+      if (preventClick) {
+        e.preventDefault();
+        preventClick = false;
+        return;
+      }
+      playAudio(index);
     });
+    playlist.appendChild(div);
+  });
+  updateScrollArrows();
+}
 
-    let audioData = [];
-    let currentAudio = null;
-    let preventClick = false;
+function playAudio(index) {
+  const track = audioData[index];
+  if (!track) return;
+  document.querySelectorAll('.track').forEach(el => el.classList.remove('active-track'));
+  const activeTrack = document.querySelector(.track[data-id="${index}"]);
+  if (activeTrack) {
+    activeTrack.classList.add('active-track');
+    activeTrack.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }
+  const coords = [Number(track.lng), Number(track.lat)];
+  showPopup(coords, track);
+  map.flyTo({ center: coords, zoom: 14 });
+}
 
-    function formatTimestamp(timestampStr) {
-      const date = new Date(timestampStr);
-      if (isNaN(date.getTime())) return timestampStr;
-      const options = {
-        timeZone: 'America/Los_Angeles',
-        year: 'numeric',
-        month: '2-digit',
-        day: '2-digit',
-        hour: '2-digit',
-        minute: '2-digit',
-        hour12: false,
-      };
-      const parts = new Intl.DateTimeFormat('en-CA', options).formatToParts(date);
-      const get = (type) => parts.find((p) => p.type === type)?.value;
-      return `${get('year')}-${get('month')}-${get('day')} ${get(
-        'hour'
-      )}:${get('minute')} PDT`;
+function showPopup(coords, data) {
+  if (map.currentPopup) map.currentPopup.remove();
+  if (currentAudio) { currentAudio.pause(); currentAudio = null; }
+
+  const audio = document.createElement('audio');
+  audio.controls = true;
+  audio.autoplay = true;
+  audio.style.width = '100%';
+  audio.innerHTML = <source src="${data.audioUrl}" type="audio/mpeg">Your browser does not support the audio element.;
+  currentAudio = audio;
+
+  const container = document.createElement('div');
+  container.style.fontFamily = 'helvetica, sans-serif';
+  container.style.padding = '2px';
+
+  const title = document.createElement('h3');
+  title.style.margin = '0 0 4px 0';
+  title.textContent = data.name;
+  container.appendChild(title);
+
+  // ** MILE MARKER ADDED HERE **
+  if (data.mile && data.mile.toString().trim().toLowerCase() !== 'n/a') {
+    const mile = document.createElement('p');
+    mile.style.margin = '0';
+    mile.style.fontSize = '0.9em';
+    mile.style.color = '#555';
+    mile.innerHTML = <strong>mi.${data.mile}</strong>;
+    container.appendChild(mile);
+  }
+
+  const timestamp = document.createElement('p');
+  timestamp.style.margin = '0';
+  timestamp.style.fontSize = '0.9em';
+  timestamp.style.color = '#555';
+  timestamp.innerHTML = <strong>${formatTimestamp(data.timestamp)}</strong>;
+  container.appendChild(timestamp);
+
+  if (data.notes?.trim()) {
+    const notes = document.createElement('p');
+    notes.style.margin = '4px 0';
+    notes.style.fontSize = '0.9em';
+    notes.textContent = data.notes;
+    container.appendChild(notes);
+  }
+
+  container.appendChild(audio);
+
+  const popup = new mapboxgl.Popup({ offset: 25 }).setLngLat(coords).setDOMContent(container);
+  map.currentPopup = popup;
+  popup.addTo(map);
+}
+
+map.on('load', () => {
+  map.addSource('audio', {
+    type: 'geojson',
+    data: { type: 'FeatureCollection', features: [] },
+    cluster: true,
+    clusterMaxZoom: 14,
+    clusterRadius: 50
+  });
+
+  map.addLayer({
+    id: 'clusters', type: 'circle', source: 'audio', filter: ['has', 'point_count'],
+    paint: {
+      'circle-color': '#51bbd6',
+      'circle-radius': ['step', ['get', 'point_count'], 20, 10, 30, 50, 40],
+      'circle-opacity': 0.7,
+      'circle-stroke-width': 1,
+      'circle-stroke-color': '#197991',
+      'circle-stroke-opacity': 0.75
     }
+  });
 
-    function sortAndUpdate(data, playlist, updateMap = true) {
-      audioData = data.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
-      if (updateMap) updateMapData();
-      updatePlaylist(playlist);
+  map.addLayer({
+    id: 'cluster-count', type: 'symbol', source: 'audio', filter: ['has', 'point_count'],
+    layout: {
+      'text-field': '{point_count_abbreviated}',
+      'text-font': ['Open Sans Semibold', 'Arial Unicode MS Bold'],
+      'text-size': 12
     }
+  });
 
-    function updateMapData() {
-      if (!map.getSource('audio')) return;
-      const geojson = {
-        type: 'FeatureCollection',
-        features: audioData.map((track, idx) => ({
-          type: 'Feature',
-          geometry: { type: 'Point', coordinates: [Number(track.lng), Number(track.lat)] },
-          properties: { ...track, id: idx },
-        })),
-      };
-      map.getSource('audio').setData(geojson);
+  map.addLayer({
+    id: 'unclustered-point', type: 'circle', source: 'audio', filter: ['!', ['has', 'point_count']],
+    paint: {
+      'circle-color': '#000000',
+      'circle-radius': 6,
+      'circle-opacity': 0.4,
+      'circle-stroke-width': 1,
+      'circle-stroke-color': '#fff',
+      'circle-stroke-opacity': 0.8
     }
+  });
 
-    function updatePlaylist(playlist) {
-      playlist.innerHTML = '';
-      audioData.forEach((track, index) => {
-        const div = document.createElement('div');
-        div.className = 'track';
+  map.on('mouseenter', 'clusters', () => map.getCanvas().style.cursor = 'pointer');
+  map.on('mouseleave', 'clusters', () => map.getCanvas().style.cursor = '');
+  map.on('mouseenter', 'unclustered-point', () => map.getCanvas().style.cursor = 'pointer');
+  map.on('mouseleave', 'unclustered-point', () => map.getCanvas().style.cursor = '');
 
-        let mileText = '';
-        if (track.mile !== undefined && track.mile !== null) {
-          const mileClean = track.mile.toString().trim();
-          if (mileClean && mileClean.toLowerCase() !== 'n/a') {
-            mileText = `mi.${mileClean} - `;
-          }
-        }
-
-        div.textContent = `${mileText}${track.name}`;
-        div.setAttribute('data-id', index);
-        div.addEventListener('click', (e) => {
-          if (preventClick) {
-            e.preventDefault();
-            preventClick = false;
-            return;
-          }
-          playAudio(index);
-        });
-        playlist.appendChild(div);
+  fetch('https://script.google.com/macros/s/AKfycbzBPYMFDZDbzKPtCqjjgyqRQlVhKXfLZ9yGERjAHXv5ZZ-H-r1oUgVrnxysd4jN6kfw/exec?nocache=' + Date.now())
+    .then(response => response.json())
+    .then(data => {
+      data.forEach(track => {
+        track.mile = track.mile?.toString().trim() || '';
       });
-      updateScrollArrows();
-    }
+      sortAndUpdate(data, document.getElementById('playlist'));
+    })
+    .catch(console.error);
 
-    function playAudio(index) {
-      const track = audioData[index];
-      if (!track) return;
-      document.querySelectorAll('.track').forEach((el) => el.classList.remove('active-track'));
-      const activeTrack = document.querySelector(`.track[data-id="${index}"]`);
-      if (activeTrack) {
-        activeTrack.classList.add('active-track');
-        activeTrack.scrollIntoView({ behavior: 'smooth', block: 'center' });
-      }
-      const coords = [Number(track.lng), Number(track.lat)];
-      showPopup(coords, track);
-      map.flyTo({ center: coords, zoom: 14 });
-    }
+  map.on('click', 'unclustered-point', (e) => {
+    const id = e.features[0]?.properties?.id;
+    if (id !== undefined) playAudio(Number(id));
+  });
 
-    function showPopup(coords, data) {
-      if (map.currentPopup) map.currentPopup.remove();
-      if (currentAudio) {
-        currentAudio.pause();
-        currentAudio = null;
-      }
-
-      const audio = document.createElement('audio');
-      audio.controls = true;
-      audio.autoplay = true;
-      audio.style.width = '100%';
-      audio.innerHTML = `<source src="${data.audioUrl}" type="audio/mpeg">Your browser does not support the audio element.`;
-      currentAudio = audio;
-
-      const container = document.createElement('div');
-      container.style.fontFamily = 'helvetica, sans-serif';
-      container.style.padding = '2px';
-
-      const title = document.createElement('h3');
-      title.style.margin = '0 0 4px 0';
-      title.textContent = data.name;
-      container.appendChild(title);
-
-      // Mile number display
-      if (data.mile && data.mile.toString().trim().toLowerCase() !== 'n/a') {
-        const mile = document.createElement('p');
-        mile.style.margin = '0';
-        mile.style.fontSize = '0.9em';
-        mile.style.color = '#555';
-        mile.innerHTML = `<strong>mi.${data.mile}</strong>`;
-        container.appendChild(mile);
-      }
-
-      const timestamp = document.createElement('p');
-      timestamp.style.margin = '0';
-      timestamp.style.fontSize = '0.9em';
-      timestamp.style.color = '#555';
-      timestamp.innerHTML = `<strong>${formatTimestamp(data.timestamp)}</strong>`;
-      container.appendChild(timestamp);
-
-      if (data.notes?.trim()) {
-        const notes = document.createElement('p');
-        notes.style.margin = '4px 0';
-        notes.style.fontSize = '0.9em';
-        notes.textContent = data.notes;
-        container.appendChild(notes);
-      }
-
-      container.appendChild(audio);
-
-      const popup = new mapboxgl.Popup({ offset: 25 }).setLngLat(coords).setDOMContent(container);
-      map.currentPopup = popup;
-      popup.addTo(map);
-    }
-
-    map.on('load', () => {
-      map.addSource('audio', {
-        type: 'geojson',
-        data: { type: 'FeatureCollection', features: [] },
-        cluster: true,
-        clusterMaxZoom: 14,
-        clusterRadius: 50,
+  map.on('click', 'clusters', (e) => {
+    const features = map.queryRenderedFeatures(e.point, { layers: ['clusters'] });
+    if (!features.length) return;
+    const clusterId = features[0].properties.cluster_id;
+    map.getSource('audio').getClusterExpansionZoom(clusterId, (err, zoom) => {
+      if (err) return;
+      map.getSource('audio').getClusterLeaves(clusterId, 100, 0, (err, leaves) => {
+        if (err) return;
+        const bounds = new mapboxgl.LngLatBounds();
+        leaves.forEach(leaf => bounds.extend(leaf.geometry.coordinates));
+        map.fitBounds(bounds, { padding: { top: 50, bottom: 50, left: 370, right: 20 } });
       });
-
-      map.addLayer({
-        id: 'clusters',
-        type: 'circle',
-        source: 'audio',
-        filter: ['has', 'point_count'],
-        paint: {
-          'circle-color': '#51bbd6',
-          'circle-radius': ['step', ['get', 'point_count'], 20, 10, 30, 50, 40],
-          'circle-opacity': 0.7,
-          'circle-stroke-width': 1,
-          'circle-stroke-color': '#197991',
-          'circle-stroke-opacity': 0.75,
-        },
-      });
-
-      map.addLayer({
-        id: 'cluster-count',
-        type: 'symbol',
-        source: 'audio',
-        filter: ['has', 'point_count'],
-        layout: {
-          'text-field': '{point_count_abbreviated}',
-          'text-font': ['Open Sans Semibold', 'Arial Unicode MS Bold'],
-          'text-size': 12,
-        },
-      });
-
-      map.addLayer({
-        id: 'unclustered-point',
-        type: 'circle',
-        source: 'audio',
-        filter: ['!', ['has', 'point_count']],
-        paint: {
-          'circle-color': '#000000',
-          'circle-radius': 6,
-          'circle-opacity': 0.4,
-          'circle-stroke-width': 1,
-          'circle-stroke-color': '#fff',
-          'circle-stroke-opacity': 0.8,
-        },
-      });
-
-      map.on('mouseenter', 'clusters', () => (map.getCanvas().style.cursor = 'pointer'));
-      map.on('mouseleave', 'clusters', () => (map.getCanvas().style.cursor = ''));
-
-      map.on('click', 'clusters', (e) => {
-        const features = map.queryRenderedFeatures(e.point, {
-          layers: ['clusters'],
-        });
-        const clusterId = features[0].properties.cluster_id;
-        map.getSource('audio').getClusterExpansionZoom(clusterId, (err, zoom) => {
-          if (err) return;
-          map.easeTo({ center: features[0].geometry.coordinates, zoom });
-        });
-      });
-
-      map.on('click', 'unclustered-point', (e) => {
-        const features = map.queryRenderedFeatures(e.point, {
-          layers: ['unclustered-point'],
-        });
-        if (!features.length) return;
-        const coords = features[0].geometry.coordinates.slice();
-        const data = features[0].properties;
-        showPopup(coords, data);
-      });
-
-      fetch('https://script.google.com/macros/s/AKfycbzBPYMFDZDbzKPtCqjjgyqRQlVhKXfLZ9yGERjAHXv5ZZ-H-r1oUgVrnxysd4jN6kfw/exec?nocache=' + Date.now())
-        .then((response) => response.json())
-        .then((data) => {
-          sortAndUpdate(data, document.getElementById('playlist'));
-        })
-        .catch((error) => {
-          console.error('Error loading data:', error);
-          document.getElementById('playlist').innerHTML =
-            '<p class="loading-placeholder">Failed to load recordings.</p>';
-        });
-
     });
+  });
+});
 
-    // Scroll arrows and playlist drag scrolling omitted here for brevity (add your own or let me know if needed)
+function updateScrollArrows() {
+  const playlist = document.getElementById('playlist');
+  const scrollUp = document.getElementById('scrollUp');
+  const scrollDown = document.getElementById('scrollDown');
+  const atTop = playlist.scrollTop <= 0;
+  const atBottom = playlist.scrollTop + playlist.clientHeight >= playlist.scrollHeight - 1;
+  scrollUp.style.display = atTop ? 'none' : 'block';
+  scrollDown.style.display = atBottom ? 'none' : 'block';
+}
 
-  </script>
+(function enableMomentumDragScroll() {
+  const playlist = document.getElementById('playlist');
+  let isDragging = false;
+  let startY = 0;
+  let scrollTop = 0;
+  let velocityY = 0;
+  let lastY = 0;
+  let lastTime = 0;
+  let momentumID = null;
+
+  function applyMomentum() {
+    if (Math.abs(velocityY) < 0.1) return;
+    playlist.scrollTop -= velocityY;
+    velocityY *= 0.95;
+    momentumID = requestAnimationFrame(applyMomentum);
+    updateScrollArrows();
+  }
+
+  playlist.addEventListener('mousedown', (e) => {
+    isDragging = true;
+    playlist.classList.add('dragging');
+    startY = e.pageY;
+    scrollTop = playlist.scrollTop;
+    velocityY = 0;
+    lastY = e.pageY;
+    lastTime = Date.now();
+    preventClick = false;
+    if (momentumID) cancelAnimationFrame(momentumID);
+  });
+
+  playlist.addEventListener('mousemove', (e) => {
+    if (!isDragging) return;
+    e.preventDefault();
+    const now = Date.now();
+    const deltaY = e.pageY - lastY;
+    const deltaTime = now - lastTime;
+    if (deltaTime > 0) velocityY = deltaY / deltaTime * 16;
+    const distanceDragged = Math.abs(e.pageY - startY);
+    if (distanceDragged > 5) preventClick = true;
+    playlist.scrollTop = scrollTop - (e.pageY - startY);
+    lastY = e.pageY;
+    lastTime = now;
+    updateScrollArrows();
+  });
+
+  ['mouseup', 'mouseleave'].forEach(event => {
+    playlist.addEventListener(event, () => {
+      if (!isDragging) return;
+      isDragging = false;
+      playlist.classList.remove('dragging');
+      applyMomentum();
+    });
+  });
+
+  playlist.addEventListener('scroll', updateScrollArrows);
+})();
+</script>
+
+<script src="https://storage.ko-fi.com/cdn/scripts/overlay-widget.js"></script>
+<script>
+  kofiWidgetOverlay.draw('thmkly', {
+    'type': 'floating-chat',
+    'floating-chat.donateButton.text': 'Support me',
+    'floating-chat.donateButton.background-color': '#ff5f5f',
+    'floating-chat.donateButton.text-color': '#fff'
+  });
+</script>
+
 </body>
 </html>
