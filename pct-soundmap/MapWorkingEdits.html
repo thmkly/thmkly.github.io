@@ -359,9 +359,7 @@
         showPopup(coords, data);
       });
 
-      fetch(
-        https://script.google.com/macros/s/AKfycbzBPYMFDZDbzKPtCqjjgyqRQlVhKXfLZ9yGERjAHXv5ZZ-H-r1oUgVrnxysd4jN6kfw/exec?nocache=' + Date.now())
-      )
+      fetch('https://script.google.com/macros/s/AKfycbzBPYMFDZDbzKPtCqjjgyqRQlVhKXfLZ9yGERjAHXv5ZZ-H-r1oUgVrnxysd4jN6kfw/exec?nocache=' + Date.now())
         .then((response) => response.json())
         .then((data) => {
           sortAndUpdate(data, document.getElementById('playlist'));
@@ -371,6 +369,7 @@
           document.getElementById('playlist').innerHTML =
             '<p class="loading-placeholder">Failed to load recordings.</p>';
         });
+
     });
 
     // Scroll arrows and playlist drag scrolling omitted here for brevity (add your own or let me know if needed)
