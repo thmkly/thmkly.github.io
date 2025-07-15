@@ -226,10 +226,10 @@ function playAudio(i) {
     bounds.extend([+nearest.lng, +nearest.lat]);
     map.fitBounds(bounds, {
       padding: { top: 80, bottom: 80, left: 380, right: 40 },
-      duration: 2000,
+      duration: 2500,
       easing: t => t < 0.5
-        ? 4 * t * t * t
-        : 1 - Math.pow(-2 * t + 2, 3) / 2 // easeInOutCubic
+        ? 2 * t * t
+        : -1 + (4 - 2 * t) * t  // slower "top speed", smoother entry/exit
     });
   } else {
     map.flyTo({ center: c, zoom: 14 });
