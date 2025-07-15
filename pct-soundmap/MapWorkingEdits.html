@@ -268,7 +268,19 @@
         filter: ['has', 'point_count'],
         paint: {
           'circle-color': '#51bbd6',
-          'circle-radius': ['step', ['get', 'point_count'], 20, 10, 30, 50, 40],
+          'circle-radius': ['step', ['get', 'point_count'],
+              10,     // 1–4
+              5, 14,  // 5–14
+              15, 18, // 15–17
+              18, 22, // 18–21
+              22, 26, // 22–24
+              25, 30, // 25–29
+              30, 34, // 30–34
+              35, 38, // 35–39
+              40, 42, // 40–49
+              50, 48, // 50–99
+              100, 54 // 100+
+            ]
           'circle-opacity': 0.7,
           'circle-stroke-width': 1,
           'circle-stroke-color': '#197991',
