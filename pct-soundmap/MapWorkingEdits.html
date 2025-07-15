@@ -219,9 +219,8 @@ function showPopup(coords, data) {
   title.textContent = data.name;
   container.appendChild(title);
 
-  // Insert mile marker below title and above timestamp
-  const mileRaw = data.mile?.toString().trim().toLowerCase();
-  if (mileRaw && mileRaw !== 'n/a' && mileRaw !== '') {
+  // ** MILE MARKER ADDED HERE **
+  if (data.mile && data.mile.toString().trim().toLowerCase() !== 'n/a') {
     const mile = document.createElement('p');
     mile.style.margin = '0';
     mile.style.fontSize = '0.9em';
