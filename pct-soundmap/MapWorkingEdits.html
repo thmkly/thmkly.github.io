@@ -323,25 +323,43 @@ function playAudio(i) {
           'circle-stroke-color': '#197991',
           'circle-stroke-opacity': 0.75,
           'circle-radius': [
-            'step',
-            ['get', 'point_count'],
-  18,    // 1–2
-  3, 22, // 3–4
-  5, 26, // 5
-  6, 30, // 6
-  7, 34, // 7
-  8, 36, // 8–9
-  10, 38, // 10–14
-  15, 40, // 15–17 (reduced)
-  18, 42, // 18–21 (reduced)
-  22, 44, // 22–24
-  25, 46, // 25–29
-  30, 48, // 30–34
-  35, 50, // 35–39
-  40, 52, // 40–49
-  50, 54, // 50–99
-  100, 56 // 100+
+            'interpolate',
+            ['linear'],
+            ['zoom'],
+            4, [
+              'interpolate',
+              ['linear'],
+              ['get', 'point_count'],
+              1, 14,
+              10, 20,
+              100, 30
+            ],
+            6, [
+              'interpolate',
+              ['linear'],
+              ['get', 'point_count'],
+              1, 18,
+              10, 26,
+              100, 38
+            ],
+            8, [
+              'interpolate',
+              ['linear'],
+              ['get', 'point_count'],
+              1, 22,
+              10, 32,
+              100, 46
+            ],
+            10, [
+              'interpolate',
+              ['linear'],
+              ['get', 'point_count'],
+              1, 26,
+              10, 38,
+              100, 54
+            ]
           ]
+
         }
       });
       map.addLayer({
