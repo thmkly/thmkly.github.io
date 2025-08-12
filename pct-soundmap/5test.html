@@ -1,0 +1,1038 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>A Soundmap of the PCT, Stereo 2023 — Updated</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <link href="https://api.mapbox.com/mapbox-gl-js/v2.8.1/mapbox-gl.css" rel="stylesheet" />
+  <style>
+    /* Basic layout */
+    html,body{height:100%;margin:0;padding:0;font-family:Helvetica, Arial, sans-serif}
+    #map{position:absolute;top:0;bottom:0;left:0;right:0}
+    .playlist-wrapper{
+      position: absolute;
+      top: 25px;
+      left: 10px;
+      width: 360px;
+      max-height: 84vh;
+      border-radius: 6px;
+      box-shadow: 0 3px 18px rgba(0,0,0,0.35);
+      background-color: rgba(255,255,255,0.92);
+      font-size:14px;
+      display:flex;
+      flex-direction:column;
+      align-items:stretch;
+      z-index: 10;
+      transition: transform .28s cubic-bezier(.2,.9,.2,1);
+    }
+    .playlist-wrapper.collapsed { transform: translateX(calc(100% - 42px)); } /* show small toggle */
+    .playlist-header{
+      display:flex;align-items:center;justify-content:space-between;padding:6px 8px;border-bottom:1px solid #e6e6e6;
+    }
+    .playlist-header h4{margin:0;font-size:14px}
+    .playlist-controls{display:flex;gap:6px;align-items:center}
+    .playlist{overflow-y:auto;max-height:72vh;padding:6px;cursor:grab;user-select:none;}
+    .playlist.dragging{cursor:grabbing}
+    .track{cursor:pointer;padding:8px;margin:4px;border-radius:4px;border-bottom:1px solid #eee}
+    .track:hover{background:#f3f3f3}
+    .active-track{background:#e6f0f3}
+    .small-count{font-size:12px;padding:2px 6px;background:#333;color:#fff;border-radius:12px;margin-left:8px}
+    .controls-row{display:flex;gap:8px;align-items:center}
+    .btn{background:#f5f5f5;border:1px solid #ddd;padding:6px 8px;border-radius:4px;cursor:pointer}
+    .btn:active{transform:translateY(1px)}
+    .toggle-right{margin-left:auto}
+    .scroll-arrow{display:none;text-align:center;font-size:12px;color:#222;padding:4px 0;user-select:none;cursor:pointer}
+    .loading-placeholder{padding:14px;color:#666;text-align:center}
+    /* Fullscreen and other floating controls */
+    .map-controls{position:absolute;right:12px;top:12px;display:flex;flex-direction:column;gap:8px;z-index:9}
+    .map-control-btn{background:#fff;border:1px solid #ddd;padding:8px;border-radius:6px;box-shadow:0 2px 6px rgba(0,0,0,0.08);cursor:pointer}
+    .map-control-row{position:absolute;left:12px;top:12px;display:flex;flex-direction:column;gap:8px;z-index:9}
+    /* Cluster hover popup list */
+    .cluster-hover {
+      background: rgba(255,255,255,0.95);
+      border:1px solid #ddd;
+      box-shadow:0 6px 24px rgba(0,0,0,0.12);
+      max-height:220px;
+      overflow:auto;
+      width:260px;
+      padding:6px;
+      border-radius:6px;
+      font-size:13px;
+    }
+    .cluster-item{padding:6px;border-bottom:1px solid #f0f0f0;cursor:pointer}
+    .cluster-item:hover{background:#f6f6f6}
+    /* Small compact title preview */
+    .compact-preview {
+      position:absolute;
+      background:rgba(0,0,0,0.75);
+      color:#fff;padding:6px 8px;border-radius:4px;font-size:12px;pointer-events:none;z-index:1000;
+    }
+    /* Responsive adjustments */
+    @media (max-width:900px){
+      .playlist-wrapper{width:86%;left:7px;right:7px}
+    }
+  </style>
+</head>
+<body>
+  <div id="map"></div>
+
+  <div class="playlist-wrapper" id="playlistWrapper">
+    <div class="playlist-header">
+      <h4>Playlist</h4>
+      <div class="playlist-controls">
+        <select id="sortSelect" class="btn" title="Sort playlist">
+          <option value="time">By time</option>
+          <option value="mile-asc">NOBO (mile ↑)</option>
+          <option value="mile-desc">SOBO (mile ↓)</option>
+          <option value="shuffle">Randomize</option>
+        </select>
+        <button class="btn" id="revealHiddenBtn" title="Reveal any suppressed nearby pins">Reveal hidden pins</button>
+        <button class="btn" id="hidePlaylistToggle" title="Hide / show playlist">⟨ ⟩</button>
+      </div>
+    </div>
+
+    <div class="playlist" id="playlist">
+      <div class="loading-placeholder">loading recordings...</div>
+    </div>
+
+    <div class="scroll-arrow down" id="scrollDown">▼</div>
+  </div>
+
+  <div class="map-controls" id="mapControls">
+    <button class="map-control-btn" id="fullscreenBtn" title="Fullscreen (F)">⤢</button>
+    <button class="map-control-btn" id="recenterBtn" title="Reset / Recenter">⤾</button>
+    <button class="map-control-btn" id="pitchToggleBtn" title="3D on/off">3D</button>
+    <button class="map-control-btn" id="playAllBtn" title="Play all loop">▶︎ All</button>
+  </div>
+
+  <div class="map-control-row">
+    <!-- Left-side controls (if any) -->
+  </div>
+
+  <div id="compactPreview" class="compact-preview" style="display:none"></div>
+
+  <script src="https://api.mapbox.com/mapbox-gl-js/v2.8.1/mapbox-gl.js"></script>
+  <script>
+  (function(){
+    'use strict';
+
+    /////////////////////////////
+    // CONFIG / TWEAKABLE VARS //
+    /////////////////////////////
+
+    // IMPORTANT:
+    // - For development, you can set a token here. For production, use a server-side proxy.
+    // - Do NOT commit your production Mapbox token to public repos.
+    let MAPBOX_TOKEN = 'pk.eyJ1IjoidGhta2x5IiwiYSI6ImNseXVyMjhueDA3YTQybW9mcHJrZGJ3YnEifQ.Nv-LsNg5eKIE6SeOVVJpYg'; // <-- DEV: paste your token here locally if you must.
+    // If empty, the UI will prompt for token in localStorage; see note below.
+
+    // Google Apps Script endpoint (from your shared script)
+    const SHEET_URL = 'https://script.google.com/macros/s/AKfycbzBPYMFDZDbzKPtCqjjgyqRQlVhKXfLZ9yGERjAHXv5ZZ-H-r1oUgVrnxysd4jN6kfw/exec';
+
+    // Visual / behavior params
+    const BASE_CLUSTER_RADIUS = 50; // base px at default screen width
+    const BASE_SCREEN_WIDTH = 1440; // your 13" MBP baseline (approx)
+    const HIDE_NEARBY_METERS = 8046.72; // 5 miles in meters
+    const FULL_REVEAL_ZOOM = 9.5;
+    const FULL_GROUP_ZOOM = 4.6;
+    const PLAY_ZOOM = 13; // target zoom when playing a point (you asked for ~13)
+    const PLAY_ANIMATION_DURATION = 2400; // ms - tuned to feel similar to original
+    const CLUSTER_LEAF_LIMIT = 200; // bound on fetching cluster leaves
+    const MAX_RECORDINGS = 2500; // defense: refuse to load enormous feeds
+
+    // State
+    let map, audioData = [], displayFeatures = [], currentAudio = null, currentIndex = -1;
+    let playlistEl = document.getElementById('playlist');
+    let playlistWrapper = document.getElementById('playlistWrapper');
+    let playlistCollapsed = false;
+    let revealHidden = false;
+    let shuffleOrder = null;
+    let playingAll = false;
+    let isDraggingMap = false;
+    let compactPreview = document.getElementById('compactPreview');
+    let clusterHoverPopup = null;
+
+    /////////////////////////////
+    // UTILITIES               //
+    /////////////////////////////
+
+    function safeText(node, text){
+      node.textContent = text ?? '';
+    }
+
+    function millis(){ return (new Date()).getTime(); }
+
+    // Haversine distance (meters)
+    function haversineMeters(lat1, lon1, lat2, lon2){
+      const R = 6371e3;
+      const toRad = d => d * Math.PI/180;
+      const φ1 = toRad(lat1), φ2 = toRad(lat2);
+      const Δφ = toRad(lat2-lat1), Δλ = toRad(lon2-lon1);
+      const a = Math.sin(Δφ/2)*Math.sin(Δφ/2) + Math.cos(φ1)*Math.cos(φ2)*Math.sin(Δλ/2)*Math.sin(Δλ/2);
+      const c = 2*Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+      return R*c;
+    }
+
+    function clamp(v,a,b){ return Math.max(a, Math.min(b, v)); }
+
+    function normalizeMilesField(v){
+      if (v === undefined || v === null) return NaN;
+      if (typeof v === 'number') return v;
+      const s = String(v).trim().replace(/[^\d\.\-]/g,'');
+      const f = parseFloat(s);
+      return isNaN(f) ? NaN : f;
+    }
+
+    function formatTimestamp(ts){
+      try {
+        const d = new Date(ts);
+        if (isNaN(d)) return String(ts);
+        const options = { timeZone:'America/Los_Angeles', year:'numeric', month:'2-digit', day:'2-digit', hour:'2-digit', minute:'2-digit', hour12:false };
+        const p = new Intl.DateTimeFormat('en-CA', options).formatToParts(d);
+        const get = t => p.find(x=>x.type===t)?.value;
+        return `${get('year')}-${get('month')}-${get('day')} ${get('hour')}:${get('minute')} PDT`;
+      } catch(e){ return String(ts); }
+    }
+
+    /////////////////////////////
+    // MAP INIT                //
+    /////////////////////////////
+
+    // Acquire token from config or localStorage; if none, prompt user once (dev-friendly)
+    try {
+      if(!MAPBOX_TOKEN){
+        MAPBOX_TOKEN = localStorage.getItem('MAPBOX_TOKEN') || '';
+        if(!MAPBOX_TOKEN){
+          // Ask user to paste token for local dev (will not be stored unless user confirms)
+          // We don't interrupt silently; use prompt only if necessary
+          MAPBOX_TOKEN = prompt('Enter Mapbox access token for testing (will be stored locally for this session). Leave blank if you have a proxy or will set it later.') || '';
+          if(MAPBOX_TOKEN) localStorage.setItem('MAPBOX_TOKEN', MAPBOX_TOKEN);
+        }
+      }
+    } catch(e){
+      console.warn('Could not access localStorage for MAPBOX_TOKEN', e);
+    }
+
+    if(!MAPBOX_TOKEN){
+      // Fail-safe: display message and stop
+      playlistEl.innerHTML = '<div class="loading-placeholder">Missing Mapbox token. Set MAPBOX_TOKEN variable in the HTML or localStorage, or use a server proxy. See console for details.</div>';
+      console.error('No MAPBOX_TOKEN provided. Place token in MAPBOX_TOKEN variable or localStorage.');
+      // still allow user to fetch data for debugging, but do not init the map.
+    }
+
+    mapboxgl.accessToken = MAPBOX_TOKEN;
+    try {
+      map = new mapboxgl.Map({
+        container: 'map',
+        style: 'mapbox://styles/thmkly/clyup637d004201ri2tkpaywq',
+        center: [-122.50276, 41.31727],
+        zoom: initialZoomForWidth(window.innerWidth),
+        pitch: 0,
+        bearing: 0
+      });
+    } catch (err) {
+      console.error('Mapbox initialization error', err);
+      // If map fails, abort gracefully.
+    }
+
+    // Add standard controls
+    if(map){
+      map.addControl(new mapboxgl.NavigationControl({showCompass:true, showZoom:true}), 'top-left');
+      // Fullscreen handled separately
+    }
+
+    /////////////////////////////
+    // HELPERS: ZOOM / CLUSTER //
+    /////////////////////////////
+
+    function initialZoomForWidth(w){
+      // calibrate so ~13" MBP (1440) -> 4.625 initial as in your original; scale a touch
+      const baseline = BASE_SCREEN_WIDTH;
+      const baseZoom = 4.625;
+      const scale = clamp(Math.log2(w / baseline), -1, 1); // small adjustment
+      return baseZoom + scale * 0.4; // tweak factor
+    }
+
+    function clusterRadiusForZoom(zoom){
+      // cluster radius decreases as zoom increases; factor by screen width too
+      const widthFactor = window.innerWidth / BASE_SCREEN_WIDTH;
+      // Map zoom ranges roughly 0-22; we want radius smaller for larger zooms
+      // exponential falloff
+      const zFactor = Math.exp(- (zoom - 4) / 4); // tuned
+      const rad = Math.round(BASE_CLUSTER_RADIUS * widthFactor * zFactor);
+      return clamp(rad, 12, 160);
+    }
+
+    function circleRadiusExpression(){
+      // returns an expression for circle-radius based on point_count and dynamic screen width
+      // We'll compute a function when updating layer to use a constant value per zoom,
+      // but Mapbox supports data-driven styling; for simplicity we set radii via style stops dynamically
+      return null;
+    }
+
+    /////////////////////////////
+    // DATA LOAD & PREPROCESS  //
+    /////////////////////////////
+
+    async function loadData(){
+      try{
+        const url = SHEET_URL + '?nocache=' + Date.now();
+        const r = await fetch(url, {cache:'no-store'});
+        if(!r.ok) throw new Error('Failed to fetch sheet: ' + r.status);
+        const data = await r.json();
+        if(!Array.isArray(data)) throw new Error('Unexpected sheet response');
+        if(data.length > MAX_RECORDINGS) {
+          console.warn('Large feed detected; truncating at', MAX_RECORDINGS);
+        }
+        // Map and sanitize fields
+        audioData = data.slice(0, MAX_RECORDINGS).map((row, idx) => {
+          return {
+            _origIndex: idx,
+            name: String(row.name || '').trim(),
+            lat: parseFloat(row.lat),
+            lng: parseFloat(row.lng),
+            timestamp: row.timestamp || '',
+            audioUrl: String(row.audioUrl || row.audiourl || '').trim(),
+            notes: String(row.notes || '').trim(),
+            mile: normalizeMilesField(row.mile),
+            // UI fields filled later
+            hiddenOnLoad: false,
+            nearbyCount: 1
+          };
+        }).filter(r => !isNaN(r.lat) && !isNaN(r.lng) && r.name && r.audioUrl);
+
+        preprocessHideNearby();
+        refreshDisplayFeaturesAndMapSource();
+        buildPlaylist(document.getElementById('sortSelect').value || 'time');
+      }catch(err){
+        console.error('loadData error', err);
+        playlistEl.innerHTML = '<div class="loading-placeholder">Failed to load recordings.</div>';
+      }
+    }
+
+    function preprocessHideNearby(){
+      // Goal: If multiple pins are within HIDE_NEARBY_METERS, show only the one with lowest latitude (as you requested)
+      try{
+        const used = new Array(audioData.length).fill(false);
+        const geoIndex = audioData.map((d,i)=>({i,lat:d.lat,lng:d.lng}));
+        for(let i=0;i<geoIndex.length;i++){
+          if(used[i]) continue;
+          const base = geoIndex[i];
+          let group = [i];
+          for(let j=i+1;j<geoIndex.length;j++){
+            if(used[j]) continue;
+            const d = geoIndex[j];
+            const m = haversineMeters(base.lat, base.lng, d.lat, d.lng);
+            if(m <= HIDE_NEARBY_METERS){
+              group.push(j);
+              used[j] = true;
+            }
+          }
+          // if group has >1, pick lowest latitude to be visible
+          if(group.length > 1){
+            let lowestIdx = group[0];
+            group.forEach(k => {
+              if(audioData[k].lat < audioData[lowestIdx].lat){ lowestIdx = k; }
+            });
+            group.forEach(k=>{
+              if(k === lowestIdx){
+                audioData[k].hiddenOnLoad = false;
+                audioData[k].nearbyCount = group.length;
+              } else {
+                audioData[k].hiddenOnLoad = true;
+                audioData[k].nearbyCount = group.length;
+              }
+            });
+          } else {
+            audioData[group[0]].hiddenOnLoad = false;
+            audioData[group[0]].nearbyCount = 1;
+          }
+        }
+      }catch(e){
+        console.warn('preprocessHideNearby failed', e);
+      }
+    }
+
+    function makeGeoJSONFeatures(includeHidden=false){
+      // convert audioData into FeatureCollection for map source
+      const features = audioData.map((t, i) => {
+        const props = {
+          id: i,
+          name: t.name,
+          timestamp: t.timestamp,
+          audioUrlSafe: t.audioUrl, // used by player
+          notes: t.notes,
+          mile: isNaN(t.mile) ? null : t.mile,
+          hiddenOnLoad: !!t.hiddenOnLoad,
+          nearbyCount: t.nearbyCount
+        };
+        return {
+          type: 'Feature',
+          geometry: { type: 'Point', coordinates: [+t.lng, +t.lat] },
+          properties: props
+        };
+      }).filter(f => includeHidden ? true : !f.properties.hiddenOnLoad);
+      return { type:'FeatureCollection', features };
+    }
+
+    function refreshDisplayFeaturesAndMapSource(){
+      if(!map) return;
+      try{
+        const src = map.getSource('audio');
+        if(src){
+          src.setData(makeGeoJSONFeatures(revealHidden));
+        } else {
+          map.addSource('audio', {
+            type:'geojson',
+            data: makeGeoJSONFeatures(revealHidden),
+            cluster:true,
+            clusterMaxZoom:14,
+            clusterRadius: BASE_CLUSTER_RADIUS
+          });
+          // Add layers
+          addMapLayers();
+        }
+        updateClusterRadius();
+      }catch(e){
+        console.warn('refreshDisplayFeaturesAndMapSource', e);
+      }
+    }
+
+    /////////////////////////////
+    // MAP LAYERS & BEHAVIOR   //
+    /////////////////////////////
+
+    function addMapLayers(){
+      if(!map) return;
+      // clusters
+      map.addLayer({
+        id: 'clusters',
+        type: 'circle',
+        source: 'audio',
+        filter: ['has','point_count'],
+        paint: {
+          'circle-color': '#51bbd6',
+          'circle-opacity': 0.85,
+          'circle-stroke-width': 1,
+          'circle-stroke-color': '#197991',
+          'circle-radius': BASE_CLUSTER_RADIUS
+        }
+      });
+
+      map.addLayer({
+        id:'cluster-count',
+        type:'symbol',
+        source:'audio',
+        filter:['has','point_count'],
+        layout:{
+          'text-field':'{point_count_abbreviated}',
+          'text-font':['Open Sans Semibold','Arial Unicode MS Bold'],
+          'text-size':12
+        }
+      });
+
+      // unclustered points
+      map.addLayer({
+        id:'unclustered-point',
+        type:'symbol',
+        source:'audio',
+        filter:['!',['has','point_count']],
+        layout:{
+          'icon-image':'marker', // uses your preference
+          'icon-size':1,
+          'icon-allow-overlap':true,
+          'text-field':['case', ['>', ['get','nearbyCount'], 1], ['concat','{name}',' ','[','{nearbyCount}',']'], ''],
+          'text-offset':[0,1.25],
+          'text-ignore-placement':true,
+          'text-size':12
+        }
+      });
+
+      // mouse interactions
+      map.on('mouseenter','clusters', ()=> map.getCanvas().style.cursor='pointer');
+      map.on('mouseleave','clusters', ()=> map.getCanvas().style.cursor='');
+
+      map.on('mouseenter','unclustered-point', ()=> map.getCanvas().style.cursor='pointer');
+      map.on('mouseleave','unclustered-point', ()=> map.getCanvas().style.cursor='');
+
+      map.on('click','unclustered-point', e => {
+        if(!e || !e.features || !e.features.length) return;
+        const f = e.features[0];
+        const i = +f.properties.id;
+        if(Number.isFinite(i)) playAudio(i);
+      });
+
+      map.on('click','clusters', async e => {
+        try{
+          // open a small list popup of cluster leaves (bounded)
+          const features = map.queryRenderedFeatures(e.point, { layers:['clusters'] });
+          if(!features.length) return;
+          const cid = features[0].properties.cluster_id;
+          map.getSource('audio').getClusterExpansionZoom(cid, (err, zoom) => {
+            if(err) return console.warn(err);
+            // instead of zooming immediately, fetch leaves and display them in a popup listing
+            map.getSource('audio').getClusterLeaves(cid, CLUSTER_LEAF_LIMIT, 0, (err2, leaves) => {
+              if(err2) return console.warn(err2);
+              showClusterHoverList(e.lngLat, leaves.slice(0, CLUSTER_LEAF_LIMIT));
+            });
+          });
+        }catch(err){
+          console.warn('clusters click', err);
+        }
+      });
+
+      // prevent accidental popup during drag
+      map.on('movestart', ()=> isDraggingMap = true);
+      map.on('moveend', ()=> setTimeout(()=> isDraggingMap=false, 50));
+    }
+
+    function updateClusterRadius(){
+      if(!map || !map.getLayer('clusters')) return;
+      const zoom = map.getZoom();
+      const rad = clusterRadiusForZoom(zoom);
+      map.setPaintProperty('clusters','circle-radius', rad);
+      // also tweak clusterRadius source property if available
+      try{
+        const src = map.getSource('audio');
+        if(src && typeof src.clusterRadius === 'function'){
+          // can't set directly; but Mapbox allows setting clusterRadius only at source creation
+        }
+      }catch(e){}
+    }
+
+    function showClusterHoverList(lngLat, leaves){
+      // Create a popup-like DOM element anchored to map with list of leaves
+      removeClusterHoverPopup();
+      const el = document.createElement('div');
+      el.className = 'cluster-hover';
+      leaves.forEach((leaf, idx) => {
+        const p = document.createElement('div');
+        p.className = 'cluster-item';
+        // use safe text
+        p.textContent = (leaf.properties && leaf.properties.name) ? leaf.properties.name : ('Track ' + leaf.properties.id);
+        p.addEventListener('click', ev=>{
+          // zoom to this leaf and play
+          const coords = leaf.geometry.coordinates;
+          map.flyTo({ center: coords, zoom: PLAY_ZOOM, duration: 1000 });
+          // find the real index in audioData - id property holds it
+          const id = +leaf.properties.id;
+          setTimeout(()=>playAudio(id), 500);
+          removeClusterHoverPopup();
+        });
+        el.appendChild(p);
+      });
+      const container = document.createElement('div');
+      container.style.position = 'absolute';
+      container.style.left = '10px';
+      // Use map's popupElement via map.getCanvasContainer
+      const canvas = map.getCanvasContainer();
+      canvas.appendChild(el);
+      // position using screen coordinates of lngLat
+      const p = map.project(lngLat);
+      el.style.left = (p.x - 10) + 'px';
+      el.style.top = (p.y - 10) + 'px';
+      clusterHoverPopup = el;
+      // hide after clicking outside
+      setTimeout(()=> {
+        const ondoc = (ev) => {
+          if(!el.contains(ev.target)) removeClusterHoverPopup();
+          document.removeEventListener('click', ondoc);
+        };
+        document.addEventListener('click', ondoc);
+      }, 10);
+    }
+
+    function removeClusterHoverPopup(){
+      if(clusterHoverPopup && clusterHoverPopup.parentNode) clusterHoverPopup.parentNode.removeChild(clusterHoverPopup);
+      clusterHoverPopup = null;
+    }
+
+    /////////////////////////////
+    // PLAYLIST UI             //
+    /////////////////////////////
+
+    function buildPlaylist(sortMode='time'){
+      // sanitize
+      sortMode = String(sortMode || 'time');
+      // build a list of records based on sort
+      let list = audioData.map((d,i)=> ({...d, _i:i}) );
+
+      if(sortMode === 'mile-asc'){
+        list.sort((a,b)=> (isNaN(a.mile)?1:0) - (isNaN(b.mile)?1:0) || (a.mile - b.mile));
+      } else if(sortMode === 'mile-desc'){
+        list.sort((a,b)=> (isNaN(a.mile)?1:0) - (isNaN(b.mile)?1:0) || (b.mile - a.mile));
+      } else if(sortMode === 'shuffle'){
+        // create a shuffle order once
+        const arr = list.slice();
+        for(let i=arr.length-1;i>0;i--){
+          const j = Math.floor(Math.random()*(i+1));
+          [arr[i],arr[j]] = [arr[j],arr[i]];
+        }
+        list = arr;
+        shuffleOrder = list.map(x=>x._i);
+      } else {
+        // default: timestamp ascending; fallback to original index
+        list.sort((a,b)=> new Date(a.timestamp) - new Date(b.timestamp) || a._i - b._i);
+      }
+
+      // Save a current ordered-index map used for prev/next
+      currentOrder = list.map(x=>x._i);
+
+      // Render UI
+      playlistEl.innerHTML = '';
+      if(!list.length){
+        playlistEl.innerHTML = '<div class="loading-placeholder">No recordings found.</div>';
+        return;
+      }
+      list.forEach(item => {
+        const el = document.createElement('div');
+        el.className = 'track';
+        el.dataset.index = item._i;
+        // construct label safely
+        const title = document.createElement('div'); safeText(title, item.name);
+        const meta = document.createElement('div'); meta.style.fontSize='12px'; meta.style.color='#666';
+        safeText(meta, `${formatTimestamp(item.timestamp)} ${isNaN(item.mile)?'':' • mi.'+item.mile}`);
+        el.appendChild(title);
+        el.appendChild(meta);
+        if(item.nearbyCount > 1){
+          const sc = document.createElement('span'); sc.className='small-count'; safeText(sc, item.nearbyCount);
+          el.appendChild(sc);
+        }
+        el.addEventListener('click', e => {
+          // guard against drag selecting
+          if(preventClick) { preventClick=false; return; }
+          const idx = +el.dataset.index;
+          // find index in audioData and play
+          playAudio(idx);
+        });
+        playlistEl.appendChild(el);
+      });
+      updateScrollArrows();
+    }
+
+    let preventClick = false;
+    // Playlist drag for momentum (reuse your earlier approach)
+    (function enablePlaylistDrag(){
+      let dragging=false, startY=0, scrollStart=0, vel=0, lastY=0, lastTime=0, raf=null, dragStarted=false;
+      playlistEl.addEventListener('mousedown', e=>{
+        dragging=true; dragStarted=false;
+        playlistEl.classList.add('dragging');
+        startY=e.pageY; scrollStart=playlistEl.scrollTop; vel=0;
+        lastY=e.pageY; lastTime=millis();
+        if(raf) cancelAnimationFrame(raf);
+      });
+      playlistEl.addEventListener('mousemove', e=>{
+        if(!dragging) return;
+        e.preventDefault();
+        const now=millis(), dy=e.pageY-lastY, dt=now-lastTime;
+        if(dt>0) vel = dy/dt * 16;
+        playlistEl.scrollTop = scrollStart - (e.pageY - startY);
+        lastY=e.pageY; lastTime=now;
+        updateScrollArrows();
+        if(!dragStarted && Math.abs(e.pageY - startY) > 5){
+          dragStarted=true; preventClick=true;
+        }
+      });
+      ['mouseup','mouseleave'].forEach(ev=>{
+        playlistEl.addEventListener(ev, ()=>{
+          if(!dragging) return;
+          dragging=false; playlistEl.classList.remove('dragging');
+          (function momentum(){
+            if(Math.abs(vel) < .5) return;
+            playlistEl.scrollTop -= vel;
+            vel *= .95;
+            raf = requestAnimationFrame(momentum);
+            updateScrollArrows();
+          })();
+        });
+      });
+    })();
+
+    function updateScrollArrows(){
+      const scrollDown = document.getElementById('scrollDown');
+      if(playlistEl.scrollTop > 0) { /* optionally show up arrow */ }
+      if((playlistEl.scrollTop + playlistEl.clientHeight) < playlistEl.scrollHeight){
+        scrollDown.style.display = 'block';
+      } else { scrollDown.style.display = 'none'; }
+    }
+
+    /////////////////////////////
+    // AUDIO / POPUP PLAYBACK  //
+    /////////////////////////////
+
+    function createAudioElement(url){
+      const audio = document.createElement('audio');
+      audio.controls = true;
+      audio.autoplay = false;
+      audio.preload = 'metadata';
+      audio.controlsList = 'nodownload nofullscreen noremoteplayback';
+      audio.style.width = '100%';
+      audio.setAttribute('playsinline','');
+      audio.addEventListener('contextmenu', e=> e.preventDefault());
+      // attach error handler
+      audio.addEventListener('error', ()=> console.warn('Audio failed to load:', url));
+      return audio;
+    }
+
+    // Ensure only one popup at a time
+    function closeCurrentPopup(){
+      if(map.currentPopup) {
+        try{ map.currentPopup.remove(); }catch(e){}
+        map.currentPopup = null;
+      }
+      if(currentAudio){
+        try{ currentAudio.pause(); }catch(e){}
+        currentAudio = null;
+      }
+      // clear active track
+      const act = document.querySelector('.track.active-track');
+      if(act) act.classList.remove('active-track');
+      currentIndex = -1;
+    }
+
+    function openPopupForIndex(i){
+      if(!map) return;
+      const t = audioData[i];
+      if(!t) return;
+      const c = [+t.lng, +t.lat];
+
+      // build popup content safely (no innerHTML with untrusted fields)
+      const container = document.createElement('div');
+      container.style.fontFamily = 'Helvetica, Arial, sans-serif';
+      container.style.padding = '6px';
+      container.style.maxWidth = '360px';
+
+      const title = document.createElement('h3'); title.style.margin='0 0 6px 0'; title.style.fontSize='15px';
+      safeText(title, t.name);
+      container.appendChild(title);
+
+      const ts = document.createElement('div'); ts.style.fontSize='12px'; ts.style.color='#444';
+      safeText(ts, formatTimestamp(t.timestamp));
+      container.appendChild(ts);
+
+      if(!isNaN(t.mile)){
+        const m = document.createElement('div'); m.style.fontSize='12px'; m.style.color='#444';
+        safeText(m, 'mi.'+t.mile);
+        container.appendChild(m);
+      }
+
+      if(t.notes){
+        const n = document.createElement('div'); n.style.margin='6px 0'; n.style.fontSize='13px'; n.style.color='#222';
+        safeText(n, t.notes);
+        container.appendChild(n);
+      }
+
+      // player row with prev/next
+      const playerRow = document.createElement('div'); playerRow.style.display='flex'; playerRow.style.flexDirection='column'; playerRow.style.gap='6px';
+
+      const controlsDiv = document.createElement('div'); controlsDiv.style.display='flex'; controlsDiv.style.justifyContent='space-between'; controlsDiv.style.alignItems='center';
+      const prevBtn = document.createElement('button'); prevBtn.className='btn'; prevBtn.textContent='◀ Prev';
+      const nextBtn = document.createElement('button'); nextBtn.className='btn'; nextBtn.textContent='Next ▶';
+      const compactInfo = document.createElement('div'); compactInfo.style.fontSize='12px'; compactInfo.style.color='#555';
+      safeText(compactInfo, `${i+1} / ${audioData.length}`);
+      controlsDiv.appendChild(prevBtn); controlsDiv.appendChild(compactInfo); controlsDiv.appendChild(nextBtn);
+      playerRow.appendChild(controlsDiv);
+
+      const audioEl = createAudioElement(t.audioUrl);
+      audioEl.autoplay = true;
+      audioEl.addEventListener('ended', ()=>{
+        // next or loop
+        nextTrack();
+      });
+      // spacebar handler will toggle play/pause via global listener
+      playerRow.appendChild(audioEl);
+      container.appendChild(playerRow);
+
+      // remove old popup and set current audio
+      closeCurrentPopup();
+
+      const popup = new mapboxgl.Popup({ offset: 25, closeOnClick:false, focusAfterOpen:false })
+        .setLngLat(c)
+        .setDOMContent(container)
+        .addTo(map);
+
+      map.currentPopup = popup;
+      currentAudio = audioEl;
+      currentIndex = i;
+
+      // wire prev/next
+      prevBtn.addEventListener('click', ()=> prevTrack());
+      nextBtn.addEventListener('click', ()=> nextTrack());
+
+      // highlight track in playlist
+      document.querySelectorAll('.track').forEach(el => el.classList.remove('active-track'));
+      const el = document.querySelector(`.track[data-index="${i}"]`);
+      if(el){ el.classList.add('active-track'); el.scrollIntoView({behavior:'smooth', block:'center'}); }
+
+      // ensure popup stays on screen: reposition if needed (Mapbox handles most, but we fine-tune)
+      ensurePopupVisible(popup);
+
+      // prevent pause when clicking inside popup causing map to lose focus
+      popup.getElement().addEventListener('mouseenter', ()=> {/* no-op */});
+
+      // expose media session metadata (improves lock-screen controls on supported systems)
+      try {
+        if('mediaSession' in navigator){
+          navigator.mediaSession.metadata = new MediaMetadata({
+            title: t.name,
+            artist: 'Field Recording',
+            album: ''
+          });
+        }
+      }catch(e){}
+
+      return popup;
+    }
+
+    function ensurePopupVisible(popup){
+      try{
+        if(!popup) return;
+        const el = popup.getElement();
+        if(!el) return;
+        // compute bounding rect relative to map container
+        const mapRect = map.getContainer().getBoundingClientRect();
+        const rect = el.getBoundingClientRect();
+        let dx=0, dy=0;
+        if(rect.right > mapRect.right - 12) dx = -(rect.right - (mapRect.right - 12));
+        if(rect.left < mapRect.left + 12) dx = mapRect.left + 12 - rect.left;
+        if(rect.top < mapRect.top + 12) dy = mapRect.top + 12 - rect.top;
+        if(rect.bottom > mapRect.bottom - 12) dy = -(rect.bottom - (mapRect.bottom - 12));
+        if(dx || dy){
+          // pan by pixels
+          map.panBy([dx,dy], { duration: 400 });
+        }
+      }catch(e){
+        // ignore
+      }
+    }
+
+    function prevTrack(){
+      if(currentIndex === -1) return;
+      // use currentOrder if present
+      try {
+        const seq = currentOrder || audioData.map((_,i)=>i);
+        const pos = seq.indexOf(currentIndex);
+        const prevPos = (pos - 1 + seq.length) % seq.length;
+        const nextIndex = seq[prevPos];
+        playAudio(nextIndex);
+      }catch(e){ console.warn(e); }
+    }
+
+    function nextTrack(){
+      if(currentIndex === -1) return;
+      try {
+        const seq = currentOrder || audioData.map((_,i)=>i);
+        const pos = seq.indexOf(currentIndex);
+        const nextPos = (pos + 1) % seq.length;
+        const nextIndex = seq[nextPos];
+        playAudio(nextIndex);
+      }catch(e){ console.warn(e); }
+    }
+
+    function playAudio(i){
+      if(isDraggingMap) return; // don't trigger while dragging
+      if(!audioData[i]) return;
+      try{
+        // center & zoom while keeping some context (we use PLAY_ZOOM)
+        const bounds = new mapboxgl.LngLatBounds();
+        bounds.extend([audioData[i].lng, audioData[i].lat]);
+        // find up to 2 nearby points to provide context
+        const nearest = audioData.map((p, idx)=> {
+          if(idx === i) return null;
+          const d = haversineMeters(p.lat, p.lng, audioData[i].lat, audioData[i].lng);
+          return {idx, d};
+        }).filter(Boolean).sort((a,b)=>a.d-b.d).slice(0,2);
+
+        nearest.forEach(n => bounds.extend([audioData[n.idx].lng, audioData[n.idx].lat]));
+        // compute a target center and use fitBounds so users still see nearby context
+        const targetCenter = bounds.getCenter();
+        const duration = PLAY_ANIMATION_DURATION;
+        map.fitBounds(bounds, { padding: { top: 120, bottom:120, left:420, right:120 }, duration, easing: t => t<0.5?2*t*t:-1+(4-2*t)*t, maxZoom: PLAY_ZOOM });
+
+        // open popup after animation slightly delayed so the marker is visible
+        setTimeout(()=> {
+          openPopupForIndex(i);
+        }, Math.min(800, duration/2));
+
+      }catch(e){ console.warn('playAudio pan error', e); openPopupForIndex(i); }
+    }
+
+    /////////////////////////////
+    // GLOBAL INPUTS / ACTIONS //
+    /////////////////////////////
+
+    // Spacebar toggles play/pause (but don't capture when in input fields)
+    window.addEventListener('keydown', e=>{
+      if(e.code === 'Space'){
+        const activeEl = document.activeElement;
+        if(activeEl && (activeEl.tagName === 'INPUT' || activeEl.tagName === 'TEXTAREA' || activeEl.isContentEditable)) return;
+        e.preventDefault();
+        if(currentAudio){
+          if(currentAudio.paused) currentAudio.play().catch(()=>{});
+          else currentAudio.pause();
+        }
+      }
+      // F for fullscreen
+      if(e.key === 'f' || e.key === 'F'){ toggleFullscreen(); }
+    });
+
+    // Play all sequence
+    document.getElementById('playAllBtn').addEventListener('click', ()=>{
+      playingAll = !playingAll;
+      if(playingAll){
+        document.getElementById('playAllBtn').textContent = '⟲ All';
+        // start from currentIndex or 0
+        const start = (currentIndex === -1) ? 0 : currentIndex;
+        playSequenceFrom(start);
+      } else {
+        document.getElementById('playAllBtn').textContent = '▶︎ All';
+      }
+    });
+
+    async function playSequenceFrom(start){
+      let seq = currentOrder || audioData.map((_,i)=>i);
+      // if shuffle order is set, use it
+      if(shuffleOrder && (document.getElementById('sortSelect').value === 'shuffle')){
+        seq = shuffleOrder.slice();
+      }
+      let pos = seq.indexOf(start);
+      if(pos === -1) pos = 0;
+      for(let k=pos; playingAll; ){
+        const idx = seq[k % seq.length];
+        await new Promise(resolve=>{
+          // play idx and resolve when ended
+          playAudio(idx);
+          // wait for audio end
+          const onEnded = ()=>{
+            if(currentAudio) currentAudio.removeEventListener('ended', onEnded);
+            resolve();
+          };
+          if(currentAudio){
+            currentAudio.removeEventListener('ended', onEnded);
+            currentAudio.addEventListener('ended', onEnded);
+          } else {
+            // if no audio available, resolve quickly
+            setTimeout(resolve, 500);
+          }
+        });
+        k = (k + 1) % seq.length;
+      }
+    }
+
+    // Fullscreen button
+    function toggleFullscreen(){
+      if(!document.fullscreenElement){
+        document.documentElement.requestFullscreen().catch(()=>{});
+      } else {
+        document.exitFullscreen().catch(()=>{});
+      }
+    }
+    document.getElementById('fullscreenBtn').addEventListener('click', toggleFullscreen);
+
+    // Recenter button
+    document.getElementById('recenterBtn').addEventListener('click', ()=>{
+      if(!map) return;
+      map.flyTo({ center: [-122.50276, 41.31727], zoom: initialZoomForWidth(window.innerWidth), duration: 1000 });
+    });
+
+    // 3D toggle
+    document.getElementById('pitchToggleBtn').addEventListener('click', ()=>{
+      if(!map) return;
+      const curPitch = map.getPitch();
+      if(curPitch < 10){
+        // enable 3D
+        map.easeTo({ pitch: 45, duration: 800 });
+        // optional: enable terrain if style supports (left as comment)
+        // map.setTerrain({source: 'mapbox-dem', exaggeration:1.5});
+      } else {
+        map.easeTo({ pitch: 0, duration: 600 });
+        // map.setTerrain(null);
+      }
+    });
+
+    // Playlist hide/reveal toggle
+    document.getElementById('hidePlaylistToggle').addEventListener('click', ()=>{
+      playlistCollapsed = !playlistCollapsed;
+      playlistWrapper.classList.toggle('collapsed', playlistCollapsed);
+      // adjust map padding if needed (not implemented to keep simple)
+    });
+
+    // Reveal hidden suppressed pins (ones suppressed due to nearby rule)
+    document.getElementById('revealHiddenBtn').addEventListener('click', ()=>{
+      revealHidden = !revealHidden;
+      document.getElementById('revealHiddenBtn').textContent = revealHidden ? 'Hide suppressed' : 'Reveal hidden pins';
+      refreshDisplayFeaturesAndMapSource();
+    });
+
+    // Sorting select
+    document.getElementById('sortSelect').addEventListener('change', (e)=>{
+      const v = e.target.value;
+      buildPlaylist(v);
+    });
+
+    // Resize handlers: update cluster radius and initial zoom scaling if needed
+    window.addEventListener('resize', ()=>{
+      const newZoom = initialZoomForWidth(window.innerWidth);
+      // Do not automatically jump map on resize; just update cluster visuals
+      updateClusterRadius();
+    });
+
+    // map move event to update cluster radius dynamically
+    if(map){
+      map.on('move', ()=>updateClusterRadius());
+      map.on('zoomend', ()=>updateClusterRadius());
+    }
+
+    // click outside of cluster hover to close
+    document.addEventListener('click', (ev)=>{
+      if(clusterHoverPopup && !clusterHoverPopup.contains(ev.target)) removeClusterHoverPopup();
+    });
+
+    // compact preview for nearby single points on hover (shows short title)
+    if(map){
+      map.on('mousemove', 'unclustered-point', (e)=>{
+        if(!e.features || !e.features.length) return;
+        const f = e.features[0];
+        compactPreview.style.display = 'block';
+        compactPreview.style.left = (e.point.x + 12) + 'px';
+        compactPreview.style.top = (e.point.y + 12) + 'px';
+        compactPreview.textContent = f.properties.name || '';
+      });
+      map.on('mouseleave','unclustered-point', ()=> compactPreview.style.display = 'none');
+    }
+
+    /////////////////////////////
+    // SAFETY / HARDENING      //
+    /////////////////////////////
+
+    // Sanitize incoming text before inserting into DOM (we use textContent via safeText)
+    // Limit cluster leaf fetch sizes (CLUSTER_LEAF_LIMIT)
+    // No eval, no dynamic script insertion, all network errors caught
+
+    /////////////////////////////
+    // BOOTSTRAP: start load   //
+    /////////////////////////////
+
+    // wait for map to be ready before adding source/layers or calling map functions
+    if(map){
+      map.on('load', ()=>{
+        // initial source will be added in refreshDisplayFeaturesAndMapSource when loadData runs
+        loadData();
+      });
+    } else {
+      // map not available (no token) — still attempt to load data so playlist can render
+      loadData();
+    }
+
+    // Expose some debugging helpers to console (only in dev)
+    window._soundmap = {
+      audioData,
+      reload: ()=> loadData(),
+      playAudio: (i)=> playAudio(i),
+      closePopup: ()=> closeCurrentPopup()
+    };
+
+  })();
+  </script>
+</body>
+</html>
