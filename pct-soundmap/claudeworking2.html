@@ -1148,6 +1148,11 @@
 
       // Helper function to get display mile based on sort mode
       getDisplayMile(track) {
+        // Don't display mile if it's a placeholder (starts with ~)
+        if (track.mile && track.mile.toString().startsWith('~')) {
+          return null;
+        }
+        
         if (audioController.sortMode === 'sobo' && track.mile && track.mile.toString().trim().toLowerCase() !== 'n/a') {
           const nobobMile = parseFloat(track.mile);
           if (!isNaN(nobobMile)) {
@@ -1156,6 +1161,21 @@
           }
         }
         return track.mile;
+      }
+
+      // Helper function to get numeric mile value for sorting (handles ~ placeholders)
+      getMileForSorting(track) {
+        if (!track.mile || track.mile.toString().trim().toLowerCase() === 'n/a') {
+          return null;
+        }
+        
+        const mileStr = track.mile.toString();
+        if (mileStr.startsWith('~')) {
+          // Placeholder mile - remove ~ and parse
+          return parseFloat(mileStr.substring(1));
+        }
+        
+        return parseFloat(mileStr);
       }
 
       setupMap() {
