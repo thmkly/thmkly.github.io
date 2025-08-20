@@ -1,4 +1,14 @@
-<!DOCTYPE html>
+// Helper function to get display mile based on sort mode
+      getDisplayMile(track) {
+        if (audioController.sortMode === 'sobo' && track.mile && track.mile.toString().trim().toLowerCase() !== 'n/a') {
+          const nobobMile = parseFloat(track.mile);
+          if (!isNaN(nobobMile)) {
+            const soboMile = 2655.8 - nobobMile;
+            return soboMile.toFixed(1);
+          }
+        }
+        return track.mile;
+      },<!DOCTYPE html>
 <html>
 <head>
   <meta charset="utf-8" />
@@ -61,6 +71,12 @@
     box-shadow: 2px 0 5px rgba(0, 0, 0, 0.2);
     z-index: 3;
     transition: background-color 0.2s;
+    opacity: 0;
+    transition: opacity 0.3s ease, background-color 0.2s;
+  }
+
+  .playlist-toggle.visible {
+    opacity: 1;
   }
 
   .playlist-toggle:hover {
@@ -466,7 +482,7 @@
     <div class="sort-controls">
       <button class="control-btn sort-btn active" id="sortNobo">NOBO</button>
       <button class="control-btn sort-btn" id="sortSobo">SOBO</button>
-      <button class="control-btn sort-btn" id="sortDate">STEREO</button>
+      <button class="control-btn sort-btn" id="sortDate">Date</button>
       <div class="random-control">
         <span class="random-label">Random</span>
         <div class="toggle-switch" id="randomToggle" title="Toggle random playback">
@@ -652,9 +668,22 @@
         if (this.playMode === 'random') {
           nextIndex = Math.floor(Math.random() * audioData.length);
         } else {
-          nextIndex = this.currentIndex + 1;
-          if (nextIndex >= audioData.length) {
-            nextIndex = 0;
+          // Determine direction based on sort mode
+          if (this.sortMode === 'nobo') {
+            nextIndex = this.currentIndex + 1;
+            if (nextIndex >= audioData.length) {
+              nextIndex = 0;
+            }
+          } else if (this.sortMode === 'sobo') {
+            nextIndex = this.currentIndex - 1;
+            if (nextIndex < 0) {
+              nextIndex = audioData.length - 1;
+            }
+          } else { // date/stereo mode
+            nextIndex = this.currentIndex + 1;
+            if (nextIndex >= audioData.length) {
+              nextIndex = 0;
+            }
           }
         }
         
@@ -673,10 +702,22 @@
           }
           prevIndex = this.playHistory.pop();
         } else {
-          // In sequential mode, go to previous in playlist
-          prevIndex = this.currentIndex - 1;
-          if (prevIndex < 0) {
-            prevIndex = audioData.length - 1;
+          // Determine direction based on sort mode
+          if (this.sortMode === 'nobo') {
+            prevIndex = this.currentIndex - 1;
+            if (prevIndex < 0) {
+              prevIndex = audioData.length - 1;
+            }
+          } else if (this.sortMode === 'sobo') {
+            prevIndex = this.currentIndex + 1;
+            if (prevIndex >= audioData.length) {
+              prevIndex = 0;
+            }
+          } else { // date/stereo mode
+            prevIndex = this.currentIndex - 1;
+            if (prevIndex < 0) {
+              prevIndex = audioData.length - 1;
+            }
           }
         }
         
@@ -1318,40 +1359,16 @@
       }
 
       sortAndUpdatePlaylist() {
-        let sortedData = [...this.audioData];
-        
-        // Remember currently playing track
+        // Remember currently playing track but don't reorder playlist
         const currentlyPlayingTrack = audioController.currentIndex >= 0 ? 
           this.audioData[audioController.currentIndex] : null;
         
-        switch (audioController.sortMode) {
-          case 'nobo':
-            sortedData = this.sortByMileAndDate(sortedData, false);
-            break;
-          case 'sobo':
-            sortedData = this.sortByMileAndDate(sortedData, true);
-            break;
-          case 'date':
-            sortedData.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
-            break;
-        }
-        
-        this.audioData = sortedData;
-        
-        // Update current index to match new sort order
-        if (currentlyPlayingTrack) {
-          const newIndex = this.audioData.findIndex(track => 
-            track.originalIndex === currentlyPlayingTrack.originalIndex);
-          if (newIndex !== -1) {
-            audioController.currentIndex = newIndex;
-          }
-        }
-        
+        // Keep playlist visually static - only update mile display
         this.updatePlaylistOnly();
         
-        // Center the currently playing track in the new sort order
-        if (currentlyPlayingTrack && audioController.currentIndex >= 0) {
-          this.updateActiveTrack(audioController.currentIndex);
+        // Update popup if one is open to show correct mileage
+        if (this.currentPopup && currentlyPlayingTrack) {
+          this.refreshPopupMileage(currentlyPlayingTrack);
         }
       }
 
@@ -1449,7 +1466,8 @@
           
           const trackMile = document.createElement('div');
           trackMile.className = 'track-mile';
-          const mile = track.mile && track.mile.toString().trim().toLowerCase() !== 'n/a' ? `mi.${track.mile}` : '';
+          const displayMile = this.getDisplayMile(track);
+          const mile = displayMile && displayMile.toString().trim().toLowerCase() !== 'n/a' ? `mi.${displayMile}` : '';
           trackMile.textContent = mile;
           
           div.appendChild(trackInfo);
@@ -1461,6 +1479,10 @@
           
           playlist.appendChild(div);
         });
+        
+        // Show collapse arrow now that playlist is rendered
+        const toggleBtn = document.getElementById('playlistToggle');
+        toggleBtn.classList.add('visible');
         
         uiController.updateScrollArrows();
       }
@@ -1634,10 +1656,12 @@
 
         if (track.mile && track.mile.toString().trim().toLowerCase() !== 'n/a') {
           const mile = document.createElement('p');
+          mile.className = 'popup-mile';
           mile.style.margin = '0';
           mile.style.fontSize = '0.9em';
           mile.style.color = '#555';
-          mile.innerHTML = `<strong>mi.${track.mile}</strong>`;
+          const displayMile = this.getDisplayMile(track);
+          mile.innerHTML = `<strong>mi.${displayMile}</strong>`;
           container.appendChild(mile);
         }
 
@@ -1721,6 +1745,17 @@
           .addTo(map);
 
         this.currentPopup = popup;
+      }
+
+      refreshPopupMileage(track) {
+        if (!this.currentPopup) return;
+        
+        const popupContent = this.currentPopup._content;
+        const mileElement = popupContent.querySelector('.popup-mile');
+        if (mileElement && track.mile && track.mile.toString().trim().toLowerCase() !== 'n/a') {
+          const displayMile = this.getDisplayMile(track);
+          mileElement.innerHTML = `<strong>mi.${displayMile}</strong>`;
+        }
       }
 
       formatTimestamp(timestamp) {
