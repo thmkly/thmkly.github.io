@@ -1364,8 +1364,8 @@
                 originalIndex: index
               }));
               
-              // Set up data in fixed geographic order (south to north, Canada at top)
-              this.audioData = this.sortByMileAndDate([...this.originalAudioData], 'nobo').reverse();
+              // Set up data in fixed geographic order (Canada at top for display)
+              this.audioData = this.sortByMileAndDate([...this.originalAudioData], 'nobo');
               this.sortAndUpdatePlaylist();
               this.updateMapData();
               
@@ -1412,42 +1412,42 @@
           return [...data].sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
         }
         
-        // Sort all tracks chronologically first
-        const chronological = [...data].sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
-        
-        // Extract just the tracks with miles and sort them by mile
-        const tracksWithMiles = chronological.filter(track => {
-          const mile = parseFloat(track.mile);
-          return !isNaN(mile) && track.mile && track.mile.toString().trim().toLowerCase() !== 'n/a';
+        // For NOBO/SOBO: purely spatial sorting by mile (including ~ placeholders)
+        const tracksWithMiles = data.filter(track => {
+          const mile = this.getMileForSorting(track);
+          return mile !== null && !isNaN(mile);
         });
         
+        const tracksWithoutMiles = data.filter(track => {
+          const mile = this.getMileForSorting(track);
+          return mile === null || isNaN(mile);
+        });
+
+        // Sort tracks with miles (including placeholders) by mile number
+        // NOBO: ascending (0 → 2655), SOBO: descending (2655 → 0)
         const ascending = mode === 'nobo';
         tracksWithMiles.sort((a, b) => {
-          const mileA = parseFloat(a.mile);
-          const mileB = parseFloat(b.mile);
+          const mileA = this.getMileForSorting(a);
+          const mileB = this.getMileForSorting(b);
+          if (Math.abs(mileA - mileB) < 0.01) { // Same mile (accounting for decimals)
+            // If same mile, sort by timestamp
+            return new Date(a.timestamp) - new Date(b.timestamp);
+          }
           return ascending ? mileA - mileB : mileB - mileA;
         });
-        
-        // Now go through the chronological list and replace mile tracks with sorted mile tracks
-        // while keeping no-mile tracks in their original chronological positions
-        const result = [];
-        let mileTrackIndex = 0;
-        
-        for (const track of chronological) {
-          const mile = parseFloat(track.mile);
-          const hasMile = !isNaN(mile) && track.mile && track.mile.toString().trim().toLowerCase() !== 'n/a';
-          
-          if (hasMile) {
-            // This is a track with a mile - replace it with the next sorted mile track
-            result.push(tracksWithMiles[mileTrackIndex]);
-            mileTrackIndex++;
-          } else {
-            // This is a track without a mile - keep it in its chronological position
-            result.push(track);
-          }
+
+        // For display: reverse the order so Canada appears at top
+        // NOBO sorted (0→2655) becomes display (2655→0)
+        // SOBO sorted (2655→0) stays as (2655→0)
+        if (mode === 'nobo') {
+          tracksWithMiles.reverse();
         }
-        
-        return result;
+
+        // Sort tracks without miles by timestamp
+        tracksWithoutMiles.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
+
+        // Combine: mile-sorted tracks first, then timestamp-sorted tracks without miles
+        return [...tracksWithMiles, ...tracksWithoutMiles];
       }
 
       updateMapData() {
@@ -1490,7 +1490,7 @@
           const trackMile = document.createElement('div');
           trackMile.className = 'track-mile';
           const displayMile = this.getDisplayMile(track);
-          const mile = displayMile && displayMile.toString().trim().toLowerCase() !== 'n/a' ? `mi.${displayMile}` : '';
+          const mile = displayMile !== null && displayMile.toString().trim().toLowerCase() !== 'n/a' ? `mi.${displayMile}` : '';
           trackMile.textContent = mile;
           
           div.appendChild(trackInfo);
@@ -1706,14 +1706,16 @@
         container.appendChild(timestamp);
 
         if (track.mile && track.mile.toString().trim().toLowerCase() !== 'n/a') {
-          const mile = document.createElement('p');
-          mile.className = 'popup-mile';
-          mile.style.margin = '0';
-          mile.style.fontSize = '0.9em';
-          mile.style.color = '#555';
           const displayMile = this.getDisplayMile(track);
-          mile.innerHTML = `<strong>mi.${displayMile}</strong>`;
-          container.appendChild(mile);
+          if (displayMile !== null) {
+            const mile = document.createElement('p');
+            mile.className = 'popup-mile';
+            mile.style.margin = '0';
+            mile.style.fontSize = '0.9em';
+            mile.style.color = '#555';
+            mile.innerHTML = `<strong>mi.${displayMile}</strong>`;
+            container.appendChild(mile);
+          }
         }
 
         if (track.notes?.trim()) {
