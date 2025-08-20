@@ -1372,6 +1372,11 @@
         // Only update mile display based on current mode
         this.updatePlaylistOnly();
         
+        // Restore the active track highlighting after playlist update
+        if (currentlyPlayingTrack) {
+          this.updateActiveTrack(audioController.currentIndex);
+        }
+        
         // Set scroll position based on sort mode (only if no track playing)
         this.setPlaylistScrollPosition();
         
