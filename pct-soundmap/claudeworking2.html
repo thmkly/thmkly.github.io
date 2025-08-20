@@ -1316,7 +1316,7 @@
             currentCenter.lat, currentCenter.lng,
             targetCenter.lat, targetCenter.lng
           );
-          const duration = Math.max(1000, Math.min(3000, 500 * Math.sqrt(distance / 1000))); // Reduced duration
+          const duration = Math.max(1500, Math.min(4000, 800 * Math.sqrt(distance / 1000))); // More natural duration
           
           const targetZoom = uiController.is3DEnabled ? CONFIG.ZOOM_3D : CONFIG.ZOOM_2D;
           
@@ -1329,22 +1329,22 @@
             },
             maxZoom: targetZoom,
             duration,
-            easing: t => t < 0.5 ? 2 * t * t : -1 + (4 - 2 * t) * t
+            easing: t => 1 - Math.pow(1 - t, 3) // Ease-out cubic for smoother feel
           });
           
           // Reset positioning flag after animation
-          setTimeout(resetPositioning, duration + 100);
+          setTimeout(resetPositioning, duration + 200);
         } else {
           const targetZoom = uiController.is3DEnabled ? CONFIG.ZOOM_3D : CONFIG.ZOOM_2D;
           map.flyTo({
             center: coords,
             zoom: targetZoom,
-            duration: 1500, // Reduced duration
-            easing: t => t < 0.5 ? 2 * t * t : -1 + (4 - 2 * t) * t
+            duration: 2000, // Slower, more natural duration
+            easing: t => 1 - Math.pow(1 - t, 3) // Ease-out cubic
           });
           
           // Reset positioning flag after animation
-          setTimeout(resetPositioning, 1600);
+          setTimeout(resetPositioning, 2200);
         }
       }
 
