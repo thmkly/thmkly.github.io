@@ -416,14 +416,13 @@
   <div class="control-panel">
     <div class="control-row">
       <button class="control-btn" id="resetMapBtn">Reset Map</button>
-      <button class="control-btn" id="emergencyStopBtn">Emergency Stop</button>
       <button class="control-btn" id="fullscreenBtn">Fullscreen</button>
       <button class="control-btn" id="terrain3dBtn">3D Terrain</button>
     </div>
     <div class="sort-controls">
       <button class="control-btn sort-btn active" id="sortNobo">NOBO</button>
       <button class="control-btn sort-btn" id="sortSobo">SOBO</button>
-      <button class="control-btn sort-btn" id="sortDate">Date</button>
+      <button class="control-btn sort-btn" id="sortDate">My Route</button>
       <div class="random-control">
         <span class="random-label">Random</span>
         <div class="toggle-switch" id="randomToggle" title="Toggle random playback">
@@ -608,10 +607,6 @@
           mapController.resetMap();
         });
 
-        document.getElementById('emergencyStopBtn').addEventListener('click', () => {
-          this.emergencyStop();
-        });
-
         document.getElementById('fullscreenBtn').addEventListener('click', () => {
           this.toggleFullscreen();
         });
@@ -678,38 +673,6 @@
       updateRandomToggle() {
         const toggle = document.getElementById('randomToggle');
         toggle.classList.toggle('active', audioController.playMode === 'random');
-      }
-
-      emergencyStop() {
-        console.log('EMERGENCY STOP activated');
-        
-        // Stop all audio
-        audioController.stop();
-        
-        // Clear all timeouts and animations
-        if (mapController.animationTimeout) {
-          clearTimeout(mapController.animationTimeout);
-        }
-        if (mapController.moveTimeout) {
-          clearTimeout(mapController.moveTimeout);
-        }
-        
-        // Reset positioning flags
-        mapController.isPositioning = false;
-        
-        // Clear mini info boxes
-        this.clearMiniInfoBoxes();
-        
-        // Close popup
-        if (mapController.currentPopup) {
-          mapController.currentPopup.remove();
-          mapController.currentPopup = null;
-        }
-        
-        // Stop map animations
-        map.stop();
-        
-        showNotification('Emergency stop activated - all animations stopped', 3000);
       }
 
       toggleFullscreen() {
