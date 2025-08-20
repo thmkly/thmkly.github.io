@@ -808,6 +808,10 @@
         
         visiblePoints.forEach(point => {
           const trackIndex = parseInt(point.properties.id);
+          
+          // Skip the currently playing track - it has the main popup
+          if (trackIndex === audioController.currentIndex) return;
+          
           const track = audioData[trackIndex];
           if (!track) return;
 
@@ -816,6 +820,7 @@
           
           const infoBox = document.createElement('div');
           infoBox.className = 'mini-infobox';
+          infoBox.dataset.trackIndex = trackIndex; // Store track index for position updates
           
           const playIcon = document.createElement('div');
           playIcon.className = 'play-icon';
@@ -854,6 +859,20 @@
           }
         });
         this.miniInfoBoxes = [];
+      }
+
+      updateMiniInfoBoxPositions() {
+        // Update positions of existing mini info boxes to follow their geographic points
+        this.miniInfoBoxes.forEach(infoBox => {
+          const trackIndex = parseInt(infoBox.dataset.trackIndex);
+          const track = mapController.audioData[trackIndex];
+          if (track) {
+            const coords = [parseFloat(track.lng), parseFloat(track.lat)];
+            const pixelCoords = map.project(coords);
+            infoBox.style.left = `${pixelCoords.x + 10}px`;
+            infoBox.style.top = `${pixelCoords.y - 20}px`;
+          }
+        });
       }
 
       showClusterTooltip(e, leaves) {
@@ -1020,6 +1039,9 @@
         });
 
         map.on('move', () => {
+          // Update mini info box positions when map moves
+          this.updateMiniInfoBoxPositions();
+          
           // Throttle mini info box updates to prevent loops
           if (this.moveTimeout) {
             clearTimeout(this.moveTimeout);
@@ -1033,7 +1055,7 @@
                 uiController.showMiniInfoBoxes(null, this.audioData);
               }
             }
-          }, 100); // Throttle to every 100ms
+          }, 200); // Slightly longer throttle
         });
 
         document.addEventListener('fullscreenchange', () => {
@@ -1275,7 +1297,12 @@
         const activeTrack = document.querySelector(`.track[data-id="${index}"]`);
         if (activeTrack) {
           activeTrack.classList.add('active-track');
-          activeTrack.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          // Smoother, slower scroll to center the track
+          activeTrack.scrollIntoView({ 
+            behavior: 'smooth', 
+            block: 'center',
+            inline: 'nearest'
+          });
         }
       }
 
