@@ -60,10 +60,16 @@
     color: #333;
     box-shadow: 2px 0 5px rgba(0, 0, 0, 0.2);
     z-index: 3;
+    transition: background-color 0.2s;
   }
 
   .playlist-toggle:hover {
     background-color: rgba(255, 255, 255, 0.9);
+  }
+
+  .playlist-wrapper:not(.collapsed) .playlist-toggle {
+    background-color: transparent;
+    box-shadow: none;
   }
 
   .playlist {
@@ -163,11 +169,53 @@
   .sort-controls {
     display: flex;
     gap: 4px;
+    align-items: center;
   }
 
   .sort-btn {
     padding: 4px 8px;
     font-size: 11px;
+  }
+
+  .random-control {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-left: 8px;
+  }
+
+  .random-label {
+    font-size: 11px;
+    color: #333;
+  }
+
+  .toggle-switch {
+    position: relative;
+    width: 36px;
+    height: 18px;
+    background-color: #ccc;
+    border-radius: 9px;
+    cursor: pointer;
+    transition: background-color 0.3s;
+  }
+
+  .toggle-switch.active {
+    background-color: #5c3a2e;
+  }
+
+  .toggle-slider {
+    position: absolute;
+    top: 2px;
+    left: 2px;
+    width: 14px;
+    height: 14px;
+    background-color: white;
+    border-radius: 50%;
+    transition: transform 0.3s;
+  }
+
+  .toggle-switch.active .toggle-slider {
+    transform: translateX(18px);
   }
 
   /* Mini Info Boxes */
@@ -357,7 +405,7 @@
   <div id="map"></div>
   
   <div class="playlist-wrapper" id="playlistWrapper">
-    <button class="playlist-toggle" id="playlistToggle">◀</button>
+    <button class="playlist-toggle" id="playlistToggle" title="Collapse playlist">◀</button>
     <div class="scroll-arrow up" id="scrollUp">▲</div>
     <div class="playlist" id="playlist">
       <div class="loading-placeholder">loading recordings...</div>
@@ -375,7 +423,12 @@
       <button class="control-btn sort-btn active" id="sortNobo">NOBO</button>
       <button class="control-btn sort-btn" id="sortSobo">SOBO</button>
       <button class="control-btn sort-btn" id="sortDate">Date</button>
-      <button class="control-btn sort-btn" id="randomizeBtn">Random</button>
+      <div class="random-control">
+        <span class="random-label">Random</span>
+        <div class="toggle-switch" id="randomToggle" title="Toggle random playback">
+          <div class="toggle-slider"></div>
+        </div>
+      </div>
     </div>
   </div>
 
@@ -533,10 +586,10 @@
           });
         });
 
-        // Control buttons
-        document.getElementById('randomizeBtn').addEventListener('click', () => {
+        // Random toggle
+        document.getElementById('randomToggle').addEventListener('click', () => {
           audioController.playMode = audioController.playMode === 'random' ? 'sequential' : 'random';
-          this.updateRandomButton();
+          this.updateRandomToggle();
         });
 
         document.getElementById('resetMapBtn').addEventListener('click', () => {
@@ -584,9 +637,11 @@
         if (this.playlistExpanded) {
           wrapper.classList.remove('collapsed');
           toggle.textContent = '◀';
+          toggle.title = 'Collapse playlist';
         } else {
           wrapper.classList.add('collapsed');
           toggle.textContent = '▶';
+          toggle.title = 'Expand playlist';
         }
       }
 
@@ -597,23 +652,16 @@
         const sortMap = {
           'sortNobo': 'nobo',
           'sortSobo': 'sobo',
-          'sortDate': 'date',
-          'randomizeBtn': 'random'
+          'sortDate': 'date'
         };
         
         audioController.sortMode = sortMap[sortId];
-        
-        if (sortId === 'randomizeBtn') {
-          audioController.playMode = 'random';
-          this.updateRandomButton();
-        }
-        
         mapController.sortAndUpdatePlaylist();
       }
 
-      updateRandomButton() {
-        const btn = document.getElementById('randomizeBtn');
-        btn.classList.toggle('active', audioController.playMode === 'random');
+      updateRandomToggle() {
+        const toggle = document.getElementById('randomToggle');
+        toggle.classList.toggle('active', audioController.playMode === 'random');
       }
 
       toggleFullscreen() {
@@ -749,8 +797,6 @@
         
         visiblePoints.forEach(point => {
           const trackIndex = parseInt(point.properties.id);
-          if (trackIndex === audioController.currentIndex) return;
-          
           const track = audioData[trackIndex];
           if (!track) return;
 
@@ -762,17 +808,15 @@
           
           const playIcon = document.createElement('div');
           playIcon.className = 'play-icon';
-          playIcon.addEventListener('click', (e) => {
-            e.stopPropagation();
-            mapController.playAudio(trackIndex);
-          });
           
           const title = document.createElement('span');
           title.className = 'mini-infobox-title';
           title.textContent = track.name.replace(/^[^\s]+\s+-\s+/, '');
-          title.addEventListener('click', (e) => {
+          
+          // Make entire mini box clickable to play audio and show popup
+          infoBox.addEventListener('click', (e) => {
             e.stopPropagation();
-            mapController.showTrackPopup(trackIndex, false); // Don't auto-play
+            mapController.playAudio(trackIndex);
           });
           
           infoBox.appendChild(playIcon);
@@ -962,8 +1006,10 @@
         });
 
         map.on('move', () => {
-          if (audioController.currentIndex >= 0) {
-            uiController.showMiniInfoBoxes(this.audioData[audioController.currentIndex], this.audioData);
+          // Show mini info boxes for all visible points when map moves
+          const visiblePoints = map.queryRenderedFeatures({ layers: ['unclustered-point'] });
+          if (visiblePoints.length > 0) {
+            uiController.showMiniInfoBoxes(null, this.audioData);
           }
         });
 
@@ -990,7 +1036,7 @@
           .then(data => {
             this.audioData = data;
             this.sortAndUpdatePlaylist();
-            this.updateMapData(); // Add this to populate map immediately after data loads
+            this.updateMapData();
           })
           .catch(e => {
             console.error(e);
@@ -1011,13 +1057,10 @@
           case 'date':
             sortedData.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
             break;
-          case 'random':
-            sortedData = this.shuffleArray(sortedData);
-            break;
         }
         
         this.audioData = sortedData;
-        this.updatePlaylistOnly(); // Don't update map data to prevent cluster reorganization
+        this.updatePlaylistOnly();
       }
 
       sortByMileAndDate(data, reverse = false) {
@@ -1073,15 +1116,6 @@
         }
 
         return result;
-      }
-
-      shuffleArray(array) {
-        const shuffled = [...array];
-        for (let i = shuffled.length - 1; i > 0; i--) {
-          const j = Math.floor(Math.random() * (i + 1));
-          [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
-        }
-        return shuffled;
       }
 
       updateMapData() {
@@ -1146,7 +1180,7 @@
         const audio = audioController.play(index, this.audioData);
         this.positionMapForTrack(track, index);
         this.showPopup([parseFloat(track.lng), parseFloat(track.lat)], track, audio, index);
-        uiController.showMiniInfoBoxes(track, this.audioData);
+        uiController.showMiniInfoBoxes(null, this.audioData);
       }
 
       showTrackPopup(index, autoPlay = true) {
