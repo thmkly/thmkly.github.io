@@ -659,17 +659,19 @@
           nextIndex = Math.floor(Math.random() * audioData.length);
         } else {
           // Navigation based on sort mode:
-          // NOBO: next = up the list (towards Canada), prev = down the list (towards Mexico)
-          // SOBO: next = down the list (towards Mexico), prev = up the list (towards Canada)
-          // STEREO: follow NOBO behavior
-          
           if (this.sortMode === 'sobo') {
             // SOBO: next goes down the list (towards Mexico/higher index)
             nextIndex = this.currentIndex + 1;
             if (nextIndex >= audioData.length) {
               nextIndex = 0; // Wrap to top (Canada)
             }
-          } else { // nobo or date/stereo modes
+          } else if (this.sortMode === 'date') {
+            // STEREO: next goes down chronologically (towards newer/higher index)
+            nextIndex = this.currentIndex + 1;
+            if (nextIndex >= audioData.length) {
+              nextIndex = 0; // Wrap to beginning (earliest)
+            }
+          } else { // nobo mode
             // NOBO: next goes up the list (towards Canada/lower index)
             nextIndex = this.currentIndex - 1;
             if (nextIndex < 0) {
@@ -694,17 +696,19 @@
           prevIndex = this.playHistory.pop();
         } else {
           // Navigation based on sort mode:
-          // NOBO: prev = down the list (towards Mexico), next = up the list (towards Canada)
-          // SOBO: prev = up the list (towards Canada), next = down the list (towards Mexico)
-          // STEREO: follow NOBO behavior
-          
           if (this.sortMode === 'sobo') {
             // SOBO: prev goes up the list (towards Canada/lower index)
             prevIndex = this.currentIndex - 1;
             if (prevIndex < 0) {
               prevIndex = audioData.length - 1; // Wrap to bottom (Mexico)
             }
-          } else { // nobo or date/stereo modes
+          } else if (this.sortMode === 'date') {
+            // STEREO: prev goes up chronologically (towards older/lower index)
+            prevIndex = this.currentIndex - 1;
+            if (prevIndex < 0) {
+              prevIndex = audioData.length - 1; // Wrap to end (latest)
+            }
+          } else { // nobo mode
             // NOBO: prev goes down the list (towards Mexico/higher index)
             prevIndex = this.currentIndex + 1;
             if (prevIndex >= audioData.length) {
@@ -1388,8 +1392,21 @@
         const currentlyPlayingTrack = audioController.currentIndex >= 0 ? 
           this.audioData[audioController.currentIndex] : null;
         
-        // Don't reorder playlist - keep static geographic order
-        // Only update mile display based on current mode
+        // For STEREO mode, actually reorder the playlist chronologically
+        // For NOBO/SOBO modes, keep static geographic order and only update display
+        if (audioController.sortMode === 'date') {
+          // STEREO: Reorder playlist chronologically
+          this.audioData = this.sortByMileAndDate([...this.originalAudioData], 'date');
+          
+          // Update current index to match new chronological order
+          if (currentlyPlayingTrack) {
+            audioController.currentIndex = this.audioData.findIndex(track => 
+              track.originalIndex === currentlyPlayingTrack.originalIndex
+            );
+          }
+        }
+        
+        // Update playlist display
         this.updatePlaylistOnly();
         
         // Restore the active track highlighting after playlist update
@@ -1397,7 +1414,7 @@
           this.updateActiveTrack(audioController.currentIndex);
         }
         
-        // Set scroll position based on sort mode (only if no track playing)
+        // Set scroll position based on sort mode
         this.setPlaylistScrollPosition();
         
         // Update popup if one is open to show correct mileage
@@ -1514,6 +1531,8 @@
           setTimeout(() => {
             if (audioController.sortMode === 'sobo') {
               playlist.scrollTop = 0;
+            } else if (audioController.sortMode === 'date') {
+              playlist.scrollTop = 0;
             } else {
               playlist.scrollTop = playlist.scrollHeight;
             }
@@ -1530,8 +1549,11 @@
             if (audioController.sortMode === 'sobo') {
               // SOBO: Scroll to top (starting at Canada/north)
               playlist.scrollTop = 0;
+            } else if (audioController.sortMode === 'date') {
+              // STEREO: Scroll to top (starting with earliest recordings)
+              playlist.scrollTop = 0;
             } else {
-              // NOBO and STEREO: Scroll to bottom (starting at Mexico/south)
+              // NOBO: Scroll to bottom (starting at Mexico/south)
               playlist.scrollTop = playlist.scrollHeight;
             }
           }, 100); // Increased delay to ensure rendering is complete
