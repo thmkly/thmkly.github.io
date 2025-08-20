@@ -466,7 +466,7 @@
     <div class="sort-controls">
       <button class="control-btn sort-btn active" id="sortNobo">NOBO</button>
       <button class="control-btn sort-btn" id="sortSobo">SOBO</button>
-      <button class="control-btn sort-btn" id="sortDate">STEREO</button>
+      <button class="control-btn sort-btn" id="sortDate">Date</button>
       <div class="random-control">
         <span class="random-label">Random</span>
         <div class="toggle-switch" id="randomToggle" title="Toggle random playback">
@@ -971,12 +971,16 @@
         const visiblePoints = map.queryRenderedFeatures({ layers: ['unclustered-point'] });
         
         visiblePoints.forEach(point => {
-          const trackIndex = parseInt(point.properties.id);
+          const originalIndex = parseInt(point.properties.originalIndex);
+          
+          // Find this track in current sorted data
+          const currentIndex = audioData.findIndex(track => track.originalIndex === originalIndex);
+          if (currentIndex === -1) return;
           
           // Skip the currently playing track - it has the main popup
-          if (trackIndex === audioController.currentIndex) return;
+          if (currentIndex === audioController.currentIndex) return;
           
-          const track = audioData[trackIndex];
+          const track = audioData[currentIndex];
           if (!track) return;
 
           const coords = point.geometry.coordinates;
@@ -984,7 +988,7 @@
           
           const infoBox = document.createElement('div');
           infoBox.className = 'mini-infobox';
-          infoBox.dataset.trackIndex = trackIndex; // Store track index for position updates
+          infoBox.dataset.trackIndex = currentIndex; // Store current playlist index
           
           const playIcon = document.createElement('div');
           playIcon.className = 'play-icon';
@@ -996,7 +1000,7 @@
           // Make entire mini box clickable to play audio and show popup
           infoBox.addEventListener('click', (e) => {
             e.stopPropagation();
-            mapController.playAudio(trackIndex);
+            mapController.playAudio(currentIndex);
           });
           
           infoBox.appendChild(playIcon);
@@ -1101,6 +1105,7 @@
     class MapController {
       constructor() {
         this.audioData = [];
+        this.originalAudioData = []; // Keep original order for stable map references
         this.currentPopup = null;
         this.isPositioning = false;
         this.animationTimeout = null;
@@ -1217,8 +1222,13 @@
         map.on('click', 'unclustered-point', (e) => {
           const feature = e.features[0];
           if (!feature) return;
-          const index = parseInt(feature.properties.id);
-          this.playAudio(index);
+          const originalIndex = parseInt(feature.properties.originalIndex);
+          
+          // Find this track in the current sorted playlist
+          const currentIndex = this.audioData.findIndex(track => track.originalIndex === originalIndex);
+          if (currentIndex !== -1) {
+            this.playAudio(currentIndex);
+          }
         });
 
         map.on('move', () => {
@@ -1283,7 +1293,13 @@
                 console.log('First item audioUrl:', data[0].audioUrl);
               }
               
-              this.audioData = data;
+              // Add original index to each track for stable map references
+              this.originalAudioData = data.map((track, index) => ({
+                ...track,
+                originalIndex: index
+              }));
+              
+              this.audioData = [...this.originalAudioData];
               this.sortAndUpdatePlaylist();
               this.updateMapData();
               
@@ -1304,6 +1320,10 @@
       sortAndUpdatePlaylist() {
         let sortedData = [...this.audioData];
         
+        // Remember currently playing track
+        const currentlyPlayingTrack = audioController.currentIndex >= 0 ? 
+          this.audioData[audioController.currentIndex] : null;
+        
         switch (audioController.sortMode) {
           case 'nobo':
             sortedData = this.sortByMileAndDate(sortedData, false);
@@ -1317,6 +1337,16 @@
         }
         
         this.audioData = sortedData;
+        
+        // Update current index to match new sort order
+        if (currentlyPlayingTrack) {
+          const newIndex = this.audioData.findIndex(track => 
+            track.originalIndex === currentlyPlayingTrack.originalIndex);
+          if (newIndex !== -1) {
+            audioController.currentIndex = newIndex;
+          }
+        }
+        
         this.updatePlaylistOnly();
       }
 
@@ -1379,9 +1409,10 @@
         const source = map.getSource('audio');
         if (!source) return;
         
+        // Use original data for map - points stay static regardless of sort order
         const geojson = {
           type: 'FeatureCollection',
-          features: this.audioData.map((track, index) => ({
+          features: this.originalAudioData.map((track, index) => ({
             type: 'Feature',
             geometry: { 
               type: 'Point', 
@@ -1389,7 +1420,7 @@
             },
             properties: { 
               ...track, 
-              id: index,
+              originalIndex: index, // Use original index for stable reference
               mile: track.mile || 'N/A'
             }
           }))
@@ -1646,11 +1677,27 @@
         if (audio) {
           const audioContainer = document.createElement('div');
           audioContainer.className = 'audio-container';
+          
+          // Ensure audio controls always render properly
           audio.controls = true;
           audio.autoplay = true;
           audio.style.width = '100%';
           audio.controlsList = 'nodownload';
           audio.oncontextmenu = () => false;
+          
+          // Force audio element to load controls
+          audio.load();
+          
+          // Fallback: if controls don't appear, try recreating
+          setTimeout(() => {
+            if (!audio.controls || audio.offsetHeight === 0) {
+              console.warn('Audio controls not rendering, attempting fix...');
+              audio.controls = true;
+              audio.style.display = 'block';
+              audio.style.visibility = 'visible';
+            }
+          }, 100);
+          
           audioContainer.appendChild(audio);
           controls.appendChild(audioContainer);
         }
