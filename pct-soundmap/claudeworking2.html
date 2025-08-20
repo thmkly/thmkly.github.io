@@ -852,6 +852,20 @@
         });
       }
 
+      updateMiniInfoBoxPositions() {
+        // Update positions of existing mini info boxes to follow their geographic points
+        this.miniInfoBoxes.forEach(infoBox => {
+          const trackIndex = parseInt(infoBox.dataset.trackIndex);
+          const track = mapController.audioData[trackIndex];
+          if (track) {
+            const coords = [parseFloat(track.lng), parseFloat(track.lat)];
+            const pixelCoords = map.project(coords);
+            infoBox.style.left = `${pixelCoords.x + 10}px`;
+            infoBox.style.top = `${pixelCoords.y - 20}px`;
+          }
+        });
+      }
+
       clearMiniInfoBoxes() {
         this.miniInfoBoxes.forEach(box => {
           if (box.parentNode) {
@@ -1038,13 +1052,13 @@
           this.playAudio(index);
         });
 
-        map.on('dragstart', () => {
-          // Hide mini boxes when dragging starts
-          uiController.clearMiniInfoBoxes();
+        map.on('move', () => {
+          // Update mini box positions in real-time during movement
+          uiController.updateMiniInfoBoxPositions();
         });
 
         map.on('moveend', () => {
-          // Only update mini boxes when movement is completely finished
+          // Refresh mini boxes when movement is completely finished
           if (!this.isPositioning) {
             const visiblePoints = map.queryRenderedFeatures({ layers: ['unclustered-point'] });
             if (visiblePoints.length > 0 && visiblePoints.length < 50) {
