@@ -422,7 +422,7 @@
     <div class="sort-controls">
       <button class="control-btn sort-btn active" id="sortNobo">NOBO</button>
       <button class="control-btn sort-btn" id="sortSobo">SOBO</button>
-      <button class="control-btn sort-btn" id="sortDate">My Route</button>
+      <button class="control-btn sort-btn" id="sortDate">Date</button>
       <div class="random-control">
         <span class="random-label">Random</span>
         <div class="toggle-switch" id="randomToggle" title="Toggle random playback">
@@ -1548,6 +1548,18 @@
           this.currentPopup = null;
         }
         
+        // Disable 3D mode if it's enabled
+        if (uiController.is3DEnabled) {
+          uiController.is3DEnabled = false;
+          const btn = document.getElementById('terrain3dBtn');
+          btn.classList.remove('active');
+          
+          map.setTerrain(null);
+          if (map.getSource('mapbox-dem')) {
+            map.removeSource('mapbox-dem');
+          }
+        }
+        
         map.flyTo({
           center: CONFIG.DEFAULT_CENTER,
           zoom: CONFIG.getDefaultZoom(),
@@ -1557,6 +1569,8 @@
         });
         
         document.querySelectorAll('.track').forEach(el => el.classList.remove('active-track'));
+        
+        showNotification('Map reset to default view', 2000);
       }
     }
 
