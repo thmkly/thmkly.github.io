@@ -518,7 +518,7 @@
     <div class="sort-controls">
       <button class="control-btn sort-btn active" id="sortNobo">NOBO</button>
       <button class="control-btn sort-btn" id="sortSobo">SOBO</button>
-      <button class="control-btn sort-btn" id="sortDate">Date</button>
+      <button class="control-btn sort-btn" id="sortDate">STEREO</button>
       <div class="random-control">
         <span class="random-label">Random</span>
         <div class="toggle-switch" id="randomToggle" title="Toggle random playback">
@@ -569,26 +569,17 @@
         this.playQueue = [];
         this.lastPlayNext = 0;
         this.playHistory = []; // Track play history for random mode
-        this.visibilityListenerAdded = false;
-        this.setupBackgroundAudio();
+        this.setupWakeLock();
       }
 
-      setupBackgroundAudio() {
-        // Handle page visibility changes for background audio continuation
-        this.handleVisibilityChange = () => {
-          if (document.hidden) {
-            console.log('Device sleep/background - audio should continue');
-            // Ensure audio context doesn't get suspended
-            if (this.currentAudio && !this.currentAudio.paused) {
-              console.log('Audio playing in background');
-            }
-          } else {
-            console.log('Device awake - resuming normal operation');
+      async setupWakeLock() {
+        if ('wakeLock' in navigator) {
+          try {
+            this.wakeLock = await navigator.wakeLock.request('screen');
+          } catch (err) {
+            console.log('Wake lock not supported');
           }
-        };
-
-        document.addEventListener('visibilitychange', this.handleVisibilityChange);
-        this.visibilityListenerAdded = true;
+        }
       }
 
       play(index, audioData) {
@@ -617,24 +608,15 @@
         audio.controlsList = 'nodownload';
         audio.oncontextmenu = () => false;
         
-        // Ensure audio can play in background
-        audio.addEventListener('play', () => {
-          this.isPlaying = true;
-          console.log('Audio started playing');
-        });
-
-        audio.addEventListener('pause', () => {
-          // Only set to false if manually paused, not if auto-advancing
-          if (!this.isAdvancing) {
-            this.isPlaying = false;
-          }
-        });
+        // Mobile-friendly background audio
+        audio.setAttribute('playsinline', '');
+        audio.setAttribute('webkit-playsinline', '');
         
         audio.addEventListener('ended', () => {
-          console.log('Track ended, playing next');
-          this.isAdvancing = true; // Flag to indicate auto-advance
-          this.playNext(audioData);
-          this.isAdvancing = false;
+          // Add small delay to ensure proper state management on mobile
+          setTimeout(() => {
+            this.playNext(audioData);
+          }, 100);
         });
 
         audio.addEventListener('error', () => {
@@ -642,19 +624,13 @@
           showNotification(`Audio failed to load: ${track.name}`, 3000);
         });
 
-        // Prevent audio context from being suspended
-        audio.addEventListener('loadstart', () => {
-          if (typeof AudioContext !== 'undefined') {
-            if (!this.audioContext) {
-              this.audioContext = new (window.AudioContext || window.webkitAudioContext)();
-            }
-            if (this.audioContext.state === 'suspended') {
-              this.audioContext.resume();
-            }
-          }
-        });
-
+        // For mobile Safari - add to DOM to ensure background playback
+        document.body.appendChild(audio);
+        
+        // Store reference to remove later
         this.currentAudio = audio;
+        this.currentAudio.domElement = audio;
+        
         return audio;
       }
 
@@ -715,6 +691,12 @@
       stop() {
         if (this.currentAudio) {
           this.currentAudio.pause();
+          
+          // Remove from DOM if we added it there
+          if (this.currentAudio.domElement && this.currentAudio.domElement.parentNode) {
+            this.currentAudio.domElement.parentNode.removeChild(this.currentAudio.domElement);
+          }
+          
           this.currentAudio = null;
         }
         this.isPlaying = false;
