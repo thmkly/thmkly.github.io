@@ -221,7 +221,7 @@
   /* Mini Info Boxes */
   .mini-infobox {
     position: absolute;
-    background: rgba(255, 255, 255, 0.85);
+    background: rgba(255, 255, 255, 0.95);
     border: 1px solid #ccc;
     border-radius: 4px;
     padding: 4px 8px;
@@ -241,7 +241,7 @@
   }
 
   .mini-infobox:hover {
-    background: rgba(240, 240, 240, 0.9);
+    background: rgba(240, 240, 240, 1);
   }
 
   .mini-infobox-title {
@@ -372,16 +372,112 @@
   /* Responsive adjustments */
   @media (max-width: 768px) {
     .playlist-wrapper {
-      width: 300px;
+      width: 280px;
+      max-height: 70vh;
+      top: 15px;
+      left: 5px;
+    }
+    
+    .playlist-wrapper.collapsed {
+      transform: translateX(-285px); /* Leave just enough for the tab */
+    }
+    
+    .playlist-toggle {
+      right: -25px;
+      width: 25px;
+      height: 40px;
+      font-size: 14px;
     }
     
     .control-panel {
-      right: 10px;
-      top: 10px;
+      right: 5px;
+      top: 15px;
+      padding: 8px;
+      gap: 6px;
+    }
+    
+    .control-row {
+      flex-direction: column;
+      gap: 6px;
+    }
+    
+    .control-btn {
+      padding: 8px 12px;
+      font-size: 11px;
+      min-width: 80px;
+    }
+    
+    .sort-controls {
+      flex-direction: column;
+      gap: 6px;
+      align-items: stretch;
+    }
+    
+    .sort-btn {
+      padding: 6px 8px;
+      font-size: 10px;
+    }
+    
+    .random-control {
+      margin-left: 0;
+      justify-content: space-between;
+      padding: 4px 8px;
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 3px;
     }
     
     .mini-infobox {
-      max-width: 150px;
+      max-width: 120px;
+      font-size: 10px;
+      padding: 3px 6px;
+    }
+    
+    .play-icon {
+      border-left-width: 5px;
+      border-top-width: 3px;
+      border-bottom-width: 3px;
+    }
+    
+    /* Ensure Ko-fi widget stays bottom right on mobile */
+    .floatingchat-container-wrap {
+      left: unset !important;
+      right: 8px !important;
+      bottom: 20px !important;
+    }
+    
+    .floating-chat-kofi-popup-iframe {
+      left: unset !important;
+      right: 8px !important;
+      bottom: 20px !important;
+    }
+  }
+
+  /* Extra small screens */
+  @media (max-width: 480px) {
+    .playlist-wrapper {
+      width: 260px;
+      max-height: 65vh;
+    }
+    
+    .playlist-wrapper.collapsed {
+      transform: translateX(-265px);
+    }
+    
+    .control-panel {
+      right: 3px;
+      top: 10px;
+      padding: 6px;
+    }
+    
+    .control-btn {
+      padding: 6px 10px;
+      font-size: 10px;
+      min-width: 70px;
+    }
+    
+    .mini-infobox {
+      max-width: 100px;
+      font-size: 9px;
     }
   }
 
@@ -422,7 +518,7 @@
     <div class="sort-controls">
       <button class="control-btn sort-btn active" id="sortNobo">NOBO</button>
       <button class="control-btn sort-btn" id="sortSobo">SOBO</button>
-      <button class="control-btn sort-btn" id="sortDate">STEREO</button>
+      <button class="control-btn sort-btn" id="sortDate">Date</button>
       <div class="random-control">
         <span class="random-label">Random</span>
         <div class="toggle-switch" id="randomToggle" title="Toggle random playback">
@@ -473,17 +569,26 @@
         this.playQueue = [];
         this.lastPlayNext = 0;
         this.playHistory = []; // Track play history for random mode
-        this.setupWakeLock();
+        this.visibilityListenerAdded = false;
+        this.setupBackgroundAudio();
       }
 
-      async setupWakeLock() {
-        if ('wakeLock' in navigator) {
-          try {
-            this.wakeLock = await navigator.wakeLock.request('screen');
-          } catch (err) {
-            console.log('Wake lock not supported');
+      setupBackgroundAudio() {
+        // Handle page visibility changes for background audio continuation
+        this.handleVisibilityChange = () => {
+          if (document.hidden) {
+            console.log('Device sleep/background - audio should continue');
+            // Ensure audio context doesn't get suspended
+            if (this.currentAudio && !this.currentAudio.paused) {
+              console.log('Audio playing in background');
+            }
+          } else {
+            console.log('Device awake - resuming normal operation');
           }
-        }
+        };
+
+        document.addEventListener('visibilitychange', this.handleVisibilityChange);
+        this.visibilityListenerAdded = true;
       }
 
       play(index, audioData) {
@@ -512,15 +617,41 @@
         audio.controlsList = 'nodownload';
         audio.oncontextmenu = () => false;
         
+        // Ensure audio can play in background
+        audio.addEventListener('play', () => {
+          this.isPlaying = true;
+          console.log('Audio started playing');
+        });
+
+        audio.addEventListener('pause', () => {
+          // Only set to false if manually paused, not if auto-advancing
+          if (!this.isAdvancing) {
+            this.isPlaying = false;
+          }
+        });
+        
         audio.addEventListener('ended', () => {
+          console.log('Track ended, playing next');
+          this.isAdvancing = true; // Flag to indicate auto-advance
           this.playNext(audioData);
+          this.isAdvancing = false;
         });
 
         audio.addEventListener('error', () => {
           console.warn('Audio failed to load:', track.name, 'URL:', track.audioUrl);
-          // Don't auto-play next track on error to prevent infinite loops
-          // this.playNext(audioData);
           showNotification(`Audio failed to load: ${track.name}`, 3000);
+        });
+
+        // Prevent audio context from being suspended
+        audio.addEventListener('loadstart', () => {
+          if (typeof AudioContext !== 'undefined') {
+            if (!this.audioContext) {
+              this.audioContext = new (window.AudioContext || window.webkitAudioContext)();
+            }
+            if (this.audioContext.state === 'suspended') {
+              this.audioContext.resume();
+            }
+          }
         });
 
         this.currentAudio = audio;
@@ -1013,13 +1144,42 @@
       }
 
       setupMapLayers() {
+        // Calculate responsive clustering based on screen size
+        const screenWidth = window.screen.width;
+        let clusterRadius, clusterMaxZoom;
+        
+        if (screenWidth <= 1366) {
+          // Smaller screens: tighter clustering
+          clusterRadius = 35;
+          clusterMaxZoom = 13;
+        } else if (screenWidth <= 1920) {
+          // Medium screens: moderate clustering
+          clusterRadius = 45;
+          clusterMaxZoom = 14;
+        } else {
+          // Large screens: looser clustering for comfort
+          clusterRadius = 60;
+          clusterMaxZoom = 15;
+        }
+
         map.addSource('audio', {
           type: 'geojson',
           data: { type: 'FeatureCollection', features: [] },
           cluster: true,
-          clusterMaxZoom: 14,
-          clusterRadius: 45
+          clusterMaxZoom: clusterMaxZoom,
+          clusterRadius: clusterRadius
         });
+
+        // Responsive circle sizes based on screen size
+        const getCircleRadii = () => {
+          if (screenWidth <= 1366) {
+            return [16, 3, 20, 5, 24, 6, 28, 7, 32, 8, 34, 10, 36, 15, 38, 18, 40, 22, 42, 25, 44, 30, 46, 35, 48, 40, 50, 50, 52, 100, 54];
+          } else if (screenWidth <= 1920) {
+            return [18, 3, 22, 5, 26, 6, 30, 7, 34, 8, 36, 10, 38, 15, 40, 18, 42, 22, 44, 25, 46, 30, 48, 35, 50, 40, 52, 50, 54, 100, 56];
+          } else {
+            return [22, 3, 26, 5, 30, 6, 34, 7, 38, 8, 40, 10, 42, 15, 44, 18, 46, 22, 48, 25, 50, 30, 52, 35, 54, 40, 56, 50, 58, 100, 60];
+          }
+        };
 
         map.addLayer({
           id: 'clusters',
@@ -1035,9 +1195,7 @@
             'circle-radius': [
               'step',
               ['get', 'point_count'],
-              18, 3, 22, 5, 26, 6, 30, 7, 34, 8, 36,
-              10, 38, 15, 40, 18, 42, 22, 44, 25, 46,
-              30, 48, 35, 50, 40, 52, 50, 54, 100, 56
+              ...getCircleRadii()
             ]
           }
         });
@@ -1050,7 +1208,7 @@
           layout: {
             'text-field': '{point_count_abbreviated}',
             'text-font': ['Open Sans Semibold', 'Arial Unicode MS Bold'],
-            'text-size': 12
+            'text-size': screenWidth <= 1366 ? 11 : screenWidth <= 1920 ? 12 : 14
           }
         });
 
@@ -1061,7 +1219,7 @@
           filter: ['!', ['has', 'point_count']],
           paint: {
             'circle-color': '#5c3a2e',
-            'circle-radius': 6,
+            'circle-radius': screenWidth <= 1366 ? 5 : screenWidth <= 1920 ? 6 : 7,
             'circle-opacity': 0.6,
             'circle-stroke-width': 1,
             'circle-stroke-color': '#fff',
@@ -1087,7 +1245,7 @@
               const bounds = new mapboxgl.LngLatBounds();
               leaves.forEach(leaf => bounds.extend(leaf.geometry.coordinates));
               map.fitBounds(bounds, { 
-                padding: { top: 50, bottom: 50, left: this.getLeftPadding(), right: 20 } 
+                padding: { top: 50, bottom: 50, left: 370, right: 20 } 
               });
             });
           });
@@ -1408,15 +1566,18 @@
           coords[1], coords[0]
         );
         
-        // Distance-based duration: longer for farther points
+        // Distance-based duration: longer for farther points, extra time for 3D comfort
         const distanceKm = distance / 1000;
+        const is3D = uiController.is3DEnabled;
         let duration;
         if (distanceKm < 5) {
-          duration = 2200; // Close points: normal speed
+          duration = is3D ? 2800 : 2200; // 3D gets extra time for comfort
         } else if (distanceKm < 50) {
-          duration = 2200 + ((distanceKm - 5) / 45) * 1800; // Medium: 2.2-4s
+          const baseDuration = 2200 + ((distanceKm - 5) / 45) * 1800;
+          duration = is3D ? baseDuration + 800 : baseDuration; // 3D: +800ms for comfort
         } else {
-          duration = Math.min(5000, 4000 + ((distanceKm - 50) / 100) * 1000); // Far: 4-5s max
+          const baseDuration = Math.min(5000, 4000 + ((distanceKm - 50) / 100) * 1000);
+          duration = is3D ? baseDuration + 1000 : baseDuration; // 3D: +1s for long flights
         }
 
         // Smooth easing with pronounced landing deceleration
