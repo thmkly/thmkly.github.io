@@ -416,15 +416,16 @@
   <div class="control-panel">
     <div class="control-row">
       <button class="control-btn" id="resetMapBtn">Reset Map</button>
+      <button class="control-btn" id="emergencyStopBtn">Emergency Stop</button>
       <button class="control-btn" id="fullscreenBtn">Fullscreen</button>
       <button class="control-btn" id="terrain3dBtn">3D Terrain</button>
     </div>
     <div class="sort-controls">
       <button class="control-btn sort-btn active" id="sortNobo">NOBO</button>
       <button class="control-btn sort-btn" id="sortSobo">SOBO</button>
-      <button class="control-btn sort-btn" id="sortDate">FLIP</button>
+      <button class="control-btn sort-btn" id="sortDate">Date</button>
       <div class="random-control">
-        <span class="random-label">Randomize</span>
+        <span class="random-label">Random</span>
         <div class="toggle-switch" id="randomToggle" title="Toggle random playback">
           <div class="toggle-slider"></div>
         </div>
@@ -440,7 +441,7 @@
     // Configuration
     const CONFIG = {
       MAPBOX_TOKEN: window.MAPBOX_CONFIG?.token || 'pk.eyJ1IjoidGhta2x5IiwiYSI6ImNseXVyMjhueDA3YTQybW9mcHJrZGJ3YnEifQ.Nv-LsNg5eKIE6SeOVVJpYg',
-      GOOGLE_SCRIPT_URL: 'https://script.google.com/macros/s/AKfycbygcwJ8ms4Zpq1BeGM_jQTEuajvoYw-A5-nkoTMZ5FBPfOP2DyORWfDuET2TEhXarfd/exec',
+      GOOGLE_SCRIPT_URL: 'PASTE_YOUR_NEW_DEPLOYMENT_URL_HERE',
       DEFAULT_CENTER: [-122.50276, 41.31727],
       getDefaultZoom: () => {
         const screenWidth = window.screen.width;
@@ -471,6 +472,7 @@
         this.playMode = 'sequential';
         this.sortMode = 'nobo';
         this.playQueue = [];
+        this.lastPlayNext = 0;
         this.setupWakeLock();
       }
 
@@ -497,7 +499,7 @@
         this.isPlaying = true;
 
         const audio = document.createElement('audio');
-        audio.src = track.audiourl;
+        audio.src = track.audioUrl;
         audio.preload = 'auto';
         audio.controlsList = 'nodownload';
         audio.oncontextmenu = () => false;
@@ -507,8 +509,10 @@
         });
 
         audio.addEventListener('error', () => {
-          console.warn('Audio failed to load:', track.name);
-          this.playNext(audioData);
+          console.warn('Audio failed to load:', track.name, 'URL:', track.audioUrl);
+          // Don't auto-play next track on error to prevent infinite loops
+          // this.playNext(audioData);
+          showNotification(`Audio failed to load: ${track.name}`, 3000);
         });
 
         this.currentAudio = audio;
@@ -528,6 +532,14 @@
       }
 
       playNext(audioData) {
+        // Circuit breaker: prevent rapid successive calls
+        const now = Date.now();
+        if (this.lastPlayNext && (now - this.lastPlayNext) < 1000) {
+          console.warn('PlayNext called too quickly, blocking to prevent loop');
+          return;
+        }
+        this.lastPlayNext = now;
+
         let nextIndex;
         
         if (this.playMode === 'random') {
@@ -596,6 +608,10 @@
           mapController.resetMap();
         });
 
+        document.getElementById('emergencyStopBtn').addEventListener('click', () => {
+          this.emergencyStop();
+        });
+
         document.getElementById('fullscreenBtn').addEventListener('click', () => {
           this.toggleFullscreen();
         });
@@ -662,6 +678,38 @@
       updateRandomToggle() {
         const toggle = document.getElementById('randomToggle');
         toggle.classList.toggle('active', audioController.playMode === 'random');
+      }
+
+      emergencyStop() {
+        console.log('EMERGENCY STOP activated');
+        
+        // Stop all audio
+        audioController.stop();
+        
+        // Clear all timeouts and animations
+        if (mapController.animationTimeout) {
+          clearTimeout(mapController.animationTimeout);
+        }
+        if (mapController.moveTimeout) {
+          clearTimeout(mapController.moveTimeout);
+        }
+        
+        // Reset positioning flags
+        mapController.isPositioning = false;
+        
+        // Clear mini info boxes
+        this.clearMiniInfoBoxes();
+        
+        // Close popup
+        if (mapController.currentPopup) {
+          mapController.currentPopup.remove();
+          mapController.currentPopup = null;
+        }
+        
+        // Stop map animations
+        map.stop();
+        
+        showNotification('Emergency stop activated - all animations stopped', 3000);
       }
 
       toggleFullscreen() {
@@ -883,6 +931,9 @@
       constructor() {
         this.audioData = [];
         this.currentPopup = null;
+        this.isPositioning = false;
+        this.animationTimeout = null;
+        this.moveTimeout = null;
         this.setupMap();
       }
 
@@ -1006,11 +1057,20 @@
         });
 
         map.on('move', () => {
-          // Show mini info boxes for all visible points when map moves
-          const visiblePoints = map.queryRenderedFeatures({ layers: ['unclustered-point'] });
-          if (visiblePoints.length > 0) {
-            uiController.showMiniInfoBoxes(null, this.audioData);
+          // Throttle mini info box updates to prevent loops
+          if (this.moveTimeout) {
+            clearTimeout(this.moveTimeout);
           }
+          
+          this.moveTimeout = setTimeout(() => {
+            // Only show mini info boxes if we're not currently positioning the map
+            if (!this.isPositioning) {
+              const visiblePoints = map.queryRenderedFeatures({ layers: ['unclustered-point'] });
+              if (visiblePoints.length > 0 && visiblePoints.length < 50) { // Limit to prevent overload
+                uiController.showMiniInfoBoxes(null, this.audioData);
+              }
+            }
+          }, 100); // Throttle to every 100ms
         });
 
         document.addEventListener('fullscreenchange', () => {
@@ -1031,16 +1091,50 @@
 
       loadAudioData() {
         const url = `${CONFIG.GOOGLE_SCRIPT_URL}?nocache=${Date.now()}`;
+        console.log('Fetching data from:', url);
+        
         fetch(url)
-          .then(r => r.json())
-          .then(data => {
-            this.audioData = data;
-            this.sortAndUpdatePlaylist();
-            this.updateMapData();
+          .then(response => {
+            console.log('Response status:', response.status);
+            console.log('Response headers:', response.headers);
+            return response.text();
+          })
+          .then(text => {
+            console.log('Raw response:', text);
+            try {
+              const data = JSON.parse(text);
+              console.log('Parsed data:', data);
+              console.log('Data length:', data.length);
+              
+              if (data.error) {
+                throw new Error(data.error);
+              }
+              
+              if (data.length === 0) {
+                throw new Error('No recordings found');
+              }
+              
+              // Log first item to check structure
+              if (data.length > 0) {
+                console.log('First item structure:', data[0]);
+                console.log('First item audioUrl:', data[0].audioUrl);
+              }
+              
+              this.audioData = data;
+              this.sortAndUpdatePlaylist();
+              this.updateMapData();
+              
+              showNotification(`Loaded ${data.length} recordings`, 2000);
+            } catch (parseError) {
+              console.error('JSON Parse Error:', parseError);
+              throw new Error(`Invalid JSON response: ${parseError.message}`);
+            }
           })
           .catch(e => {
-            console.error(e);
-            document.getElementById('playlist').innerHTML = '<p class="loading-placeholder">Failed to load recordings.</p>';
+            console.error('Load Error:', e);
+            const errorMsg = e.message || 'Unknown error occurred';
+            document.getElementById('playlist').innerHTML = `<p class="loading-placeholder">Failed to load recordings: ${errorMsg}</p>`;
+            showNotification(`Error: ${errorMsg}`, 5000);
           });
       }
 
@@ -1173,14 +1267,30 @@
       }
 
       playAudio(index) {
+        console.log('playAudio called with index:', index);
+        
         const track = this.audioData[index];
-        if (!track) return;
+        if (!track) {
+          console.error('No track found at index:', index);
+          return;
+        }
+
+        console.log('Playing track:', track.name);
+
+        // Stop any runaway animations
+        if (this.animationTimeout) {
+          clearTimeout(this.animationTimeout);
+        }
 
         this.updateActiveTrack(index);
         const audio = audioController.play(index, this.audioData);
-        this.positionMapForTrack(track, index);
-        this.showPopup([parseFloat(track.lng), parseFloat(track.lat)], track, audio, index);
-        uiController.showMiniInfoBoxes(null, this.audioData);
+        
+        // Add delay before positioning to prevent conflicts
+        this.animationTimeout = setTimeout(() => {
+          this.positionMapForTrack(track, index);
+          this.showPopup([parseFloat(track.lng), parseFloat(track.lat)], track, audio, index);
+          uiController.showMiniInfoBoxes(null, this.audioData);
+        }, 100);
       }
 
       showTrackPopup(index, autoPlay = true) {
@@ -1207,6 +1317,15 @@
       }
 
       positionMapForTrack(track, index) {
+        console.log('positionMapForTrack called for:', track.name);
+        
+        // Prevent multiple simultaneous map movements
+        if (this.isPositioning) {
+          console.log('Already positioning, skipping...');
+          return;
+        }
+        this.isPositioning = true;
+
         const coords = [parseFloat(track.lng), parseFloat(track.lat)];
         const currentMile = parseFloat(track.mile) || 0;
         
@@ -1215,6 +1334,10 @@
           .filter(t => t.index !== index && Math.abs(t.mile - currentMile) <= 50)
           .sort((a, b) => Math.abs(a.mile - currentMile) - Math.abs(b.mile - currentMile))
           .slice(0, 4);
+
+        const resetPositioning = () => {
+          this.isPositioning = false;
+        };
 
         if (adjacentTracks.length > 0) {
           const bounds = new mapboxgl.LngLatBounds();
@@ -1230,7 +1353,7 @@
             currentCenter.lat, currentCenter.lng,
             targetCenter.lat, targetCenter.lng
           );
-          const duration = Math.max(2200, Math.min(5000, 700 * Math.sqrt(distance / 1000)));
+          const duration = Math.max(1000, Math.min(3000, 500 * Math.sqrt(distance / 1000))); // Reduced duration
           
           const targetZoom = uiController.is3DEnabled ? CONFIG.ZOOM_3D : CONFIG.ZOOM_2D;
           
@@ -1245,14 +1368,20 @@
             duration,
             easing: t => t < 0.5 ? 2 * t * t : -1 + (4 - 2 * t) * t
           });
+          
+          // Reset positioning flag after animation
+          setTimeout(resetPositioning, duration + 100);
         } else {
           const targetZoom = uiController.is3DEnabled ? CONFIG.ZOOM_3D : CONFIG.ZOOM_2D;
           map.flyTo({
             center: coords,
             zoom: targetZoom,
-            duration: 2500,
+            duration: 1500, // Reduced duration
             easing: t => t < 0.5 ? 2 * t * t : -1 + (4 - 2 * t) * t
           });
+          
+          // Reset positioning flag after animation
+          setTimeout(resetPositioning, 1600);
         }
       }
 
