@@ -1038,6 +1038,11 @@
           this.playAudio(index);
         });
 
+        map.on('dragstart', () => {
+          // Hide mini boxes when dragging starts
+          uiController.clearMiniInfoBoxes();
+        });
+
         map.on('moveend', () => {
           // Only update mini boxes when movement is completely finished
           if (!this.isPositioning) {
