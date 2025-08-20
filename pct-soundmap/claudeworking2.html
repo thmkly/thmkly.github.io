@@ -422,7 +422,7 @@
     <div class="sort-controls">
       <button class="control-btn sort-btn active" id="sortNobo">NOBO</button>
       <button class="control-btn sort-btn" id="sortSobo">SOBO</button>
-      <button class="control-btn sort-btn" id="sortDate">Date</button>
+      <button class="control-btn sort-btn" id="sortDate">STEREO</button>
       <div class="random-control">
         <span class="random-label">Random</span>
         <div class="toggle-switch" id="randomToggle" title="Toggle random playback">
@@ -1341,11 +1341,19 @@
         this.updateActiveTrack(index);
         const audio = audioController.play(index, this.audioData);
         
+        // Clear old mini boxes before positioning
+        uiController.clearMiniInfoBoxes();
+        
         // Add delay before positioning to prevent conflicts
         this.animationTimeout = setTimeout(() => {
           this.positionMapForTrack(track, index);
           this.showPopup([parseFloat(track.lng), parseFloat(track.lat)], track, audio, index);
-          uiController.showMiniInfoBoxes(null, this.audioData);
+          
+          // Show mini boxes after map positioning is complete
+          const duration = this.getMovementDuration(track);
+          setTimeout(() => {
+            uiController.showMiniInfoBoxes(null, this.audioData);
+          }, duration + 300);
         }, 100);
       }
 
@@ -1442,8 +1450,8 @@
         if (is3D) {
           flyToOptions.pitch = 75;
           flyToOptions.bearing = map.getBearing();
-          // Add curve for rainbow effect in 3D
-          flyToOptions.curve = 1.8; // Higher curve = more rainbow arc, less ground-hugging
+          // Higher curve for ultra-smooth rainbow effect in 3D
+          flyToOptions.curve = 2.5; // Even higher curve = smoother, more elevated arc
         }
         
         map.flyTo(flyToOptions);
@@ -1593,6 +1601,27 @@
         document.querySelectorAll('.track').forEach(el => el.classList.remove('active-track'));
         
         showNotification('Map reset to default view', 2000);
+      }
+
+      getMovementDuration(track) {
+        // Calculate the same duration logic used in positionMapForTrack
+        const coords = [parseFloat(track.lng), parseFloat(track.lat)];
+        const currentCenter = map.getCenter();
+        const distance = this.calculateDistance(
+          currentCenter.lat, currentCenter.lng,
+          coords[1], coords[0]
+        );
+        
+        const distanceKm = distance / 1000;
+        let duration;
+        if (distanceKm < 5) {
+          duration = 2200;
+        } else if (distanceKm < 50) {
+          duration = 2200 + ((distanceKm - 5) / 45) * 1800;
+        } else {
+          duration = Math.min(5000, 4000 + ((distanceKm - 50) / 100) * 1000);
+        }
+        return duration;
       }
     }
 
