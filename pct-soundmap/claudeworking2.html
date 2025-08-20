@@ -659,17 +659,17 @@
           nextIndex = Math.floor(Math.random() * audioData.length);
         } else {
           // Navigation based on sort mode:
-          if (this.sortMode === 'sobo') {
-            // SOBO: next goes down the list (towards Mexico/higher index)
-            nextIndex = this.currentIndex + 1;
-            if (nextIndex >= audioData.length) {
-              nextIndex = 0; // Wrap to top (Canada)
-            }
-          } else if (this.sortMode === 'date') {
+          if (this.sortMode === 'date') {
             // STEREO: next goes down chronologically (towards newer/higher index)
             nextIndex = this.currentIndex + 1;
             if (nextIndex >= audioData.length) {
               nextIndex = 0; // Wrap to beginning (earliest)
+            }
+          } else if (this.sortMode === 'sobo') {
+            // SOBO: next goes down the list (towards Mexico/higher index)
+            nextIndex = this.currentIndex + 1;
+            if (nextIndex >= audioData.length) {
+              nextIndex = 0; // Wrap to top (Canada)
             }
           } else { // nobo mode
             // NOBO: next goes up the list (towards Canada/lower index)
@@ -696,17 +696,17 @@
           prevIndex = this.playHistory.pop();
         } else {
           // Navigation based on sort mode:
-          if (this.sortMode === 'sobo') {
-            // SOBO: prev goes up the list (towards Canada/lower index)
-            prevIndex = this.currentIndex - 1;
-            if (prevIndex < 0) {
-              prevIndex = audioData.length - 1; // Wrap to bottom (Mexico)
-            }
-          } else if (this.sortMode === 'date') {
+          if (this.sortMode === 'date') {
             // STEREO: prev goes up chronologically (towards older/lower index)
             prevIndex = this.currentIndex - 1;
             if (prevIndex < 0) {
               prevIndex = audioData.length - 1; // Wrap to end (latest)
+            }
+          } else if (this.sortMode === 'sobo') {
+            // SOBO: prev goes up the list (towards Canada/lower index)
+            prevIndex = this.currentIndex - 1;
+            if (prevIndex < 0) {
+              prevIndex = audioData.length - 1; // Wrap to bottom (Mexico)
             }
           } else { // nobo mode
             // NOBO: prev goes down the list (towards Mexico/higher index)
