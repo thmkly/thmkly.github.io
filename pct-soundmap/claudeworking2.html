@@ -1387,26 +1387,26 @@
       }
 
       sortByMileAndDate(data, mode = 'nobo') {
-        // Separate tracks with and without miles
-        const withMiles = data.filter(track => {
-          const mile = parseFloat(track.mile);
-          return !isNaN(mile) && track.mile && track.mile.toString().trim().toLowerCase() !== 'n/a';
-        });
-        
-        const withoutMiles = data.filter(track => {
-          const mile = parseFloat(track.mile);
-          return isNaN(mile) || !track.mile || track.mile.toString().trim().toLowerCase() === 'n/a';
-        });
-
-        // Sort tracks with miles by mile number
-        // For NOBO: ascending mile order (0 at bottom, 2655.8 at top)
-        // For SOBO: descending mile order (2655.8 at bottom, 0 at top) 
-        // For STEREO: chronological order
         if (mode === 'date') {
           // STEREO mode: sort everything by timestamp
           return [...data].sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
         }
         
+        // For NOBO/SOBO modes: sort all tracks by timestamp first, then stable-sort by mile
+        const allTracks = [...data].sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
+        
+        // Separate tracks with and without miles
+        const withMiles = allTracks.filter(track => {
+          const mile = parseFloat(track.mile);
+          return !isNaN(mile) && track.mile && track.mile.toString().trim().toLowerCase() !== 'n/a';
+        });
+        
+        const withoutMiles = allTracks.filter(track => {
+          const mile = parseFloat(track.mile);
+          return isNaN(mile) || !track.mile || track.mile.toString().trim().toLowerCase() === 'n/a';
+        });
+
+        // Sort tracks with miles by mile number (this is a stable sort, preserving chronological order for same miles)
         const ascending = mode === 'nobo';
         withMiles.sort((a, b) => {
           const mileA = parseFloat(a.mile);
@@ -1414,40 +1414,35 @@
           return ascending ? mileA - mileB : mileB - mileA;
         });
 
-        // Sort tracks without miles by date
-        withoutMiles.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
-
-        // Insert no-mile tracks chronologically among mile tracks
+        // Now insert no-mile tracks chronologically among the mile-sorted tracks
         const result = [];
         let mileIndex = 0;
         let noMileIndex = 0;
 
-        // Create a combined array for chronological insertion
-        const allMileTracks = [...withMiles];
-        const allNoMileTracks = [...withoutMiles];
-
-        // Merge all tracks chronologically
-        while (mileIndex < allMileTracks.length || noMileIndex < allNoMileTracks.length) {
-          const currentMileTrack = allMileTracks[mileIndex];
-          const currentNoMileTrack = allNoMileTracks[noMileIndex];
+        // Process all tracks in chronological order and place them appropriately
+        while (mileIndex < withMiles.length || noMileIndex < withoutMiles.length) {
+          const currentMileTrack = withMiles[mileIndex];
+          const currentNoMileTrack = withoutMiles[noMileIndex];
 
           if (!currentMileTrack) {
+            // No more mile tracks, add remaining no-mile tracks
             result.push(currentNoMileTrack);
             noMileIndex++;
           } else if (!currentNoMileTrack) {
+            // No more no-mile tracks, add remaining mile tracks
             result.push(currentMileTrack);
             mileIndex++;
           } else {
-            // Compare timestamps to maintain chronological order
+            // Both exist, compare timestamps to maintain chronological insertion
             const mileDate = new Date(currentMileTrack.timestamp);
             const noMileDate = new Date(currentNoMileTrack.timestamp);
             
-            if (mileDate <= noMileDate) {
-              result.push(currentMileTrack);
-              mileIndex++;
-            } else {
+            if (noMileDate <= mileDate) {
               result.push(currentNoMileTrack);
               noMileIndex++;
+            } else {
+              result.push(currentMileTrack);
+              mileIndex++;
             }
           }
         }
