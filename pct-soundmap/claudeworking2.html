@@ -422,7 +422,7 @@
     <div class="sort-controls">
       <button class="control-btn sort-btn active" id="sortNobo">NOBO</button>
       <button class="control-btn sort-btn" id="sortSobo">SOBO</button>
-      <button class="control-btn sort-btn" id="sortDate">STEREO</button>
+      <button class="control-btn sort-btn" id="sortDate">Date</button>
       <div class="random-control">
         <span class="random-label">Random</span>
         <div class="toggle-switch" id="randomToggle" title="Toggle random playback">
@@ -472,6 +472,7 @@
         this.sortMode = 'nobo';
         this.playQueue = [];
         this.lastPlayNext = 0;
+        this.playHistory = []; // Track play history for random mode
         this.setupWakeLock();
       }
 
@@ -493,6 +494,14 @@
 
         const track = audioData[index];
         if (!track) return;
+
+        // Add to play history (keep last 50 for memory management)
+        if (this.currentIndex !== -1 && this.currentIndex !== index) {
+          this.playHistory.push(this.currentIndex);
+          if (this.playHistory.length > 50) {
+            this.playHistory.shift();
+          }
+        }
 
         this.currentIndex = index;
         this.isPlaying = true;
@@ -556,10 +565,19 @@
       }
 
       playPrevious(audioData) {
-        let prevIndex = this.currentIndex - 1;
-        if (prevIndex < 0) {
-          prevIndex = audioData.length - 1;
+        let prevIndex;
+        
+        if (this.playMode === 'random' && this.playHistory.length > 0) {
+          // In random mode, go to the previously played track
+          prevIndex = this.playHistory.pop();
+        } else {
+          // In sequential mode, go to previous in playlist
+          prevIndex = this.currentIndex - 1;
+          if (prevIndex < 0) {
+            prevIndex = audioData.length - 1;
+          }
         }
+        
         mapController.playAudio(prevIndex);
       }
 
@@ -1385,6 +1403,18 @@
         // Check if we're in 3D mode for special handling
         const is3D = uiController.is3DEnabled;
         const targetZoom = is3D ? CONFIG.ZOOM_3D : CONFIG.ZOOM_2D;
+        
+        // Natural duration and easing for cinematic feel
+        const duration = 2800; // Consistent duration for natural feel
+        const cinematicEasing = (t) => {
+          // Custom easing for takeoff/landing feel
+          // Accelerates smoothly at start, decelerates smoothly at end
+          if (t < 0.5) {
+            return 2 * t * t * t; // Ease-in cubic (takeoff)
+          } else {
+            return 1 - Math.pow(-2 * t + 2, 3) / 2; // Ease-out cubic (landing)
+          }
+        };
 
         if (adjacentTracks.length > 0 && !is3D) {
           // Only use bounds for 2D mode - in 3D, focus on the specific point
@@ -1395,14 +1425,6 @@
             bounds.extend([parseFloat(t.lng), parseFloat(t.lat)]);
           });
           
-          const currentCenter = map.getCenter();
-          const targetCenter = bounds.getCenter();
-          const distance = this.calculateDistance(
-            currentCenter.lat, currentCenter.lng,
-            targetCenter.lat, targetCenter.lng
-          );
-          const duration = Math.max(1500, Math.min(4000, 800 * Math.sqrt(distance / 1000))); // More natural duration
-          
           map.fitBounds(bounds, {
             padding: { 
               top: 120, 
@@ -1412,7 +1434,7 @@
             },
             maxZoom: targetZoom,
             duration,
-            easing: t => 1 - Math.pow(1 - t, 3) // Ease-out cubic for smoother feel
+            easing: cinematicEasing
           });
           
           // Reset positioning flag after animation
@@ -1422,8 +1444,8 @@
           const flyToOptions = {
             center: coords,
             zoom: targetZoom,
-            duration: 2000, // Slower, more natural duration
-            easing: t => 1 - Math.pow(1 - t, 3) // Ease-out cubic
+            duration,
+            easing: cinematicEasing
           };
           
           // Maintain 3D perspective if in 3D mode
@@ -1435,7 +1457,7 @@
           map.flyTo(flyToOptions);
           
           // Reset positioning flag after animation
-          setTimeout(resetPositioning, 2200);
+          setTimeout(resetPositioning, duration + 200);
         }
       }
 
