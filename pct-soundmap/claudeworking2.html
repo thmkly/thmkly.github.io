@@ -1119,7 +1119,7 @@
               const minZoom = is3D ? CONFIG.ZOOM_3D : CONFIG.ZOOM_2D;
               
               map.fitBounds(bounds, { 
-                padding: { top: 50, bottom: 50, left: this.getLeftPadding(), right: 20 },
+                padding: { top: 50, bottom: 50, left: mapController.getLeftPadding(), right: 20 },
                 maxZoom: Math.max(zoom, minZoom + 1), // At least play zoom + 1 for visibility
                 duration: 1800,
                 easing: t => t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2
