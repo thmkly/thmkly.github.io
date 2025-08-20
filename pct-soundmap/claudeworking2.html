@@ -387,7 +387,7 @@
     // Configuration
     const CONFIG = {
       MAPBOX_TOKEN: window.MAPBOX_CONFIG?.token || 'pk.eyJ1IjoidGhta2x5IiwiYSI6ImNseXVyMjhueDA3YTQybW9mcHJrZGJ3YnEifQ.Nv-LsNg5eKIE6SeOVVJpYg',
-      GOOGLE_SCRIPT_URL: 'https://script.google.com/macros/s/AKfycbzBPYMFDZDbzKPtCqjjgyqRQlVhKXfLZ9yGERjAHXv5ZZ-H-r1oUgVrnxysd4jN6kfw/exec',
+      GOOGLE_SCRIPT_URL: 'https://script.google.com/macros/s/AKfycbwAznf1zR7FmaFbLcTeudUaP9No36La0bSwAJqhmD0IVVYB6meSsHfBjKb3enjN9sHM/exec',
       DEFAULT_CENTER: [-122.50276, 41.31727],
       getDefaultZoom: () => {
         const screenWidth = window.screen.width;
@@ -990,6 +990,7 @@
           .then(data => {
             this.audioData = data;
             this.sortAndUpdatePlaylist();
+            this.updateMapData(); // Add this to populate map immediately after data loads
           })
           .catch(e => {
             console.error(e);
