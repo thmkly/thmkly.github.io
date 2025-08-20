@@ -472,7 +472,7 @@
     <div class="sort-controls">
     <button class="control-btn sort-btn active" id="sortNobo">NOBO ↑</button>
     <button class="control-btn sort-btn" id="sortSobo">SOBO ↓</button>
-    <button class="control-btn sort-btn" id="sortDate">STEREO ↻</button>rtDate">STEREO</button>
+    <button class="control-btn sort-btn" id="sortDate">STEREO ↻</button>
       <div class="random-control">
         <span class="random-label">Random</span>
         <div class="toggle-switch" id="randomToggle" title="Toggle random playback">
@@ -658,21 +658,22 @@
         if (this.playMode === 'random') {
           nextIndex = Math.floor(Math.random() * audioData.length);
         } else {
-          // Determine direction based on sort mode
-          if (this.sortMode === 'nobo') {
+          // Navigation based on sort mode:
+          // NOBO: next = up the list (towards Canada), prev = down the list (towards Mexico)
+          // SOBO: next = down the list (towards Mexico), prev = up the list (towards Canada)
+          // STEREO: follow NOBO behavior
+          
+          if (this.sortMode === 'sobo') {
+            // SOBO: next goes down the list (towards Mexico/higher index)
             nextIndex = this.currentIndex + 1;
             if (nextIndex >= audioData.length) {
-              nextIndex = 0;
+              nextIndex = 0; // Wrap to top (Canada)
             }
-          } else if (this.sortMode === 'sobo') {
+          } else { // nobo or date/stereo modes
+            // NOBO: next goes up the list (towards Canada/lower index)
             nextIndex = this.currentIndex - 1;
             if (nextIndex < 0) {
-              nextIndex = audioData.length - 1;
-            }
-          } else { // date/stereo mode
-            nextIndex = this.currentIndex + 1;
-            if (nextIndex >= audioData.length) {
-              nextIndex = 0;
+              nextIndex = audioData.length - 1; // Wrap to bottom (Mexico)
             }
           }
         }
@@ -692,21 +693,22 @@
           }
           prevIndex = this.playHistory.pop();
         } else {
-          // Determine direction based on sort mode
-          if (this.sortMode === 'nobo') {
+          // Navigation based on sort mode:
+          // NOBO: prev = down the list (towards Mexico), next = up the list (towards Canada)
+          // SOBO: prev = up the list (towards Canada), next = down the list (towards Mexico)
+          // STEREO: follow NOBO behavior
+          
+          if (this.sortMode === 'sobo') {
+            // SOBO: prev goes up the list (towards Canada/lower index)
             prevIndex = this.currentIndex - 1;
             if (prevIndex < 0) {
-              prevIndex = audioData.length - 1;
+              prevIndex = audioData.length - 1; // Wrap to bottom (Mexico)
             }
-          } else if (this.sortMode === 'sobo') {
+          } else { // nobo or date/stereo modes
+            // NOBO: prev goes down the list (towards Mexico/higher index)
             prevIndex = this.currentIndex + 1;
             if (prevIndex >= audioData.length) {
-              prevIndex = 0;
-            }
-          } else { // date/stereo mode
-            prevIndex = this.currentIndex - 1;
-            if (prevIndex < 0) {
-              prevIndex = audioData.length - 1;
+              prevIndex = 0; // Wrap to top (Canada)
             }
           }
         }
@@ -1342,8 +1344,8 @@
                 originalIndex: index
               }));
               
-              // Sort data by mile and date for geographic playlist order (north to south)
-              this.audioData = this.sortByMileAndDate([...this.originalAudioData], false);
+              // Sort data by mile and date for geographic playlist order (south to north, reversed for display)
+              this.audioData = this.sortByMileAndDate([...this.originalAudioData], 'nobo').reverse();
               this.sortAndUpdatePlaylist();
               this.updateMapData();
               
@@ -1362,14 +1364,24 @@
       }
 
       sortAndUpdatePlaylist() {
-        // Remember currently playing track but don't reorder playlist
+        // Remember currently playing track
         const currentlyPlayingTrack = audioController.currentIndex >= 0 ? 
           this.audioData[audioController.currentIndex] : null;
         
-        // Keep playlist visually static - only update mile display
+        // Sort data based on current mode
+        this.audioData = this.sortByMileAndDate([...this.originalAudioData], audioController.sortMode);
+        
+        // Update the current index to match the new sort order
+        if (currentlyPlayingTrack) {
+          audioController.currentIndex = this.audioData.findIndex(track => 
+            track.originalIndex === currentlyPlayingTrack.originalIndex
+          );
+        }
+        
+        // Update playlist display
         this.updatePlaylistOnly();
         
-        // Set initial scroll position based on sort mode
+        // Set scroll position based on sort mode
         this.setPlaylistScrollPosition();
         
         // Update popup if one is open to show correct mileage
@@ -1378,7 +1390,7 @@
         }
       }
 
-      sortByMileAndDate(data, reverse = false) {
+      sortByMileAndDate(data, mode = 'nobo') {
         // Separate tracks with and without miles
         const withMiles = data.filter(track => {
           const mile = parseFloat(track.mile);
@@ -1391,23 +1403,37 @@
         });
 
         // Sort tracks with miles by mile number
+        // For NOBO: ascending mile order (0 at bottom, 2655.8 at top)
+        // For SOBO: descending mile order (2655.8 at bottom, 0 at top) 
+        // For STEREO: chronological order
+        if (mode === 'date') {
+          // STEREO mode: sort everything by timestamp
+          return [...data].sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
+        }
+        
+        const ascending = mode === 'nobo';
         withMiles.sort((a, b) => {
           const mileA = parseFloat(a.mile);
           const mileB = parseFloat(b.mile);
-          return reverse ? mileB - mileA : mileA - mileB;
+          return ascending ? mileA - mileB : mileB - mileA;
         });
 
         // Sort tracks without miles by date
         withoutMiles.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
 
-        // Merge them chronologically
+        // Insert no-mile tracks chronologically among mile tracks
         const result = [];
         let mileIndex = 0;
         let noMileIndex = 0;
 
-        while (mileIndex < withMiles.length || noMileIndex < withoutMiles.length) {
-          const currentMileTrack = withMiles[mileIndex];
-          const currentNoMileTrack = withoutMiles[noMileIndex];
+        // Create a combined array for chronological insertion
+        const allMileTracks = [...withMiles];
+        const allNoMileTracks = [...withoutMiles];
+
+        // Merge all tracks chronologically
+        while (mileIndex < allMileTracks.length || noMileIndex < allNoMileTracks.length) {
+          const currentMileTrack = allMileTracks[mileIndex];
+          const currentNoMileTrack = allNoMileTracks[noMileIndex];
 
           if (!currentMileTrack) {
             result.push(currentNoMileTrack);
@@ -1420,7 +1446,7 @@
             const mileDate = new Date(currentMileTrack.timestamp);
             const noMileDate = new Date(currentNoMileTrack.timestamp);
             
-            if ((mileDate <= noMileDate && !reverse) || (mileDate >= noMileDate && reverse)) {
+            if (mileDate <= noMileDate) {
               result.push(currentMileTrack);
               mileIndex++;
             } else {
@@ -1496,7 +1522,7 @@
       setPlaylistScrollPosition() {
         const playlist = document.getElementById('playlist');
         
-        // Only set initial position if no track is currently playing
+        // Set scroll position based on mode, but only if no track is currently playing
         if (audioController.currentIndex === -1) {
           setTimeout(() => {
             if (audioController.sortMode === 'sobo') {
