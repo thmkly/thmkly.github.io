@@ -277,15 +277,15 @@
   }
 
   .nav-arrow {
-    background: #5c3a2e;
-    color: white;
-    border: none;
+    background: transparent;
+    color: #333;
+    border: 1px solid #ccc;
     border-radius: 3px;
     padding: 8px 12px;
     cursor: pointer;
     font-size: 14px;
     font-weight: bold;
-    transition: background-color 0.2s;
+    transition: all 0.2s;
     min-width: 40px;
     display: flex;
     align-items: center;
@@ -293,11 +293,14 @@
   }
 
   .nav-arrow:hover {
-    background: #4a2e24;
+    background: #f0f0f0;
+    color: #000;
   }
 
   .nav-arrow:disabled {
-    background: #ccc;
+    background: transparent;
+    color: #ccc;
+    border-color: #eee;
     cursor: not-allowed;
   }
 
@@ -463,7 +466,7 @@
     <div class="sort-controls">
       <button class="control-btn sort-btn active" id="sortNobo">NOBO</button>
       <button class="control-btn sort-btn" id="sortSobo">SOBO</button>
-      <button class="control-btn sort-btn" id="sortDate">STEREO</button>
+      <button class="control-btn sort-btn" id="sortDate">Date</button>
       <div class="random-control">
         <span class="random-label">Random</span>
         <div class="toggle-switch" id="randomToggle" title="Toggle random playback">
@@ -516,11 +519,11 @@
           } else if (viewportDiagonal > 2000) {
             return 4.95; // Desktop equivalent - adjusted threshold for 27" monitors  
           } else if (viewportDiagonal > 1800) {
-            return 4.5; // Laptop equivalent - slightly higher for better Brave match
+            return 4.45; // Laptop equivalent - fine-tuned for Brave on 13"
           } else if (viewportDiagonal > 1400) {
             return 4.6; // Standard laptop
           } else {
-            return 4.95; // Smaller screens/mobile
+            return 4.8; // Smaller screens/mobile
           }
         } else {
           // Safari/Chrome and other browsers with reliable screen data
@@ -663,8 +666,11 @@
       playPrevious(audioData) {
         let prevIndex;
         
-        if (this.playMode === 'random' && this.playHistory.length > 0) {
-          // In random mode, go to the previously played track
+        if (this.playMode === 'random') {
+          // In random mode, only go back if there's history
+          if (this.playHistory.length === 0) {
+            return; // Do nothing if no history
+          }
           prevIndex = this.playHistory.pop();
         } else {
           // In sequential mode, go to previous in playlist
@@ -1201,22 +1207,11 @@
         });
 
         map.on('mouseenter', 'clusters', (e) => {
-          const features = map.queryRenderedFeatures(e.point, { layers: ['clusters'] });
-          if (!features.length) return;
-          
-          const clusterId = features[0].properties.cluster_id;
-          map.getSource('audio').getClusterLeaves(clusterId, 100, 0, (_, leaves) => {
-            uiController.showClusterPlaylist(e, leaves);
-          });
+          // Cluster hover playlist removed - redundant with main playlist and mini info boxes
         });
 
         map.on('mouseleave', 'clusters', () => {
-          // Add small delay to allow moving to the playlist
-          setTimeout(() => {
-            if (!uiController.clusterPlaylist || !uiController.clusterPlaylist.matches(':hover')) {
-              uiController.hideClusterPlaylist();
-            }
-          }, 150);
+          // Cluster hover playlist removed
         });
 
         map.on('click', 'unclustered-point', (e) => {
@@ -1248,7 +1243,7 @@
           btn.classList.toggle('active', uiController.isFullscreen);
           
           if (uiController.isFullscreen) {
-            showNotification('Press Esc to exit fullscreen', 3000);
+            // Removed redundant fullscreen message - browsers show native notification
           }
         });
       }
@@ -1625,7 +1620,14 @@
         prevBtn.className = 'nav-arrow';
         prevBtn.innerHTML = '&laquo;';
         prevBtn.title = 'Previous';
-        prevBtn.disabled = index === 0;
+        
+        // Disable previous button logic based on mode and history
+        if (audioController.playMode === 'random') {
+          prevBtn.disabled = audioController.playHistory.length === 0;
+        } else {
+          prevBtn.disabled = index === 0;
+        }
+        
         prevBtn.addEventListener('click', () => {
           audioController.playPrevious(this.audioData);
         });
