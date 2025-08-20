@@ -422,7 +422,7 @@
     <div class="sort-controls">
       <button class="control-btn sort-btn active" id="sortNobo">NOBO</button>
       <button class="control-btn sort-btn" id="sortSobo">SOBO</button>
-      <button class="control-btn sort-btn" id="sortDate">Date</button>
+      <button class="control-btn sort-btn" id="sortDate">STEREO</button>
       <div class="random-control">
         <span class="random-label">Random</span>
         <div class="toggle-switch" id="randomToggle" title="Toggle random playback">
@@ -1388,77 +1388,38 @@
         this.isPositioning = true;
 
         const coords = [parseFloat(track.lng), parseFloat(track.lat)];
-        const currentMile = parseFloat(track.mile) || 0;
         
-        const adjacentTracks = this.audioData
-          .map((t, i) => ({ ...t, index: i, mile: parseFloat(t.mile) || 0 }))
-          .filter(t => t.index !== index && Math.abs(t.mile - currentMile) <= 50)
-          .sort((a, b) => Math.abs(a.mile - currentMile) - Math.abs(b.mile - currentMile))
-          .slice(0, 4);
-
         const resetPositioning = () => {
           this.isPositioning = false;
         };
 
-        // Check if we're in 3D mode for special handling
-        const is3D = uiController.is3DEnabled;
-        const targetZoom = is3D ? CONFIG.ZOOM_3D : CONFIG.ZOOM_2D;
-        
-        // Natural duration and easing for cinematic feel
-        const duration = 2800; // Consistent duration for natural feel
-        const cinematicEasing = (t) => {
-          // Custom easing for takeoff/landing feel
-          // Accelerates smoothly at start, decelerates smoothly at end
-          if (t < 0.5) {
-            return 2 * t * t * t; // Ease-in cubic (takeoff)
-          } else {
-            return 1 - Math.pow(-2 * t + 2, 3) / 2; // Ease-out cubic (landing)
-          }
+        // Consistent smooth movement settings for both 2D and 3D
+        const duration = 2200;
+        const smoothEasing = (t) => {
+          // Smooth ease-in-out for natural movement
+          return t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2;
         };
 
-        if (adjacentTracks.length > 0 && !is3D) {
-          // Only use bounds for 2D mode - in 3D, focus on the specific point
-          const bounds = new mapboxgl.LngLatBounds();
-          bounds.extend(coords);
-          
-          adjacentTracks.forEach(t => {
-            bounds.extend([parseFloat(t.lng), parseFloat(t.lat)]);
-          });
-          
-          map.fitBounds(bounds, {
-            padding: { 
-              top: 120, 
-              bottom: 120, 
-              left: this.getLeftPadding(), 
-              right: 120 
-            },
-            maxZoom: targetZoom,
-            duration,
-            easing: cinematicEasing
-          });
-          
-          // Reset positioning flag after animation
-          setTimeout(resetPositioning, duration + 200);
-        } else {
-          // For 3D mode or when no adjacent tracks, fly directly to the point
-          const flyToOptions = {
-            center: coords,
-            zoom: targetZoom,
-            duration,
-            easing: cinematicEasing
-          };
-          
-          // Maintain 3D perspective if in 3D mode
-          if (is3D) {
-            flyToOptions.pitch = 75;
-            flyToOptions.bearing = map.getBearing(); // Maintain current bearing
-          }
-          
-          map.flyTo(flyToOptions);
-          
-          // Reset positioning flag after animation
-          setTimeout(resetPositioning, duration + 200);
+        // Check if we're in 3D mode
+        const is3D = uiController.is3DEnabled;
+        const targetZoom = is3D ? CONFIG.ZOOM_3D : CONFIG.ZOOM_2D;
+
+        // Always use flyTo for consistent behavior in both 2D and 3D
+        const flyToOptions = {
+          center: coords,
+          zoom: targetZoom,
+          duration,
+          easing: smoothEasing
+        };
+        
+        // Add 3D properties if in 3D mode
+        if (is3D) {
+          flyToOptions.pitch = 75;
+          flyToOptions.bearing = map.getBearing(); // Maintain current bearing
         }
+        
+        map.flyTo(flyToOptions);
+        setTimeout(resetPositioning, duration + 200);
       }
 
       calculateDistance(lat1, lng1, lat2, lng2) {
