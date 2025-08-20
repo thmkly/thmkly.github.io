@@ -25,7 +25,7 @@
     top: 25px;
     left: 10px;
     width: 350px;
-    max-height: 90vh;
+    max-height: 84vh;
     border-radius: 5px;
     box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
     background-color: rgba(255, 255, 255, 0.75);
@@ -508,6 +508,10 @@
         
         // Calculate diagonal pixel resolution
         const diagonalPixels = Math.sqrt(screenWidth * screenWidth + screenHeight * screenHeight);
+        
+        // Reference points based on your current preferences:
+        // 13" MacBook Air M3: zoom = 4.4
+        // 27" monitor: zoom = 4.95
         
         if (hasUnreliableScreenData) {
           // Fallback logic for browsers with unreliable screen data
@@ -1509,6 +1513,17 @@
         toggleBtn.classList.add('visible');
         
         uiController.updateScrollArrows();
+        
+        // Force scroll position update on initial load
+        if (audioController.currentIndex === -1) {
+          setTimeout(() => {
+            if (audioController.sortMode === 'sobo') {
+              playlist.scrollTop = 0;
+            } else {
+              playlist.scrollTop = playlist.scrollHeight;
+            }
+          }, 150);
+        }
       }
 
       setPlaylistScrollPosition() {
@@ -1524,7 +1539,7 @@
               // NOBO and STEREO: Scroll to bottom (starting at Mexico/south)
               playlist.scrollTop = playlist.scrollHeight;
             }
-          }, 50); // Small delay to ensure rendering is complete
+          }, 100); // Increased delay to ensure rendering is complete
         }
       }
 
