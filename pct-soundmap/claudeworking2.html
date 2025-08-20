@@ -221,7 +221,7 @@
   /* Mini Info Boxes */
   .mini-infobox {
     position: absolute;
-    background: rgba(255, 255, 255, 0.85);
+    background: rgba(255, 255, 255, 0.95);
     border: 1px solid #ccc;
     border-radius: 4px;
     padding: 4px 8px;
@@ -241,7 +241,7 @@
   }
 
   .mini-infobox:hover {
-    background: rgba(240, 240, 240, 0.9);
+    background: rgba(240, 240, 240, 1);
   }
 
   .mini-infobox-title {
@@ -422,7 +422,7 @@
     <div class="sort-controls">
       <button class="control-btn sort-btn active" id="sortNobo">NOBO</button>
       <button class="control-btn sort-btn" id="sortSobo">SOBO</button>
-      <button class="control-btn sort-btn" id="sortDate">STEREO</button>
+      <button class="control-btn sort-btn" id="sortDate">Date</button>
       <div class="random-control">
         <span class="random-label">Random</span>
         <div class="toggle-switch" id="randomToggle" title="Toggle random playback">
@@ -1013,13 +1013,42 @@
       }
 
       setupMapLayers() {
+        // Calculate responsive clustering based on screen size
+        const screenWidth = window.screen.width;
+        let clusterRadius, clusterMaxZoom;
+        
+        if (screenWidth <= 1366) {
+          // Smaller screens: tighter clustering
+          clusterRadius = 35;
+          clusterMaxZoom = 13;
+        } else if (screenWidth <= 1920) {
+          // Medium screens: moderate clustering
+          clusterRadius = 45;
+          clusterMaxZoom = 14;
+        } else {
+          // Large screens: looser clustering for comfort
+          clusterRadius = 60;
+          clusterMaxZoom = 15;
+        }
+
         map.addSource('audio', {
           type: 'geojson',
           data: { type: 'FeatureCollection', features: [] },
           cluster: true,
-          clusterMaxZoom: 14,
-          clusterRadius: 45
+          clusterMaxZoom: clusterMaxZoom,
+          clusterRadius: clusterRadius
         });
+
+        // Responsive circle sizes based on screen size
+        const getCircleRadii = () => {
+          if (screenWidth <= 1366) {
+            return [16, 3, 20, 5, 24, 6, 28, 7, 32, 8, 34, 10, 36, 15, 38, 18, 40, 22, 42, 25, 44, 30, 46, 35, 48, 40, 50, 50, 52, 100, 54];
+          } else if (screenWidth <= 1920) {
+            return [18, 3, 22, 5, 26, 6, 30, 7, 34, 8, 36, 10, 38, 15, 40, 18, 42, 22, 44, 25, 46, 30, 48, 35, 50, 40, 52, 50, 54, 100, 56];
+          } else {
+            return [22, 3, 26, 5, 30, 6, 34, 7, 38, 8, 40, 10, 42, 15, 44, 18, 46, 22, 48, 25, 50, 30, 52, 35, 54, 40, 56, 50, 58, 100, 60];
+          }
+        };
 
         map.addLayer({
           id: 'clusters',
@@ -1035,9 +1064,7 @@
             'circle-radius': [
               'step',
               ['get', 'point_count'],
-              18, 3, 22, 5, 26, 6, 30, 7, 34, 8, 36,
-              10, 38, 15, 40, 18, 42, 22, 44, 25, 46,
-              30, 48, 35, 50, 40, 52, 50, 54, 100, 56
+              ...getCircleRadii()
             ]
           }
         });
@@ -1050,7 +1077,7 @@
           layout: {
             'text-field': '{point_count_abbreviated}',
             'text-font': ['Open Sans Semibold', 'Arial Unicode MS Bold'],
-            'text-size': 12
+            'text-size': screenWidth <= 1366 ? 11 : screenWidth <= 1920 ? 12 : 14
           }
         });
 
@@ -1061,7 +1088,7 @@
           filter: ['!', ['has', 'point_count']],
           paint: {
             'circle-color': '#5c3a2e',
-            'circle-radius': 6,
+            'circle-radius': screenWidth <= 1366 ? 5 : screenWidth <= 1920 ? 6 : 7,
             'circle-opacity': 0.6,
             'circle-stroke-width': 1,
             'circle-stroke-color': '#fff',
@@ -1086,8 +1113,16 @@
             map.getSource('audio').getClusterLeaves(clusterId, 100, 0, (_, leaves) => {
               const bounds = new mapboxgl.LngLatBounds();
               leaves.forEach(leaf => bounds.extend(leaf.geometry.coordinates));
+              
+              // Set minimum zoom to prevent over-zooming on small clusters
+              const is3D = uiController.is3DEnabled;
+              const minZoom = is3D ? CONFIG.ZOOM_3D : CONFIG.ZOOM_2D;
+              
               map.fitBounds(bounds, { 
-                padding: { top: 50, bottom: 50, left: this.getLeftPadding(), right: 20 } 
+                padding: { top: 50, bottom: 50, left: this.getLeftPadding(), right: 20 },
+                maxZoom: Math.max(zoom, minZoom + 1), // At least play zoom + 1 for visibility
+                duration: 1800,
+                easing: t => t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2
               });
             });
           });
@@ -1408,15 +1443,18 @@
           coords[1], coords[0]
         );
         
-        // Distance-based duration: longer for farther points
+        // Distance-based duration: longer for farther points, extra time for 3D comfort
         const distanceKm = distance / 1000;
+        const is3D = uiController.is3DEnabled;
         let duration;
         if (distanceKm < 5) {
-          duration = 2200; // Close points: normal speed
+          duration = is3D ? 2800 : 2200; // 3D gets extra time for comfort
         } else if (distanceKm < 50) {
-          duration = 2200 + ((distanceKm - 5) / 45) * 1800; // Medium: 2.2-4s
+          const baseDuration = 2200 + ((distanceKm - 5) / 45) * 1800;
+          duration = is3D ? baseDuration + 800 : baseDuration; // 3D: +800ms for comfort
         } else {
-          duration = Math.min(5000, 4000 + ((distanceKm - 50) / 100) * 1000); // Far: 4-5s max
+          const baseDuration = Math.min(5000, 4000 + ((distanceKm - 50) / 100) * 1000);
+          duration = is3D ? baseDuration + 1000 : baseDuration; // 3D: +1s for long flights
         }
 
         // Smooth easing with pronounced landing deceleration
