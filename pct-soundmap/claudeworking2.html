@@ -221,7 +221,7 @@
   /* Mini Info Boxes */
   .mini-infobox {
     position: absolute;
-    background: rgba(255, 255, 255, 0.95);
+    background: rgba(255, 255, 255, 0.85);
     border: 1px solid #ccc;
     border-radius: 4px;
     padding: 4px 8px;
@@ -241,7 +241,7 @@
   }
 
   .mini-infobox:hover {
-    background: rgba(240, 240, 240, 1);
+    background: rgba(240, 240, 240, 0.9);
   }
 
   .mini-infobox-title {
@@ -422,7 +422,7 @@
     <div class="sort-controls">
       <button class="control-btn sort-btn active" id="sortNobo">NOBO</button>
       <button class="control-btn sort-btn" id="sortSobo">SOBO</button>
-      <button class="control-btn sort-btn" id="sortDate">Date</button>
+      <button class="control-btn sort-btn" id="sortDate">STEREO</button>
       <div class="random-control">
         <span class="random-label">Random</span>
         <div class="toggle-switch" id="randomToggle" title="Toggle random playback">
@@ -1408,18 +1408,15 @@
           coords[1], coords[0]
         );
         
-        // Distance-based duration: longer for farther points, extra time for 3D comfort
+        // Distance-based duration: longer for farther points
         const distanceKm = distance / 1000;
-        const is3D = uiController.is3DEnabled;
         let duration;
         if (distanceKm < 5) {
-          duration = is3D ? 2800 : 2200; // 3D gets extra time for comfort
+          duration = 2200; // Close points: normal speed
         } else if (distanceKm < 50) {
-          const baseDuration = 2200 + ((distanceKm - 5) / 45) * 1800;
-          duration = is3D ? baseDuration + 800 : baseDuration; // 3D: +800ms for comfort
+          duration = 2200 + ((distanceKm - 5) / 45) * 1800; // Medium: 2.2-4s
         } else {
-          const baseDuration = Math.min(5000, 4000 + ((distanceKm - 50) / 100) * 1000);
-          duration = is3D ? baseDuration + 1000 : baseDuration; // 3D: +1s for long flights
+          duration = Math.min(5000, 4000 + ((distanceKm - 50) / 100) * 1000); // Far: 4-5s max
         }
 
         // Smooth easing with pronounced landing deceleration
