@@ -422,7 +422,7 @@
     <div class="sort-controls">
       <button class="control-btn sort-btn active" id="sortNobo">NOBO</button>
       <button class="control-btn sort-btn" id="sortSobo">SOBO</button>
-      <button class="control-btn sort-btn" id="sortDate">Date</button>
+      <button class="control-btn sort-btn" id="sortDate">STEREO</button>
       <div class="random-control">
         <span class="random-label">Random</span>
         <div class="toggle-switch" id="randomToggle" title="Toggle random playback">
@@ -1382,7 +1382,12 @@
           this.isPositioning = false;
         };
 
-        if (adjacentTracks.length > 0) {
+        // Check if we're in 3D mode for special handling
+        const is3D = uiController.is3DEnabled;
+        const targetZoom = is3D ? CONFIG.ZOOM_3D : CONFIG.ZOOM_2D;
+
+        if (adjacentTracks.length > 0 && !is3D) {
+          // Only use bounds for 2D mode - in 3D, focus on the specific point
           const bounds = new mapboxgl.LngLatBounds();
           bounds.extend(coords);
           
@@ -1397,8 +1402,6 @@
             targetCenter.lat, targetCenter.lng
           );
           const duration = Math.max(1500, Math.min(4000, 800 * Math.sqrt(distance / 1000))); // More natural duration
-          
-          const targetZoom = uiController.is3DEnabled ? CONFIG.ZOOM_3D : CONFIG.ZOOM_2D;
           
           map.fitBounds(bounds, {
             padding: { 
@@ -1415,13 +1418,21 @@
           // Reset positioning flag after animation
           setTimeout(resetPositioning, duration + 200);
         } else {
-          const targetZoom = uiController.is3DEnabled ? CONFIG.ZOOM_3D : CONFIG.ZOOM_2D;
-          map.flyTo({
+          // For 3D mode or when no adjacent tracks, fly directly to the point
+          const flyToOptions = {
             center: coords,
             zoom: targetZoom,
             duration: 2000, // Slower, more natural duration
             easing: t => 1 - Math.pow(1 - t, 3) // Ease-out cubic
-          });
+          };
+          
+          // Maintain 3D perspective if in 3D mode
+          if (is3D) {
+            flyToOptions.pitch = 75;
+            flyToOptions.bearing = map.getBearing(); // Maintain current bearing
+          }
+          
+          map.flyTo(flyToOptions);
           
           // Reset positioning flag after animation
           setTimeout(resetPositioning, 2200);
