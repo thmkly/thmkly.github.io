@@ -1392,61 +1392,41 @@
           return [...data].sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
         }
         
-        // For NOBO/SOBO modes: sort all tracks by timestamp first, then stable-sort by mile
-        const allTracks = [...data].sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
+        // Sort all tracks chronologically first
+        const chronological = [...data].sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
         
-        // Separate tracks with and without miles
-        const withMiles = allTracks.filter(track => {
+        // Extract just the tracks with miles and sort them by mile
+        const tracksWithMiles = chronological.filter(track => {
           const mile = parseFloat(track.mile);
           return !isNaN(mile) && track.mile && track.mile.toString().trim().toLowerCase() !== 'n/a';
         });
         
-        const withoutMiles = allTracks.filter(track => {
-          const mile = parseFloat(track.mile);
-          return isNaN(mile) || !track.mile || track.mile.toString().trim().toLowerCase() === 'n/a';
-        });
-
-        // Sort tracks with miles by mile number (this is a stable sort, preserving chronological order for same miles)
         const ascending = mode === 'nobo';
-        withMiles.sort((a, b) => {
+        tracksWithMiles.sort((a, b) => {
           const mileA = parseFloat(a.mile);
           const mileB = parseFloat(b.mile);
           return ascending ? mileA - mileB : mileB - mileA;
         });
-
-        // Now insert no-mile tracks chronologically among the mile-sorted tracks
+        
+        // Now go through the chronological list and replace mile tracks with sorted mile tracks
+        // while keeping no-mile tracks in their original chronological positions
         const result = [];
-        let mileIndex = 0;
-        let noMileIndex = 0;
-
-        // Process all tracks in chronological order and place them appropriately
-        while (mileIndex < withMiles.length || noMileIndex < withoutMiles.length) {
-          const currentMileTrack = withMiles[mileIndex];
-          const currentNoMileTrack = withoutMiles[noMileIndex];
-
-          if (!currentMileTrack) {
-            // No more mile tracks, add remaining no-mile tracks
-            result.push(currentNoMileTrack);
-            noMileIndex++;
-          } else if (!currentNoMileTrack) {
-            // No more no-mile tracks, add remaining mile tracks
-            result.push(currentMileTrack);
-            mileIndex++;
+        let mileTrackIndex = 0;
+        
+        for (const track of chronological) {
+          const mile = parseFloat(track.mile);
+          const hasMile = !isNaN(mile) && track.mile && track.mile.toString().trim().toLowerCase() !== 'n/a';
+          
+          if (hasMile) {
+            // This is a track with a mile - replace it with the next sorted mile track
+            result.push(tracksWithMiles[mileTrackIndex]);
+            mileTrackIndex++;
           } else {
-            // Both exist, compare timestamps to maintain chronological insertion
-            const mileDate = new Date(currentMileTrack.timestamp);
-            const noMileDate = new Date(currentNoMileTrack.timestamp);
-            
-            if (noMileDate <= mileDate) {
-              result.push(currentNoMileTrack);
-              noMileIndex++;
-            } else {
-              result.push(currentMileTrack);
-              mileIndex++;
-            }
+            // This is a track without a mile - keep it in its chronological position
+            result.push(track);
           }
         }
-
+        
         return result;
       }
 
