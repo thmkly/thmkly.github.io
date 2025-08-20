@@ -422,7 +422,7 @@
     <div class="sort-controls">
       <button class="control-btn sort-btn active" id="sortNobo">NOBO</button>
       <button class="control-btn sort-btn" id="sortSobo">SOBO</button>
-      <button class="control-btn sort-btn" id="sortDate">Date</button>
+      <button class="control-btn sort-btn" id="sortDate">My Route</button>
       <div class="random-control">
         <span class="random-label">Random</span>
         <div class="toggle-switch" id="randomToggle" title="Toggle random playback">
@@ -703,55 +703,71 @@
         btn.classList.toggle('active', this.is3DEnabled);
 
         if (this.is3DEnabled) {
-          // Add 3D terrain
-          map.addSource('mapbox-dem', {
-            'type': 'raster-dem',
-            'url': 'mapbox://mapbox.mapbox-terrain-dem-v1',
-            'tileSize': 512,
-            'maxzoom': 14
-          });
+          // Add 3D terrain source first
+          if (!map.getSource('mapbox-dem')) {
+            map.addSource('mapbox-dem', {
+              'type': 'raster-dem',
+              'url': 'mapbox://mapbox.mapbox-terrain-dem-v1',
+              'tileSize': 512,
+              'maxzoom': 14
+            });
+          }
+          
+          // Set terrain and wait for it to load
           map.setTerrain({ 'source': 'mapbox-dem', 'exaggeration': 1.5 });
           
-          // Check if there's an active audio track to focus on
-          if (audioController.currentIndex >= 0) {
-            const currentTrack = mapController.audioData[audioController.currentIndex];
-            if (currentTrack) {
-              // Position for 3D view of current track
-              const coords = [parseFloat(currentTrack.lng), parseFloat(currentTrack.lat)];
-              map.flyTo({
-                center: coords,
-                zoom: CONFIG.ZOOM_3D,
-                pitch: 75,
-                bearing: 0,
-                duration: 2000,
-                easing: t => 1 - Math.pow(1 - t, 3)
-              });
-              showNotification('3D view enabled - Hold Ctrl + drag to rotate', 4000);
+          // Wait for terrain to be ready, then apply 3D positioning
+          const apply3DView = () => {
+            if (audioController.currentIndex >= 0) {
+              const currentTrack = mapController.audioData[audioController.currentIndex];
+              if (currentTrack) {
+                // Position for 3D view of current track
+                const coords = [parseFloat(currentTrack.lng), parseFloat(currentTrack.lat)];
+                map.flyTo({
+                  center: coords,
+                  zoom: CONFIG.ZOOM_3D,
+                  pitch: 75,
+                  bearing: 0,
+                  duration: 2500,
+                  easing: t => 1 - Math.pow(1 - t, 3)
+                });
+              } else {
+                // No valid track, just enable 3D at current location
+                map.flyTo({
+                  pitch: 75,
+                  zoom: Math.max(map.getZoom(), CONFIG.ZOOM_3D),
+                  duration: 2000
+                });
+              }
             } else {
               // No active track, just enable 3D at current location
-              map.setPitch(75);
-              const currentZoom = map.getZoom();
-              if (currentZoom < CONFIG.ZOOM_3D) {
-                map.zoomTo(CONFIG.ZOOM_3D, { duration: 1000 });
-              }
-              showNotification('3D view enabled - Hold Ctrl + drag to rotate', 4000);
-            }
-          } else {
-            // No active track, just enable 3D at current location
-            map.setPitch(75);
-            const currentZoom = map.getZoom();
-            if (currentZoom < CONFIG.ZOOM_3D) {
-              map.zoomTo(CONFIG.ZOOM_3D, { duration: 1000 });
+              map.flyTo({
+                pitch: 75,
+                zoom: Math.max(map.getZoom(), CONFIG.ZOOM_3D),
+                duration: 2000
+              });
             }
             showNotification('3D view enabled - Hold Ctrl + drag to rotate', 4000);
-          }
+          };
+          
+          // Wait a moment for terrain to initialize, then apply 3D view
+          setTimeout(apply3DView, 300);
+          
         } else {
           // Disable 3D
           map.setTerrain(null);
-          map.setPitch(0);
-          if (map.getSource('mapbox-dem')) {
-            map.removeSource('mapbox-dem');
-          }
+          map.flyTo({
+            pitch: 0,
+            duration: 1500
+          });
+          
+          // Clean up terrain source
+          setTimeout(() => {
+            if (map.getSource('mapbox-dem')) {
+              map.removeSource('mapbox-dem');
+            }
+          }, 1600);
+          
           showNotification('3D view disabled', 2000);
         }
       }
