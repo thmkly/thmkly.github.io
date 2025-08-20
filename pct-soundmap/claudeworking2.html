@@ -1344,7 +1344,7 @@
                 originalIndex: index
               }));
               
-              // Sort data by mile and date for geographic playlist order (south to north, reversed for display)
+              // Set up data in fixed geographic order (south to north, Canada at top)
               this.audioData = this.sortByMileAndDate([...this.originalAudioData], 'nobo').reverse();
               this.sortAndUpdatePlaylist();
               this.updateMapData();
@@ -1368,20 +1368,11 @@
         const currentlyPlayingTrack = audioController.currentIndex >= 0 ? 
           this.audioData[audioController.currentIndex] : null;
         
-        // Sort data based on current mode
-        this.audioData = this.sortByMileAndDate([...this.originalAudioData], audioController.sortMode);
-        
-        // Update the current index to match the new sort order
-        if (currentlyPlayingTrack) {
-          audioController.currentIndex = this.audioData.findIndex(track => 
-            track.originalIndex === currentlyPlayingTrack.originalIndex
-          );
-        }
-        
-        // Update playlist display
+        // Don't reorder playlist - keep static geographic order
+        // Only update mile display based on current mode
         this.updatePlaylistOnly();
         
-        // Set scroll position based on sort mode
+        // Set scroll position based on sort mode (only if no track playing)
         this.setPlaylistScrollPosition();
         
         // Update popup if one is open to show correct mileage
