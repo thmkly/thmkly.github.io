@@ -703,6 +703,7 @@
         btn.classList.toggle('active', this.is3DEnabled);
 
         if (this.is3DEnabled) {
+          // Add 3D terrain
           map.addSource('mapbox-dem', {
             'type': 'raster-dem',
             'url': 'mapbox://mapbox.mapbox-terrain-dem-v1',
@@ -710,21 +711,48 @@
             'maxzoom': 14
           });
           map.setTerrain({ 'source': 'mapbox-dem', 'exaggeration': 1.5 });
-          map.setPitch(75);
           
-          // Zoom in for immersive experience
-          const currentZoom = map.getZoom();
-          if (currentZoom < CONFIG.ZOOM_3D) {
-            map.zoomTo(CONFIG.ZOOM_3D, { duration: 1000 });
+          // Check if there's an active audio track to focus on
+          if (audioController.currentIndex >= 0) {
+            const currentTrack = mapController.audioData[audioController.currentIndex];
+            if (currentTrack) {
+              // Position for 3D view of current track
+              const coords = [parseFloat(currentTrack.lng), parseFloat(currentTrack.lat)];
+              map.flyTo({
+                center: coords,
+                zoom: CONFIG.ZOOM_3D,
+                pitch: 75,
+                bearing: 0,
+                duration: 2000,
+                easing: t => 1 - Math.pow(1 - t, 3)
+              });
+              showNotification('3D view enabled - Hold Ctrl + drag to rotate', 4000);
+            } else {
+              // No active track, just enable 3D at current location
+              map.setPitch(75);
+              const currentZoom = map.getZoom();
+              if (currentZoom < CONFIG.ZOOM_3D) {
+                map.zoomTo(CONFIG.ZOOM_3D, { duration: 1000 });
+              }
+              showNotification('3D view enabled - Hold Ctrl + drag to rotate', 4000);
+            }
+          } else {
+            // No active track, just enable 3D at current location
+            map.setPitch(75);
+            const currentZoom = map.getZoom();
+            if (currentZoom < CONFIG.ZOOM_3D) {
+              map.zoomTo(CONFIG.ZOOM_3D, { duration: 1000 });
+            }
+            showNotification('3D view enabled - Hold Ctrl + drag to rotate', 4000);
           }
-          
-          showNotification('Hold Ctrl + drag to rotate the map', 4000);
         } else {
+          // Disable 3D
           map.setTerrain(null);
           map.setPitch(0);
           if (map.getSource('mapbox-dem')) {
             map.removeSource('mapbox-dem');
           }
+          showNotification('3D view disabled', 2000);
         }
       }
 
