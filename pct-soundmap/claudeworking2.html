@@ -422,7 +422,7 @@
     <div class="sort-controls">
       <button class="control-btn sort-btn active" id="sortNobo">NOBO</button>
       <button class="control-btn sort-btn" id="sortSobo">SOBO</button>
-      <button class="control-btn sort-btn" id="sortDate">My Route</button>
+      <button class="control-btn sort-btn" id="sortDate">Date</button>
       <div class="random-control">
         <span class="random-label">Random</span>
         <div class="toggle-switch" id="randomToggle" title="Toggle random playback">
@@ -1038,24 +1038,14 @@
           this.playAudio(index);
         });
 
-        map.on('move', () => {
-          // Update mini info box positions when map moves
-          this.updateMiniInfoBoxPositions();
-          
-          // Throttle mini info box updates to prevent loops
-          if (this.moveTimeout) {
-            clearTimeout(this.moveTimeout);
-          }
-          
-          this.moveTimeout = setTimeout(() => {
-            // Only show mini info boxes if we're not currently positioning the map
-            if (!this.isPositioning) {
-              const visiblePoints = map.queryRenderedFeatures({ layers: ['unclustered-point'] });
-              if (visiblePoints.length > 0 && visiblePoints.length < 50) { // Limit to prevent overload
-                uiController.showMiniInfoBoxes(null, this.audioData);
-              }
+        map.on('moveend', () => {
+          // Only update mini boxes when movement is completely finished
+          if (!this.isPositioning) {
+            const visiblePoints = map.queryRenderedFeatures({ layers: ['unclustered-point'] });
+            if (visiblePoints.length > 0 && visiblePoints.length < 50) {
+              uiController.showMiniInfoBoxes(null, this.audioData);
             }
-          }, 200); // Slightly longer throttle
+          }
         });
 
         document.addEventListener('fullscreenchange', () => {
