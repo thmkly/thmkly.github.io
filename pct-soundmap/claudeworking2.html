@@ -509,10 +509,6 @@
         // Calculate diagonal pixel resolution
         const diagonalPixels = Math.sqrt(screenWidth * screenWidth + screenHeight * screenHeight);
         
-        // Reference points based on your current preferences:
-        // 13" MacBook Air M3: zoom = 4.4
-        // 27" monitor: zoom = 4.95
-        
         if (hasUnreliableScreenData) {
           // Fallback logic for browsers with unreliable screen data
           // Use viewport dimensions as backup indicator
@@ -527,7 +523,7 @@
           } else if (viewportDiagonal > 1800) {
             return 4.45; // Laptop equivalent - fine-tuned for Brave on 13"
           } else if (viewportDiagonal > 1400) {
-            return 4.6; // Standard laptop
+            return 4.5; // Standard laptop
           } else {
             return 4.8; // Smaller screens/mobile
           }
