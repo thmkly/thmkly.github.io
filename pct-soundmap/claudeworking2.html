@@ -466,7 +466,7 @@
     <div class="sort-controls">
       <button class="control-btn sort-btn active" id="sortNobo">NOBO</button>
       <button class="control-btn sort-btn" id="sortSobo">SOBO</button>
-      <button class="control-btn sort-btn" id="sortDate">Date</button>
+      <button class="control-btn sort-btn" id="sortDate">STEREO</button>
       <div class="random-control">
         <span class="random-label">Random</span>
         <div class="toggle-switch" id="randomToggle" title="Toggle random playback">
@@ -1348,6 +1348,11 @@
         }
         
         this.updatePlaylistOnly();
+        
+        // Center the currently playing track in the new sort order
+        if (currentlyPlayingTrack && audioController.currentIndex >= 0) {
+          this.updateActiveTrack(audioController.currentIndex);
+        }
       }
 
       sortByMileAndDate(data, reverse = false) {
