@@ -463,7 +463,7 @@
     <div class="sort-controls">
       <button class="control-btn sort-btn active" id="sortNobo">NOBO</button>
       <button class="control-btn sort-btn" id="sortSobo">SOBO</button>
-      <button class="control-btn sort-btn" id="sortDate">Date</button>
+      <button class="control-btn sort-btn" id="sortDate">STEREO</button>
       <div class="random-control">
         <span class="random-label">Random</span>
         <div class="toggle-switch" id="randomToggle" title="Toggle random playback">
@@ -513,10 +513,10 @@
           
           if (viewportDiagonal > 2800) {
             return 4.2; // Large desktop/high-res
-          } else if (viewportDiagonal > 2200) {
-            return 4.95; // Desktop equivalent  
+          } else if (viewportDiagonal > 2000) {
+            return 4.95; // Desktop equivalent - adjusted threshold for 27" monitors  
           } else if (viewportDiagonal > 1800) {
-            return 4.4; // Laptop equivalent
+            return 4.5; // Laptop equivalent - slightly higher for better Brave match
           } else if (viewportDiagonal > 1400) {
             return 4.6; // Standard laptop
           } else {
