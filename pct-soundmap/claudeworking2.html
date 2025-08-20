@@ -1,14 +1,4 @@
-// Helper function to get display mile based on sort mode
-      getDisplayMile(track) {
-        if (audioController.sortMode === 'sobo' && track.mile && track.mile.toString().trim().toLowerCase() !== 'n/a') {
-          const nobobMile = parseFloat(track.mile);
-          if (!isNaN(nobobMile)) {
-            const soboMile = 2655.8 - nobobMile;
-            return soboMile.toFixed(1);
-          }
-        }
-        return track.mile;
-      },<!DOCTYPE html>
+<!DOCTYPE html>
 <html>
 <head>
   <meta charset="utf-8" />
@@ -1152,6 +1142,18 @@
         this.animationTimeout = null;
         this.moveTimeout = null;
         this.setupMap();
+      }
+
+      // Helper function to get display mile based on sort mode
+      getDisplayMile(track) {
+        if (audioController.sortMode === 'sobo' && track.mile && track.mile.toString().trim().toLowerCase() !== 'n/a') {
+          const nobobMile = parseFloat(track.mile);
+          if (!isNaN(nobobMile)) {
+            const soboMile = 2655.8 - nobobMile;
+            return soboMile.toFixed(1);
+          }
+        }
+        return track.mile;
       }
 
       setupMap() {
