@@ -1392,13 +1392,20 @@
         const currentlyPlayingTrack = audioController.currentIndex >= 0 ? 
           this.audioData[audioController.currentIndex] : null;
         
-        // For STEREO mode, actually reorder the playlist chronologically
-        // For NOBO/SOBO modes, keep static geographic order and only update display
-        if (audioController.sortMode === 'date') {
-          // STEREO: Reorder playlist chronologically
-          this.audioData = this.sortByMileAndDate([...this.originalAudioData], 'date');
+        // Check if we need to reorder the playlist
+        const needsReordering = audioController.sortMode === 'date' || 
+                               (audioController.sortMode !== 'date' && this.isCurrentlyChronological());
+        
+        if (needsReordering) {
+          if (audioController.sortMode === 'date') {
+            // STEREO: Reorder playlist chronologically
+            this.audioData = this.sortByMileAndDate([...this.originalAudioData], 'date');
+          } else {
+            // NOBO/SOBO: Restore geographic order
+            this.audioData = this.sortByMileAndDate([...this.originalAudioData], 'nobo');
+          }
           
-          // Update current index to match new chronological order
+          // Update current index to match new order
           if (currentlyPlayingTrack) {
             audioController.currentIndex = this.audioData.findIndex(track => 
               track.originalIndex === currentlyPlayingTrack.originalIndex
@@ -1421,6 +1428,21 @@
         if (this.currentPopup && currentlyPlayingTrack) {
           this.refreshPopupMileage(currentlyPlayingTrack);
         }
+      }
+
+      // Helper to detect if playlist is currently in chronological order
+      isCurrentlyChronological() {
+        if (this.audioData.length < 2) return false;
+        
+        // Check if first few items are in chronological order (indicating STEREO mode was used)
+        for (let i = 0; i < Math.min(5, this.audioData.length - 1); i++) {
+          const currentTime = new Date(this.audioData[i].timestamp);
+          const nextTime = new Date(this.audioData[i + 1].timestamp);
+          if (currentTime > nextTime) {
+            return false; // Not chronological
+          }
+        }
+        return true; // Appears to be chronological
       }
 
       sortByMileAndDate(data, mode = 'nobo') {
