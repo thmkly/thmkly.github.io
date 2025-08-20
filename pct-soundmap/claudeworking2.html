@@ -269,55 +269,96 @@
   /* Popup Controls */
   .popup-controls {
     display: flex;
-    justify-content: center;
+    justify-content: space-between;
+    align-items: center;
     gap: 10px;
     margin: 8px 0;
+    position: relative;
   }
 
-  .popup-btn {
+  .nav-arrow {
     background: #5c3a2e;
     color: white;
     border: none;
     border-radius: 3px;
-    padding: 4px 8px;
+    padding: 8px 12px;
     cursor: pointer;
-    font-size: 12px;
+    font-size: 14px;
+    font-weight: bold;
+    transition: background-color 0.2s;
+    min-width: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
   }
 
-  .popup-btn:hover {
+  .nav-arrow:hover {
     background: #4a2e24;
   }
 
-  .popup-btn:disabled {
+  .nav-arrow:disabled {
     background: #ccc;
     cursor: not-allowed;
   }
 
-  /* Cluster Tooltip */
-  .cluster-tooltip {
-    background: rgba(255, 255, 255, 0.95);
+  .audio-container {
+    flex: 1;
+    margin: 0 10px;
+  }
+
+  /* Cluster Playlist */
+  .cluster-playlist {
+    position: absolute;
+    background: rgba(255, 255, 255, 0.85);
     border: 1px solid #ccc;
     border-radius: 4px;
-    padding: 8px;
-    font-size: 12px;
-    max-width: 200px;
-    max-height: 150px;
+    padding: 4px;
+    font-size: 11px;
+    max-width: 250px;
+    max-height: 200px;
     overflow-y: auto;
     z-index: 1000;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
   }
 
   .cluster-item {
-    padding: 2px 0;
+    padding: 4px 8px;
     cursor: pointer;
     border-bottom: 1px solid #eee;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    transition: background-color 0.2s;
+    border-radius: 2px;
+    margin: 1px 0;
   }
 
   .cluster-item:hover {
-    background-color: #f0f0f0;
+    background-color: rgba(240, 240, 240, 0.9);
   }
 
   .cluster-item:last-child {
     border-bottom: none;
+  }
+
+  .cluster-item-title {
+    flex: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .cluster-item .play-icon {
+    width: 0;
+    height: 0;
+    border-left: 5px solid #5c3a2e;
+    border-top: 3px solid transparent;
+    border-bottom: 3px solid transparent;
+    flex-shrink: 0;
+  }
+
+  .cluster-item:hover .play-icon {
+    border-left-color: #4a2e24;
   }
 
   /* Map Controls */
@@ -598,7 +639,7 @@
         this.isFullscreen = false;
         this.is3DEnabled = false;
         this.miniInfoBoxes = [];
-        this.clusterTooltip = null;
+        this.clusterPlaylist = null;
         this.setupEventListeners();
       }
 
@@ -937,49 +978,60 @@
         this.miniInfoBoxes = [];
       }
 
-      updateMiniInfoBoxPositions() {
-        // Update positions of existing mini info boxes to follow their geographic points
-        this.miniInfoBoxes.forEach(infoBox => {
-          const trackIndex = parseInt(infoBox.dataset.trackIndex);
-          const track = mapController.audioData[trackIndex];
-          if (track) {
-            const coords = [parseFloat(track.lng), parseFloat(track.lat)];
-            const pixelCoords = map.project(coords);
-            infoBox.style.left = `${pixelCoords.x + 10}px`;
-            infoBox.style.top = `${pixelCoords.y - 20}px`;
-          }
-        });
-      }
+      showClusterPlaylist(e, leaves) {
+        this.hideClusterPlaylist();
 
-      showClusterTooltip(e, leaves) {
-        this.hideClusterTooltip();
-
-        const tooltip = document.createElement('div');
-        tooltip.className = 'cluster-tooltip';
+        const playlist = document.createElement('div');
+        playlist.className = 'cluster-playlist';
         
         leaves.forEach(leaf => {
           const item = document.createElement('div');
           item.className = 'cluster-item';
-          item.textContent = leaf.properties.name.replace(/^[^\s]+\s+-\s+/, '');
+          
+          const playIcon = document.createElement('div');
+          playIcon.className = 'play-icon';
+          
+          const title = document.createElement('span');
+          title.className = 'cluster-item-title';
+          title.textContent = leaf.properties.name.replace(/^[^\s]+\s+-\s+/, '');
+          
+          item.appendChild(playIcon);
+          item.appendChild(title);
+          
           item.addEventListener('click', () => {
             mapController.playAudio(parseInt(leaf.properties.id));
-            this.hideClusterTooltip();
+            this.hideClusterPlaylist();
           });
-          tooltip.appendChild(item);
+          
+          item.addEventListener('mouseleave', () => {
+            // Small delay to allow moving between items
+            setTimeout(() => {
+              if (!playlist.matches(':hover')) {
+                this.hideClusterPlaylist();
+              }
+            }, 100);
+          });
+          
+          playlist.appendChild(item);
         });
 
-        tooltip.style.position = 'absolute';
-        tooltip.style.left = `${e.point.x + 10}px`;
-        tooltip.style.top = `${e.point.y - 10}px`;
+        // Position the playlist
+        playlist.style.left = `${e.point.x + 10}px`;
+        playlist.style.top = `${e.point.y - 10}px`;
         
-        map.getContainer().appendChild(tooltip);
-        this.clusterTooltip = tooltip;
+        // Handle playlist mouse leave
+        playlist.addEventListener('mouseleave', () => {
+          this.hideClusterPlaylist();
+        });
+        
+        map.getContainer().appendChild(playlist);
+        this.clusterPlaylist = playlist;
       }
 
-      hideClusterTooltip() {
-        if (this.clusterTooltip) {
-          this.clusterTooltip.remove();
-          this.clusterTooltip = null;
+      hideClusterPlaylist() {
+        if (this.clusterPlaylist) {
+          this.clusterPlaylist.remove();
+          this.clusterPlaylist = null;
         }
       }
     }
@@ -1099,12 +1151,17 @@
           
           const clusterId = features[0].properties.cluster_id;
           map.getSource('audio').getClusterLeaves(clusterId, 100, 0, (_, leaves) => {
-            uiController.showClusterTooltip(e, leaves);
+            uiController.showClusterPlaylist(e, leaves);
           });
         });
 
         map.on('mouseleave', 'clusters', () => {
-          uiController.hideClusterTooltip();
+          // Add small delay to allow moving to the playlist
+          setTimeout(() => {
+            if (!uiController.clusterPlaylist || !uiController.clusterPlaylist.matches(':hover')) {
+              uiController.hideClusterPlaylist();
+            }
+          }, 150);
         });
 
         map.on('click', 'unclustered-point', (e) => {
@@ -1510,33 +1567,39 @@
         controls.className = 'popup-controls';
         
         const prevBtn = document.createElement('button');
-        prevBtn.className = 'popup-btn';
-        prevBtn.textContent = '← Previous';
+        prevBtn.className = 'nav-arrow';
+        prevBtn.innerHTML = '&laquo;';
+        prevBtn.title = 'Previous';
         prevBtn.disabled = index === 0;
         prevBtn.addEventListener('click', () => {
           audioController.playPrevious(this.audioData);
         });
         
         const nextBtn = document.createElement('button');
-        nextBtn.className = 'popup-btn';
-        nextBtn.textContent = 'Next →';
+        nextBtn.className = 'nav-arrow';
+        nextBtn.innerHTML = '&raquo;';
+        nextBtn.title = 'Next';
         nextBtn.disabled = index === this.audioData.length - 1;
         nextBtn.addEventListener('click', () => {
           audioController.playNext(this.audioData);
         });
         
         controls.appendChild(prevBtn);
-        controls.appendChild(nextBtn);
-        container.appendChild(controls);
-
+        
         if (audio) {
+          const audioContainer = document.createElement('div');
+          audioContainer.className = 'audio-container';
           audio.controls = true;
           audio.autoplay = true;
           audio.style.width = '100%';
           audio.controlsList = 'nodownload';
           audio.oncontextmenu = () => false;
-          container.appendChild(audio);
+          audioContainer.appendChild(audio);
+          controls.appendChild(audioContainer);
         }
+        
+        controls.appendChild(nextBtn);
+        container.appendChild(controls);
 
         const popup = new mapboxgl.Popup({ 
           offset: 25,
