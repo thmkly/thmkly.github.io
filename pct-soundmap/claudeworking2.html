@@ -470,9 +470,9 @@
       <button class="control-btn" id="terrain3dBtn">3D Terrain</button>
     </div>
     <div class="sort-controls">
-      <button class="control-btn sort-btn active" id="sortNobo">NOBO</button>
-      <button class="control-btn sort-btn" id="sortSobo">SOBO</button>
-      <button class="control-btn sort-btn" id="sortDate">Date</button>
+    <button class="control-btn sort-btn active" id="sortNobo">NOBO ↑</button>
+    <button class="control-btn sort-btn" id="sortSobo">SOBO ↓</button>
+    <button class="control-btn sort-btn" id="sortDate">STEREO ↻</button>rtDate">STEREO</button>
       <div class="random-control">
         <span class="random-label">Random</span>
         <div class="toggle-switch" id="randomToggle" title="Toggle random playback">
@@ -1342,7 +1342,8 @@
                 originalIndex: index
               }));
               
-              this.audioData = [...this.originalAudioData];
+              // Sort data by mile and date for geographic playlist order (north to south)
+              this.audioData = this.sortByMileAndDate([...this.originalAudioData], false);
               this.sortAndUpdatePlaylist();
               this.updateMapData();
               
@@ -1367,6 +1368,9 @@
         
         // Keep playlist visually static - only update mile display
         this.updatePlaylistOnly();
+        
+        // Set initial scroll position based on sort mode
+        this.setPlaylistScrollPosition();
         
         // Update popup if one is open to show correct mileage
         if (this.currentPopup && currentlyPlayingTrack) {
@@ -1487,6 +1491,23 @@
         toggleBtn.classList.add('visible');
         
         uiController.updateScrollArrows();
+      }
+
+      setPlaylistScrollPosition() {
+        const playlist = document.getElementById('playlist');
+        
+        // Only set initial position if no track is currently playing
+        if (audioController.currentIndex === -1) {
+          setTimeout(() => {
+            if (audioController.sortMode === 'sobo') {
+              // SOBO: Scroll to top (starting at Canada/north)
+              playlist.scrollTop = 0;
+            } else {
+              // NOBO and STEREO: Scroll to bottom (starting at Mexico/south)
+              playlist.scrollTop = playlist.scrollHeight;
+            }
+          }, 50); // Small delay to ensure rendering is complete
+        }
       }
 
       playAudio(index) {
