@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <title>A Soundmap of the PCT, Stereo 2023</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <link href="https://api.mapbox.com/mapbox-gl-js/v2.8.1/mapbox-gl.css" rel="stylesheet" />
+  <link href="https://api.mapbox.com/mapbox-gl-js/v3.8.0/mapbox-gl.css" rel="stylesheet" />
 <style>
   body {
     margin: 0;
@@ -484,7 +484,7 @@
 
   <div class="notification" id="notification"></div>
 
-  <script src="https://api.mapbox.com/mapbox-gl-js/v2.8.1/mapbox-gl.js"></script>
+  <script src="https://api.mapbox.com/mapbox-gl-js/v3.8.0/mapbox-gl.js"></script>
   <script src="config.js"></script>
   <script>
     // Configuration
@@ -876,55 +876,81 @@
         console.log('Period:', conditions.period);
         console.log('Colors:', conditions.colors);
 
-        // Apply sky (should work in both 2D and 3D)
-        try {
-          map.setSky({
-            'sky-type': 'atmosphere',
-            'sky-atmosphere-sun': [conditions.sunPosition.azimuth, Math.max(0, conditions.sunPosition.altitude)],
-            'sky-atmosphere-sun-intensity': conditions.period === 'night' ? 2 : 15,
-            'sky-atmosphere-color': conditions.colors.sky,
-            'sky-gradient': [
-              'interpolate',
-              ['linear'],
-              ['sky-radial-progress'],
-              0.8,
-              conditions.colors.horizon,
-              1,
-              conditions.colors.sky
-            ]
-          });
-          console.log('Sky applied successfully');
-        } catch (e) {
-          console.warn('Sky API not available:', e);
-        }
+        // Apply sky (v3.8.0 supports this fully)
+        map.setSky({
+          'sky-type': 'atmosphere',
+          'sky-atmosphere-sun': [conditions.sunPosition.azimuth, Math.max(0, conditions.sunPosition.altitude)],
+          'sky-atmosphere-sun-intensity': conditions.period === 'night' ? 2 : 15,
+          'sky-atmosphere-color': conditions.colors.sky,
+          'sky-gradient': [
+            'interpolate',
+            ['linear'],
+            ['sky-radial-progress'],
+            0.8,
+            conditions.colors.horizon,
+            1,
+            conditions.colors.sky
+          ]
+        });
 
-        // Apply fog (should work in 2D)
-        try {
-          map.setFog({
-            ...conditions.fogSettings,
-            color: conditions.colors.fog
-          });
-          console.log('Fog applied successfully');
-        } catch (e) {
-          console.warn('Fog API not available:', e);
-        }
+        // Apply fog with enhanced v3 features
+        map.setFog({
+          ...conditions.fogSettings,
+          color: conditions.colors.fog,
+          'high-color': conditions.colors.sky,
+          'space-color': conditions.period === 'night' ? '#000011' : '#000066',
+          'star-intensity': conditions.period === 'night' ? 0.8 : 
+                           conditions.period.includes('twilight') ? 0.4 : 0
+        });
 
-        // Apply light (only if 3D terrain is enabled)
+        // Apply light (enhanced in v3)
         if (uiController.is3DEnabled) {
-          try {
-            map.setLight(conditions.lightSettings);
-            console.log('Light applied successfully');
-          } catch (e) {
-            console.warn('Light API not available:', e);
-          }
+          map.setLight({
+            ...conditions.lightSettings,
+            anchor: 'viewport',
+            color: conditions.period === 'goldenHour' || conditions.period === 'sunrise' ? 
+                   'rgba(255, 200, 100, 1)' : 'white',
+            position: [1.5, conditions.sunPosition.azimuth, Math.max(5, conditions.sunPosition.altitude)]
+          });
         }
 
-        // Adjust map style brightness/contrast based on time
-        this.adjustMapStyle(conditions);
+        // Adjust map style for time of day
+        this.adjustMapStyleV3(conditions);
         
         // Show notification about current conditions
         const timeDesc = conditions.period.replace(/([A-Z])/g, ' $1').toLowerCase();
-        showNotification(`Atmosphere: ${timeDesc} at ${track.name.split(' - ')[0]}`, 3000);
+        showNotification(`Atmosphere: ${timeDesc}`, 2500);
+      }
+
+      // Enhanced map style adjustments for Mapbox v3
+      adjustMapStyleV3(conditions) {
+        // Adjust specific layer properties based on time
+        const brightness = conditions.period === 'night' ? 0.4 : 
+                          conditions.period === 'sunrise' || conditions.period === 'goldenHour' ? 0.9 :
+                          1;
+        
+        // Adjust water color based on time
+        if (map.getLayer('water')) {
+          const waterColor = conditions.period === 'night' ? '#001133' :
+                            conditions.period === 'sunrise' ? '#4488aa' :
+                            conditions.period === 'goldenHour' ? '#6699bb' :
+                            '#4da6ff';
+          try {
+            map.setPaintProperty('water', 'fill-color', waterColor);
+          } catch (e) {
+            console.log('Water layer not found or not adjustable');
+          }
+        }
+
+        // Adjust terrain brightness if 3D is enabled
+        if (uiController.is3DEnabled && map.getTerrain()) {
+          // Terrain exaggeration can make shadows more dramatic
+          const exaggeration = conditions.period === 'goldenHour' || conditions.period === 'sunrise' ? 2 : 1.5;
+          map.setTerrain({ 
+            'source': 'mapbox-dem', 
+            'exaggeration': exaggeration 
+          });
+        }
       }
 
       adjustMapStyle(conditions) {
@@ -1253,7 +1279,7 @@
         btn.classList.toggle('active', this.is3DEnabled);
 
         if (this.is3DEnabled) {
-          // Add 3D terrain source first
+          // Add 3D terrain source (enhanced for v3)
           if (!map.getSource('mapbox-dem')) {
             map.addSource('mapbox-dem', {
               'type': 'raster-dem',
@@ -1263,8 +1289,19 @@
             });
           }
           
-          // Set terrain and wait for it to load
-          map.setTerrain({ 'source': 'mapbox-dem', 'exaggeration': 1.5 });
+          // Set terrain with v3 optimizations
+          map.setTerrain({ 
+            'source': 'mapbox-dem', 
+            'exaggeration': 1.5 
+          });
+          
+          // Enhanced lighting for 3D in v3
+          map.setLight({
+            'anchor': 'viewport',
+            'color': 'white',
+            'intensity': 0.5,
+            'position': [1.15, 210, 30]
+          });
           
           // Wait for terrain to be ready, then apply 3D positioning
           const apply3DView = () => {
@@ -1281,6 +1318,9 @@
                   duration: 2500,
                   easing: t => 1 - Math.pow(1 - t, 3)
                 });
+                
+                // Apply atmospheric lighting for current track
+                atmosphereController.applyAtmosphere(currentTrack);
               } else {
                 // No valid track, just enable 3D at current location
                 map.flyTo({
@@ -1306,6 +1346,7 @@
         } else {
           // Disable 3D
           map.setTerrain(null);
+          map.setLight(null); // Reset lighting
           map.flyTo({
             pitch: 0,
             duration: 1500
@@ -1582,26 +1623,37 @@
           container: 'map',
           style: 'mapbox://styles/thmkly/clyup637d004201ri2tkpaywq',
           center: CONFIG.DEFAULT_CENTER,
-          zoom: CONFIG.getDefaultZoom()
+          zoom: CONFIG.getDefaultZoom(),
+          projection: 'globe', // Enable globe view in v3
+          optimizeForTerrain: true // Better terrain performance in v3
         });
 
         map.on('load', () => {
-          // Enable sky and fog for atmospheric effects
+          // Initialize sky with v3 features
           map.setSky({
             'sky-type': 'atmosphere',
             'sky-atmosphere-sun': [0, 90],
             'sky-atmosphere-sun-intensity': 15
           });
           
+          // Enhanced fog for v3
           map.setFog({
             'range': [0.5, 10],
             'color': 'white',
-            'horizon-blend': 0.1
+            'high-color': '#87CEEB',
+            'space-color': '#000033',
+            'horizon-blend': 0.1,
+            'star-intensity': 0
           });
           
           this.setupMapLayers();
           this.setupMapEvents();
           this.loadAudioData();
+        });
+
+        // Globe-specific settings for v3
+        map.on('style.load', () => {
+          map.setProjection('globe');
         });
       }
 
