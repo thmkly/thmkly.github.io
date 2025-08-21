@@ -874,37 +874,46 @@
         console.log('Time:', track.timestamp);
         console.log('Sun position:', conditions.sunPosition);
         console.log('Period:', conditions.period);
-        console.log('Colors:', conditions.colors);
 
-        // Apply sky (v3.8.0 supports this fully)
-        map.setSky({
-          'sky-type': 'atmosphere',
-          'sky-atmosphere-sun': [conditions.sunPosition.azimuth, Math.max(0, conditions.sunPosition.altitude)],
-          'sky-atmosphere-sun-intensity': conditions.period === 'night' ? 2 : 15,
-          'sky-atmosphere-color': conditions.colors.sky,
-          'sky-gradient': [
-            'interpolate',
-            ['linear'],
-            ['sky-radial-progress'],
-            0.8,
-            conditions.colors.horizon,
-            1,
-            conditions.colors.sky
-          ]
-        });
+        // Check if Sky API is available
+        if (typeof map.setSky === 'function') {
+          map.setSky({
+            'sky-type': 'atmosphere',
+            'sky-atmosphere-sun': [conditions.sunPosition.azimuth, Math.max(0, conditions.sunPosition.altitude)],
+            'sky-atmosphere-sun-intensity': conditions.period === 'night' ? 2 : 15,
+            'sky-atmosphere-color': conditions.colors.sky,
+            'sky-gradient': [
+              'interpolate',
+              ['linear'],
+              ['sky-radial-progress'],
+              0.8,
+              conditions.colors.horizon,
+              1,
+              conditions.colors.sky
+            ]
+          });
+        }
 
-        // Apply fog with enhanced v3 features
-        map.setFog({
-          ...conditions.fogSettings,
-          color: conditions.colors.fog,
-          'high-color': conditions.colors.sky,
-          'space-color': conditions.period === 'night' ? '#000011' : '#000066',
-          'star-intensity': conditions.period === 'night' ? 0.8 : 
-                           conditions.period.includes('twilight') ? 0.4 : 0
-        });
+        // Check if Fog API is available
+        if (typeof map.setFog === 'function') {
+          const fogConfig = {
+            ...conditions.fogSettings,
+            color: conditions.colors.fog
+          };
+          
+          // Add v3 features if available
+          if (map.version && map.version >= '3.0.0') {
+            fogConfig['high-color'] = conditions.colors.sky;
+            fogConfig['space-color'] = conditions.period === 'night' ? '#000011' : '#000066';
+            fogConfig['star-intensity'] = conditions.period === 'night' ? 0.8 : 
+                                         conditions.period.includes('twilight') ? 0.4 : 0;
+          }
+          
+          map.setFog(fogConfig);
+        }
 
-        // Apply light (enhanced in v3)
-        if (uiController.is3DEnabled) {
+        // Apply light if 3D is enabled and API is available
+        if (uiController.is3DEnabled && typeof map.setLight === 'function') {
           map.setLight({
             ...conditions.lightSettings,
             anchor: 'viewport',
@@ -914,42 +923,98 @@
           });
         }
 
-        // Adjust map style for time of day
-        this.adjustMapStyleV3(conditions);
+        // If Sky/Fog APIs aren't available, use CSS fallback
+        if (typeof map.setSky !== 'function' || typeof map.setFog !== 'function') {
+          this.applyFallbackAtmosphere(conditions);
+        }
         
         // Show notification about current conditions
         const timeDesc = conditions.period.replace(/([A-Z])/g, ' $1').toLowerCase();
         showNotification(`Atmosphere: ${timeDesc}`, 2500);
       }
 
-      // Enhanced map style adjustments for Mapbox v3
-      adjustMapStyleV3(conditions) {
-        // Adjust specific layer properties based on time
-        const brightness = conditions.period === 'night' ? 0.4 : 
-                          conditions.period === 'sunrise' || conditions.period === 'goldenHour' ? 0.9 :
-                          1;
-        
-        // Adjust water color based on time
-        if (map.getLayer('water')) {
-          const waterColor = conditions.period === 'night' ? '#001133' :
-                            conditions.period === 'sunrise' ? '#4488aa' :
-                            conditions.period === 'goldenHour' ? '#6699bb' :
-                            '#4da6ff';
-          try {
-            map.setPaintProperty('water', 'fill-color', waterColor);
-          } catch (e) {
-            console.log('Water layer not found or not adjustable');
-          }
+      // CSS fallback for atmospheric effects when APIs aren't available
+      applyFallbackAtmosphere(conditions) {
+        // Remove existing overlay if present
+        const existingOverlay = document.getElementById('atmosphere-overlay');
+        if (existingOverlay) {
+          existingOverlay.remove();
         }
 
-        // Adjust terrain brightness if 3D is enabled
-        if (uiController.is3DEnabled && map.getTerrain()) {
-          // Terrain exaggeration can make shadows more dramatic
-          const exaggeration = conditions.period === 'goldenHour' || conditions.period === 'sunrise' ? 2 : 1.5;
-          map.setTerrain({ 
-            'source': 'mapbox-dem', 
-            'exaggeration': exaggeration 
-          });
+        // Create atmospheric overlay
+        const overlay = document.createElement('div');
+        overlay.id = 'atmosphere-overlay';
+        overlay.style.position = 'absolute';
+        overlay.style.top = '0';
+        overlay.style.left = '0';
+        overlay.style.right = '0';
+        overlay.style.bottom = '0';
+        overlay.style.pointerEvents = 'none';
+        overlay.style.zIndex = '1';
+        overlay.style.transition = 'all 2s ease-in-out';
+        
+        // Apply atmospheric gradient based on time period
+        const overlayEffects = {
+          night: 'radial-gradient(ellipse at center, rgba(10, 25, 41, 0.3), rgba(10, 25, 41, 0.6))',
+          astronomicalTwilight: 'radial-gradient(ellipse at center, rgba(26, 42, 63, 0.2), rgba(26, 42, 63, 0.5))',
+          nauticalTwilight: 'radial-gradient(ellipse at center, rgba(42, 58, 95, 0.2), rgba(42, 58, 95, 0.4))',
+          civilTwilight: 'radial-gradient(ellipse at center, rgba(74, 90, 127, 0.15), rgba(74, 90, 127, 0.35))',
+          sunrise: 'linear-gradient(to bottom, rgba(255, 107, 53, 0.25) 0%, rgba(255, 184, 140, 0.15) 50%, transparent 100%)',
+          goldenHour: 'linear-gradient(to bottom, rgba(255, 215, 0, 0.2) 0%, rgba(255, 225, 77, 0.1) 50%, transparent 100%)',
+          morning: 'radial-gradient(ellipse at center, transparent, rgba(135, 206, 235, 0.05))',
+          midday: 'radial-gradient(ellipse at center, transparent, transparent)',
+          noon: 'radial-gradient(ellipse at center, transparent, transparent)'
+        };
+
+        const gradient = overlayEffects[conditions.period] || overlayEffects.midday;
+        overlay.style.background = gradient;
+        
+        // Add filter effects for time of day
+        const filterEffects = {
+          night: 'brightness(0.6) contrast(1.1) saturate(0.8)',
+          astronomicalTwilight: 'brightness(0.7) contrast(1.05) saturate(0.9)',
+          nauticalTwilight: 'brightness(0.8) contrast(1.05)',
+          civilTwilight: 'brightness(0.9) contrast(1.02)',
+          sunrise: 'brightness(1.05) contrast(1.1) saturate(1.2) sepia(0.1)',
+          goldenHour: 'brightness(1.1) contrast(1.05) saturate(1.15) sepia(0.05)',
+          morning: 'brightness(1.05) saturate(1.05)',
+          midday: 'brightness(1) contrast(1)',
+          noon: 'brightness(1.05) contrast(1.02) saturate(1.05)'
+        };
+
+        const mapContainer = document.getElementById('map');
+        mapContainer.style.filter = filterEffects[conditions.period] || filterEffects.midday;
+        mapContainer.style.transition = 'filter 2s ease-in-out';
+        
+        mapContainer.appendChild(overlay);
+      }
+
+      // Simplified style adjustments that work with any Mapbox version
+      adjustMapStyleV3(conditions) {
+        // Only try to adjust water layer if it exists
+        try {
+          if (map.getLayer('water')) {
+            const waterColor = conditions.period === 'night' ? '#001133' :
+                              conditions.period === 'sunrise' ? '#4488aa' :
+                              conditions.period === 'goldenHour' ? '#6699bb' :
+                              '#4da6ff';
+            map.setPaintProperty('water', 'fill-color', waterColor);
+          }
+        } catch (e) {
+          // Layer might not exist in this style
+        }
+
+        // Adjust terrain if 3D is enabled
+        if (uiController.is3DEnabled && map.getTerrain) {
+          try {
+            const exaggeration = conditions.period === 'goldenHour' || conditions.period === 'sunrise' ? 2 : 1.5;
+            map.setTerrain({ 
+              'source': 'mapbox-dem', 
+              'exaggeration': exaggeration 
+            });
+          } catch (e) {
+            // Terrain might not be available
+          }
         }
       }
 
@@ -1623,37 +1688,34 @@
           container: 'map',
           style: 'mapbox://styles/thmkly/clyup637d004201ri2tkpaywq',
           center: CONFIG.DEFAULT_CENTER,
-          zoom: CONFIG.getDefaultZoom(),
-          projection: 'globe', // Enable globe view in v3
-          optimizeForTerrain: true // Better terrain performance in v3
+          zoom: CONFIG.getDefaultZoom()
+          // Removed projection: 'globe' to keep your original projection
         });
 
         map.on('load', () => {
-          // Initialize sky with v3 features
-          map.setSky({
-            'sky-type': 'atmosphere',
-            'sky-atmosphere-sun': [0, 90],
-            'sky-atmosphere-sun-intensity': 15
-          });
+          // Check for API availability before using
+          if (typeof map.setSky === 'function') {
+            map.setSky({
+              'sky-type': 'atmosphere',
+              'sky-atmosphere-sun': [0, 90],
+              'sky-atmosphere-sun-intensity': 15
+            });
+          }
           
-          // Enhanced fog for v3
-          map.setFog({
-            'range': [0.5, 10],
-            'color': 'white',
-            'high-color': '#87CEEB',
-            'space-color': '#000033',
-            'horizon-blend': 0.1,
-            'star-intensity': 0
-          });
+          if (typeof map.setFog === 'function') {
+            map.setFog({
+              'range': [0.5, 10],
+              'color': 'white',
+              'high-color': '#87CEEB',
+              'space-color': '#000033',
+              'horizon-blend': 0.1,
+              'star-intensity': 0
+            });
+          }
           
           this.setupMapLayers();
           this.setupMapEvents();
           this.loadAudioData();
-        });
-
-        // Globe-specific settings for v3
-        map.on('style.load', () => {
-          map.setProjection('globe');
         });
       }
 
