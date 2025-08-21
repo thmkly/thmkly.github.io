@@ -456,26 +456,26 @@
   
   <div class="playlist-wrapper" id="playlistWrapper">
     <button class="playlist-toggle" id="playlistToggle" title="Collapse playlist">◀</button>
-    <div class="scroll-arrow up" id="scrollUp">▲</div>
+    <div class="scroll-arrow up" id="scrollUp" title="Scroll up">▲</div>
     <div class="playlist" id="playlist">
       <div class="loading-placeholder">loading recordings...</div>
     </div>
-    <div class="scroll-arrow down" id="scrollDown">▼</div>
+    <div class="scroll-arrow down" id="scrollDown" title="Scroll down">▼</div>
   </div>
 
   <div class="control-panel">
     <div class="control-row">
       <button class="control-btn" id="resetMapBtn" title="Reset view and stop playback">Reset Map</button>
       <button class="control-btn" id="fullscreenBtn" title="Fullscreen on/off">Fullscreen</button>
-      <button class="control-btn" id="terrain3dBtn" title="3D Terrain on/off">3D Terrain</button>
+      <button class="control-btn" id="terrain3dBtn" title="3D terrain on/off">3D Terrain</button>
     </div>
     <div class="sort-controls">
-    <button class="control-btn sort-btn active" id="sortNobo" title="NOBO playlist">NOBO ↑</button>
-    <button class="control-btn sort-btn" id="sortSobo" title="SOBO playlist">SOBO ↓</button>
-    <button class="control-btn sort-btn" id="sortDate" title="Chronological playlist">STEREO ↻</button>
-      <div class="random-control" title="Random on/off">
+      <button class="control-btn sort-btn active" id="sortNobo" title="Northbound playlist">NOBO ↑</button>
+      <button class="control-btn sort-btn" id="sortSobo" title="Southbound playlist">SOBO ↓</button>
+      <button class="control-btn sort-btn" id="sortDate" title="Chronological playlist">STEREO ↻</button>
+      <div class="random-control">
         <span class="random-label">Random</span>
-        <div class="toggle-switch" id="randomToggle">
+        <div class="toggle-switch" id="randomToggle" title="Random on/off">
           <div class="toggle-slider"></div>
         </div>
       </div>
@@ -883,6 +883,14 @@
                 map.flyTo({
                   center: coords,
                   zoom: CONFIG.ZOOM_3D,
+                  pitch: 75,
+                  bearing: 0,
+                  duration: 2500,
+                  easing: t => 1 - Math.pow(1 - t, 3)
+                });
+              } else {
+                // No valid track, just enable 3D at current location
+                map.flyTo({
                   pitch: 75,
                   zoom: Math.max(map.getZoom(), CONFIG.ZOOM_3D),
                   duration: 2000
@@ -1956,12 +1964,3 @@
   </style>
 </body>
 </html>
-        
-                  bearing: 0,
-                  duration: 2500,
-                  easing: t => 1 - Math.pow(1 - t, 3)
-                });
-              } else {
-                // No valid track, just enable 3D at current location
-                map.flyTo({
-                  pitch: 75,
