@@ -868,9 +868,16 @@
         
         const conditions = this.getAtmosphericConditions(track);
         this.currentConditions = conditions;
+        
+        // Debug logging
+        console.log('Applying atmosphere for track:', track.name);
+        console.log('Time:', track.timestamp);
+        console.log('Sun position:', conditions.sunPosition);
+        console.log('Period:', conditions.period);
+        console.log('Colors:', conditions.colors);
 
-        // Apply sky
-        if (map.getStyle().sky || uiController.is3DEnabled) {
+        // Apply sky (should work in both 2D and 3D)
+        try {
           map.setSky({
             'sky-type': 'atmosphere',
             'sky-atmosphere-sun': [conditions.sunPosition.azimuth, Math.max(0, conditions.sunPosition.altitude)],
@@ -886,21 +893,38 @@
               conditions.colors.sky
             ]
           });
+          console.log('Sky applied successfully');
+        } catch (e) {
+          console.warn('Sky API not available:', e);
         }
 
-        // Apply fog
-        map.setFog({
-          ...conditions.fogSettings,
-          color: conditions.colors.fog
-        });
+        // Apply fog (should work in 2D)
+        try {
+          map.setFog({
+            ...conditions.fogSettings,
+            color: conditions.colors.fog
+          });
+          console.log('Fog applied successfully');
+        } catch (e) {
+          console.warn('Fog API not available:', e);
+        }
 
         // Apply light (only if 3D terrain is enabled)
-        if (uiController.is3DEnabled && map.getStyle().light) {
-          map.setLight(conditions.lightSettings);
+        if (uiController.is3DEnabled) {
+          try {
+            map.setLight(conditions.lightSettings);
+            console.log('Light applied successfully');
+          } catch (e) {
+            console.warn('Light API not available:', e);
+          }
         }
 
         // Adjust map style brightness/contrast based on time
         this.adjustMapStyle(conditions);
+        
+        // Show notification about current conditions
+        const timeDesc = conditions.period.replace(/([A-Z])/g, ' $1').toLowerCase();
+        showNotification(`Atmosphere: ${timeDesc} at ${track.name.split(' - ')[0]}`, 3000);
       }
 
       adjustMapStyle(conditions) {
@@ -1562,6 +1586,19 @@
         });
 
         map.on('load', () => {
+          // Enable sky and fog for atmospheric effects
+          map.setSky({
+            'sky-type': 'atmosphere',
+            'sky-atmosphere-sun': [0, 90],
+            'sky-atmosphere-sun-intensity': 15
+          });
+          
+          map.setFog({
+            'range': [0.5, 10],
+            'color': 'white',
+            'horizon-blend': 0.1
+          });
+          
           this.setupMapLayers();
           this.setupMapEvents();
           this.loadAudioData();
