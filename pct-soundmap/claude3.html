@@ -1,58 +1,4 @@
-// Calculate sun position using solar position algorithm
-      calculateSunPosition(date, lat, lng) {
-        // Parse the date and convert to Pacific Time
-        const d = new Date(date);
-        
-        // If timestamp is in UTC (ends with Z), convert to Pacific Time
-        let hours, minutes;
-        if (typeof date === 'string' && date.endsWith('Z')) {
-          // UTC timestamp - need to convert to Pacific Time
-          const month = d.getUTCMonth() + 1;
-          const isDST = month >= 3 && month <= 11;
-          const pacificOffset = isDST ? 7 : 8; // PDT = UTC-7, PST = UTC-8
-          
-          // Get Pacific time by subtracting offset
-          const pacificTime = new Date(d.getTime() - pacificOffset * 60 * 60 * 1000);
-          hours = pacificTime.getUTCHours();
-          minutes = pacificTime.getUTCMinutes();
-          
-          console.log(`UTC time: ${d.toISOString()}, Pacific time: ${hours}:${minutes.toString().padStart(2, '0')} ${isDST ? 'PDT' : 'PST'}`);
-        } else {
-          // Assume already in Pacific time
-          hours = d.getHours();
-          minutes = d.getMinutes();
-        }
-        
-        const month = d.getMonth() + 1;
-        const day = d.getDate();
-        
-        // Simple sun position based on time of day
-        const timeDecimal = hours + minutes / 60;
-        
-        // Approximate sun path
-        // Sun rises around 6am, sets around 6pm (varies by season)
-        const dayLength = this.getDayLength(month, lat);
-        const sunrise = 12 - dayLength / 2;
-        const sunset = 12 + dayLength / 2;
-        
-        let altitude, azimuth;
-        
-        if (timeDecimal < sunrise || timeDecimal > sunset) {
-          // Night time
-          altitude = -20; // Sun below horizon
-          azimuth = 0;
-        } else {
-          // Daytime - calculate sun position
-          const dayProgress = (timeDecimal - sunrise) / dayLength;
-          
-          // Altitude: highest at noon
-          altitude = 90 * Math.sin(dayProgress * Math.PI);
-          
-          // Azimuth: East (90) to South (180) to West (270)
-          azimuth = 90 + (dayProgress * 180);
-        }
-        
-        console.log(`Time: ${hours}:${minutes.toString().padStart(2, '0')},<!DOCTYPE html>
+<!DOCTYPE html>
 <html>
 <head>
   <meta charset="utf-8" />
@@ -630,26 +576,30 @@
 
       // Calculate sun position using solar position algorithm
       calculateSunPosition(date, lat, lng) {
-        // Parse the date - timestamps are already in Pacific Time
+        // Parse the date - timestamps come in as UTC but represent PDT times
         let d = new Date(date);
         
-        // If timestamp has Z suffix, it's being misinterpreted as UTC
-        // We need to treat it as Pacific Time instead
         let hours, minutes, month, day;
         
         if (typeof date === 'string' && date.endsWith('Z')) {
-          // Remove the Z and treat as Pacific Time
-          const dateStr = date.slice(0, -1); // Remove the Z
-          const [datePart, timePart] = dateStr.split('T');
-          const [year, monthStr, dayStr] = datePart.split('-');
-          const [hourStr, minuteStr] = timePart.split(':');
+          // The timestamp is in UTC format but we need to convert back to Pacific Time
+          // Since the recordings were made in PDT, we need to subtract 7 hours from UTC
+          month = d.getUTCMonth() + 1;
+          day = d.getUTCDate();
           
-          hours = parseInt(hourStr);
-          minutes = parseInt(minuteStr);
-          month = parseInt(monthStr);
-          day = parseInt(dayStr);
+          // Determine if PDT (March-November) or PST
+          const isDST = month >= 3 && month <= 11;
+          const hoursOffset = isDST ? 7 : 8;
           
-          console.log(`Timestamp ${date} interpreted as Pacific Time: ${hours}:${minutes.toString().padStart(2, '0')} PST/PDT`);
+          // Convert UTC hours back to Pacific Time
+          hours = d.getUTCHours() - hoursOffset;
+          if (hours < 0) {
+            hours += 24; // Handle day boundary
+            day -= 1;
+          }
+          minutes = d.getUTCMinutes();
+          
+          console.log(`UTC timestamp ${date} converted to Pacific Time: ${hours}:${minutes.toString().padStart(2, '0')} ${isDST ? 'PDT' : 'PST'}`);
         } else {
           // Use as-is
           hours = d.getHours();
@@ -670,7 +620,19 @@
         
         if (timeDecimal < sunrise || timeDecimal > sunset) {
           // Night time - sun below horizon
-          altitude = -20;
+          const hoursAfterSunset = timeDecimal - sunset;
+          const hoursBeforeSunrise = sunrise - timeDecimal;
+          
+          if (hoursAfterSunset > 0 && hoursAfterSunset < 1) {
+            // Just after sunset - civil twilight
+            altitude = -6;
+          } else if (hoursBeforeSunrise > 0 && hoursBeforeSunrise < 1) {
+            // Just before sunrise - civil twilight
+            altitude = -6;
+          } else {
+            // Deep night
+            altitude = -20;
+          }
           azimuth = 0;
         } else {
           // Daytime - calculate sun position
@@ -1476,12 +1438,14 @@
           });
           
           // Enhanced lighting for 3D in v3
-          map.setLight({
-            'anchor': 'viewport',
-            'color': 'white',
-            'intensity': 0.5,
-            'position': [1.15, 210, 30]
-          });
+          if (typeof map.setLight === 'function') {
+            map.setLight({
+              'anchor': 'viewport',
+              'color': 'white',
+              'intensity': 0.5,
+              'position': [1.15, 210, 30]
+            });
+          }
           
           // Wait for terrain to be ready, then apply 3D positioning
           const apply3DView = () => {
@@ -1526,7 +1490,9 @@
         } else {
           // Disable 3D
           map.setTerrain(null);
-          map.setLight(null); // Reset lighting
+          if (typeof map.setLight === 'function') {
+            map.setLight(null); // Reset lighting
+          }
           map.flyTo({
             pitch: 0,
             duration: 1500
@@ -1542,6 +1508,7 @@
           showNotification('3D view disabled', 2000);
         }
       }
+    }
 
       updateScrollArrows() {
         const playlist = document.getElementById('playlist');
