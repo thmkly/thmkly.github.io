@@ -586,7 +586,7 @@
       // Calculate sun position using solar position algorithm
       calculateSunPosition(date, lat, lng) {
         // Parse the date - timestamps come in as UTC but represent PDT times
-        let d = dayjs.tz(date, 'America/Los_Angeles', 'America/Los_Angeles').toDate();
+        let d = dayjs.tz(date, 'America/Los_Angeles').toDate();
         
         let hours, minutes, month, day;
         
@@ -721,7 +721,7 @@
 
       // Get atmospheric conditions based on sun position, elevation, and weather
       getAtmosphericConditions(track) {
-        const date = dayjs.tz(track.timestamp, 'America/Los_Angeles', 'America/Los_Angeles').toDate();
+        const date = dayjs.tz(track.timestamp, 'America/Los_Angeles').toDate();
         const lat = parseFloat(track.lat);
         const lng = parseFloat(track.lng);
         
@@ -2053,8 +2053,8 @@
         
         // Check if first few items are in chronological order (indicating STEREO mode was used)
         for (let i = 0; i < Math.min(5, this.audioData.length - 1); i++) {
-          const currentTime = dayjs.tz(this.audioData[i].timestamp, 'America/Los_Angeles', 'America/Los_Angeles').toDate();
-          const nextTime = dayjs.tz(this.audioData[i + 1].timestamp, 'America/Los_Angeles', 'America/Los_Angeles').toDate();
+          const currentTime = dayjs.tz(this.audioData[i].timestamp, 'America/Los_Angeles').toDate();
+          const nextTime = dayjs.tz(this.audioData[i + 1].timestamp, 'America/Los_Angeles').toDate();
           if (currentTime > nextTime) {
             return false; // Not chronological
           }
@@ -2065,7 +2065,7 @@
       sortByMileAndDate(data, mode = 'nobo') {
         if (mode === 'date') {
           // STEREO mode: sort everything by timestamp
-          return [...data].sort((a, b) => dayjs.tz(a.timestamp, 'America/Los_Angeles', 'America/Los_Angeles').toDate() - dayjs.tz(b.timestamp, 'America/Los_Angeles', 'America/Los_Angeles').toDate());
+          return [...data].sort((a, b) => dayjs.tz(a.timestamp, 'America/Los_Angeles').toDate() - dayjs.tz(b.timestamp, 'America/Los_Angeles').toDate());
         }
         
         // For NOBO/SOBO: purely spatial sorting by mile (including ~ placeholders)
@@ -2087,7 +2087,7 @@
           const mileB = this.getMileForSorting(b);
           if (Math.abs(mileA - mileB) < 0.01) { // Same mile (accounting for decimals)
             // If same mile, sort by timestamp
-            return dayjs.tz(a.timestamp, 'America/Los_Angeles', 'America/Los_Angeles').toDate() - dayjs.tz(b.timestamp, 'America/Los_Angeles', 'America/Los_Angeles').toDate();
+            return dayjs.tz(a.timestamp, 'America/Los_Angeles', 'America/Los_Angeles').toDate() - dayjs.tz(b.timestamp, 'America/Los_Angeles').toDate();
           }
           return ascending ? mileA - mileB : mileB - mileA;
         });
@@ -2100,7 +2100,7 @@
         }
 
         // Sort tracks without miles by timestamp
-        tracksWithoutMiles.sort((a, b) => dayjs.tz(a.timestamp, 'America/Los_Angeles', 'America/Los_Angeles').toDate() - dayjs.tz(b.timestamp, 'America/Los_Angeles', 'America/Los_Angeles').toDate());
+        tracksWithoutMiles.sort((a, b) => dayjs.tz(a.timestamp, 'America/Los_Angeles').toDate() - dayjs.tz(b.timestamp, 'America/Los_Angeles').toDate());
 
         // Combine: mile-sorted tracks first, then timestamp-sorted tracks without miles
         return [...tracksWithMiles, ...tracksWithoutMiles];
@@ -2476,7 +2476,7 @@
       }
 
       formatTimestamp(timestamp) {
-        const date = dayjs.tz(timestamp, 'America/Los_Angeles', 'America/Los_Angeles').toDate();
+        const date = dayjs.tz(timestamp, 'America/Los_Angeles').toDate();
         if (isNaN(date)) return timestamp;
         
         const options = {
