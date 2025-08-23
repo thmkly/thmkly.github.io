@@ -722,32 +722,48 @@
       }
 
       getElevationEffect(mile) {
-        // PCT elevation profile approximation (in feet)
+        // More accurate PCT elevation profile (in feet)
         let elevation = 2500; // Default
         
         if (mile && !isNaN(parseFloat(mile))) {
           const m = parseFloat(mile);
-          // More detailed PCT elevation profile
-          if (m < 100) elevation = 2500;           // Campo area
-          else if (m < 300) elevation = 4000;      // Desert mountains
-          else if (m < 500) elevation = 6000;      // San Bernardino/San Gabriel
-          else if (m < 700) elevation = 5000;      // Mojave
-          else if (m < 900) elevation = 8500;      // High Sierra
-          else if (m < 1100) elevation = 7000;     // Northern Sierra
-          else if (m < 1300) elevation = 5500;     // Northern California
-          else if (m < 1500) elevation = 4500;     // Cascade Range
-          else if (m < 1700) elevation = 5200;     // Northern California peaks
-          else if (m < 1900) elevation = 4800;     // Oregon Cascades
-          else if (m < 2100) elevation = 5500;     // Central Oregon peaks
-          else if (m < 2300) elevation = 4200;     // Northern Oregon
-          else if (m < 2500) elevation = 5800;     // Washington Cascades
-          else if (m < 2650) elevation = 4000;     // Northern Washington
+          // Detailed PCT elevation profile based on actual trail data
+          if (m < 50) elevation = 2500;            // Campo to Mount Laguna
+          else if (m < 100) elevation = 6000;      // Mount Laguna area
+          else if (m < 150) elevation = 1200;      // Anza-Borrego descent
+          else if (m < 200) elevation = 4500;      // San Felipe Hills
+          else if (m < 250) elevation = 1800;      // Desert floor
+          else if (m < 350) elevation = 6500;      // San Jacinto approach
+          else if (m < 400) elevation = 8500;      // San Jacinto peaks
+          else if (m < 450) elevation = 1200;      // Cabazon area
+          else if (m < 550) elevation = 6800;      // San Bernardino Mountains
+          else if (m < 650) elevation = 8200;      // Big Bear area
+          else if (m < 750) elevation = 2800;      // Mojave Desert
+          else if (m < 850) elevation = 9000;      // Southern Sierra
+          else if (m < 950) elevation = 11500;     // High Sierra peaks
+          else if (m < 1050) elevation = 8500;     // Sierra Nevada
+          else if (m < 1150) elevation = 7200;     // Northern Sierra
+          else if (m < 1250) elevation = 4500;     // Sierra foothills
+          else if (m < 1350) elevation = 6200;     // Northern California mountains
+          else if (m < 1450) elevation = 5800;     // Shasta area
+          else if (m < 1550) elevation = 4200;     // Northern California
+          else if (m < 1650) elevation = 5500;     // Southern Oregon Cascades
+          else if (m < 1750) elevation = 4800;     // Central Oregon
+          else if (m < 1850) elevation = 6200;     // Mount Hood area
+          else if (m < 1950) elevation = 3800;     // Columbia River area
+          else if (m < 2050) elevation = 5200;     // Washington Cascades
+          else if (m < 2150) elevation = 4600;     // Central Washington
+          else if (m < 2250) elevation = 6800;     // North Cascades approach
+          else if (m < 2350) elevation = 5400;     // North Cascades
+          else if (m < 2450) elevation = 4200;     // Northern Washington
+          else if (m < 2550) elevation = 5800;     // Glacier Peak area
+          else if (m < 2650) elevation = 4000;     // Canadian border approach
           else elevation = 3800;                   // Canadian border
         }
         
         // Higher elevation = clearer atmosphere, more intense colors
-        const effect = 1 + (elevation - 2500) / 8000;
-        return Math.min(Math.max(effect, 0.8), 1.6);
+        const effect = 1 + (elevation - 2500) / 10000;
+        return Math.min(Math.max(effect, 0.7), 1.8);
       }
 
       getTimePeriod(altitude) {
@@ -865,17 +881,22 @@
         // Simple color intensity adjustment
         if (!hexColor.startsWith('#')) return hexColor;
         
-        const r = parseInt(hexColor.slice(1, 3), 16);
-        const g = parseInt(hexColor.slice(3, 5), 16);
-        const b = parseInt(hexColor.slice(5, 7), 16);
-        
-        // Increase saturation for high elevations
-        const factor = Math.min(intensity, 1.3);
-        const newR = Math.min(255, Math.round(r * factor));
-        const newG = Math.min(255, Math.round(g * factor));
-        const newB = Math.min(255, Math.round(b * factor));
-        
-        return `#${newR.toString(16).padStart(2, '0')}${newG.toString(16).padStart(2, '0')}${newB.toString(16).padStart(2, '0')}`;
+        try {
+          const r = parseInt(hexColor.slice(1, 3), 16);
+          const g = parseInt(hexColor.slice(3, 5), 16);
+          const b = parseInt(hexColor.slice(5, 7), 16);
+          
+          // Increase saturation for high elevations
+          const factor = Math.min(intensity, 1.3);
+          const newR = Math.min(255, Math.round(r * factor));
+          const newG = Math.min(255, Math.round(g * factor));
+          const newB = Math.min(255, Math.round(b * factor));
+          
+          return `#${newR.toString(16).padStart(2, '0')}${newG.toString(16).padStart(2, '0')}${newB.toString(16).padStart(2, '0')}`;
+        } catch (error) {
+          console.warn('Color adjustment error:', error);
+          return hexColor;
+        }
       }
 
       calculateFog(sunPos, period, elevationEffect) {
