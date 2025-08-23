@@ -533,7 +533,24 @@
   <div class="notification" id="notification"></div>
 
   <script src="https://api.mapbox.com/mapbox-gl-js/v3.8.0/mapbox-gl.js"></script>
-  <script src="config.js"></script>
+  <script>
+    // Global error handler to catch and log script errors
+    window.addEventListener('error', function(e) {
+      console.error('Script error caught:', e.error || e.message, 'at', e.filename, ':', e.lineno);
+      return false; // Don't suppress the error
+    });
+    
+    // Global error handler for unhandled promise rejections
+    window.addEventListener('unhandledrejection', function(e) {
+      console.error('Unhandled promise rejection:', e.reason);
+    });
+  </script>
+  <script>
+    // Handle missing config.js gracefully
+    if (typeof window.MAPBOX_CONFIG === 'undefined') {
+      window.MAPBOX_CONFIG = { token: 'pk.eyJ1IjoidGhta2x5IiwiYSI6ImNseXVyMjhueDA3YTQybW9mcHJrZGJ3YnEifQ.Nv-LsNg5eKIE6SeOVVJpYg' };
+    }
+  </script>
   <script>
     // Configuration
     const CONFIG = {
@@ -541,64 +558,59 @@
       GOOGLE_SCRIPT_URL: 'https://script.google.com/macros/s/AKfycbygcwJ8ms4Zpq1BeGM_jQTEuajvoYw-A5-nkoTMZ5FBPfOP2DyORWfDuET2TEhXarfd/exec',
       DEFAULT_CENTER: [-122.50276, 41.31727],
       getDefaultZoom: () => {
-        const screenWidth = window.screen.width;
-        const screenHeight = window.screen.height;
-        
-        // Detect browsers that might report altered screen dimensions
-        const isBrave = navigator.brave && navigator.brave.isBrave;
-        const isFirefox = navigator.userAgent.toLowerCase().includes('firefox');
-        const isTor = navigator.userAgent.toLowerCase().includes('tor');
-        
-        // Some browsers alter screen dimensions for privacy or have inconsistent reporting
-        const hasUnreliableScreenData = isBrave || isTor || 
-          (isFirefox && screenWidth === 1366 && screenHeight === 768) || // Firefox often defaults to this
-          screenWidth === 1024 || screenHeight === 768; // Common privacy screen sizes
-        
-        // Calculate diagonal pixel resolution
-        const diagonalPixels = Math.sqrt(screenWidth * screenWidth + screenHeight * screenHeight);
-        
-        // Reference points based on your current preferences:
-        // 13" MacBook Air M3: zoom = 4.4
-        // 27" monitor: zoom = 4.95
-        
-        if (hasUnreliableScreenData) {
-          // Fallback logic for browsers with unreliable screen data
-          // Use viewport dimensions as backup indicator
-          const viewportWidth = window.innerWidth;
-          const viewportHeight = window.innerHeight;
-          const viewportDiagonal = Math.sqrt(viewportWidth * viewportWidth + viewportHeight * viewportHeight);
+        try {
+          const screenWidth = window.screen.width;
+          const screenHeight = window.screen.height;
           
-          if (viewportDiagonal > 2800) {
-            return 4.2; // Large desktop/high-res
-          } else if (viewportDiagonal > 2000) {
-            return 4.95; // Desktop equivalent - adjusted threshold for 27" monitors  
-          } else if (viewportDiagonal > 1800) {
-            return 4.45; // Laptop equivalent - fine-tuned for Brave on 13"
-          } else if (viewportDiagonal > 1400) {
-            return 4.5; // Standard laptop
-          } else {
-            return 4.8; // Smaller screens/mobile
-          }
-        } else {
-          // Safari/Chrome and other browsers with reliable screen data
-          // Use your exact measurements for interpolation
-          const ref1 = { diagonal: 3037, zoom: 4.4 };  // 13" MacBook Air M3 (2560x1664)
-          const ref2 = { diagonal: 2203, zoom: 4.95 }; // 27" monitor (1920x1080)
+          // Detect browsers that might report altered screen dimensions
+          const isBrave = navigator.brave && navigator.brave.isBrave;
+          const isFirefox = navigator.userAgent.toLowerCase().includes('firefox');
+          const isTor = navigator.userAgent.toLowerCase().includes('tor');
           
-          // Calculate zoom using linear interpolation between reference points
-          if (diagonalPixels <= ref2.diagonal) {
-            // Smaller/lower-res than 27" monitor - extrapolate to higher zoom
-            const slope = (ref2.zoom - ref1.zoom) / (ref2.diagonal - ref1.diagonal);
-            return Math.min(5.5, ref2.zoom + slope * (ref2.diagonal - diagonalPixels));
-          } else if (diagonalPixels >= ref1.diagonal) {
-            // Higher-res than MacBook Air - extrapolate to lower zoom  
-            const slope = (ref2.zoom - ref1.zoom) / (ref2.diagonal - ref1.diagonal);
-            return Math.max(4.0, ref1.zoom + slope * (diagonalPixels - ref1.diagonal));
+          // Some browsers alter screen dimensions for privacy or have inconsistent reporting
+          const hasUnreliableScreenData = isBrave || isTor || 
+            (isFirefox && screenWidth === 1366 && screenHeight === 768) || // Firefox often defaults to this
+            screenWidth === 1024 || screenHeight === 768; // Common privacy screen sizes
+          
+          // Calculate diagonal pixel resolution
+          const diagonalPixels = Math.sqrt(screenWidth * screenWidth + screenHeight * screenHeight);
+          
+          if (hasUnreliableScreenData) {
+            // Fallback logic for browsers with unreliable screen data
+            const viewportWidth = window.innerWidth;
+            const viewportHeight = window.innerHeight;
+            const viewportDiagonal = Math.sqrt(viewportWidth * viewportWidth + viewportHeight * viewportHeight);
+            
+            if (viewportDiagonal > 2800) {
+              return 4.2;
+            } else if (viewportDiagonal > 2000) {
+              return 4.95;
+            } else if (viewportDiagonal > 1800) {
+              return 4.45;
+            } else if (viewportDiagonal > 1400) {
+              return 4.5;
+            } else {
+              return 4.8;
+            }
           } else {
-            // Between the two reference points - interpolate
-            const ratio = (diagonalPixels - ref2.diagonal) / (ref1.diagonal - ref2.diagonal);
-            return ref2.zoom + ratio * (ref1.zoom - ref2.zoom);
+            // Use reference points for interpolation
+            const ref1 = { diagonal: 3037, zoom: 4.4 };
+            const ref2 = { diagonal: 2203, zoom: 4.95 };
+            
+            if (diagonalPixels <= ref2.diagonal) {
+              const slope = (ref2.zoom - ref1.zoom) / (ref2.diagonal - ref1.diagonal);
+              return Math.min(5.5, ref2.zoom + slope * (ref2.diagonal - diagonalPixels));
+            } else if (diagonalPixels >= ref1.diagonal) {
+              const slope = (ref2.zoom - ref1.zoom) / (ref2.diagonal - ref1.diagonal);
+              return Math.max(4.0, ref1.zoom + slope * (diagonalPixels - ref1.diagonal));
+            } else {
+              const ratio = (diagonalPixels - ref2.diagonal) / (ref1.diagonal - ref2.diagonal);
+              return ref2.zoom + ratio * (ref1.zoom - ref2.zoom);
+            }
           }
+        } catch (e) {
+          console.warn('Error calculating zoom, using default:', e);
+          return 4.5; // Safe fallback
         }
       },
       ZOOM_2D: 10,
@@ -624,81 +636,89 @@
 
       // Calculate accurate sun position using proper solar algorithms
       calculateSunPosition(date, lat, lng) {
-        // Parse the Pacific time correctly
-        const pacificDate = parsePacific(date);
-        const jsDate = pacificDate.toDate();
-        
-        console.log('Calculating sun position for:', {
-          input: date,
-          pacificFormatted: pacificDate.format('YYYY-MM-DD HH:mm:ss'),
-          pacificTime: pacificDate.format('HH:mm'),
-          isDST: isDST(jsDate),
-          lat, lng
-        });
-        
-        // Get local time in Pacific timezone
-        const hours = jsDate.getHours();
-        const minutes = jsDate.getMinutes();
-        const timeDecimal = hours + minutes / 60;
-        
-        // Julian day calculation
-        const jd = this.getJulianDay(jsDate);
-        const n = jd - 2451545.0;
-        
-        // Solar longitude calculations
-        const L = (280.460 + 0.9856474 * n) % 360;
-        const g = this.toRad((357.528 + 0.9856003 * n) % 360);
-        const lambda = this.toRad(L + 1.915 * Math.sin(g) + 0.020 * Math.sin(2 * g));
-        
-        // Sun's declination
-        const sinDelta = Math.sin(this.toRad(23.45)) * Math.sin(lambda);
-        const delta = Math.asin(sinDelta);
-        
-        // Hour angle calculation - corrected for local time
-        const hourAngle = this.toRad(15 * (timeDecimal - 12));
-        
-        // Solar position calculations
-        const latRad = this.toRad(lat);
-        const sinAltitude = Math.sin(latRad) * Math.sin(delta) + 
-                           Math.cos(latRad) * Math.cos(delta) * Math.cos(hourAngle);
-        const altitude = this.toDeg(Math.asin(Math.max(-1, Math.min(1, sinAltitude))));
-        
-        // Azimuth calculation
-        const cosAzimuth = (Math.sin(delta) - Math.sin(latRad) * sinAltitude) / 
-                          (Math.cos(latRad) * Math.cos(Math.asin(Math.max(-1, Math.min(1, sinAltitude)))));
-        let azimuth = this.toDeg(Math.acos(Math.max(-1, Math.min(1, cosAzimuth))));
-        
-        // Adjust azimuth for afternoon (when hour angle > 0)
-        if (hourAngle > 0) {
-          azimuth = 360 - azimuth;
+        try {
+          // Parse the Pacific time correctly
+          const pacificDate = parsePacific(date);
+          const jsDate = pacificDate.toDate();
+          
+          // Get the actual Pacific time components
+          const pacificHour = parseInt(pacificDate.format('H'));
+          const pacificMinute = parseInt(pacificDate.format('m'));
+          const timeDecimal = pacificHour + pacificMinute / 60;
+          
+          console.log('Calculating sun position for:', {
+            input: date,
+            pacificFormatted: pacificDate.format('YYYY-MM-DD HH:mm:ss'),
+            pacificTime: pacificDate.format('HH:mm'),
+            timeDecimal: timeDecimal.toFixed(2),
+            isDST: isDST(jsDate),
+            lat, lng
+          });
+          
+          // Julian day calculation for the date
+          const year = jsDate.getFullYear();
+          const month = jsDate.getMonth() + 1;
+          const day = jsDate.getDate();
+          
+          const jd = this.getJulianDayNumber(year, month, day) + (timeDecimal / 24.0);
+          const n = jd - 2451545.0;
+          
+          // Solar longitude calculations
+          const L = (280.460 + 0.9856474 * n) % 360;
+          const g = this.toRad((357.528 + 0.9856003 * n) % 360);
+          const lambda = this.toRad(L + 1.915 * Math.sin(g) + 0.020 * Math.sin(2 * g));
+          
+          // Sun's declination
+          const delta = Math.asin(Math.sin(this.toRad(23.45)) * Math.sin(lambda));
+          
+          // Hour angle - use local Pacific time directly
+          const hourAngle = this.toRad(15 * (timeDecimal - 12));
+          
+          // Solar position calculations
+          const latRad = this.toRad(lat);
+          const sinAltitude = Math.sin(latRad) * Math.sin(delta) + 
+                             Math.cos(latRad) * Math.cos(delta) * Math.cos(hourAngle);
+          const altitude = this.toDeg(Math.asin(Math.max(-1, Math.min(1, sinAltitude))));
+          
+          // Azimuth calculation
+          const cosAltitude = Math.cos(Math.asin(Math.max(-1, Math.min(1, sinAltitude))));
+          const cosAzimuth = (Math.sin(delta) - Math.sin(latRad) * sinAltitude) / 
+                            (Math.cos(latRad) * cosAltitude);
+          let azimuth = this.toDeg(Math.acos(Math.max(-1, Math.min(1, cosAzimuth))));
+          
+          // Adjust azimuth for afternoon (when hour angle > 0)
+          if (hourAngle > 0) {
+            azimuth = 360 - azimuth;
+          }
+          
+          console.log(`Solar calculation: Pacific time: ${timeDecimal.toFixed(2)}h (${pacificHour}:${pacificMinute.toString().padStart(2, '0')}), Altitude: ${altitude.toFixed(1)}°, Azimuth: ${azimuth.toFixed(1)}°`);
+          
+          return { altitude, azimuth };
+        } catch (error) {
+          console.error('Error in calculateSunPosition:', error);
+          // Return default midday sun position
+          return { altitude: 45, azimuth: 180 };
         }
-        
-        console.log(`Solar calculation: Pacific time: ${timeDecimal.toFixed(2)}h (${hours}:${minutes.toString().padStart(2, '0')}), Altitude: ${altitude.toFixed(1)}°, Azimuth: ${azimuth.toFixed(1)}°`);
-        
-        return { altitude, azimuth };
+      }
+      
+      getJulianDayNumber(year, month, day) {
+        try {
+          // Standard Julian day number calculation
+          const a = Math.floor((14 - month) / 12);
+          const y = year + 4800 - a;
+          const m = month + 12 * a - 3;
+          
+          return day + Math.floor((153 * m + 2) / 5) + 365 * y + 
+                 Math.floor(y / 4) - Math.floor(y / 100) + Math.floor(y / 400) - 32045;
+        } catch (error) {
+          console.error('Error in getJulianDayNumber:', error);
+          return 2451545; // J2000.0 epoch as fallback
+        }
       }
       
       getJulianDay(date) {
-        // Corrected Julian day calculation
-        const year = date.getFullYear();
-        const month = date.getMonth() + 1;
-        const day = date.getDate();
-        const hours = date.getHours();
-        const minutes = date.getMinutes();
-        const seconds = date.getSeconds();
-        
-        // Standard Julian day calculation
-        let a = Math.floor((14 - month) / 12);
-        let y = year + 4800 - a;
-        let m = month + 12 * a - 3;
-        
-        let jdn = day + Math.floor((153 * m + 2) / 5) + 365 * y + 
-                  Math.floor(y / 4) - Math.floor(y / 100) + Math.floor(y / 400) - 32045;
-        
-        // Add time component (fraction of day)
-        const timeDecimal = (hours + minutes / 60 + seconds / 3600) / 24;
-        
-        return jdn + timeDecimal - 0.5;
+        // This method is no longer used - replaced by getJulianDayNumber
+        return this.getJulianDayNumber(date.getFullYear(), date.getMonth() + 1, date.getDate());
       }
 
       getElevationEffect(mile) {
@@ -989,115 +1009,133 @@
 
       // Get atmospheric conditions based on sun position, elevation, and time
       getAtmosphericConditions(track) {
-        const pacificDate = parsePacific(track.timestamp);
-        const jsDate = pacificDate.toDate();
-        const lat = parseFloat(track.lat);
-        const lng = parseFloat(track.lng);
-        
-        console.log('Processing atmospheric conditions for:', {
-          track: track.name,
-          timestamp: track.timestamp,
-          pacificFormatted: pacificDate.format('YYYY-MM-DD HH:mm:ss'),
-          coords: [lat, lng]
-        });
-        
-        // Calculate sun position
-        const sunPos = this.calculateSunPosition(track.timestamp, lat, lng);
-        
-        // Get elevation effect
-        const elevationEffect = this.getElevationEffect(track.mile);
-        
-        // Determine time period and season
-        const period = this.getTimePeriod(sunPos.altitude);
-        const season = this.getSeason(jsDate, lat);
-        
-        // Calculate atmospheric colors and effects
-        const colors = this.calculateColors(sunPos, period, season, elevationEffect);
-        
-        console.log('Atmospheric conditions determined:', {
-          period,
-          season,
-          sunAltitude: sunPos.altitude.toFixed(1),
-          sunAzimuth: sunPos.azimuth.toFixed(1),
-          elevation: elevationEffect.toFixed(2)
-        });
-        
-        return {
-          sunPosition: sunPos,
-          period,
-          season,
-          elevationEffect,
-          colors,
-          fogSettings: this.calculateFog(sunPos, period, elevationEffect),
-          lightSettings: this.calculateLight(sunPos, period, season)
-        };
+        try {
+          const pacificDate = parsePacific(track.timestamp);
+          const jsDate = pacificDate.toDate();
+          const lat = parseFloat(track.lat) || 0;
+          const lng = parseFloat(track.lng) || 0;
+          
+          console.log('Processing atmospheric conditions for:', {
+            track: track.name,
+            timestamp: track.timestamp,
+            pacificFormatted: pacificDate.format('YYYY-MM-DD HH:mm:ss'),
+            coords: [lat, lng]
+          });
+          
+          // Calculate sun position
+          const sunPos = this.calculateSunPosition(track.timestamp, lat, lng);
+          
+          // Get elevation effect
+          const elevationEffect = this.getElevationEffect(track.mile);
+          
+          // Determine time period and season
+          const period = this.getTimePeriod(sunPos.altitude);
+          const season = this.getSeason(jsDate, lat);
+          
+          // Calculate atmospheric colors and effects
+          const colors = this.calculateColors(sunPos, period, season, elevationEffect);
+          
+          console.log('Atmospheric conditions determined:', {
+            period,
+            season,
+            sunAltitude: sunPos.altitude.toFixed(1),
+            sunAzimuth: sunPos.azimuth.toFixed(1),
+            elevation: elevationEffect.toFixed(2)
+          });
+          
+          return {
+            sunPosition: sunPos,
+            period,
+            season,
+            elevationEffect,
+            colors,
+            fogSettings: this.calculateFog(sunPos, period, elevationEffect),
+            lightSettings: this.calculateLight(sunPos, period, season)
+          };
+        } catch (error) {
+          console.error('Error in getAtmosphericConditions:', error);
+          // Return default conditions
+          return {
+            sunPosition: { altitude: 45, azimuth: 180 },
+            period: 'midday',
+            season: 'spring',
+            elevationEffect: 1.0,
+            colors: { sky: '#87CEEB', fog: 'rgba(255, 255, 255, 0.4)', ambient: '#ffffff', horizon: '#E0F6FF' },
+            fogSettings: { range: [0.5, 10], color: 'white', 'horizon-blend': 0.1, 'high-color': '#87CEEB', 'space-color': '#000033', 'star-intensity': 0 },
+            lightSettings: { anchor: 'viewport', color: '#ffffff', intensity: 1.0, position: [1.15, 180, 45] }
+          };
+        }
       }
 
       applyAtmosphere(track) {
-        if (!map || !track) return;
-        
-        const conditions = this.getAtmosphericConditions(track);
-        this.currentConditions = conditions;
-        
-        console.log('Applying atmosphere for:', track.name, 'Period:', conditions.period);
+        try {
+          if (!map || !track) return;
+          
+          const conditions = this.getAtmosphericConditions(track);
+          this.currentConditions = conditions;
+          
+          console.log('Applying atmosphere for:', track.name, 'Period:', conditions.period);
 
-        // Apply Mapbox Sky API
-        if (typeof map.setSky === 'function') {
-          try {
-            map.setSky({
-              'sky-type': 'atmosphere',
-              'sky-atmosphere-sun': [conditions.sunPosition.azimuth, Math.max(0, conditions.sunPosition.altitude)],
-              'sky-atmosphere-sun-intensity': this.getSunIntensity(conditions.period, conditions.sunPosition.altitude),
-              'sky-atmosphere-color': conditions.colors.sky,
-              'sky-gradient': [
-                'interpolate',
-                ['linear'],
-                ['sky-radial-progress'],
-                0.8,
-                conditions.colors.horizon,
-                1,
-                conditions.colors.sky
-              ],
-              'sky-atmosphere-halo-color': this.getHaloColor(conditions.period),
-              'sky-opacity': this.getSkyOpacity(conditions.period)
-            });
-            console.log('Sky API applied successfully');
-          } catch (e) {
-            console.warn('Sky API error:', e);
+          // Apply Mapbox Sky API
+          if (typeof map.setSky === 'function') {
+            try {
+              map.setSky({
+                'sky-type': 'atmosphere',
+                'sky-atmosphere-sun': [conditions.sunPosition.azimuth, Math.max(0, conditions.sunPosition.altitude)],
+                'sky-atmosphere-sun-intensity': this.getSunIntensity(conditions.period, conditions.sunPosition.altitude),
+                'sky-atmosphere-color': conditions.colors.sky,
+                'sky-gradient': [
+                  'interpolate',
+                  ['linear'],
+                  ['sky-radial-progress'],
+                  0.8,
+                  conditions.colors.horizon,
+                  1,
+                  conditions.colors.sky
+                ],
+                'sky-atmosphere-halo-color': this.getHaloColor(conditions.period),
+                'sky-opacity': this.getSkyOpacity(conditions.period)
+              });
+              console.log('Sky API applied successfully');
+            } catch (e) {
+              console.warn('Sky API error:', e);
+            }
           }
-        }
 
-        // Apply Mapbox Fog API
-        if (typeof map.setFog === 'function') {
-          try {
-            map.setFog(conditions.fogSettings);
-            console.log('Fog API applied successfully');
-          } catch (e) {
-            console.warn('Fog API error:', e);
+          // Apply Mapbox Fog API
+          if (typeof map.setFog === 'function') {
+            try {
+              map.setFog(conditions.fogSettings);
+              console.log('Fog API applied successfully');
+            } catch (e) {
+              console.warn('Fog API error:', e);
+            }
           }
-        }
 
-        // Apply lighting for 3D mode
-        if (uiController.is3DEnabled && typeof map.setLight === 'function') {
-          try {
-            map.setLight(conditions.lightSettings);
-            console.log('Light API applied successfully');
-          } catch (e) {
-            console.warn('Light API error:', e);
+          // Apply lighting for 3D mode
+          if (uiController.is3DEnabled && typeof map.setLight === 'function') {
+            try {
+              map.setLight(conditions.lightSettings);
+              console.log('Light API applied successfully');
+            } catch (e) {
+              console.warn('Light API error:', e);
+            }
           }
-        }
 
-        // Fallback atmospheric effects for unsupported APIs
-        if (typeof map.setSky !== 'function' || typeof map.setFog !== 'function') {
-          this.applyFallbackAtmosphere(conditions);
+          // Fallback atmospheric effects for unsupported APIs
+          if (typeof map.setSky !== 'function' || typeof map.setFog !== 'function') {
+            this.applyFallbackAtmosphere(conditions);
+          }
+          
+          // Enhanced notification with time and conditions
+          const pacificMoment = parsePacific(track.timestamp);
+          const jsDate = pacificMoment.toDate();
+          const timeStr = pacificMoment.format('H:mm');
+          const timeDesc = conditions.period.replace(/([A-Z])/g, ' $1').toLowerCase().replace(/astronomical|nautical|civil/, '').trim();
+          showNotification(`${timeStr} ${isDST(jsDate) ? 'PDT' : 'PST'} - ${timeDesc}`, 3000);
+        } catch (error) {
+          console.error('Error in applyAtmosphere:', error);
         }
-        
-        // Enhanced notification with time and conditions
-        const pacificDate = parsePacific(track.timestamp);
-        const jsDate = pacificDate.toDate();
-        const timeStr = pacificDate.format('H:mm');
-        const timeDesc = conditions.period.replace(/([A-Z])/g, ' $1').toLowerCase().replace(/astronomical|nautical|civil/, '').trim();
-        showNotification(`${timeStr} ${isDST(jsDate) ? 'PDT' : 'PST'} - ${timeDesc}`, 3000);
       }
 
       getSunIntensity(period, altitude) {
@@ -1237,59 +1275,79 @@
       }
 
       async setupWakeLock() {
-        if ('wakeLock' in navigator) {
-          try {
+        try {
+          if ('wakeLock' in navigator) {
             this.wakeLock = await navigator.wakeLock.request('screen');
-          } catch (err) {
-            console.log('Wake lock not supported');
           }
+        } catch (err) {
+          // Wake lock is optional, don't log error
         }
       }
 
       play(index, audioData) {
-        if (this.currentAudio) {
-          this.currentAudio.pause();
-          this.currentAudio = null;
-        }
-
-        const track = audioData[index];
-        if (!track) return;
-
-        // Add to play history (keep last 50 for memory management)
-        if (this.currentIndex !== -1 && this.currentIndex !== index) {
-          this.playHistory.push(this.currentIndex);
-          if (this.playHistory.length > 50) {
-            this.playHistory.shift();
+        try {
+          if (this.currentAudio) {
+            this.currentAudio.pause();
+            this.currentAudio = null;
           }
+
+          const track = audioData[index];
+          if (!track) return;
+
+          // Add to play history (keep last 50 for memory management)
+          if (this.currentIndex !== -1 && this.currentIndex !== index) {
+            this.playHistory.push(this.currentIndex);
+            if (this.playHistory.length > 50) {
+              this.playHistory.shift();
+            }
+          }
+
+          this.currentIndex = index;
+          this.isPlaying = true;
+
+          const audio = document.createElement('audio');
+          audio.src = track.audioUrl;
+          audio.preload = 'auto';
+          audio.controlsList = 'nodownload';
+          audio.oncontextmenu = () => false;
+          
+          audio.addEventListener('ended', () => {
+            this.playNext(audioData);
+          });
+
+          audio.addEventListener('error', (e) => {
+            console.warn('Audio failed to load:', track.name, 'URL:', track.audioUrl, 'Error:', e);
+            showNotification(`Audio failed to load: ${track.name}`, 3000);
+          });
+
+          audio.addEventListener('loadstart', () => {
+            console.log('Audio loading started for:', track.name);
+          });
+
+          audio.addEventListener('canplay', () => {
+            console.log('Audio can play:', track.name);
+          });
+
+          this.currentAudio = audio;
+
+          // Try to play the audio immediately
+          audio.play().catch(err => {
+            console.warn('Auto-play failed, user interaction required:', err);
+            showNotification('Click to play audio', 2000);
+          });
+
+          // mount into popup if container exists
+          const popupContainer = document.getElementById('audioContainer');
+          if (popupContainer) {
+            popupContainer.innerHTML = '';
+            popupContainer.appendChild(audio);
+          }
+          return audio;
+        } catch (error) {
+          console.error('Error in play method:', error);
+          showNotification('Error playing audio', 2000);
+          return null;
         }
-
-        this.currentIndex = index;
-        this.isPlaying = true;
-
-        const audio = document.createElement('audio');
-        audio.src = track.audioUrl;
-        audio.preload = 'auto';
-        audio.controlsList = 'nodownload';
-        audio.oncontextmenu = () => false;
-        
-        audio.addEventListener('ended', () => {
-          this.playNext(audioData);
-        });
-
-        audio.addEventListener('error', () => {
-          console.warn('Audio failed to load:', track.name, 'URL:', track.audioUrl);
-          showNotification(`Audio failed to load: ${track.name}`, 3000);
-        });
-
-        this.currentAudio = audio;
-
-        // mount into popup if container exists
-        const popupContainer = document.getElementById('audioContainer');
-        if (popupContainer) {
-          popupContainer.innerHTML = '';
-          popupContainer.appendChild(audio);
-        }
-        return audio;
       }
 
       togglePlayPause() {
