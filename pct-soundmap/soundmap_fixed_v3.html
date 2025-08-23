@@ -2502,14 +2502,13 @@
         return fmt.format(date) + ' PT';
       };}
 
-      resetMap() {
+      resetMap()
         audioController.stop();
         uiController.clearMiniInfoBoxes();
         if (this.currentPopup) {
           this.currentPopup.remove();
           this.currentPopup = null;
         }
-      }
         
         // Disable 3D mode if it's enabled
         if (uiController.is3DEnabled) {
