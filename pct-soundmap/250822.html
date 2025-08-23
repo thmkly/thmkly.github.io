@@ -462,15 +462,21 @@
 </style>
 
 <script>
-  // Fixed Pacific timestamp parser for 24hr format with proper DST handling
+  // Fixed Pacific timestamp parser for ISO format with proper DST handling
   function parsePacific(ts) {
     if (!ts) return dayjs();
     
-    // Parse the timestamp assuming it's in M/D/YYYY H:mm:ss format (24hr)
-    const parsed = dayjs(ts, "M/D/YYYY H:mm:ss");
+    // Handle both ISO format (2023-05-06T16:55:00.000Z) and M/D/YYYY format
+    let parsed;
+    if (ts.includes('T') && ts.includes('Z')) {
+      // ISO format - parse as UTC then convert to Pacific
+      parsed = dayjs.utc(ts).tz("America/Los_Angeles");
+    } else {
+      // M/D/YYYY H:mm:ss format - treat as Pacific local time
+      parsed = dayjs(ts, "M/D/YYYY H:mm:ss").tz("America/Los_Angeles", true);
+    }
     
-    // Convert to Pacific timezone, treating the input as already being Pacific local time
-    return parsed.tz("America/Los_Angeles", true);
+    return parsed;
   }
 
   // Helper to determine if date is in DST
@@ -624,63 +630,72 @@
         
         console.log('Calculating sun position for:', {
           input: date,
-          pacificFormatted: pacificDate.format('M/D/YYYY H:mm:ss'),
-          jsDate: jsDate.toString(),
+          pacificFormatted: pacificDate.format('YYYY-MM-DD HH:mm:ss'),
+          pacificTime: pacificDate.format('HH:mm'),
+          isDST: isDST(jsDate),
           lat, lng
         });
         
+        // Get local time in Pacific timezone
+        const hours = jsDate.getHours();
+        const minutes = jsDate.getMinutes();
+        const timeDecimal = hours + minutes / 60;
+        
         // Julian day calculation
         const jd = this.getJulianDay(jsDate);
-        
-        // Solar calculations
         const n = jd - 2451545.0;
-        const L = (280.460 + 0.9856474 * n) % 360; // Mean longitude
-        const g = this.toRad((357.528 + 0.9856003 * n) % 360); // Mean anomaly
-        const lambda = this.toRad(L + 1.915 * Math.sin(g) + 0.020 * Math.sin(2 * g)); // Ecliptic longitude
+        
+        // Solar longitude calculations
+        const L = (280.460 + 0.9856474 * n) % 360;
+        const g = this.toRad((357.528 + 0.9856003 * n) % 360);
+        const lambda = this.toRad(L + 1.915 * Math.sin(g) + 0.020 * Math.sin(2 * g));
         
         // Sun's declination
         const sinDelta = Math.sin(this.toRad(23.45)) * Math.sin(lambda);
-        const cosDelta = Math.cos(Math.asin(sinDelta));
         const delta = Math.asin(sinDelta);
         
-        // Hour angle - accounting for Pacific timezone
-        const utcHours = jsDate.getUTCHours() + jsDate.getUTCMinutes() / 60;
-        const pacificOffset = isDST(jsDate) ? -7 : -8; // PDT = UTC-7, PST = UTC-8
-        const localSolarTime = utcHours + pacificOffset + lng / 15;
-        const hourAngle = this.toRad(15 * (localSolarTime - 12));
+        // Hour angle calculation - corrected for local time
+        const hourAngle = this.toRad(15 * (timeDecimal - 12));
         
         // Solar position calculations
         const latRad = this.toRad(lat);
         const sinAltitude = Math.sin(latRad) * Math.sin(delta) + 
-                           Math.cos(latRad) * cosDelta * Math.cos(hourAngle);
-        const altitude = this.toDeg(Math.asin(sinAltitude));
+                           Math.cos(latRad) * Math.cos(delta) * Math.cos(hourAngle);
+        const altitude = this.toDeg(Math.asin(Math.max(-1, Math.min(1, sinAltitude))));
         
+        // Azimuth calculation
         const cosAzimuth = (Math.sin(delta) - Math.sin(latRad) * sinAltitude) / 
-                          (Math.cos(latRad) * Math.cos(Math.asin(sinAltitude)));
-        let azimuth = this.toDeg(Math.acos(Math.min(1, Math.max(-1, cosAzimuth))));
+                          (Math.cos(latRad) * Math.cos(Math.asin(Math.max(-1, Math.min(1, sinAltitude)))));
+        let azimuth = this.toDeg(Math.acos(Math.max(-1, Math.min(1, cosAzimuth))));
         
-        // Adjust azimuth for afternoon
+        // Adjust azimuth for afternoon (when hour angle > 0)
         if (hourAngle > 0) {
           azimuth = 360 - azimuth;
         }
         
-        console.log(`Solar calculation: Local time: ${localSolarTime.toFixed(2)}h, Altitude: ${altitude.toFixed(1)}°, Azimuth: ${azimuth.toFixed(1)}°`);
+        console.log(`Solar calculation: Pacific time: ${timeDecimal.toFixed(2)}h (${hours}:${minutes.toString().padStart(2, '0')}), Altitude: ${altitude.toFixed(1)}°, Azimuth: ${azimuth.toFixed(1)}°`);
         
         return { altitude, azimuth };
       }
       
       getJulianDay(date) {
-        const a = Math.floor((14 - (date.getMonth() + 1)) / 12);
-        const y = date.getFullYear() + 4800 - a;
-        const m = (date.getMonth() + 1) + 12 * a - 3;
-        
-        let jdn = date.getDate() + Math.floor((153 * m + 2) / 5) + 365 * y + 
-                  Math.floor(y / 4) - Math.floor(y / 100) + Math.floor(y / 400) - 32045;
-        
-        // Add time component
+        // Corrected Julian day calculation
+        const year = date.getFullYear();
+        const month = date.getMonth() + 1;
+        const day = date.getDate();
         const hours = date.getHours();
         const minutes = date.getMinutes();
         const seconds = date.getSeconds();
+        
+        // Standard Julian day calculation
+        let a = Math.floor((14 - month) / 12);
+        let y = year + 4800 - a;
+        let m = month + 12 * a - 3;
+        
+        let jdn = day + Math.floor((153 * m + 2) / 5) + 365 * y + 
+                  Math.floor(y / 4) - Math.floor(y / 100) + Math.floor(y / 400) - 32045;
+        
+        // Add time component (fraction of day)
         const timeDecimal = (hours + minutes / 60 + seconds / 3600) / 24;
         
         return jdn + timeDecimal - 0.5;
@@ -915,8 +930,9 @@
         Object.assign(baseFog, fogProfiles[period] || fogProfiles.midday);
         
         // Elevation adjustment: less fog, clearer view at higher elevations
-        baseFog.range[0] *= elevationEffect;
-        baseFog.range[1] *= Math.min(elevationEffect * 1.2, 2.0);
+        // Ensure fog range doesn't exceed Mapbox limits (max 20)
+        baseFog.range[0] = Math.min(19, Math.max(0.1, baseFog.range[0] * elevationEffect));
+        baseFog.range[1] = Math.min(20, Math.max(baseFog.range[0] + 0.1, baseFog.range[1] * Math.min(elevationEffect * 1.2, 1.8)));
 
         return baseFog;
       }
@@ -1077,7 +1093,9 @@
         }
         
         // Enhanced notification with time and conditions
-        const timeStr = pacificDate.format('h:mm A');
+        const pacificDate = parsePacific(track.timestamp);
+        const jsDate = pacificDate.toDate();
+        const timeStr = pacificDate.format('H:mm');
         const timeDesc = conditions.period.replace(/([A-Z])/g, ' $1').toLowerCase().replace(/astronomical|nautical|civil/, '').trim();
         showNotification(`${timeStr} ${isDST(jsDate) ? 'PDT' : 'PST'} - ${timeDesc}`, 3000);
       }
