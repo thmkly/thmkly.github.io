@@ -1,7 +1,7 @@
 // main.js
 const audioController = new AudioController();
 const atmosphereController = new atmosphereController();
-const uiController = new UIController();
+const uiController = new uiController();
 const mapController = new mapController();
 
 // Expose to global scope (so classes can talk to each other)
