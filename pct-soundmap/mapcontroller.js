@@ -1,4 +1,4 @@
-    // Map Controller Class
+// Map Controller Class
     class MapController {
       constructor() {
         this.audioData = [];
@@ -249,7 +249,7 @@
                 originalIndex: index
               }));
               
-              // Set up data in fixed geographic order (Canada at top for display)
+              // Set up data in NOBO order by default (Mexico at bottom, Canada at top)
               this.audioData = this.sortByMileAndDate([...this.originalAudioData], 'nobo');
               this.sortAndUpdatePlaylist();
               this.updateMapData();
@@ -273,25 +273,20 @@
         const currentlyPlayingTrack = audioController.currentIndex >= 0 ? 
           this.audioData[audioController.currentIndex] : null;
         
-        // Check if we need to reorder the playlist
-        const needsReordering = audioController.sortMode === 'date' || 
-                               (audioController.sortMode !== 'date' && this.isCurrentlyChronological());
+        // Always re-sort based on current mode
+        if (audioController.sortMode === 'date') {
+          // STEREO: Chronological order (earliest to latest)
+          this.audioData = this.sortByMileAndDate([...this.originalAudioData], 'date');
+        } else {
+          // NOBO/SOBO: Geographic order (always same physical order)
+          this.audioData = this.sortByMileAndDate([...this.originalAudioData], 'nobo');
+        }
         
-        if (needsReordering) {
-          if (audioController.sortMode === 'date') {
-            // STEREO: Reorder playlist chronologically
-            this.audioData = this.sortByMileAndDate([...this.originalAudioData], 'date');
-          } else {
-            // NOBO/SOBO: Restore geographic order
-            this.audioData = this.sortByMileAndDate([...this.originalAudioData], 'nobo');
-          }
-          
-          // Update current index to match new order
-          if (currentlyPlayingTrack) {
-            audioController.currentIndex = this.audioData.findIndex(track => 
-              track.originalIndex === currentlyPlayingTrack.originalIndex
-            );
-          }
+        // Update current index to match new order
+        if (currentlyPlayingTrack) {
+          audioController.currentIndex = this.audioData.findIndex(track => 
+            track.originalIndex === currentlyPlayingTrack.originalIndex
+          );
         }
         
         // Update playlist display
@@ -328,11 +323,11 @@
 
       sortByMileAndDate(data, mode = 'nobo') {
         if (mode === 'date') {
-          // STEREO mode: sort everything by timestamp
+          // STEREO mode: sort everything by timestamp (earliest to latest)
           return [...data].sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
         }
         
-        // For NOBO/SOBO: purely spatial sorting by mile (including ~ placeholders)
+        // For NOBO/SOBO: purely spatial sorting by mile
         const tracksWithMiles = data.filter(track => {
           const mile = this.getMileForSorting(track);
           return mile !== null && !isNaN(mile);
@@ -343,9 +338,7 @@
           return mile === null || isNaN(mile);
         });
 
-        // Sort tracks with miles (including placeholders) by mile number
-        // NOBO: ascending (0 → 2655), SOBO: descending (2655 → 0)
-        const ascending = mode === 'nobo';
+        // Sort tracks with miles by mile number (ascending: 0 → 2655.8)
         tracksWithMiles.sort((a, b) => {
           const mileA = this.getMileForSorting(a);
           const mileB = this.getMileForSorting(b);
@@ -353,15 +346,12 @@
             // If same mile, sort by timestamp
             return new Date(a.timestamp) - new Date(b.timestamp);
           }
-          return ascending ? mileA - mileB : mileB - mileA;
+          return mileA - mileB; // Always ascending by mile
         });
 
-        // For display: reverse the order so Canada appears at top
-        // NOBO sorted (0→2655) becomes display (2655→0)
-        // SOBO sorted (2655→0) stays as (2655→0)
-        if (mode === 'nobo') {
-          tracksWithMiles.reverse();
-        }
+        // For playlist display: reverse so Canada (high miles) appears at top
+        // This gives us: Canada at top (index 0), Mexico at bottom (last index)
+        tracksWithMiles.reverse();
 
         // Sort tracks without miles by timestamp
         tracksWithoutMiles.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
@@ -432,13 +422,7 @@
         // Force scroll position update on initial load
         if (audioController.currentIndex === -1) {
           setTimeout(() => {
-            if (audioController.sortMode === 'sobo') {
-              playlist.scrollTop = 0;
-            } else if (audioController.sortMode === 'date') {
-              playlist.scrollTop = 0;
-            } else {
-              playlist.scrollTop = playlist.scrollHeight;
-            }
+            this.setPlaylistScrollPosition();
           }, 150);
         }
       }
@@ -459,7 +443,7 @@
               // NOBO: Scroll to bottom (starting at Mexico/south)
               playlist.scrollTop = playlist.scrollHeight;
             }
-          }, 100); // Increased delay to ensure rendering is complete
+          }, 100);
         }
       }
 
@@ -666,6 +650,7 @@
         if (audioController.playMode === 'random') {
           prevBtn.disabled = audioController.playHistory.length === 0;
         } else {
+          // In playlist order: previous is always the item above in the list
           prevBtn.disabled = index === 0;
         }
         
@@ -677,6 +662,7 @@
         nextBtn.className = 'nav-arrow';
         nextBtn.innerHTML = '&raquo;';
         nextBtn.title = 'Next';
+        // In playlist order: next is always the item below in the list
         nextBtn.disabled = index === this.audioData.length - 1;
         nextBtn.addEventListener('click', () => {
           audioController.playNext(this.audioData);
