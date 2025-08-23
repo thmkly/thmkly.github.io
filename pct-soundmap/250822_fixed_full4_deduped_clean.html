@@ -627,11 +627,6 @@
       }, duration);
     }
 
-    // Enhanced Atmospheric Lighting System
-    
-<!-- Duplicate AtmosphereController removed -->
-
-
     // Audio Controller Class
     class AudioController {
       constructor() {
@@ -654,7 +649,8 @@
         } catch (err) {
           // Wake lock is optional, don't log error
         }
-
+      }
+      
     // Enhanced Atmospheric Lighting System with Smooth Transitions
     class AtmosphereController {
       constructor() {
@@ -663,7 +659,8 @@
         this.transitionSteps = 20; // Number of steps for smooth transition
         this.transitionDuration = 3000; // 3 seconds for smooth fade
       }
-
+    }
+    
       // More accurate sun position calculation using SPA (Solar Position Algorithm)
       calculateSunPosition(date, lat, lng) {
         try {
