@@ -2491,20 +2491,16 @@
         }
       }
 
-      formatTimestamp(timestamp) {
-        const date = parsePacific(timestamp).toDate();
-        if (isNaN(date)) return String(timestamp || '');
-        const fmt = new Intl.DateTimeFormat('en-US', {
-          timeZone: 'America/Los_Angeles',
-          year: 'numeric',
-          month: 'short',
-          day: '2-digit',
-          hour: '2-digit',
-          minute: '2-digit',
-          hour12: true
-        });
-        return fmt.format(date) + ' PT';
-      };
+formatTimestamp(timestamp) {
+  const date = parsePacific(timestamp);
+  if (!date.isValid()) return String(timestamp || '');
+  
+  // Format to YYYY-MM-DD HH:mm PDT/PST
+  const datePart = date.format("YYYY-MM-DD HH:mm");
+  const tz = date.format("z"); // PDT or PST
+  
+  return `${datePart} ${tz}`;
+}
 
       resetMap() {
         audioController.stop();
