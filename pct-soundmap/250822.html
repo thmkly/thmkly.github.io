@@ -632,6 +632,8 @@
       constructor() {
         this.currentConditions = null;
         this.transitionInProgress = false;
+        this.transitionSteps = 20;
+        this.transitionDuration = 3000;
       }
 
       // Calculate accurate sun position using proper solar algorithms
@@ -714,11 +716,6 @@
           console.error('Error in getJulianDayNumber:', error);
           return 2451545; // J2000.0 epoch as fallback
         }
-      }
-      
-      getJulianDay(date) {
-        // This method is no longer used - replaced by getJulianDayNumber
-        return this.getJulianDayNumber(date.getFullYear(), date.getMonth() + 1, date.getDate());
       }
 
       getElevationEffect(mile) {
