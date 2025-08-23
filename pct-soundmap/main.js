@@ -1,6 +1,6 @@
 // main.js
 const audioController = new AudioController();
-const atmosphereController = new AtmosphereController();
+const atmosphereController = new atmosphereController();
 const uiController = new UIController();
 const mapController = new mapController();
 
