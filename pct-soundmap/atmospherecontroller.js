@@ -703,7 +703,8 @@
         // Enhanced notification with more detail
         const timeDesc = conditions.period.replace(/([A-Z])/g, ' $1').toLowerCase();
         const terrainDesc = conditions.terrainInfo.terrain.replace(/_/g, ' ');
-        showNotification(`${timeDesc} in ${terrainDesc} (${conditions.terrainInfo.elevation}ft)`, 3000);
+        const elevationDisplay = Math.round(conditions.terrainInfo.elevation / 100) * 100; // Round to nearest 100ft
+        showNotification(`${timeDesc} in ${terrainDesc} (${elevationDisplay}ft)`, 3000);
       }
 
       applyEnhancedSky(conditions) {
