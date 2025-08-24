@@ -142,8 +142,11 @@
         const hourAngleRad = Math.acos(-Math.tan(latRad) * Math.tan(declinationRad));
         const hourAngle = hourAngleRad * 180 / Math.PI / 15; // Convert to hours
         
-        // Solar noon occurs around 12:00 + longitude adjustment
-        const solarNoon = 12 - lng / 15; // Rough longitude correction
+        // Solar noon occurs around 12:00 with longitude adjustment
+        // Longitude correction: 4 minutes per degree from timezone center
+        // Pacific Time center is around -120°, so adjust from there
+        const longitudeOffset = (lng - (-120)) / 15; // Convert degrees to hours
+        const solarNoon = 12 + longitudeOffset;
         const sunrise = solarNoon - hourAngle;
         const sunset = solarNoon + hourAngle;
         
