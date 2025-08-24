@@ -412,7 +412,7 @@
         return weatherColors;
       }
 
-      // Base colors for each time period
+      // Realistic color schemes for each time period
       getBasePeriodColors(period) {
         const periodColors = {
           astronomicalNight: {
@@ -440,82 +440,82 @@
             horizon: '#5a5a7a'
           },
           sunrise: {
-            sky: '#ff8c42',
-            fog: 'rgba(255, 140, 66, 0.4)',
-            ambient: '#ffb88c',
-            horizon: '#ffd4b8'
-          },
-          sunset: {
-            sky: '#ff4500',
-            fog: 'rgba(255, 69, 0, 0.4)',
-            ambient: '#ff8c66',
-            horizon: '#ffccb8'
+            sky: '#ff6b35',
+            fog: 'rgba(255, 107, 53, 0.3)',
+            ambient: '#ff9966',
+            horizon: '#ffcc99'
           },
           morningGoldenHour: {
-            sky: '#ffd700',
-            fog: 'rgba(255, 215, 0, 0.3)',
-            ambient: '#ffe14d',
-            horizon: '#fff0c8'
-          },
-          eveningGoldenHour: {
-            sky: '#ff7f00',
-            fog: 'rgba(255, 127, 0, 0.3)',
-            ambient: '#ffb366',
-            horizon: '#ffe0cc'
-          },
-          morning: {
-            sky: '#87ceeb',
-            fog: 'rgba(135, 206, 235, 0.25)',
-            ambient: '#b8e6ff',
-            horizon: '#d8f0ff'
-          },
-          evening: {
-            sky: '#ff6347',
-            fog: 'rgba(255, 99, 71, 0.3)',
-            ambient: '#ff9580',
-            horizon: '#ffcab8'
-          },
-          midMorning: {
-            sky: '#4da6ff',
-            fog: 'rgba(77, 166, 255, 0.2)',
-            ambient: '#99ccff',
-            horizon: '#c8e6ff'
-          },
-          midAfternoon: {
-            sky: '#ff8c69',
-            fog: 'rgba(255, 140, 105, 0.25)',
-            ambient: '#ffb399',
-            horizon: '#ffd9cc'
-          },
-          lateMorning: {
-            sky: '#1e90ff',
-            fog: 'rgba(30, 144, 255, 0.15)',
-            ambient: '#6bb6ff',
-            horizon: '#a8d8ff'
-          },
-          lateAfternoon: {
-            sky: '#ff8c69',
-            fog: 'rgba(255, 140, 105, 0.25)',
-            ambient: '#ffb399',
-            horizon: '#ffd9cc'
-          },
-          earlyAfternoon: {
             sky: '#ffa500',
-            fog: 'rgba(255, 165, 0, 0.2)',
+            fog: 'rgba(255, 165, 0, 0.25)',
             ambient: '#ffcc66',
             horizon: '#ffe6b3'
           },
+          morning: {
+            sky: '#87ceeb',
+            fog: 'rgba(135, 206, 235, 0.2)',
+            ambient: '#b8e6ff',
+            horizon: '#d8f0ff'
+          },
+          midMorning: {
+            sky: '#4da6ff',
+            fog: 'rgba(77, 166, 255, 0.15)',
+            ambient: '#99ccff',
+            horizon: '#c8e6ff'
+          },
+          lateMorning: {
+            sky: '#1e90ff',
+            fog: 'rgba(30, 144, 255, 0.12)',
+            ambient: '#6bb6ff',
+            horizon: '#a8d8ff'
+          },
           midday: {
             sky: '#0080ff',
-            fog: 'rgba(0, 128, 255, 0.1)',
+            fog: 'rgba(0, 128, 255, 0.08)',
             ambient: '#4da6ff',
             horizon: '#87ceeb'
           },
           highNoon: {
             sky: '#0066cc',
-            fog: 'rgba(0, 102, 204, 0.08)',
+            fog: 'rgba(0, 102, 204, 0.05)',
             ambient: '#3399ff',
             horizon: '#66b3ff'
+          },
+          earlyAfternoon: {
+            sky: '#3399ff',
+            fog: 'rgba(51, 153, 255, 0.1)',
+            ambient: '#66b3ff',
+            horizon: '#99ccff'
+          },
+          midAfternoon: {
+            sky: '#4da6ff',
+            fog: 'rgba(77, 166, 255, 0.12)',
+            ambient: '#80ccff',
+            horizon: '#b3ddff'
+          },
+          lateAfternoon: {
+            sky: '#66b3ff',
+            fog: 'rgba(102, 179, 255, 0.15)',
+            ambient: '#99ccff',
+            horizon: '#ccddff'
+          },
+          evening: {
+            sky: '#99ccff',
+            fog: 'rgba(153, 204, 255, 0.18)',
+            ambient: '#b3ddff',
+            horizon: '#d9eeff'
+          },
+          eveningGoldenHour: {
+            sky: '#ff8c00',
+            fog: 'rgba(255, 140, 0, 0.25)',
+            ambient: '#ffb366',
+            horizon: '#ffe0cc'
+          },
+          sunset: {
+            sky: '#ff4500',
+            fog: 'rgba(255, 69, 0, 0.35)',
+            ambient: '#ff8c66',
+            horizon: '#ffccb8'
           }
         };
         
