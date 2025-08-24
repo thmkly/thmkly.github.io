@@ -345,19 +345,36 @@ class AtmosphereController {
     };
   }
 
-  // Back to your original simple atmospheric application
+  // Enhanced atmospheric application with smooth crossfading
   applyAtmosphere(track) {
     if (!map || !track) return;
     
-    const conditions = this.getAtmosphericConditions(track);
-    this.currentConditions = conditions;
+    const newConditions = this.getAtmosphericConditions(track);
     
     console.log('Applying atmosphere for track:', track.name);
     console.log('Time:', track.timestamp);
-    console.log('Sun position:', conditions.sunPosition);
-    console.log('Period:', conditions.period);
+    console.log('Sun position:', newConditions.sunPosition);
+    console.log('Period:', newConditions.period);
 
-    // Check if Sky API is available
+    // If no previous conditions, apply immediately
+    if (!this.currentConditions) {
+      this.applyImmediateAtmosphere(newConditions);
+      this.currentConditions = newConditions;
+      const timeDesc = newConditions.period.replace(/([A-Z])/g, ' $1').toLowerCase();
+      showNotification(`Atmosphere: ${timeDesc}`, 2500);
+      return;
+    }
+
+    // Smooth transition between atmospheric conditions
+    this.transitionAtmosphereSmooth(this.currentConditions, newConditions);
+    this.currentConditions = newConditions;
+    
+    const timeDesc = newConditions.period.replace(/([A-Z])/g, ' $1').toLowerCase();
+    showNotification(`Atmosphere: ${timeDesc}`, 2500);
+  }
+
+  // Apply immediate atmosphere (no transition)
+  applyImmediateAtmosphere(conditions) {
     if (typeof map.setSky === 'function') {
       map.setSky({
         'sky-type': 'atmosphere',
@@ -376,7 +393,6 @@ class AtmosphereController {
       });
     }
 
-    // Check if Fog API is available
     if (typeof map.setFog === 'function') {
       const fogConfig = {
         ...conditions.fogSettings,
@@ -393,7 +409,6 @@ class AtmosphereController {
       map.setFog(fogConfig);
     }
 
-    // Apply light if 3D is enabled
     if (uiController.is3DEnabled && typeof map.setLight === 'function') {
       map.setLight({
         ...conditions.lightSettings,
@@ -404,14 +419,149 @@ class AtmosphereController {
       });
     }
 
-    // If Sky/Fog APIs aren't available, use CSS fallback
     if (typeof map.setSky !== 'function' || typeof map.setFog !== 'function') {
       this.applyFallbackAtmosphere(conditions);
     }
+  }
+
+  // Smooth atmospheric transition with multiple intermediate steps
+  transitionAtmosphereSmooth(oldConditions, newConditions, duration = 3000) {
+    if (this.transitionInProgress) {
+      if (this.transitionTimeout) {
+        clearTimeout(this.transitionTimeout);
+      }
+    }
     
-    // Show notification about current conditions
-    const timeDesc = conditions.period.replace(/([A-Z])/g, ' $1').toLowerCase();
-    showNotification(`Atmosphere: ${timeDesc}`, 2500);
+    this.transitionInProgress = true;
+    
+    const steps = 15; // Number of transition steps
+    const stepDuration = duration / steps;
+    
+    for (let i = 0; i <= steps; i++) {
+      setTimeout(() => {
+        const progress = i / steps;
+        const easedProgress = this.easeInOutQuad(progress);
+        
+        // Interpolate between old and new conditions
+        const interpolatedConditions = this.interpolateConditions(oldConditions, newConditions, easedProgress);
+        
+        // Apply the interpolated state
+        this.applyInterpolatedState(interpolatedConditions);
+        
+        // Mark complete on final step
+        if (i === steps) {
+          this.transitionInProgress = false;
+        }
+      }, i * stepDuration);
+    }
+    
+    // Safety cleanup
+    this.transitionTimeout = setTimeout(() => {
+      this.transitionInProgress = false;
+    }, duration + 500);
+  }
+
+  // Smooth easing function
+  easeInOutQuad(t) {
+    return t < 0.5 ? 2 * t * t : -1 + (4 - 2 * t) * t;
+  }
+
+  // Interpolate between two atmospheric states
+  interpolateConditions(oldConditions, newConditions, progress) {
+    return {
+      sunPosition: {
+        altitude: oldConditions.sunPosition.altitude + (newConditions.sunPosition.altitude - oldConditions.sunPosition.altitude) * progress,
+        azimuth: oldConditions.sunPosition.azimuth + (newConditions.sunPosition.azimuth - oldConditions.sunPosition.azimuth) * progress
+      },
+      period: progress < 0.5 ? oldConditions.period : newConditions.period,
+      colors: this.interpolateColors(oldConditions.colors, newConditions.colors, progress),
+      fogSettings: this.interpolateFogSettings(oldConditions.fogSettings, newConditions.fogSettings, progress),
+      lightSettings: this.interpolateLightSettings(oldConditions.lightSettings, newConditions.lightSettings, progress)
+    };
+  }
+
+  // Simple color interpolation (blend between hex colors)
+  interpolateColors(oldColors, newColors, progress) {
+    return {
+      sky: this.blendColors(oldColors.sky, newColors.sky, progress),
+      fog: oldColors.fog, // Keep fog color simple for now
+      ambient: this.blendColors(oldColors.ambient, newColors.ambient, progress),
+      horizon: this.blendColors(oldColors.horizon, newColors.horizon, progress)
+    };
+  }
+
+  // Simple hex color blending
+  blendColors(color1, color2, progress) {
+    // For now, return the dominant color based on progress
+    return progress < 0.5 ? color1 : color2;
+  }
+
+  // Interpolate fog settings
+  interpolateFogSettings(oldFog, newFog, progress) {
+    return {
+      range: [
+        oldFog.range[0] + (newFog.range[0] - oldFog.range[0]) * progress,
+        oldFog.range[1] + (newFog.range[1] - oldFog.range[1]) * progress
+      ],
+      color: progress < 0.5 ? oldFog.color : newFog.color,
+      'horizon-blend': oldFog['horizon-blend'] + (newFog['horizon-blend'] - oldFog['horizon-blend']) * progress,
+      'high-color': progress < 0.5 ? oldFog['high-color'] : newFog['high-color'],
+      'space-color': progress < 0.5 ? oldFog['space-color'] : newFog['space-color'],
+      'star-intensity': oldFog['star-intensity'] + (newFog['star-intensity'] - oldFog['star-intensity']) * progress
+    };
+  }
+
+  // Interpolate light settings
+  interpolateLightSettings(oldLight, newLight, progress) {
+    return {
+      anchor: newLight.anchor,
+      color: progress < 0.5 ? oldLight.color : newLight.color,
+      intensity: oldLight.intensity + (newLight.intensity - oldLight.intensity) * progress,
+      position: [
+        oldLight.position[0] + (newLight.position[0] - oldLight.position[0]) * progress,
+        oldLight.position[1] + (newLight.position[1] - oldLight.position[1]) * progress,
+        oldLight.position[2] + (newLight.position[2] - oldLight.position[2]) * progress
+      ]
+    };
+  }
+
+  // Apply interpolated atmospheric state
+  applyInterpolatedState(conditions) {
+    if (typeof map.setSky === 'function') {
+      map.setSky({
+        'sky-type': 'atmosphere',
+        'sky-atmosphere-sun': [conditions.sunPosition.azimuth, Math.max(0, conditions.sunPosition.altitude)],
+        'sky-atmosphere-sun-intensity': conditions.period === 'night' ? 2 : 15,
+        'sky-atmosphere-color': conditions.colors.sky,
+        'sky-gradient': [
+          'interpolate',
+          ['linear'],
+          ['sky-radial-progress'],
+          0.8,
+          conditions.colors.horizon,
+          1,
+          conditions.colors.sky
+        ]
+      });
+    }
+
+    if (typeof map.setFog === 'function') {
+      const fogConfig = {
+        ...conditions.fogSettings,
+        color: conditions.colors.fog
+      };
+      
+      if (map.version && map.version >= '3.0.0') {
+        fogConfig['high-color'] = conditions.colors.sky;
+        fogConfig['space-color'] = conditions.period === 'night' ? '#000011' : '#000066';
+      }
+      
+      map.setFog(fogConfig);
+    }
+
+    if (uiController.is3DEnabled && typeof map.setLight === 'function') {
+      map.setLight(conditions.lightSettings);
+    }
   }
 
   // CSS fallback (your original approach)
