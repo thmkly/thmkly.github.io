@@ -1,10 +1,9 @@
-// UI Controller Class
+    // UI Controller Class
     class UIController {
       constructor() {
         this.playlistExpanded = true;
         this.isFullscreen = false;
         this.is3DEnabled = false;
-        this.isEnhancedLightingEnabled = false; // New enhanced lighting toggle
         this.miniInfoBoxes = [];
         this.clusterPlaylist = null;
         this.setupEventListeners();
@@ -39,11 +38,6 @@
 
         document.getElementById('terrain3dBtn').addEventListener('click', () => {
           this.toggle3D();
-        });
-
-        // New enhanced lighting toggle
-        document.getElementById('enhancedLightingBtn').addEventListener('click', () => {
-          this.toggleEnhancedLighting();
         });
 
         // Global spacebar handler - prevent focus on audio elements
@@ -150,7 +144,7 @@
             'exaggeration': 1.5 
           });
           
-          // Basic lighting for 3D
+          // Enhanced lighting for 3D in v3
           if (typeof map.setLight === 'function') {
             map.setLight({
               'anchor': 'viewport',
@@ -165,6 +159,7 @@
             if (audioController.currentIndex >= 0) {
               const currentTrack = mapController.audioData[audioController.currentIndex];
               if (currentTrack) {
+                // Position for 3D view of current track
                 const coords = [parseFloat(currentTrack.lng), parseFloat(currentTrack.lat)];
                 map.flyTo({
                   center: coords,
@@ -175,11 +170,10 @@
                   easing: t => 1 - Math.pow(1 - t, 3)
                 });
                 
-                // Apply atmospheric lighting if enhanced lighting is enabled
-                if (this.isEnhancedLightingEnabled) {
-                  atmosphereController.applyEnhancedLighting(currentTrack);
-                }
+                // Apply atmospheric lighting for current track
+                atmosphereController.applyAtmosphere(currentTrack);
               } else {
+                // No valid track, just enable 3D at current location
                 map.flyTo({
                   pitch: 75,
                   zoom: Math.max(map.getZoom(), CONFIG.ZOOM_3D),
@@ -187,6 +181,7 @@
                 });
               }
             } else {
+              // No active track, just enable 3D at current location
               map.flyTo({
                 pitch: 75,
                 zoom: Math.max(map.getZoom(), CONFIG.ZOOM_3D),
@@ -196,13 +191,14 @@
             showNotification('3D view enabled - Hold Ctrl + drag to rotate', 4000);
           };
           
+          // Wait a moment for terrain to initialize, then apply 3D view
           setTimeout(apply3DView, 300);
           
         } else {
           // Disable 3D
           map.setTerrain(null);
           if (typeof map.setLight === 'function') {
-            map.setLight(null);
+            map.setLight(null); // Reset lighting
           }
           map.flyTo({
             pitch: 0,
@@ -218,75 +214,6 @@
           
           showNotification('3D view disabled', 2000);
         }
-      }
-
-      // New enhanced lighting toggle
-      toggleEnhancedLighting() {
-        this.isEnhancedLightingEnabled = !this.isEnhancedLightingEnabled;
-        const btn = document.getElementById('enhancedLightingBtn');
-        btn.classList.toggle('active', this.isEnhancedLightingEnabled);
-
-        if (this.isEnhancedLightingEnabled) {
-          // Check device capabilities first
-          if (!this.checkDeviceCapabilities()) {
-            // Warn about potential performance impact
-            const proceed = confirm('Enhanced Lighting uses advanced 3D effects that may impact performance on older devices. Continue?');
-            if (!proceed) {
-              this.isEnhancedLightingEnabled = false;
-              btn.classList.remove('active');
-              return;
-            }
-          }
-
-          // Enable enhanced lighting
-          if (this.is3DEnabled && audioController.currentIndex >= 0) {
-            const currentTrack = mapController.audioData[audioController.currentIndex];
-            if (currentTrack) {
-              atmosphereController.applyEnhancedLighting(currentTrack);
-            }
-          }
-          
-          showNotification('Enhanced lighting enabled - Best experienced in 3D mode', 4000);
-        } else {
-          // Disable enhanced lighting - revert to basic
-          if (this.is3DEnabled && typeof map.setLight === 'function') {
-            map.setLight({
-              'anchor': 'viewport',
-              'color': 'white',
-              'intensity': 0.5,
-              'position': [1.15, 210, 30]
-            });
-          }
-          
-          showNotification('Enhanced lighting disabled', 2000);
-        }
-      }
-
-      // Simple device capability check
-      checkDeviceCapabilities() {
-        // Basic heuristics for device performance
-        const canvas = document.createElement('canvas');
-        const gl = canvas.getContext('webgl') || canvas.getContext('experimental-webgl');
-        
-        if (!gl) return false; // No WebGL support
-        
-        // Check for decent GPU
-        const debugInfo = gl.getExtension('WEBGL_debug_renderer_info');
-        if (debugInfo) {
-          const renderer = gl.getParameter(debugInfo.UNMASKED_RENDERER_WEBGL);
-          // Very basic check - this could be more sophisticated
-          const isIntegratedGPU = renderer && (
-            renderer.includes('Intel') || 
-            renderer.includes('integrated') ||
-            renderer.includes('Mobile')
-          );
-          
-          // Assume non-integrated GPUs can handle enhanced lighting
-          return !isIntegratedGPU;
-        }
-        
-        // If we can't detect, assume it can handle it
-        return true;
       }
 
       updateScrollArrows() {
