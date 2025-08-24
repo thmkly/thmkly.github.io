@@ -119,52 +119,75 @@
         return jd + dayFraction;
       }
 
-      // Simplified Solar Position Algorithm
-      calculateSolarPosition(jd, lat, lng, pacificTime) {
-        // Calculate centuries since J2000.0
-        const n = jd - 2451545.0;
-        const T = n / 36525.0;
+      // Simplified but accurate solar position calculation
+      calculateSunPosition(date, lat, lng) {
+        const pacificTime = this.convertToPacificTime(date);
+        const { year, month, day, hour, minute } = pacificTime;
         
-        // Mean longitude of the sun (degrees)
-        let L = (280.460 + 36000.771 * T) % 360;
+        console.log(`Calculating sun position for: ${hour}:${minute.toString().padStart(2, '0')} PDT`);
         
-        // Mean anomaly of the sun (degrees) 
-        const g = this.toRad((357.528 + 35999.050 * T) % 360);
-        
-        // Ecliptic longitude of the sun (degrees)
-        const lambda = L + 1.915 * Math.sin(g) + 0.020 * Math.sin(2 * g);
-        
-        // Obliquity of the ecliptic (degrees)
-        const epsilon = 23.439 - 0.013 * T;
-        
-        // Right ascension and declination
-        const alpha = this.toDeg(Math.atan2(Math.cos(this.toRad(epsilon)) * Math.sin(this.toRad(lambda)), Math.cos(this.toRad(lambda))));
-        const delta = this.toDeg(Math.asin(Math.sin(this.toRad(epsilon)) * Math.sin(this.toRad(lambda))));
-        
-        // Hour angle
-        const { hour, minute } = pacificTime;
+        // Convert to decimal hour
         const timeDecimal = hour + minute / 60;
-        const H = 15 * (timeDecimal - 12) - lng + alpha;
         
-        // Convert to altitude and azimuth
-        const latRad = this.toRad(lat);
-        const deltaRad = this.toRad(delta);
-        const HRad = this.toRad(H);
+        // Simplified sunrise/sunset calculation for PCT latitude range
+        // This is much more reliable than complex solar algorithms
+        const dayOfYear = this.getDayOfYear(year, month, day);
+        const latRad = lat * Math.PI / 180;
         
-        const altitude = this.toDeg(Math.asin(
-          Math.sin(latRad) * Math.sin(deltaRad) + 
-          Math.cos(latRad) * Math.cos(deltaRad) * Math.cos(HRad)
-        ));
+        // Solar declination (approximate)
+        const declination = 23.45 * Math.sin((360 * (284 + dayOfYear) / 365) * Math.PI / 180);
+        const declinationRad = declination * Math.PI / 180;
         
-        const azimuth = this.toDeg(Math.atan2(
-          -Math.sin(HRad),
-          Math.tan(deltaRad) * Math.cos(latRad) - Math.sin(latRad) * Math.cos(HRad)
-        ));
+        // Hour angle for sunrise/sunset
+        const hourAngleRad = Math.acos(-Math.tan(latRad) * Math.tan(declinationRad));
+        const hourAngle = hourAngleRad * 180 / Math.PI / 15; // Convert to hours
         
-        // Normalize azimuth to 0-360
-        const normalizedAzimuth = (azimuth + 360) % 360;
+        // Solar noon occurs around 12:00 + longitude adjustment
+        const solarNoon = 12 - lng / 15; // Rough longitude correction
+        const sunrise = solarNoon - hourAngle;
+        const sunset = solarNoon + hourAngle;
         
-        return { altitude, azimuth: normalizedAzimuth };
+        console.log(`Solar times - Sunrise: ${sunrise.toFixed(1)}h, Sunset: ${sunset.toFixed(1)}h, Solar noon: ${solarNoon.toFixed(1)}h`);
+        
+        let altitude, azimuth;
+        
+        if (timeDecimal < sunrise || timeDecimal > sunset) {
+          // Night time - sun is below horizon
+          const hoursAfterSunset = timeDecimal > sunset ? timeDecimal - sunset : 24 - sunset + timeDecimal;
+          const hoursBeforeSunrise = timeDecimal < sunrise ? sunrise - timeDecimal : sunrise + 24 - timeDecimal;
+          
+          if (Math.min(hoursAfterSunset, hoursBeforeSunrise) < 1) {
+            altitude = -3; // Civil twilight
+          } else if (Math.min(hoursAfterSunset, hoursBeforeSunrise) < 2) {
+            altitude = -10; // Deeper twilight
+          } else {
+            altitude = -20; // Night
+          }
+          azimuth = timeDecimal < 12 ? 90 : 270; // East before noon, west after
+        } else {
+          // Daytime - sun is above horizon
+          const dayProgress = (timeDecimal - sunrise) / (sunset - sunrise);
+          
+          // Maximum sun altitude at solar noon
+          const maxAltitude = 90 - Math.abs(lat - declination);
+          
+          // Sine curve for altitude throughout the day
+          altitude = maxAltitude * Math.sin(dayProgress * Math.PI);
+          
+          // Azimuth from east (90°) to west (270°)
+          azimuth = 90 + (dayProgress * 180);
+        }
+        
+        console.log(`Final result - Sun altitude: ${altitude.toFixed(1)}°, azimuth: ${azimuth.toFixed(1)}°`);
+        
+        return { altitude, azimuth };
+      }
+      
+      // Helper to get day of year
+      getDayOfYear(year, month, day) {
+        const date = new Date(year, month - 1, day);
+        const start = new Date(year, 0, 1);
+        return Math.floor((date - start) / (24 * 60 * 60 * 1000)) + 1;
       }
 
       toRad(deg) {
@@ -176,19 +199,23 @@
       }
 
       // Enhanced time period classification with more granular periods
-      getTimePeriod(altitude, azimuth, season) {
+      getTimePeriod(altitude, azimuth, season, hour) {
         if (altitude < -18) return 'astronomicalNight';
         if (altitude < -12) return 'astronomicalTwilight';
         if (altitude < -6) return 'nauticalTwilight';
         if (altitude < -0.833) return 'civilTwilight'; // Actual sunrise/sunset
         if (altitude < 6) {
-          // Determine if sunrise or sunset based on time and azimuth
-          return azimuth < 180 ? 'sunrise' : 'sunset';
+          // Use hour to determine sunrise vs sunset instead of relying on azimuth
+          // Morning: 4 AM - 11 AM, Evening: 5 PM - 10 PM
+          return (hour >= 4 && hour < 12) ? 'sunrise' : 'sunset';
         }
         if (altitude < 15) {
-          return azimuth < 180 ? 'morningGoldenHour' : 'eveningGoldenHour';
+          // Golden hour: use time of day instead of azimuth
+          return (hour >= 5 && hour < 12) ? 'morningGoldenHour' : 'eveningGoldenHour';
         }
-        if (altitude < 25) return 'morning';
+        if (altitude < 25) {
+          return (hour >= 6 && hour < 15) ? 'morning' : 'evening';
+        }
         if (altitude < 45) return 'midMorning';
         if (altitude < 60) return 'midday';
         return 'highNoon';
@@ -302,7 +329,7 @@
         const weatherEffects = this.getWeatherEffects(track.weather || {});
         
         // Determine time period
-        const period = this.getTimePeriod(sunPos.altitude, sunPos.azimuth, season);
+        const period = this.getTimePeriod(sunPos.altitude, sunPos.azimuth, season, this.convertToPacificTime(track.timestamp).hour);
         
         // Calculate enhanced colors and atmospheric effects
         const colors = this.calculateEnhancedColors(sunPos, period, season, terrainInfo, weatherEffects);
