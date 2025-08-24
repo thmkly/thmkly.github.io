@@ -201,26 +201,33 @@
         return rad * 180 / Math.PI;
       }
 
-      // Enhanced time period classification with more granular periods
+      // Enhanced time period classification with realistic sun angle thresholds
       getTimePeriod(altitude, azimuth, season, hour) {
         if (altitude < -18) return 'astronomicalNight';
         if (altitude < -12) return 'astronomicalTwilight';
         if (altitude < -6) return 'nauticalTwilight';
-        if (altitude < -0.833) return 'civilTwilight'; // Actual sunrise/sunset
-        if (altitude < 6) {
-          // Use hour to determine sunrise vs sunset instead of relying on azimuth
-          // Morning: 4 AM - 11 AM, Evening: 5 PM - 10 PM
+        if (altitude < -0.833) return 'civilTwilight';
+        if (altitude < 3) {
+          // Very low sun - sunrise/sunset
           return (hour >= 4 && hour < 12) ? 'sunrise' : 'sunset';
         }
-        if (altitude < 15) {
-          // Golden hour: use time of day instead of azimuth
+        if (altitude < 8) {
+          // Golden hour - sun is low but visible
           return (hour >= 5 && hour < 12) ? 'morningGoldenHour' : 'eveningGoldenHour';
         }
-        if (altitude < 25) {
+        if (altitude < 15) {
+          // Early morning or late afternoon
           return (hour >= 6 && hour < 15) ? 'morning' : 'evening';
         }
-        if (altitude < 45) return 'midMorning';
-        if (altitude < 60) return 'midday';
+        if (altitude < 25) {
+          // Mid-morning or mid-afternoon  
+          return (hour >= 7 && hour < 17) ? 'midMorning' : 'midAfternoon';
+        }
+        if (altitude < 35) {
+          // Late morning or early afternoon - approaching or past solar noon
+          return (hour >= 10 && hour < 14) ? 'midday' : (hour < 12 ? 'lateMorning' : 'earlyAfternoon');
+        }
+        // High sun - solar noon period (altitude 35°+ is quite high, especially in winter)
         return 'highNoon';
       }
 
@@ -406,35 +413,17 @@
             ambient: '#ffb88c',
             horizon: '#ffd4b8'
           },
+          sunset: {
+            sky: '#ff4500',
+            fog: 'rgba(255, 69, 0, 0.4)',
+            ambient: '#ff8c66',
+            horizon: '#ffccb8'
+          },
           morningGoldenHour: {
             sky: '#ffd700',
             fog: 'rgba(255, 215, 0, 0.3)',
             ambient: '#ffe14d',
             horizon: '#fff0c8'
-          },
-          morning: {
-            sky: '#87ceeb',
-            fog: 'rgba(135, 206, 235, 0.25)',
-            ambient: '#b8e6ff',
-            horizon: '#d8f0ff'
-          },
-          midMorning: {
-            sky: '#4da6ff',
-            fog: 'rgba(77, 166, 255, 0.2)',
-            ambient: '#99ccff',
-            horizon: '#c8e6ff'
-          },
-          midday: {
-            sky: '#1e90ff',
-            fog: 'rgba(30, 144, 255, 0.15)',
-            ambient: '#6bb6ff',
-            horizon: '#a8d8ff'
-          },
-          highNoon: {
-            sky: '#0080ff',
-            fog: 'rgba(0, 128, 255, 0.1)',
-            ambient: '#4da6ff',
-            horizon: '#87ceeb'
           },
           eveningGoldenHour: {
             sky: '#ff7f00',
@@ -442,11 +431,53 @@
             ambient: '#ffb366',
             horizon: '#ffe0cc'
           },
-          sunset: {
-            sky: '#ff4500',
-            fog: 'rgba(255, 69, 0, 0.4)',
-            ambient: '#ff8c66',
-            horizon: '#ffccb8'
+          morning: {
+            sky: '#87ceeb',
+            fog: 'rgba(135, 206, 235, 0.25)',
+            ambient: '#b8e6ff',
+            horizon: '#d8f0ff'
+          },
+          evening: {
+            sky: '#ff6347',
+            fog: 'rgba(255, 99, 71, 0.3)',
+            ambient: '#ff9580',
+            horizon: '#ffcab8'
+          },
+          midMorning: {
+            sky: '#4da6ff',
+            fog: 'rgba(77, 166, 255, 0.2)',
+            ambient: '#99ccff',
+            horizon: '#c8e6ff'
+          },
+          midAfternoon: {
+            sky: '#ff8c69',
+            fog: 'rgba(255, 140, 105, 0.25)',
+            ambient: '#ffb399',
+            horizon: '#ffd9cc'
+          },
+          lateMorning: {
+            sky: '#1e90ff',
+            fog: 'rgba(30, 144, 255, 0.15)',
+            ambient: '#6bb6ff',
+            horizon: '#a8d8ff'
+          },
+          earlyAfternoon: {
+            sky: '#ffa500',
+            fog: 'rgba(255, 165, 0, 0.2)',
+            ambient: '#ffcc66',
+            horizon: '#ffe6b3'
+          },
+          midday: {
+            sky: '#0080ff',
+            fog: 'rgba(0, 128, 255, 0.1)',
+            ambient: '#4da6ff',
+            horizon: '#87ceeb'
+          },
+          highNoon: {
+            sky: '#0066cc',
+            fog: 'rgba(0, 102, 204, 0.08)',
+            ambient: '#3399ff',
+            horizon: '#66b3ff'
           }
         };
         
