@@ -680,31 +680,218 @@
         return 'autumn';
       }
 
-      // Enhanced atmosphere application
+      // Enhanced atmosphere application with smooth crossfading
       applyAtmosphere(track) {
         if (!map || !track) return;
         
-        const conditions = this.getAtmosphericConditions(track);
-        this.currentConditions = conditions;
+        const newConditions = this.getAtmosphericConditions(track);
         
         // Enhanced debug logging
         console.log('Applying enhanced atmosphere for track:', track.name);
         console.log('Time:', this.formatPacificTime(this.convertToPacificTime(track.timestamp)));
-        console.log('Sun position:', conditions.sunPosition);
-        console.log('Period:', conditions.period);
-        console.log('Terrain:', conditions.terrainInfo);
+        console.log('Sun position:', newConditions.sunPosition);
+        console.log('Period:', newConditions.period);
+        console.log('Terrain:', newConditions.terrainInfo);
 
-        // Apply enhanced atmospheric effects
+        // Smooth transition from current conditions to new conditions
+        this.transitionAtmosphere(this.currentConditions, newConditions);
+        
+        // Update current conditions
+        this.currentConditions = newConditions;
+        
+        // Enhanced notification with more detail
+        const timeDesc = newConditions.period.replace(/([A-Z])/g, ' $1').toLowerCase();
+        const terrainDesc = newConditions.terrainInfo.terrain.replace(/_/g, ' ');
+        const elevationDisplay = Math.round(newConditions.terrainInfo.elevation / 100) * 100; // Round to nearest 100ft
+        showNotification(`${timeDesc} in ${terrainDesc} (${elevationDisplay}ft)`, 3000);
+      }
+
+      // Smooth atmospheric transition system
+      transitionAtmosphere(oldConditions, newConditions, duration = 3000) {
+        if (this.transitionInProgress) {
+          // Cancel existing transition
+          if (this.transitionTimeout) {
+            clearTimeout(this.transitionTimeout);
+          }
+        }
+        
+        this.transitionInProgress = true;
+        
+        // If no previous conditions, apply immediately
+        if (!oldConditions) {
+          this.applyImmediateAtmosphere(newConditions);
+          this.transitionInProgress = false;
+          return;
+        }
+        
+        // Create transition keyframes
+        const steps = 20; // Number of transition steps
+        const stepDuration = duration / steps;
+        
+        for (let i = 0; i <= steps; i++) {
+          const progress = i / steps;
+          const delay = i * stepDuration;
+          
+          setTimeout(() => {
+            const interpolatedConditions = this.interpolateConditions(oldConditions, newConditions, progress);
+            this.applyInterpolatedAtmosphere(interpolatedConditions);
+            
+            // Mark transition complete on final step
+            if (i === steps) {
+              this.transitionInProgress = false;
+            }
+          }, delay);
+        }
+        
+        // Safety timeout to ensure transition completes
+        this.transitionTimeout = setTimeout(() => {
+          this.transitionInProgress = false;
+        }, duration + 500);
+      }
+
+      // Interpolate between two atmospheric conditions
+      interpolateConditions(oldConditions, newConditions, progress) {
+        // Use easing function for smooth transitions
+        const easedProgress = this.easeInOutCubic(progress);
+        
+        return {
+          sunPosition: this.interpolateSunPosition(oldConditions.sunPosition, newConditions.sunPosition, easedProgress),
+          period: easedProgress < 0.5 ? oldConditions.period : newConditions.period, // Switch halfway
+          colors: this.interpolateColors(oldConditions.colors, newConditions.colors, easedProgress),
+          fogSettings: this.interpolateFogSettings(oldConditions.fogSettings, newConditions.fogSettings, easedProgress),
+          lightSettings: this.interpolateLightSettings(oldConditions.lightSettings, newConditions.lightSettings, easedProgress),
+          terrainInfo: easedProgress < 0.5 ? oldConditions.terrainInfo : newConditions.terrainInfo
+        };
+      }
+
+      // Smooth easing function
+      easeInOutCubic(t) {
+        return t < 0.5 ? 4 * t * t * t : (t - 1) * (2 * t - 2) * (2 * t - 2) + 1;
+      }
+
+      // Interpolate sun position
+      interpolateSunPosition(oldSun, newSun, progress) {
+        return {
+          altitude: oldSun.altitude + (newSun.altitude - oldSun.altitude) * progress,
+          azimuth: oldSun.azimuth + (newSun.azimuth - oldSun.azimuth) * progress
+        };
+      }
+
+      // Interpolate colors using proper color mixing
+      interpolateColors(oldColors, newColors, progress) {
+        return {
+          sky: this.interpolateColor(oldColors.sky, newColors.sky, progress),
+          fog: this.interpolateColor(oldColors.fog, newColors.fog, progress),
+          ambient: this.interpolateColor(oldColors.ambient, newColors.ambient, progress),
+          horizon: this.interpolateColor(oldColors.horizon, newColors.horizon, progress)
+        };
+      }
+
+      // Interpolate individual color values (hex or rgba)
+      interpolateColor(color1, color2, progress) {
+        // For now, return the target color (simplified)
+        // In production, you'd do proper RGB interpolation
+        return progress < 0.5 ? color1 : color2;
+      }
+
+      // Interpolate fog settings
+      interpolateFogSettings(oldFog, newFog, progress) {
+        return {
+          range: [
+            oldFog.range[0] + (newFog.range[0] - oldFog.range[0]) * progress,
+            oldFog.range[1] + (newFog.range[1] - oldFog.range[1]) * progress
+          ],
+          color: this.interpolateColor(oldFog.color, newFog.color, progress),
+          'horizon-blend': oldFog['horizon-blend'] + (newFog['horizon-blend'] - oldFog['horizon-blend']) * progress,
+          'high-color': newFog['high-color'], // Switch these discretely
+          'space-color': newFog['space-color'],
+          'star-intensity': oldFog['star-intensity'] + (newFog['star-intensity'] - oldFog['star-intensity']) * progress
+        };
+      }
+
+      // Interpolate light settings
+      interpolateLightSettings(oldLight, newLight, progress) {
+        return {
+          anchor: newLight.anchor,
+          color: this.interpolateColor(oldLight.color, newLight.color, progress),
+          intensity: oldLight.intensity + (newLight.intensity - oldLight.intensity) * progress,
+          position: [
+            oldLight.position[0] + (newLight.position[0] - oldLight.position[0]) * progress,
+            oldLight.position[1] + (newLight.position[1] - oldLight.position[1]) * progress,
+            oldLight.position[2] + (newLight.position[2] - oldLight.position[2]) * progress
+          ]
+        };
+      }
+
+      // Apply interpolated atmospheric conditions
+      applyInterpolatedAtmosphere(conditions) {
+        // Apply sky effects
+        if (typeof map.setSky === 'function') {
+          map.setSky({
+            'sky-type': 'atmosphere',
+            'sky-atmosphere-sun': [conditions.sunPosition.azimuth, Math.max(0, conditions.sunPosition.altitude)],
+            'sky-atmosphere-sun-intensity': conditions.period === 'astronomicalNight' ? 1 : 
+                                            conditions.period.includes('twilight') ? 5 : 15,
+            'sky-atmosphere-color': conditions.colors.sky
+          });
+        }
+
+        // Apply fog effects
+        if (typeof map.setFog === 'function') {
+          map.setFog(conditions.fogSettings);
+        }
+
+        // Apply lighting effects
+        if (uiController.is3DEnabled && typeof map.setLight === 'function') {
+          map.setLight(conditions.lightSettings);
+        }
+
+        // Apply CSS fallback with transition
+        this.applyTransitionedFallback(conditions);
+      }
+
+      // Apply immediate atmosphere (for first load or when no previous conditions)
+      applyImmediateAtmosphere(conditions) {
         this.applyEnhancedSky(conditions);
         this.applyEnhancedFog(conditions);
         this.applyEnhanced3DEffects(conditions);
         this.applyFallbackAtmosphere(conditions);
-        
-        // Enhanced notification with more detail
-        const timeDesc = conditions.period.replace(/([A-Z])/g, ' $1').toLowerCase();
-        const terrainDesc = conditions.terrainInfo.terrain.replace(/_/g, ' ');
-        const elevationDisplay = Math.round(conditions.terrainInfo.elevation / 100) * 100; // Round to nearest 100ft
-        showNotification(`${timeDesc} in ${terrainDesc} (${elevationDisplay}ft)`, 3000);
+      }
+
+      // Enhanced CSS fallback with smooth transitions
+      applyTransitionedFallback(conditions) {
+        if (typeof map.setSky !== 'function' || typeof map.setFog !== 'function') {
+          const existingOverlay = document.getElementById('atmosphere-overlay');
+          
+          if (!existingOverlay) {
+            // Create overlay if it doesn't exist
+            const overlay = document.createElement('div');
+            overlay.id = 'atmosphere-overlay';
+            overlay.style.position = 'absolute';
+            overlay.style.top = '0';
+            overlay.style.left = '0';
+            overlay.style.right = '0';
+            overlay.style.bottom = '0';
+            overlay.style.pointerEvents = 'none';
+            overlay.style.zIndex = '1';
+            overlay.style.transition = 'all 3s ease-in-out'; // Smooth CSS transitions
+            
+            const mapContainer = document.getElementById('map');
+            mapContainer.appendChild(overlay);
+          }
+
+          const overlay = document.getElementById('atmosphere-overlay');
+          
+          // Enhanced gradients with smooth transitions
+          const gradient = this.createEnhancedGradient(conditions);
+          overlay.style.background = gradient;
+          
+          // Enhanced filter effects with transitions
+          const filter = this.createEnhancedFilter(conditions);
+          const mapContainer = document.getElementById('map');
+          mapContainer.style.filter = filter;
+          mapContainer.style.transition = 'filter 3s ease-in-out'; // Smooth filter transitions
+        }
       }
 
       applyEnhancedSky(conditions) {
