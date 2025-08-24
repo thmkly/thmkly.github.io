@@ -1,7 +1,7 @@
     // Configuration
     const CONFIG = {
       MAPBOX_TOKEN: window.MAPBOX_CONFIG?.token || 'pk.eyJ1IjoidGhta2x5IiwiYSI6ImNseXVyMjhueDA3YTQybW9mcHJrZGJ3YnEifQ.Nv-LsNg5eKIE6SeOVVJpYg',
-      GOOGLE_SCRIPT_URL: 'https://script.google.com/macros/s/AKfycbygcwJ8ms4Zpq1BeGM_jQTEuajvoYw-A5-nkoTMZ5FBPfOP2DyORWfDuET2TEhXarfd/exec',
+      GOOGLE_SCRIPT_URL: 'https://script.google.com/macros/s/AKfycbwEvzIyQTFTwmPqU0xIoty1iuBd3xxBeLFYHljXrXCYSkxJEsWKPKYJKti9rBqGx6-0/exec',
       DEFAULT_CENTER: [-122.50276, 41.31727],
       getDefaultZoom: () => {
         const screenWidth = window.screen.width;
