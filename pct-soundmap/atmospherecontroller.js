@@ -4,6 +4,13 @@
         this.currentConditions = null;
         this.transitionInProgress = false;
       }
+      
+      // Helper to get day of year
+      getDayOfYear(year, month, day) {
+        const date = new Date(year, month - 1, day);
+        const start = new Date(year, 0, 1);
+        return Math.floor((date - start) / (24 * 60 * 60 * 1000)) + 1;
+      }
 
       // Proper solar position algorithm using SPA (Solar Position Algorithm)
       calculateSunPosition(date, lat, lng) {
@@ -171,14 +178,17 @@
           // Daytime - sun is above horizon
           const dayProgress = (timeDecimal - sunrise) / (sunset - sunrise);
           
-          // Maximum sun altitude at solar noon
-          const maxAltitude = 90 - Math.abs(lat - declination);
+          // Maximum sun altitude at solar noon (realistic for latitude and season)
+          const maxAltitude = this.getMaxSolarAltitude(month, lat);
           
-          // Sine curve for altitude throughout the day
+          // Proper sine curve: altitude = maxAltitude * sin(π * dayProgress)
+          // This peaks at dayProgress = 0.5 (solar noon) and is 0 at sunrise/sunset
           altitude = maxAltitude * Math.sin(dayProgress * Math.PI);
           
           // Azimuth from east (90°) to west (270°)
           azimuth = 90 + (dayProgress * 180);
+          
+          console.log(`Day progress: ${(dayProgress * 100).toFixed(1)}%, Max altitude: ${maxAltitude.toFixed(1)}°`);
         }
         
         console.log(`Final result - Sun altitude: ${altitude.toFixed(1)}°, azimuth: ${azimuth.toFixed(1)}°`);
@@ -186,11 +196,17 @@
         return { altitude, azimuth };
       }
       
-      // Helper to get day of year
-      getDayOfYear(year, month, day) {
-        const date = new Date(year, month - 1, day);
-        const start = new Date(year, 0, 1);
-        return Math.floor((date - start) / (24 * 60 * 60 * 1000)) + 1;
+      // Get realistic maximum solar altitude for location and season
+      getMaxSolarAltitude(month, lat) {
+        // Solar declination varies from +23.45° (summer solstice) to -23.45° (winter solstice)
+        const dayOfYear = month * 30; // Rough approximation
+        const declination = 23.45 * Math.sin((360 * (284 + dayOfYear) / 365) * Math.PI / 180);
+        
+        // Maximum altitude when sun crosses meridian: 90° - |latitude - declination|
+        const maxAltitude = 90 - Math.abs(lat - declination);
+        
+        // Realistic bounds for PCT latitudes (32-49°N)
+        return Math.min(85, Math.max(20, maxAltitude));
       }
 
       toRad(deg) {
