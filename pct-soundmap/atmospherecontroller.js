@@ -25,7 +25,30 @@
       convertToPacificTime(date) {
         let d = new Date(date);
         
-        // If it's a UTC string, parse it properly
+        // Check if timestamp appears to be already in Pacific Time
+        // If the original string doesn't end in 'Z' and doesn't have timezone info,
+        // it's likely already in local/Pacific time
+        const isAlreadyPacific = typeof date === 'string' && 
+          !date.endsWith('Z') && 
+          !date.includes('+') && 
+          !date.includes('GMT') &&
+          !date.includes('UTC');
+        
+        if (isAlreadyPacific) {
+          // Timestamp is already in Pacific Time, use directly
+          console.log('Timestamp appears to be already in Pacific Time:', date);
+          return {
+            year: d.getFullYear(),
+            month: d.getMonth() + 1,
+            day: d.getDate(),
+            hour: d.getHours(),
+            minute: d.getMinutes(),
+            second: d.getSeconds(),
+            originalDate: d
+          };
+        }
+        
+        // If it's a UTC timestamp (ends with Z), convert to Pacific
         if (typeof date === 'string' && date.endsWith('Z')) {
           d = new Date(date);
         }
