@@ -230,8 +230,25 @@
             this.updateLoadingProgress('Parsing recordings...', 50);
             console.log('Raw response:', text);
             try {
-              const data = JSON.parse(text);
-              console.log('Parsed data:', data);
+              const response = JSON.parse(text);
+              console.log('Parsed response:', response);
+              
+              // Handle new response format with data/metadata structure
+              let data;
+              if (response.data && Array.isArray(response.data)) {
+                // New format: {data: [...], metadata: {...}}
+                data = response.data;
+                console.log('Using new response format with metadata');
+                console.log('Metadata:', response.metadata);
+              } else if (Array.isArray(response)) {
+                // Old format: [...]
+                data = response;
+                console.log('Using legacy response format');
+              } else {
+                throw new Error('Invalid response format');
+              }
+              
+              console.log('Final data array:', data);
               console.log('Data length:', data.length);
               
               if (data.error) {
@@ -244,9 +261,10 @@
               
               this.updateLoadingProgress('Calculating atmospheric conditions...', 75);
               
-              // Log first item to check structure
+              // Log first item to check structure (including elevation)
               if (data.length > 0) {
                 console.log('First item structure:', data[0]);
+                console.log('First item elevation:', data[0].elevation);
                 console.log('First item audioUrl:', data[0].audioUrl);
               }
               
