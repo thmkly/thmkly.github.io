@@ -345,7 +345,7 @@ class AtmosphereController {
     };
   }
 
-  // Enhanced atmospheric application with smooth crossfading
+  // Enhanced atmospheric application with proper state clearing
   applyAtmosphere(track) {
     if (!map || !track) return;
     
@@ -356,6 +356,15 @@ class AtmosphereController {
     console.log('Sun position:', newConditions.sunPosition);
     console.log('Period:', newConditions.period);
 
+    // Cancel any existing transition
+    if (this.transitionInProgress && this.transitionTimeout) {
+      clearTimeout(this.transitionTimeout);
+      this.transitionInProgress = false;
+    }
+
+    // Clear any existing CSS overlays that might be stuck
+    this.clearAtmosphericOverlays();
+
     // If no previous conditions, apply immediately
     if (!this.currentConditions) {
       this.applyImmediateAtmosphere(newConditions);
@@ -365,12 +374,63 @@ class AtmosphereController {
       return;
     }
 
-    // Smooth transition between atmospheric conditions
+    // Apply new atmosphere with smooth transition
     this.transitionAtmosphereSmooth(this.currentConditions, newConditions);
     this.currentConditions = newConditions;
     
     const timeDesc = newConditions.period.replace(/([A-Z])/g, ' $1').toLowerCase();
     showNotification(`Atmosphere: ${timeDesc}`, 2500);
+  }
+
+  // Clear any stuck atmospheric overlays
+  clearAtmosphericOverlays() {
+    const existingOverlay = document.getElementById('atmosphere-overlay');
+    if (existingOverlay) {
+      existingOverlay.remove();
+    }
+    
+    // Reset map container filter
+    const mapContainer = document.getElementById('map');
+    if (mapContainer) {
+      mapContainer.style.filter = 'none';
+    }
+  }
+
+  // Smooth atmospheric transition with guaranteed completion
+  transitionAtmosphereSmooth(oldConditions, newConditions, duration = 2500) {
+    this.transitionInProgress = true;
+    
+    const steps = 12; // Fewer steps for more reliable transitions
+    const stepDuration = duration / steps;
+    
+    for (let i = 0; i <= steps; i++) {
+      setTimeout(() => {
+        const progress = i / steps;
+        const easedProgress = this.easeInOutQuad(progress);
+        
+        // Interpolate between states
+        const interpolatedConditions = this.interpolateConditions(oldConditions, newConditions, easedProgress);
+        
+        // Apply interpolated state
+        this.applyInterpolatedState(interpolatedConditions);
+        
+        // On final step, ensure we apply the exact target state
+        if (i === steps) {
+          // Force apply final state to ensure completion
+          setTimeout(() => {
+            this.applyImmediateAtmosphere(newConditions);
+            this.transitionInProgress = false;
+          }, 100);
+        }
+      }, i * stepDuration);
+    }
+    
+    // Backup safety timeout
+    this.transitionTimeout = setTimeout(() => {
+      console.log('Transition safety timeout - forcing final state');
+      this.applyImmediateAtmosphere(newConditions);
+      this.transitionInProgress = false;
+    }, duration + 1000);
   }
 
   // Apply immediate atmosphere (no transition)
