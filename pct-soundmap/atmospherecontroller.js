@@ -1,4 +1,41 @@
-// Enhanced Atmospheric Lighting System
+// Enhanced atmosphere application with simple smooth transitions
+      applyAtmosphere(track) {
+        if (!map || !track) return;
+        
+        const conditions = this.getAtmosphericConditions(track);
+        this.currentConditions = conditions;
+        
+        // Enhanced debug logging
+        console.log('Applying enhanced atmosphere for track:', track.name);
+        console.log('Time:', this.formatPacificTime(this.convertToPacificTime(track.timestamp)));
+        console.log('Sun position:', conditions.sunPosition);
+        console.log('Period:', conditions.period);
+        console.log('Terrain:', conditions.terrainInfo);
+
+        // Apply atmospheric effects with your original approach but add transitions
+        this.applyEnhancedSkyWithTransition(conditions);
+        this.applyEnhancedFogWithTransition(conditions);
+        this.applyEnhanced3DEffects(conditions);
+        this.applyOriginalFallbackWithTransition(conditions);
+        
+        // Enhanced notification with more detail
+        const timeDesc = conditions.period.replace(/([A-Z])/g, ' $1').toLowerCase();
+        const terrainDesc = conditions.terrainInfo.terrain.replace(/_/g, ' ');
+        const elevationDisplay = Math.round(conditions.terrainInfo.elevation / 100) * 100;
+        showNotification(`${timeDesc} in ${terrainDesc} (${elevationDisplay}ft)`, 3000);
+      }
+
+      applyEnhancedSkyWithTransition(conditions) {
+        if (typeof map.setSky === 'function') {
+          const sunIntensity = conditions.period === 'astronomicalNight' ? 1 : 
+                              conditions.period.includes('twilight') ? 5 : 15;
+          
+          // Set sky with transition - let Mapbox handle the smoothing
+          map.setSky({
+            'sky-type': 'atmosphere',
+            'sky-atmosphere-sun': [conditions.sunPosition.azimuth, Math.max(0, conditions.sunPosition.altitude)],
+            'sky-atmosphere-sun-intensity': sunIntensity,
+            'sky-atmosphere-color': conditions      // Subtle atmospheric effects that don't wash out the// Enhanced Atmospheric Lighting System
     class AtmosphereController {
       constructor() {
         this.currentConditions = null;
@@ -680,30 +717,154 @@
         return 'autumn';
       }
 
-      // Enhanced atmosphere application with smooth crossfading
+      // Minimal atmospheric effects - keep distant visibility
       applyAtmosphere(track) {
         if (!map || !track) return;
         
-        const newConditions = this.getAtmosphericConditions(track);
+        const conditions = this.getAtmosphericConditions(track);
+        this.currentConditions = conditions;
         
         // Enhanced debug logging
-        console.log('Applying enhanced atmosphere for track:', track.name);
+        console.log('Applying minimal atmosphere for track:', track.name);
         console.log('Time:', this.formatPacificTime(this.convertToPacificTime(track.timestamp)));
-        console.log('Sun position:', newConditions.sunPosition);
-        console.log('Period:', newConditions.period);
-        console.log('Terrain:', newConditions.terrainInfo);
+        console.log('Sun position:', conditions.sunPosition);
+        console.log('Period:', conditions.period);
+        console.log('Terrain:', conditions.terrainInfo);
 
-        // Smooth transition from current conditions to new conditions
-        this.transitionAtmosphere(this.currentConditions, newConditions);
+        // Apply very subtle atmospheric effects - preserve visibility
+        this.applySubtleSky(conditions);
+        this.applySubtleFog(conditions);
+        this.applySubtle3DEffects(conditions);
+        this.applySubtleFallback(conditions);
         
-        // Update current conditions
-        this.currentConditions = newConditions;
-        
-        // Enhanced notification with more detail
-        const timeDesc = newConditions.period.replace(/([A-Z])/g, ' $1').toLowerCase();
-        const terrainDesc = newConditions.terrainInfo.terrain.replace(/_/g, ' ');
-        const elevationDisplay = Math.round(newConditions.terrainInfo.elevation / 100) * 100; // Round to nearest 100ft
+        // Enhanced notification
+        const timeDesc = conditions.period.replace(/([A-Z])/g, ' $1').toLowerCase();
+        const terrainDesc = conditions.terrainInfo.terrain.replace(/_/g, ' ');
+        const elevationDisplay = Math.round(conditions.terrainInfo.elevation / 100) * 100;
         showNotification(`${timeDesc} in ${terrainDesc} (${elevationDisplay}ft)`, 3000);
+      }
+
+      applySubtleSky(conditions) {
+        if (typeof map.setSky === 'function') {
+          // Very subtle sky changes - don't overpower the map
+          map.setSky({
+            'sky-type': 'atmosphere',
+            'sky-atmosphere-sun': [conditions.sunPosition.azimuth, Math.max(0, conditions.sunPosition.altitude)],
+            'sky-atmosphere-sun-intensity': 15, // Keep consistent intensity
+            'sky-atmosphere-color': this.getSubtleSkyColor(conditions.period)
+          });
+        }
+      }
+
+      getSubtleSkyColor(period) {
+        // Much more subtle color changes - closer to your original
+        const subtleColors = {
+          astronomicalNight: '#1a2040',
+          astronomicalTwilight: '#2a3050',
+          nauticalTwilight: '#3a4060',
+          civilTwilight: '#4a5070',
+          sunrise: '#ff8855',
+          morningGoldenHour: '#ffaa66',
+          morning: '#87ceeb',
+          midMorning: '#7ac5ed',
+          lateMorning: '#6dbced', 
+          midday: '#60b3ed',
+          highNoon: '#53aaed',
+          earlyAfternoon: '#60b3ed',
+          midAfternoon: '#6dbced',
+          lateAfternoon: '#7ac5ed',
+          evening: '#87ceeb',
+          eveningGoldenHour: '#ff9944',
+          sunset: '#ff7733'
+        };
+        
+        return subtleColors[period] || '#87ceeb';
+      }
+
+      applySubtleFog(conditions) {
+        if (typeof map.setFog === 'function') {
+          // Minimal fog - preserve distant visibility  
+          const subtleFog = {
+            'range': [1.0, 20], // Much longer range to preserve visibility
+            'color': 'rgba(255, 255, 255, 0.3)', // Very transparent
+            'horizon-blend': 0.05, // Minimal horizon blending
+            'high-color': this.getSubtleSkyColor(conditions.period),
+            'space-color': conditions.period === 'astronomicalNight' ? '#000022' : '#000044',
+            'star-intensity': conditions.period === 'astronomicalNight' ? 0.6 : 0
+          };
+          
+          map.setFog(subtleFog);
+        }
+      }
+
+      applySubtle3DEffects(conditions) {
+        if (uiController.is3DEnabled && typeof map.setLight === 'function') {
+          // Subtle lighting that doesn't overpower
+          const subtleLight = {
+            anchor: 'viewport',
+            color: conditions.period.includes('golden') || conditions.period.includes('sunrise') || conditions.period.includes('sunset') ? 
+                   '#ffcc88' : '#ffffff',
+            intensity: 0.4, // Reduced intensity
+            position: [1.15, conditions.sunPosition.azimuth, Math.max(5, conditions.sunPosition.altitude)]
+          };
+          
+          map.setLight(subtleLight);
+        }
+      }
+
+      // Very minimal CSS fallback - barely noticeable
+      applySubtleFallback(conditions) {
+        if (typeof map.setSky !== 'function' || typeof map.setFog !== 'function') {
+          const existingOverlay = document.getElementById('atmosphere-overlay');
+          if (existingOverlay) {
+            existingOverlay.remove();
+          }
+
+          // Only apply overlay for extreme conditions
+          if (conditions.period === 'astronomicalNight' || conditions.period.includes('golden') || 
+              conditions.period.includes('sunrise') || conditions.period.includes('sunset')) {
+            
+            const overlay = document.createElement('div');
+            overlay.id = 'atmosphere-overlay';
+            overlay.style.position = 'absolute';
+            overlay.style.top = '0';
+            overlay.style.left = '0';
+            overlay.style.right = '0';
+            overlay.style.bottom = '0';
+            overlay.style.pointerEvents = 'none';
+            overlay.style.zIndex = '1';
+            overlay.style.transition = 'all 2s ease-in-out';
+            
+            // Very subtle overlays
+            const subtleGradients = {
+              astronomicalNight: 'radial-gradient(ellipse at center, rgba(10, 20, 40, 0.2), rgba(10, 20, 40, 0.4))',
+              sunrise: 'linear-gradient(to bottom, rgba(255, 127, 80, 0.15) 0%, transparent 60%)',
+              morningGoldenHour: 'linear-gradient(to bottom, rgba(255, 170, 100, 0.1) 0%, transparent 50%)',
+              eveningGoldenHour: 'linear-gradient(to bottom, rgba(255, 140, 80, 0.12) 0%, transparent 50%)',
+              sunset: 'linear-gradient(to bottom, rgba(255, 100, 60, 0.18) 0%, transparent 60%)'
+            };
+            
+            const gradient = subtleGradients[conditions.period];
+            if (gradient) {
+              overlay.style.background = gradient;
+              document.getElementById('map').appendChild(overlay);
+            }
+          }
+          
+          // Very subtle filter effects - barely noticeable
+          const mapContainer = document.getElementById('map');
+          const subtleFilters = {
+            astronomicalNight: 'brightness(0.85) contrast(1.05)',
+            sunrise: 'brightness(1.02) saturate(1.03) sepia(0.02)',
+            morningGoldenHour: 'brightness(1.03) saturate(1.05) sepia(0.01)',
+            eveningGoldenHour: 'brightness(1.02) saturate(1.05) sepia(0.02)',
+            sunset: 'brightness(1.0) saturate(1.08) sepia(0.03)'
+          };
+          
+          const filter = subtleFilters[conditions.period] || 'none';
+          mapContainer.style.filter = filter;
+          mapContainer.style.transition = 'filter 2s ease-in-out';
+        }
       }
 
       // Smooth atmospheric transition system
