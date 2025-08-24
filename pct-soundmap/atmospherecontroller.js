@@ -217,34 +217,50 @@
         return rad * 180 / Math.PI;
       }
 
-      // Enhanced time period classification with realistic sun angle thresholds
+      // Enhanced time period classification using both sun angle and time of day
       getTimePeriod(altitude, azimuth, season, hour) {
         if (altitude < -18) return 'astronomicalNight';
         if (altitude < -12) return 'astronomicalTwilight';
         if (altitude < -6) return 'nauticalTwilight';
         if (altitude < -0.833) return 'civilTwilight';
-        if (altitude < 3) {
-          // Very low sun - sunrise/sunset
-          return (hour >= 4 && hour < 12) ? 'sunrise' : 'sunset';
+        
+        // For daytime, use time of day as primary factor, altitude as secondary
+        if (altitude > 0) {
+          // Very early/late in day - sunrise/sunset regardless of altitude
+          if (hour <= 6 || hour >= 19) {
+            return altitude < 8 ? (hour <= 6 ? 'sunrise' : 'sunset') : 
+                   (hour <= 6 ? 'morningGoldenHour' : 'eveningGoldenHour');
+          }
+          
+          // Morning hours (6 AM - 11:30 AM)
+          if (hour >= 6 && hour < 11.5) {
+            if (altitude < 10) return 'morningGoldenHour';
+            if (hour < 9) return 'morning';
+            if (hour < 11) return 'midMorning';
+            return 'lateMorning'; // 11:00-11:30 AM
+          }
+          
+          // Solar noon period (11:30 AM - 12:30 PM)
+          if (hour >= 11.5 && hour <= 12.5) {
+            return altitude > 45 ? 'highNoon' : 'midday';
+          }
+          
+          // Afternoon hours (12:30 PM - 6 PM)  
+          if (hour > 12.5 && hour < 18) {
+            if (hour < 14) return 'earlyAfternoon';
+            if (hour < 16) return 'midAfternoon';
+            if (altitude > 10) return 'lateAfternoon';
+            return 'eveningGoldenHour';
+          }
+          
+          // Evening hours (6 PM+)
+          if (altitude > 8) return 'evening';
+          if (altitude > 3) return 'eveningGoldenHour';
+          return 'sunset';
         }
-        if (altitude < 8) {
-          // Golden hour - sun is low but visible
-          return (hour >= 5 && hour < 12) ? 'morningGoldenHour' : 'eveningGoldenHour';
-        }
-        if (altitude < 15) {
-          // Early morning or late afternoon
-          return (hour >= 6 && hour < 15) ? 'morning' : 'evening';
-        }
-        if (altitude < 25) {
-          // Mid-morning or mid-afternoon  
-          return (hour >= 7 && hour < 17) ? 'midMorning' : 'midAfternoon';
-        }
-        if (altitude < 35) {
-          // Late morning or early afternoon - approaching or past solar noon
-          return (hour >= 10 && hour < 14) ? 'midday' : (hour < 12 ? 'lateMorning' : 'earlyAfternoon');
-        }
-        // High sun - solar noon period (altitude 35°+ is quite high, especially in winter)
-        return 'highNoon';
+        
+        // Fallback for edge cases
+        return 'midday';
       }
 
       // Enhanced terrain classification based on lat/lng and elevation
@@ -476,6 +492,12 @@
             fog: 'rgba(30, 144, 255, 0.15)',
             ambient: '#6bb6ff',
             horizon: '#a8d8ff'
+          },
+          lateAfternoon: {
+            sky: '#ff8c69',
+            fog: 'rgba(255, 140, 105, 0.25)',
+            ambient: '#ffb399',
+            horizon: '#ffd9cc'
           },
           earlyAfternoon: {
             sky: '#ffa500',
