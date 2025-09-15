@@ -213,9 +213,8 @@
       }
 
       loadAudioData() {
-        // Hide the entire playlist wrapper during loading
+        // Playlist wrapper is already hidden via CSS
         const playlistWrapper = document.getElementById('playlistWrapper');
-        playlistWrapper.style.display = 'none';
         
         // Show persistent loading notification (centered, like success message)
         showNotification('loading recordings...'); // No duration = stays visible
@@ -280,7 +279,7 @@
               this.sortAndUpdatePlaylist();
               this.updateMapData();
               
-              // Show playlist wrapper again
+              // Show playlist wrapper again with flex display
               playlistWrapper.style.display = 'flex';
               
               // Hide loading notification and show success message
@@ -326,6 +325,9 @@
             ">Reload Page</button>
           </div>
         `;
+        // Also make sure playlist wrapper is visible in case of error
+        const playlistWrapper = document.getElementById('playlistWrapper');
+        playlistWrapper.style.display = 'flex';
       }
 
       sortAndUpdatePlaylist() {
