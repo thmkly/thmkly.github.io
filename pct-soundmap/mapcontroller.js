@@ -10,7 +10,7 @@
         this.setupMap();
       }
 
-      // Helper function to get display mile based on sort mode
+      // Helper function to get display mile based on sort mode (UNCHANGED - your working version)
       getDisplayMile(track) {
         // Don't display mile if it's a placeholder (starts with ~)
         if (track.mile && track.mile.toString().startsWith('~')) {
@@ -655,19 +655,10 @@
       setPlaylistScrollPosition() {
         const playlist = document.getElementById('playlist');
         
-        // Set scroll position based on mode, but only if no track is currently playing
+        // Always scroll to top since we're always playing top→down now
         if (audioController.currentIndex === -1) {
           setTimeout(() => {
-            if (audioController.sortMode === 'sobo') {
-              // SOBO: Scroll to top (starting at Canada/north)
-              playlist.scrollTop = 0;
-            } else if (audioController.sortMode === 'date') {
-              // STEREO: Scroll to top (starting with earliest recordings)
-              playlist.scrollTop = 0;
-            } else {
-              // NOBO: Scroll to bottom (starting at Mexico/south)
-              playlist.scrollTop = playlist.scrollHeight;
-            }
+            playlist.scrollTop = 0; // Always start at top
           }, 100);
         }
       }
