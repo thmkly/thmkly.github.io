@@ -498,12 +498,15 @@
         const currentlyPlayingTrack = audioController.currentIndex >= 0 ? 
           this.audioData[audioController.currentIndex] : null;
         
-        // Always re-sort based on current mode
+        // Always re-sort based on current mode to ensure correct ordering
         if (audioController.sortMode === 'date') {
           // STEREO: Chronological order (earliest to latest)
           this.audioData = this.sortByMileAndDate([...this.originalAudioData], 'date');
+        } else if (audioController.sortMode === 'sobo') {
+          // SOBO: Canada to Mexico order
+          this.audioData = this.sortByMileAndDate([...this.originalAudioData], 'sobo');
         } else {
-          // NOBO/SOBO: Geographic order (always same physical order)
+          // NOBO: Mexico to Canada order  
           this.audioData = this.sortByMileAndDate([...this.originalAudioData], 'nobo');
         }
         
