@@ -212,87 +212,95 @@
         return uiController.playlistExpanded ? 370 : 20;
       }
 
-      loadAudioData() {
-        // Show simple loading message
-        const playlist = document.getElementById('playlist');
-        playlist.innerHTML = '<div class="loading-placeholder">loading recordings...</div>';
-        
-        const url = `${CONFIG.GOOGLE_SCRIPT_URL}?nocache=${Date.now()}`;
-        console.log('Fetching data from:', url);
-        
-        fetch(url)
-          .then(response => {
-            console.log('Response status:', response.status);
-            console.log('Response headers:', response.headers);
-            return response.text();
-          })
-          .then(text => {
-            console.log('Raw response:', text);
-            try {
-              const response = JSON.parse(text);
-              console.log('Parsed response:', response);
-              
-              // Handle new response format with data/metadata structure
-              let data;
-              if (response.data && Array.isArray(response.data)) {
-                // New format: {data: [...], metadata: {...}}
-                data = response.data;
-                console.log('Using new response format with metadata');
-                console.log('Metadata:', response.metadata);
-              } else if (Array.isArray(response)) {
-                // Old format: [...]
-                data = response;
-                console.log('Using legacy response format');
-              } else {
-                throw new Error('Invalid response format');
+        loadAudioData() {
+                // Show loading notification (centered, like success message)
+                showNotification('loading recordings...', 0); // 0 duration = stay visible
+                
+                // Keep playlist empty until data loads
+                const playlist = document.getElementById('playlist');
+                playlist.innerHTML = '';
+                
+                const url = `${CONFIG.GOOGLE_SCRIPT_URL}?nocache=${Date.now()}`;
+                console.log('Fetching data from:', url);
+                
+                fetch(url)
+                  .then(response => {
+                    console.log('Response status:', response.status);
+                    console.log('Response headers:', response.headers);
+                    return response.text();
+                  })
+                  .then(text => {
+                    console.log('Raw response:', text);
+                    try {
+                      const response = JSON.parse(text);
+                      console.log('Parsed response:', response);
+                      
+                      // Handle new response format with data/metadata structure
+                      let data;
+                      if (response.data && Array.isArray(response.data)) {
+                        // New format: {data: [...], metadata: {...}}
+                        data = response.data;
+                        console.log('Using new response format with metadata');
+                        console.log('Metadata:', response.metadata);
+                      } else if (Array.isArray(response)) {
+                        // Old format: [...]
+                        data = response;
+                        console.log('Using legacy response format');
+                      } else {
+                        throw new Error('Invalid response format');
+                      }
+                      
+                      console.log('Final data array:', data);
+                      console.log('Data length:', data.length);
+                      
+                      if (data.error) {
+                        throw new Error(data.error);
+                      }
+                      
+                      if (data.length === 0) {
+                        throw new Error('No recordings found');
+                      }
+                      
+                      // Log first item to check structure (including elevation)
+                      if (data.length > 0) {
+                        console.log('First item structure:', data[0]);
+                        console.log('First item elevation:', data[0].elevation);
+                        console.log('First item audioUrl:', data[0].audioUrl);
+                      }
+                      
+                      // Add original index to each track for stable map references
+                      this.originalAudioData = data.map((track, index) => ({
+                        ...track,
+                        originalIndex: index
+                      }));
+                      
+                      // Set up data in NOBO order by default (Mexico at bottom, Canada at top)
+                      this.audioData = this.sortByMileAndDate([...this.originalAudioData], 'nobo');
+                      
+                      this.sortAndUpdatePlaylist();
+                      this.updateMapData();
+                      
+                      // Hide loading notification and show success message
+                      document.getElementById('notification').classList.remove('show');
+                      showNotification(`${data.length} recordings loaded`, 3000);
+                      
+                    } catch (parseError) {
+                      console.error('JSON Parse Error:', parseError);
+                      // Hide loading notification and show error
+                      document.getElementById('notification').classList.remove('show');
+                      this.showLoadingError(`Invalid JSON response: ${parseError.message}`);
+                      throw new Error(`Invalid JSON response: ${parseError.message}`);
+                    }
+                  })
+                  .catch(e => {
+                    console.error('Load Error:', e);
+                    const errorMsg = e.message || 'Unknown error occurred';
+                    // Hide loading notification and show error
+                    document.getElementById('notification').classList.remove('show');
+                    this.showLoadingError(`Failed to load recordings: ${errorMsg}`);
+                    showNotification(`Error: ${errorMsg}`, 5000);
+                  });
               }
-              
-              console.log('Final data array:', data);
-              console.log('Data length:', data.length);
-              
-              if (data.error) {
-                throw new Error(data.error);
-              }
-              
-              if (data.length === 0) {
-                throw new Error('No recordings found');
-              }
-              
-              // Log first item to check structure (including elevation)
-              if (data.length > 0) {
-                console.log('First item structure:', data[0]);
-                console.log('First item elevation:', data[0].elevation);
-                console.log('First item audioUrl:', data[0].audioUrl);
-              }
-              
-              // Add original index to each track for stable map references
-              this.originalAudioData = data.map((track, index) => ({
-                ...track,
-                originalIndex: index
-              }));
-              
-              // Set up data in NOBO order by default (Mexico at bottom, Canada at top)
-              this.audioData = this.sortByMileAndDate([...this.originalAudioData], 'nobo');
-              
-              this.sortAndUpdatePlaylist();
-              this.updateMapData();
-              
-              // Show simplified success message
-              showNotification(`${data.length} recordings loaded`, 3000);
-              
-            } catch (parseError) {
-              console.error('JSON Parse Error:', parseError);
-              this.showLoadingError(`Invalid JSON response: ${parseError.message}`);
-              throw new Error(`Invalid JSON response: ${parseError.message}`);
-            }
-          })
-          .catch(e => {
-            console.error('Load Error:', e);
-            const errorMsg = e.message || 'Unknown error occurred';
-            this.showLoadingError(`Failed to load recordings: ${errorMsg}`);
-            showNotification(`Error: ${errorMsg}`, 5000);
-          });
-      }
 
       showLoadingError(message) {
         const playlist = document.getElementById('playlist');
