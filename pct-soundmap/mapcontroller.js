@@ -549,44 +549,49 @@
         return true; // Appears to be chronological
       }
 
-      sortByMileAndDate(data, mode = 'nobo') {
-        if (mode === 'date') {
-          // STEREO mode: sort everything by timestamp (earliest to latest)
-          return [...data].sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
-        }
-        
-        // For NOBO/SOBO: purely spatial sorting by mile
-        const tracksWithMiles = data.filter(track => {
-          const mile = this.getMileForSorting(track);
-          return mile !== null && !isNaN(mile);
-        });
-        
-        const tracksWithoutMiles = data.filter(track => {
-          const mile = this.getMileForSorting(track);
-          return mile === null || isNaN(mile);
-        });
-
-        // Sort tracks with miles by mile number (ascending: 0 → 2655.8)
-        tracksWithMiles.sort((a, b) => {
-          const mileA = this.getMileForSorting(a);
-          const mileB = this.getMileForSorting(b);
-          if (Math.abs(mileA - mileB) < 0.01) { // Same mile (accounting for decimals)
-            // If same mile, sort by timestamp
-            return new Date(a.timestamp) - new Date(b.timestamp);
+        sortByMileAndDate(data, mode = 'nobo') {
+          if (mode === 'date') {
+            // STEREO mode: sort everything by timestamp (earliest to latest)
+            return [...data].sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
           }
-          return mileA - mileB; // Always ascending by mile
-        });
-
-        // For playlist display: reverse so Canada (high miles) appears at top
-        // This gives us: Canada at top (index 0), Mexico at bottom (last index)
-        tracksWithMiles.reverse();
-
-        // Sort tracks without miles by timestamp
-        tracksWithoutMiles.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
-
-        // Combine: mile-sorted tracks first, then timestamp-sorted tracks without miles
-        return [...tracksWithMiles, ...tracksWithoutMiles];
-      }
+          
+          // For NOBO/SOBO: purely spatial sorting by mile
+          const tracksWithMiles = data.filter(track => {
+            const mile = this.getMileForSorting(track);
+            return mile !== null && !isNaN(mile);
+          });
+          
+          const tracksWithoutMiles = data.filter(track => {
+            const mile = this.getMileForSorting(track);
+            return mile === null || isNaN(mile);
+          });
+        
+          // Sort tracks with miles by mile number (ascending: 0 → 2655.8)
+          tracksWithMiles.sort((a, b) => {
+            const mileA = this.getMileForSorting(a);
+            const mileB = this.getMileForSorting(b);
+            if (Math.abs(mileA - mileB) < 0.01) { // Same mile (accounting for decimals)
+              // If same mile, sort by timestamp
+              return new Date(a.timestamp) - new Date(b.timestamp);
+            }
+            return mileA - mileB; // Always ascending by mile
+          });
+        
+          // Apply different ordering for playlist display based on mode
+          if (mode === 'sobo') {
+            // SOBO: reverse so Canada (high miles) appears at top
+            // This gives us: Canada at top (index 0), Mexico at bottom (last index)
+            tracksWithMiles.reverse();
+          }
+          // NOBO: keep natural order so Mexico (low miles) appears at top
+          // This gives us: Mexico at top (index 0), Canada at bottom (last index)
+        
+          // Sort tracks without miles by timestamp
+          tracksWithoutMiles.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
+        
+          // Combine: mile-sorted tracks first, then timestamp-sorted tracks without miles
+          return [...tracksWithMiles, ...tracksWithoutMiles];
+        }
 
       updateMapData() {
         const source = map.getSource('audio');
