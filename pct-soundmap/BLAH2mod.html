@@ -494,14 +494,37 @@
   
   <script>
 
-    // Notification System
+    // Enhanced Notification System
+    let currentNotificationTimeout = null;
+
     function showNotification(message, duration = 3000) {
       const notification = document.getElementById('notification');
+      
+      // Clear any existing timeout
+      if (currentNotificationTimeout) {
+        clearTimeout(currentNotificationTimeout);
+        currentNotificationTimeout = null;
+      }
+      
       notification.textContent = message;
       notification.classList.add('show');
-      setTimeout(() => {
-        notification.classList.remove('show');
-      }, duration);
+      
+      // Only set timeout if duration is provided and > 0
+      if (duration > 0) {
+        currentNotificationTimeout = setTimeout(() => {
+          notification.classList.remove('show');
+          currentNotificationTimeout = null;
+        }, duration);
+      }
+    }
+
+    function hideNotification() {
+      const notification = document.getElementById('notification');
+      if (currentNotificationTimeout) {
+        clearTimeout(currentNotificationTimeout);
+        currentNotificationTimeout = null;
+      }
+      notification.classList.remove('show');
     }
 
     // Initialize map data update after first load
