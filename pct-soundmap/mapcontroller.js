@@ -213,21 +213,20 @@
       }
 
       loadAudioData() {
-        // Create enhanced loading screen
-        this.showEnhancedLoading();
+        // Show simple loading message
+        const playlist = document.getElementById('playlist');
+        playlist.innerHTML = '<div class="loading-placeholder">loading recordings...</div>';
         
         const url = `${CONFIG.GOOGLE_SCRIPT_URL}?nocache=${Date.now()}`;
         console.log('Fetching data from:', url);
         
         fetch(url)
           .then(response => {
-            this.updateLoadingProgress('Processing response...', 25);
             console.log('Response status:', response.status);
             console.log('Response headers:', response.headers);
             return response.text();
           })
           .then(text => {
-            this.updateLoadingProgress('Parsing recordings...', 50);
             console.log('Raw response:', text);
             try {
               const response = JSON.parse(text);
@@ -259,8 +258,6 @@
                 throw new Error('No recordings found');
               }
               
-              this.updateLoadingProgress('Calculating atmospheric conditions...', 75);
-              
               // Log first item to check structure (including elevation)
               if (data.length > 0) {
                 console.log('First item structure:', data[0]);
@@ -277,17 +274,11 @@
               // Set up data in NOBO order by default (Mexico at bottom, Canada at top)
               this.audioData = this.sortByMileAndDate([...this.originalAudioData], 'nobo');
               
-              setTimeout(() => {
-                this.updateLoadingProgress('Finalizing experience...', 90);
-                this.sortAndUpdatePlaylist();
-                this.updateMapData();
-                
-                setTimeout(() => {
-                  this.updateLoadingProgress('Ready!', 100);
-                  this.hideEnhancedLoading();
-                  showNotification(`Loaded ${data.length} recordings with enhanced atmosphere`, 3000);
-                }, 500);
-              }, 300);
+              this.sortAndUpdatePlaylist();
+              this.updateMapData();
+              
+              // Show simplified success message
+              showNotification(`${data.length} recordings loaded`, 3000);
               
             } catch (parseError) {
               console.error('JSON Parse Error:', parseError);
@@ -303,192 +294,19 @@
           });
       }
 
-      // Enhanced loading screen methods
-      showEnhancedLoading() {
-        const playlist = document.getElementById('playlist');
-        
-        playlist.innerHTML = `
-          <div class="enhanced-loading" id="enhancedLoading">
-            <div class="loading-header">
-              <h3>🎵 PCT Sound Map 🏔️</h3>
-              <p>Preparing your atmospheric journey...</p>
-            </div>
-            
-            <div class="loading-progress">
-              <div class="progress-bar">
-                <div class="progress-fill" id="progressFill"></div>
-              </div>
-              <div class="progress-text" id="progressText">Loading recordings...</div>
-            </div>
-            
-            <div class="loading-features">
-              <div class="feature-item">
-                <span class="feature-icon">🌅</span>
-                <span class="feature-text">Dynamic atmospheric lighting</span>
-              </div>
-              <div class="feature-item">
-                <span class="feature-icon">🏔️</span>
-                <span class="feature-text">Terrain-aware environments</span>
-              </div>
-              <div class="feature-item">
-                <span class="feature-icon">🌤️</span>
-                <span class="feature-text">Real-time seasonal effects</span>
-              </div>
-              <div class="feature-item">
-                <span class="feature-icon">🧭</span>
-                <span class="feature-text">Precise solar positioning</span>
-              </div>
-            </div>
-            
-            <div class="loading-tips">
-              <p><strong>Tip:</strong> Use spacebar to play/pause • Hold Ctrl+drag in 3D mode to rotate</p>
-            </div>
-          </div>
-        `;
-        
-        // Add CSS for enhanced loading (inject into head)
-        if (!document.getElementById('enhanced-loading-styles')) {
-          const styles = document.createElement('style');
-          styles.id = 'enhanced-loading-styles';
-          styles.textContent = `
-            .enhanced-loading {
-              padding: 20px;
-              text-align: center;
-              background: linear-gradient(135deg, rgba(92, 58, 46, 0.1), rgba(135, 206, 235, 0.1));
-              border-radius: 8px;
-              margin: 10px;
-            }
-            
-            .loading-header h3 {
-              margin: 0 0 8px 0;
-              color: #5c3a2e;
-              font-size: 18px;
-            }
-            
-            .loading-header p {
-              margin: 0 0 20px 0;
-              color: #666;
-              font-size: 14px;
-            }
-            
-            .loading-progress {
-              margin: 20px 0;
-            }
-            
-            .progress-bar {
-              width: 100%;
-              height: 8px;
-              background: rgba(0, 0, 0, 0.1);
-              border-radius: 4px;
-              overflow: hidden;
-              margin-bottom: 8px;
-            }
-            
-            .progress-fill {
-              height: 100%;
-              background: linear-gradient(90deg, #5c3a2e, #87ceeb);
-              border-radius: 4px;
-              width: 0%;
-              transition: width 0.5s ease;
-            }
-            
-            .progress-text {
-              font-size: 12px;
-              color: #666;
-              font-weight: 500;
-            }
-            
-            .loading-features {
-              margin: 20px 0;
-              display: flex;
-              flex-direction: column;
-              gap: 8px;
-            }
-            
-            .feature-item {
-              display: flex;
-              align-items: center;
-              justify-content: flex-start;
-              gap: 8px;
-              padding: 4px 8px;
-              border-radius: 4px;
-              background: rgba(255, 255, 255, 0.3);
-            }
-            
-            .feature-icon {
-              font-size: 14px;
-              min-width: 20px;
-            }
-            
-            .feature-text {
-              font-size: 12px;
-              color: #555;
-            }
-            
-            .loading-tips {
-              margin-top: 20px;
-              padding-top: 15px;
-              border-top: 1px solid rgba(0, 0, 0, 0.1);
-            }
-            
-            .loading-tips p {
-              margin: 0;
-              font-size: 11px;
-              color: #777;
-              line-height: 1.4;
-            }
-            
-            @keyframes pulse {
-              0%, 100% { opacity: 1; }
-              50% { opacity: 0.7; }
-            }
-            
-            .enhanced-loading {
-              animation: pulse 2s ease-in-out infinite;
-            }
-          `;
-          document.head.appendChild(styles);
-        }
-      }
-
-      updateLoadingProgress(text, percentage) {
-        const progressFill = document.getElementById('progressFill');
-        const progressText = document.getElementById('progressText');
-        
-        if (progressFill && progressText) {
-          progressFill.style.width = percentage + '%';
-          progressText.textContent = text;
-        }
-      }
-
-      hideEnhancedLoading() {
-        const enhancedLoading = document.getElementById('enhancedLoading');
-        if (enhancedLoading) {
-          enhancedLoading.style.transition = 'opacity 0.5s ease';
-          enhancedLoading.style.opacity = '0';
-          setTimeout(() => {
-            // Will be replaced by actual playlist content
-          }, 500);
-        }
-      }
-
       showLoadingError(message) {
         const playlist = document.getElementById('playlist');
         playlist.innerHTML = `
-          <div class="enhanced-loading">
-            <div class="loading-header">
-              <h3>⚠️ Loading Error</h3>
-              <p style="color: #cc0000;">${message}</p>
-              <button onclick="location.reload()" style="
-                padding: 8px 16px;
-                background: #5c3a2e;
-                color: white;
-                border: none;
-                border-radius: 4px;
-                cursor: pointer;
-                margin-top: 10px;
-              ">Reload Page</button>
-            </div>
+          <div class="loading-placeholder">
+            <div style="color: #cc0000; margin-bottom: 10px;">${message}</div>
+            <button onclick="location.reload()" style="
+              padding: 8px 16px;
+              background: #5c3a2e;
+              color: white;
+              border: none;
+              border-radius: 4px;
+              cursor: pointer;
+            ">Reload Page</button>
           </div>
         `;
       }
@@ -549,49 +367,49 @@
         return true; // Appears to be chronological
       }
 
-        sortByMileAndDate(data, mode = 'nobo') {
-          if (mode === 'date') {
-            // STEREO mode: sort everything by timestamp (earliest to latest)
-            return [...data].sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
-          }
-          
-          // For NOBO/SOBO: purely spatial sorting by mile
-          const tracksWithMiles = data.filter(track => {
-            const mile = this.getMileForSorting(track);
-            return mile !== null && !isNaN(mile);
-          });
-          
-          const tracksWithoutMiles = data.filter(track => {
-            const mile = this.getMileForSorting(track);
-            return mile === null || isNaN(mile);
-          });
-        
-          // Sort tracks with miles by mile number (ascending: 0 → 2655.8)
-          tracksWithMiles.sort((a, b) => {
-            const mileA = this.getMileForSorting(a);
-            const mileB = this.getMileForSorting(b);
-            if (Math.abs(mileA - mileB) < 0.01) { // Same mile (accounting for decimals)
-              // If same mile, sort by timestamp
-              return new Date(a.timestamp) - new Date(b.timestamp);
-            }
-            return mileA - mileB; // Always ascending by mile
-          });
-        
-          // Apply different ordering for playlist display based on mode
-          if (mode === 'sobo') {
-            // SOBO: reverse so Canada (high miles) appears at top
-            // This gives us: Canada at top (index 0), Mexico at bottom (last index)
-            tracksWithMiles.reverse();
-          }
-          // NOBO: keep natural order so Mexico (low miles) appears at top
-          // This gives us: Mexico at top (index 0), Canada at bottom (last index)
-        
-          // Sort tracks without miles by timestamp
-          tracksWithoutMiles.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
-        
-          // Combine: mile-sorted tracks first, then timestamp-sorted tracks without miles
-          return [...tracksWithMiles, ...tracksWithoutMiles];
+      sortByMileAndDate(data, mode = 'nobo') {
+        if (mode === 'date') {
+          // STEREO mode: sort everything by timestamp (earliest to latest)
+          return [...data].sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
         }
+        
+        // For NOBO/SOBO: purely spatial sorting by mile
+        const tracksWithMiles = data.filter(track => {
+          const mile = this.getMileForSorting(track);
+          return mile !== null && !isNaN(mile);
+        });
+        
+        const tracksWithoutMiles = data.filter(track => {
+          const mile = this.getMileForSorting(track);
+          return mile === null || isNaN(mile);
+        });
+
+        // Sort tracks with miles by mile number (ascending: 0 → 2655.8)
+        tracksWithMiles.sort((a, b) => {
+          const mileA = this.getMileForSorting(a);
+          const mileB = this.getMileForSorting(b);
+          if (Math.abs(mileA - mileB) < 0.01) { // Same mile (accounting for decimals)
+            // If same mile, sort by timestamp
+            return new Date(a.timestamp) - new Date(b.timestamp);
+          }
+          return mileA - mileB; // Always ascending by mile
+        });
+
+        // Apply different ordering for playlist display based on mode
+        if (mode === 'sobo') {
+          // SOBO: reverse so Canada (high miles) appears at top
+          // This gives us: Canada at top (index 0), Mexico at bottom (last index)
+          tracksWithMiles.reverse();
+        }
+        // NOBO: keep natural order so Mexico (low miles) appears at top
+        // This gives us: Mexico at top (index 0), Canada at bottom (last index)
+
+        // Sort tracks without miles by timestamp
+        tracksWithoutMiles.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
+
+        // Combine: mile-sorted tracks first, then timestamp-sorted tracks without miles
+        return [...tracksWithMiles, ...tracksWithoutMiles];
+      }
 
       updateMapData() {
         const source = map.getSource('audio');
