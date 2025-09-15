@@ -212,13 +212,13 @@
         return uiController.playlistExpanded ? 370 : 20;
       }
 
-        loadAudioData() {
+      loadAudioData() {
         // Hide the entire playlist wrapper during loading
         const playlistWrapper = document.getElementById('playlistWrapper');
         playlistWrapper.style.display = 'none';
         
-        // Show loading notification (centered, like success message)
-        showNotification('loading recordings...', 0); // 0 duration = stay visible
+        // Show persistent loading notification (centered, like success message)
+        showNotification('loading recordings...'); // No duration = stays visible
         
         const url = `${CONFIG.GOOGLE_SCRIPT_URL}?nocache=${Date.now()}`;
         console.log('Fetching data from:', url);
@@ -284,7 +284,7 @@
               playlistWrapper.style.display = 'flex';
               
               // Hide loading notification and show success message
-              document.getElementById('notification').classList.remove('show');
+              hideNotification();
               setTimeout(() => {
                 showNotification(`${data.length} recordings loaded`, 3000);
               }, 100);
@@ -292,7 +292,7 @@
             } catch (parseError) {
               console.error('JSON Parse Error:', parseError);
               // Hide loading notification and show error
-              document.getElementById('notification').classList.remove('show');
+              hideNotification();
               setTimeout(() => {
                 this.showLoadingError(`Invalid JSON response: ${parseError.message}`);
               }, 100);
@@ -303,7 +303,7 @@
             console.error('Load Error:', e);
             const errorMsg = e.message || 'Unknown error occurred';
             // Hide loading notification and show error
-            document.getElementById('notification').classList.remove('show');
+            hideNotification();
             setTimeout(() => {
               this.showLoadingError(`Failed to load recordings: ${errorMsg}`);
               showNotification(`Error: ${errorMsg}`, 5000);
