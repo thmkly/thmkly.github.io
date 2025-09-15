@@ -89,11 +89,11 @@
         if (this.playMode === 'random') {
           nextIndex = Math.floor(Math.random() * audioData.length);
         } else {
-          // Navigation is always DOWN the playlist (toward higher index numbers)
-          // This works for all modes because:
-          // - NOBO: playlist shows Canada→Mexico, so down = toward Mexico (correct direction)
-          // - SOBO: playlist shows Canada→Mexico, so down = toward Mexico (correct direction)  
-          // - STEREO: playlist shows earliest→latest, so down = toward newer (correct direction)
+          // Always go DOWN the playlist (top→bottom, index 0→higher)
+          // This works for all modes since the playlist is now arranged correctly:
+          // - NOBO: Mexico at top→Canada at bottom (playing Mexico→Canada)
+          // - SOBO: Canada at top→Mexico at bottom (playing Canada→Mexico)  
+          // - STEREO: Earliest at top→Latest at bottom (playing chronologically)
           nextIndex = this.currentIndex + 1;
           if (nextIndex >= audioData.length) {
             nextIndex = 0; // Wrap to beginning
@@ -115,11 +115,8 @@
           }
           prevIndex = this.playHistory.pop();
         } else {
-          // Navigation is always UP the playlist (toward lower index numbers)
-          // This works for all modes because:
-          // - NOBO: playlist shows Canada→Mexico, so up = toward Canada (correct direction)
-          // - SOBO: playlist shows Canada→Mexico, so up = toward Canada (correct direction)
-          // - STEREO: playlist shows earliest→latest, so up = toward older (correct direction)
+          // Always go UP the playlist (bottom→top, higher index→0)
+          // This works for all modes since the playlist is now arranged correctly
           prevIndex = this.currentIndex - 1;
           if (prevIndex < 0) {
             prevIndex = audioData.length - 1; // Wrap to end
