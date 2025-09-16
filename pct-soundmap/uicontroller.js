@@ -1,4 +1,4 @@
-    // UI Controller Class
+// UI Controller Class
     class UIController {
       constructor() {
         this.playlistExpanded = true;
@@ -6,13 +6,25 @@
         this.is3DEnabled = false;
         this.miniInfoBoxes = [];
         this.clusterPlaylist = null;
+        this.isMobile = window.innerWidth <= 768;
+        this.mobilePlaylistExpanded = false;
         this.setupEventListeners();
+        this.setupResizeListener();
       }
 
       setupEventListeners() {
-        // Playlist toggle
+        // Playlist toggle (desktop)
         document.getElementById('playlistToggle').addEventListener('click', () => {
           this.togglePlaylist();
+        });
+
+        // Mobile playlist toggles
+        document.getElementById('mobilePlaylistToggle').addEventListener('click', () => {
+          this.toggleMobilePlaylist();
+        });
+
+        document.getElementById('mobilePlaylistCollapse').addEventListener('click', () => {
+          this.collapseMobilePlaylist();
         });
 
         // Sort buttons
@@ -79,6 +91,50 @@
           toggle.textContent = '▶';
           toggle.title = 'Expand playlist';
         }
+      }
+
+      toggleMobilePlaylist() {
+        if (!this.isMobile) return;
+        
+        const wrapper = document.getElementById('playlistWrapper');
+        this.mobilePlaylistExpanded = !this.mobilePlaylistExpanded;
+        
+        if (this.mobilePlaylistExpanded) {
+          wrapper.classList.add('mobile-expanded');
+        } else {
+          wrapper.classList.remove('mobile-expanded');
+        }
+      }
+
+      collapseMobilePlaylist() {
+        if (!this.isMobile) return;
+        
+        const wrapper = document.getElementById('playlistWrapper');
+        this.mobilePlaylistExpanded = false;
+        wrapper.classList.remove('mobile-expanded');
+      }
+
+      setupResizeListener() {
+        window.addEventListener('resize', () => {
+          const wasMobile = this.isMobile;
+          this.isMobile = window.innerWidth <= 768;
+          
+          // Reset mobile playlist state when switching between mobile/desktop
+          if (wasMobile !== this.isMobile) {
+            const wrapper = document.getElementById('playlistWrapper');
+            if (this.isMobile) {
+              // Switching to mobile
+              wrapper.classList.remove('collapsed');
+              wrapper.classList.remove('mobile-expanded');
+              this.mobilePlaylistExpanded = false;
+              this.playlistExpanded = true; // Reset desktop state
+            } else {
+              // Switching to desktop
+              wrapper.classList.remove('mobile-expanded');
+              this.mobilePlaylistExpanded = false;
+            }
+          }
+        });
       }
 
       handleSortChange(sortId) {
