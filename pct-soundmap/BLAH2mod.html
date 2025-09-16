@@ -424,6 +424,10 @@
     display: none;
   }
 
+  .mobile-playlist-collapse {
+    display: none;
+  }
+
   /* Mobile Layout */
   @media (max-width: 768px) {
     /* Mobile control panel - centered at top */
@@ -491,8 +495,8 @@
       background-color: rgba(240, 240, 240, 0.8);
     }
 
-    .mobile-playlist-collapse {
-      display: none;
+    .playlist-wrapper.mobile-expanded .mobile-playlist-collapse {
+      display: block;
       position: absolute;
       bottom: 10px;
       left: 50%;
@@ -506,10 +510,6 @@
       font-size: 12px;
       color: #333;
       text-align: center;
-    }
-
-    .playlist-wrapper.mobile-expanded .mobile-playlist-collapse {
-      display: block;
     }
 
     /* Mobile playlist content */
