@@ -477,6 +477,10 @@
           div.appendChild(trackMile);
           
           div.addEventListener('click', (e) => {
+            // Collapse mobile playlist immediately when track is clicked
+            if (uiController.isMobile && uiController.mobilePlaylistExpanded) {
+              uiController.collapseMobilePlaylist();
+            }
             this.playAudio(index);
           });
           
@@ -807,7 +811,6 @@
         if (uiController.is3DEnabled) {
           uiController.is3DEnabled = false;
           const btn = document.getElementById('terrain3dBtn');
-          btn.classList.remove('active');
           
           map.setTerrain(null);
           if (map.getSource('mapbox-dem')) {
