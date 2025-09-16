@@ -419,19 +419,156 @@
     opacity: 1;
   }
 
-  /* Responsive adjustments */
+  /* Mobile controls - hidden on desktop */
+  .mobile-playlist-toggle {
+    display: none;
+  }
+
+  /* Mobile Layout */
   @media (max-width: 768px) {
-    .playlist-wrapper {
-      width: 300px;
-    }
-    
+    /* Mobile control panel - centered at top */
     .control-panel {
-      right: 10px;
-      top: 10px;
+      position: fixed;
+      top: 15px;
+      left: 50%;
+      transform: translateX(-50%);
+      right: unset;
+      width: calc(100vw - 30px);
+      max-width: 400px;
+      z-index: 1000;
+      background-color: rgba(255, 255, 255, 0.95);
+      backdrop-filter: blur(10px);
     }
-    
+
+    /* Mobile playlist wrapper */
+    .playlist-wrapper {
+      position: fixed;
+      top: 0;
+      left: 50%;
+      transform: translateX(-50%);
+      width: calc(100vw - 30px);
+      max-width: 400px;
+      max-height: calc(100vh - 120px); /* Leave space for ko-fi widget */
+      background-color: rgba(255, 255, 255, 0.7);
+      backdrop-filter: blur(10px);
+      z-index: 999;
+      border-radius: 0 0 10px 10px;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+      transition: transform 0.3s ease, opacity 0.3s ease;
+      transform: translateX(-50%) translateY(-100%);
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    .playlist-wrapper.mobile-expanded {
+      transform: translateX(-50%) translateY(0);
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    /* Mobile playlist toggle - now part of control panel */
+    .playlist-wrapper .playlist-toggle {
+      display: none; /* Hide the side toggle on mobile */
+    }
+
+    /* Mobile expand/collapse buttons */
+    .mobile-playlist-toggle {
+      display: block;
+      width: 100%;
+      padding: 8px;
+      background: transparent;
+      border: 1px solid #ccc;
+      border-radius: 3px;
+      cursor: pointer;
+      font-size: 12px;
+      color: #333;
+      text-align: center;
+      transition: background-color 0.2s;
+      margin-top: 8px;
+    }
+
+    .mobile-playlist-toggle:hover {
+      background-color: rgba(240, 240, 240, 0.8);
+    }
+
+    .mobile-playlist-collapse {
+      display: none;
+      position: absolute;
+      bottom: 10px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: calc(100% - 20px);
+      background: rgba(255, 255, 255, 0.9);
+      border: 1px solid #ccc;
+      border-radius: 3px;
+      padding: 8px;
+      cursor: pointer;
+      font-size: 12px;
+      color: #333;
+      text-align: center;
+    }
+
+    .playlist-wrapper.mobile-expanded .mobile-playlist-collapse {
+      display: block;
+    }
+
+    /* Mobile playlist content */
+    .playlist-wrapper .playlist {
+      max-height: calc(100vh - 200px); /* Account for control panel and collapse button */
+      margin-top: 0;
+    }
+
+    /* Hide desktop scroll arrows on mobile */
+    .playlist-wrapper .scroll-arrow {
+      display: none !important;
+    }
+
+    /* Ko-fi widget positioning for mobile */
+    .floatingchat-container-wrap {
+      left: 50% !important;
+      transform: translateX(-50%) !important;
+      right: unset !important;
+      bottom: 15px !important;
+    }
+    .floating-chat-kofi-popup-iframe {
+      left: 50% !important;
+      transform: translateX(-50%) !important;
+      right: unset !important;
+      bottom: 15px !important;
+    }
+
+    /* Mobile mini info boxes */
     .mini-infobox {
-      max-width: 150px;
+      max-width: 120px;
+      font-size: 10px;
+      padding: 3px 6px;
+    }
+
+    /* Mobile popup adjustments */
+    .mapboxgl-popup-content {
+      min-width: 280px;
+      max-width: calc(100vw - 40px);
+    }
+
+    /* Mobile track items - larger touch targets */
+    .track {
+      padding: 12px 8px;
+      font-size: 14px;
+    }
+
+    .track-mile {
+      font-size: 12px;
+    }
+
+    /* Mobile control buttons - slightly larger */
+    .control-btn {
+      padding: 8px 10px;
+      font-size: 11px;
+    }
+
+    .sort-btn {
+      padding: 6px 8px;
+      font-size: 10px;
     }
   }
 
@@ -461,6 +598,7 @@
       <div class="loading-placeholder">loading recordings...</div>
     </div>
     <div class="scroll-arrow down" id="scrollDown" title="Scroll down">▼</div>
+    <button class="mobile-playlist-collapse" id="mobilePlaylistCollapse" title="Hide playlist">▲ Hide Playlist</button>
   </div>
 
   <div class="control-panel">
@@ -480,6 +618,7 @@
         </div>
       </div>
     </div>
+    <button class="mobile-playlist-toggle" id="mobilePlaylistToggle" title="Show playlist">▼ Show Playlist</button>
   </div>
 
   <div class="notification" id="notification"></div>
