@@ -823,14 +823,20 @@
       }
     }
 
-    // Initialize control sync after DOM loads
-    document.addEventListener('DOMContentLoaded', () => {
-      syncControls();
-    });
+    // Initialize control sync after DOM loads and after controllers are initialized
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', () => {
+        setTimeout(syncControls, 100);
+      });
+    } else {
+      setTimeout(syncControls, 100);
+    }
 
     // Initialize map data update after first load
     setTimeout(() => {
-      mapController.updateMapData();
+      if (typeof mapController !== 'undefined') {
+        mapController.updateMapData();
+      }
     }, 1000);
 
   </script>
