@@ -420,8 +420,34 @@
   }
 
   /* Mobile controls - hidden on desktop */
+  .mobile-controls {
+    display: none;
+  }
+
   .mobile-playlist-toggle {
     display: none;
+    position: fixed;
+    top: 15px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: calc(100vw - 30px);
+    max-width: 200px;
+    padding: 10px;
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(10px);
+    border: 1px solid #ccc;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 14px;
+    color: #333;
+    text-align: center;
+    z-index: 900;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+    transition: background-color 0.2s;
+  }
+
+  .mobile-playlist-toggle:hover {
+    background-color: rgba(255, 255, 255, 1);
   }
 
   .mobile-playlist-collapse {
@@ -430,21 +456,12 @@
 
   /* Mobile Layout */
   @media (max-width: 768px) {
-    /* Mobile control panel - centered at top */
+    /* Hide desktop control panel on mobile */
     .control-panel {
-      position: fixed;
-      top: 15px;
-      left: 50%;
-      transform: translateX(-50%);
-      right: unset;
-      width: calc(100vw - 30px);
-      max-width: 400px;
-      z-index: 1000;
-      background-color: rgba(255, 255, 255, 0.95);
-      backdrop-filter: blur(10px);
+      display: none;
     }
 
-    /* Mobile playlist wrapper */
+    /* Mobile playlist wrapper - single integrated menu */
     .playlist-wrapper {
       position: fixed;
       top: 0;
@@ -452,7 +469,7 @@
       transform: translateX(-50%);
       width: calc(100vw - 30px);
       max-width: 400px;
-      max-height: calc(100vh - 120px); /* Leave space for ko-fi widget */
+      max-height: calc(100vh - 80px); /* Leave space for ko-fi widget */
       background-color: rgba(255, 255, 255, 0.95);
       backdrop-filter: blur(10px);
       z-index: 999;
@@ -462,6 +479,8 @@
       transform: translateX(-50%) translateY(-100%);
       opacity: 0;
       pointer-events: none;
+      display: flex;
+      flex-direction: column;
     }
 
     .playlist-wrapper.mobile-expanded {
@@ -469,32 +488,45 @@
       opacity: 1;
       pointer-events: auto;
     }
+    
+    /* Mobile controls integrated into playlist wrapper */
+    .mobile-controls {
+      display: block;
+      padding: 15px 10px;
+      border-bottom: 1px solid #ddd;
+      background: rgba(255, 255, 255, 1);
+      border-radius: 0;
+    }
+    
+    .mobile-controls .control-row {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 10px;
+    }
+    
+    .mobile-controls .sort-controls {
+      display: flex;
+      gap: 4px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
 
     /* Mobile playlist toggle - now part of control panel */
     .playlist-wrapper .playlist-toggle {
       display: none; /* Hide the side toggle on mobile */
     }
 
-    /* Mobile expand/collapse buttons */
+    /* Show mobile toggle button */
     .mobile-playlist-toggle {
       display: block;
-      width: 100%;
-      padding: 8px;
-      background: transparent;
-      border: 1px solid #ccc;
-      border-radius: 3px;
-      cursor: pointer;
-      font-size: 12px;
-      color: #333;
-      text-align: center;
-      transition: background-color 0.2s;
-      margin-top: 8px;
     }
 
-    .mobile-playlist-toggle:hover {
-      background-color: rgba(240, 240, 240, 0.8);
+    /* Show mobile controls inside playlist when on mobile */
+    .playlist-wrapper .mobile-controls {
+      display: block !important;
     }
 
+    /* Mobile expand/collapse button at bottom of playlist */
     .playlist-wrapper.mobile-expanded .mobile-playlist-collapse {
       display: block;
       position: absolute;
@@ -514,8 +546,10 @@
 
     /* Mobile playlist content */
     .playlist-wrapper .playlist {
-      max-height: calc(100vh - 200px); /* Account for control panel and collapse button */
+      max-height: calc(100vh - 250px); /* Account for integrated control panel and collapse button */
       margin-top: 0;
+      overflow-y: auto;
+      flex: 1;
     }
 
     /* Hide desktop scroll arrows on mobile */
@@ -593,6 +627,25 @@
   
   <div class="playlist-wrapper" id="playlistWrapper">
     <button class="playlist-toggle" id="playlistToggle" title="Collapse playlist">◀</button>
+    <!-- Mobile controls - hidden on desktop, shown on mobile inside playlist -->
+    <div class="mobile-controls" style="display: none;">
+      <div class="control-row">
+        <button class="control-btn" id="resetMapBtnMobile" title="Reset view and stop playback">Reset Map</button>
+        <button class="control-btn" id="fullscreenBtnMobile" title="Fullscreen on/off">Fullscreen</button>
+        <button class="control-btn" id="terrain3dBtnMobile" title="3D terrain on/off">3D Terrain</button>
+      </div>
+      <div class="sort-controls">
+        <button class="control-btn sort-btn active" id="sortNoboMobile" title="Northbound playlist">NOBO</button>
+        <button class="control-btn sort-btn" id="sortSoboMobile" title="Southbound playlist">SOBO</button>
+        <button class="control-btn sort-btn" id="sortDateMobile" title="Chronological playlist">STEREO</button>
+        <div class="random-control">
+          <span class="random-label">Random</span>
+          <div class="toggle-switch" id="randomToggleMobile" title="Random on/off">
+            <div class="toggle-slider"></div>
+          </div>
+        </div>
+      </div>
+    </div>
     <div class="scroll-arrow up" id="scrollUp" title="Scroll up">▲</div>
     <div class="playlist" id="playlist">
       <div class="loading-placeholder">loading recordings...</div>
@@ -601,6 +654,7 @@
     <button class="mobile-playlist-collapse" id="mobilePlaylistCollapse" title="Hide playlist">▲ Hide Playlist</button>
   </div>
 
+  <!-- Desktop control panel - hidden on mobile -->
   <div class="control-panel">
     <div class="control-row">
       <button class="control-btn" id="resetMapBtn" title="Reset view and stop playback">Reset Map</button>
@@ -618,8 +672,10 @@
         </div>
       </div>
     </div>
-    <button class="mobile-playlist-toggle" id="mobilePlaylistToggle" title="Show playlist">▼ Show Playlist</button>
   </div>
+  
+  <!-- Mobile expand trigger - separate button for mobile only -->
+  <button class="mobile-playlist-toggle" id="mobilePlaylistToggle" title="Show playlist">▼ Show Playlist</button>
 
   <div class="notification" id="notification"></div>
 
@@ -665,6 +721,67 @@
       }
       notification.classList.remove('show');
     }
+
+    // Sync mobile and desktop controls
+    function syncControls() {
+      // Sync reset buttons
+      const resetBtn = document.getElementById('resetMapBtn');
+      const resetBtnMobile = document.getElementById('resetMapBtnMobile');
+      if (resetBtnMobile) {
+        resetBtnMobile.addEventListener('click', () => {
+          resetBtn.click();
+        });
+      }
+
+      // Sync fullscreen buttons
+      const fullscreenBtn = document.getElementById('fullscreenBtn');
+      const fullscreenBtnMobile = document.getElementById('fullscreenBtnMobile');
+      if (fullscreenBtnMobile) {
+        fullscreenBtnMobile.addEventListener('click', () => {
+          fullscreenBtn.click();
+        });
+      }
+
+      // Sync 3D terrain buttons
+      const terrain3dBtn = document.getElementById('terrain3dBtn');
+      const terrain3dBtnMobile = document.getElementById('terrain3dBtnMobile');
+      if (terrain3dBtnMobile) {
+        terrain3dBtnMobile.addEventListener('click', () => {
+          terrain3dBtn.click();
+        });
+      }
+
+      // Sync sort buttons
+      ['Nobo', 'Sobo', 'Date'].forEach(mode => {
+        const desktopBtn = document.getElementById('sort' + mode);
+        const mobileBtn = document.getElementById('sort' + mode + 'Mobile');
+        if (mobileBtn) {
+          mobileBtn.addEventListener('click', () => {
+            desktopBtn.click();
+            // Sync active state
+            document.querySelectorAll('#sortNoboMobile, #sortSoboMobile, #sortDateMobile').forEach(btn => {
+              btn.classList.remove('active');
+            });
+            mobileBtn.classList.add('active');
+          });
+        }
+      });
+
+      // Sync random toggle
+      const randomToggle = document.getElementById('randomToggle');
+      const randomToggleMobile = document.getElementById('randomToggleMobile');
+      if (randomToggleMobile) {
+        randomToggleMobile.addEventListener('click', () => {
+          randomToggle.click();
+          randomToggleMobile.classList.toggle('active');
+        });
+      }
+    }
+
+    // Initialize control sync after DOM loads
+    document.addEventListener('DOMContentLoaded', () => {
+      syncControls();
+    });
 
     // Initialize map data update after first load
     setTimeout(() => {
