@@ -703,13 +703,28 @@
   <script src="mapcontroller.js"></script>
   
   <script>
+    // Declare controllers globally but initialize after DOM ready
+    let audioController, atmosphereController, uiController, mapController;
+    
     // Wait for DOM to be ready before initializing controllers
-    document.addEventListener('DOMContentLoaded', function() {
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', initializeApp);
+    } else {
+      initializeApp();
+    }
+    
+    function initializeApp() {
       // Initialize controllers after DOM is ready
-      window.audioController = new AudioController();
-      window.atmosphereController = new AtmosphereController();
-      window.uiController = new UIController();
-      window.mapController = new MapController();
+      audioController = new AudioController();
+      atmosphereController = new AtmosphereController();
+      uiController = new UIController();
+      mapController = new MapController();
+      
+      // Make them available globally
+      window.audioController = audioController;
+      window.atmosphereController = atmosphereController;
+      window.uiController = uiController;
+      window.mapController = mapController;
       
       // Enhanced Notification System
       let currentNotificationTimeout = null;
@@ -838,7 +853,7 @@
           mapController.updateMapData();
         }
       }, 1000);
-    });
+    }
   </script>
 
   <script src="https://storage.ko-fi.com/cdn/scripts/overlay-widget.js"></script>
