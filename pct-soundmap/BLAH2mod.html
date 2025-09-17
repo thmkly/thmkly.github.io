@@ -433,7 +433,7 @@
     width: calc(100vw - 30px);
     max-width: 200px;
     padding: 10px;
-    background: rgba(255, 255, 255, 0.95);
+    background: rgba(255, 255, 255, 0.7);
     backdrop-filter: blur(10px);
     border: 1px solid #ccc;
     border-radius: 5px;
@@ -447,7 +447,7 @@
   }
 
   .mobile-playlist-toggle:hover {
-    background-color: rgba(255, 255, 255, 1);
+    background-color: rgba(255, 255, 255, 0.8);
   }
 
   .mobile-playlist-collapse {
@@ -469,8 +469,8 @@
       transform: translateX(-50%);
       width: calc(100vw - 30px);
       max-width: 400px;
-      max-height: calc(100vh - 80px); /* Leave space for ko-fi widget */
-      background-color: rgba(255, 255, 255, 0.95);
+      max-height: calc(100vh - 100px); /* Leave space for ko-fi widget - approximately 80px + padding */
+      background-color: rgba(255, 255, 255, 0.7);
       backdrop-filter: blur(10px);
       z-index: 999;
       border-radius: 0 0 10px 10px;
@@ -494,7 +494,7 @@
       display: block;
       padding: 15px 10px;
       border-bottom: 1px solid #ddd;
-      background: rgba(255, 255, 255, 1);
+      background: rgba(255, 255, 255, 0.7);
       border-radius: 0;
     }
     
@@ -557,18 +557,18 @@
       display: none !important;
     }
 
-    /* Ko-fi widget positioning for mobile */
+    /* Ko-fi widget positioning for mobile - centered at bottom */
     .floatingchat-container-wrap {
       left: 50% !important;
       transform: translateX(-50%) !important;
       right: unset !important;
-      bottom: 15px !important;
+      bottom: 20px !important;
     }
     .floating-chat-kofi-popup-iframe {
       left: 50% !important;
       transform: translateX(-50%) !important;
       right: unset !important;
-      bottom: 15px !important;
+      bottom: 80px !important;
     }
 
     /* Mobile mini info boxes */
@@ -584,14 +584,14 @@
       max-width: calc(100vw - 40px);
     }
 
-    /* Mobile track items - larger touch targets */
+    /* Mobile track items - tighter spacing for more content */
     .track {
-      padding: 12px 8px;
-      font-size: 14px;
+      padding: 8px 8px;
+      font-size: 13px;
     }
 
     .track-mile {
-      font-size: 12px;
+      font-size: 11px;
     }
 
     /* Mobile control buttons - slightly larger */
@@ -800,15 +800,35 @@
     });
   </script>
   <style>
-    .floatingchat-container-wrap {
-      left: unset !important;
-      right: 16px !important;
-      bottom: 30px !important;
+    /* Ko-fi widget positioning overrides - desktop right, mobile center */
+    @media (min-width: 769px) {
+      .floatingchat-container-wrap {
+        left: unset !important;
+        right: 16px !important;
+        bottom: 30px !important;
+        transform: none !important;
+      }
+      .floating-chat-kofi-popup-iframe {
+        left: unset !important;
+        right: 16px !important;
+        bottom: 30px !important;
+        transform: none !important;
+      }
     }
-    .floating-chat-kofi-popup-iframe {
-      left: unset !important;
-      right: 16px !important;
-      bottom: 30px !important;
+    
+    @media (max-width: 768px) {
+      .floatingchat-container-wrap {
+        left: 50% !important;
+        transform: translateX(-50%) !important;
+        right: unset !important;
+        bottom: 20px !important;
+      }
+      .floating-chat-kofi-popup-iframe {
+        left: 50% !important;
+        transform: translateX(-50%) !important;
+        right: unset !important;
+        bottom: 80px !important;
+      }
     }
   </style>
 </body>
