@@ -701,144 +701,144 @@
   <script src="atmospherecontroller.js"></script>
   <script src="uicontroller.js"></script>
   <script src="mapcontroller.js"></script>
-  <script src="main.js"></script>
   
   <script>
-
-    // Enhanced Notification System
-    let currentNotificationTimeout = null;
-
-    function showNotification(message, duration = 3000) {
-      const notification = document.getElementById('notification');
+    // Wait for DOM to be ready before initializing controllers
+    document.addEventListener('DOMContentLoaded', function() {
+      // Initialize controllers after DOM is ready
+      window.audioController = new AudioController();
+      window.atmosphereController = new AtmosphereController();
+      window.uiController = new UIController();
+      window.mapController = new MapController();
       
-      // Clear any existing timeout
-      if (currentNotificationTimeout) {
-        clearTimeout(currentNotificationTimeout);
-        currentNotificationTimeout = null;
-      }
-      
-      notification.textContent = message;
-      notification.classList.add('show');
-      
-      // Only set timeout if duration is provided and > 0
-      if (duration > 0) {
-        currentNotificationTimeout = setTimeout(() => {
-          notification.classList.remove('show');
-          currentNotificationTimeout = null;
-        }, duration);
-      }
-    }
+      // Enhanced Notification System
+      let currentNotificationTimeout = null;
 
-    function hideNotification() {
-      const notification = document.getElementById('notification');
-      if (currentNotificationTimeout) {
-        clearTimeout(currentNotificationTimeout);
-        currentNotificationTimeout = null;
-      }
-      notification.classList.remove('show');
-    }
-
-    // Sync mobile and desktop controls
-    function syncControls() {
-      // Hamburger menu toggle
-      const hamburgerMenu = document.getElementById('hamburgerMenu');
-      const playlistWrapper = document.getElementById('playlistWrapper');
-      
-      if (hamburgerMenu) {
-        hamburgerMenu.addEventListener('click', () => {
-          const isExpanded = playlistWrapper.classList.contains('mobile-expanded');
-          
-          if (isExpanded) {
-            playlistWrapper.classList.remove('mobile-expanded');
-            hamburgerMenu.classList.remove('active');
-          } else {
-            playlistWrapper.classList.add('mobile-expanded');
-            hamburgerMenu.classList.add('active');
-          }
-        });
+      window.showNotification = function(message, duration = 3000) {
+        const notification = document.getElementById('notification');
         
-        // Close menu when clicking outside on mobile
-        document.addEventListener('click', (e) => {
-          if (window.innerWidth <= 768 && 
-              !hamburgerMenu.contains(e.target) && 
-              !playlistWrapper.contains(e.target) &&
-              playlistWrapper.classList.contains('mobile-expanded')) {
-            playlistWrapper.classList.remove('mobile-expanded');
-            hamburgerMenu.classList.remove('active');
-          }
-        });
+        // Clear any existing timeout
+        if (currentNotificationTimeout) {
+          clearTimeout(currentNotificationTimeout);
+          currentNotificationTimeout = null;
+        }
+        
+        notification.textContent = message;
+        notification.classList.add('show');
+        
+        // Only set timeout if duration is provided and > 0
+        if (duration > 0) {
+          currentNotificationTimeout = setTimeout(() => {
+            notification.classList.remove('show');
+            currentNotificationTimeout = null;
+          }, duration);
+        }
       }
 
-      // Sync reset buttons
-      const resetBtn = document.getElementById('resetMapBtn');
-      const resetBtnMobile = document.getElementById('resetMapBtnMobile');
-      if (resetBtnMobile) {
-        resetBtnMobile.addEventListener('click', () => {
-          resetBtn.click();
-        });
+      window.hideNotification = function() {
+        const notification = document.getElementById('notification');
+        if (currentNotificationTimeout) {
+          clearTimeout(currentNotificationTimeout);
+          currentNotificationTimeout = null;
+        }
+        notification.classList.remove('show');
       }
 
-      // Sync fullscreen buttons
-      const fullscreenBtn = document.getElementById('fullscreenBtn');
-      const fullscreenBtnMobile = document.getElementById('fullscreenBtnMobile');
-      if (fullscreenBtnMobile) {
-        fullscreenBtnMobile.addEventListener('click', () => {
-          fullscreenBtn.click();
-        });
-      }
-
-      // Sync 3D terrain buttons
-      const terrain3dBtn = document.getElementById('terrain3dBtn');
-      const terrain3dBtnMobile = document.getElementById('terrain3dBtnMobile');
-      if (terrain3dBtnMobile) {
-        terrain3dBtnMobile.addEventListener('click', () => {
-          terrain3dBtn.click();
-        });
-      }
-
-      // Sync sort buttons
-      ['Nobo', 'Sobo', 'Date'].forEach(mode => {
-        const desktopBtn = document.getElementById('sort' + mode);
-        const mobileBtn = document.getElementById('sort' + mode + 'Mobile');
-        if (mobileBtn) {
-          mobileBtn.addEventListener('click', () => {
-            desktopBtn.click();
-            // Sync active state
-            document.querySelectorAll('#sortNoboMobile, #sortSoboMobile, #sortDateMobile').forEach(btn => {
-              btn.classList.remove('active');
-            });
-            mobileBtn.classList.add('active');
+      // Sync mobile and desktop controls
+      function syncControls() {
+        // Hamburger menu toggle
+        const hamburgerMenu = document.getElementById('hamburgerMenu');
+        const playlistWrapper = document.getElementById('playlistWrapper');
+        
+        if (hamburgerMenu) {
+          hamburgerMenu.addEventListener('click', () => {
+            const isExpanded = playlistWrapper.classList.contains('mobile-expanded');
+            
+            if (isExpanded) {
+              playlistWrapper.classList.remove('mobile-expanded');
+              hamburgerMenu.classList.remove('active');
+            } else {
+              playlistWrapper.classList.add('mobile-expanded');
+              hamburgerMenu.classList.add('active');
+            }
+          });
+          
+          // Close menu when clicking outside on mobile
+          document.addEventListener('click', (e) => {
+            if (window.innerWidth <= 768 && 
+                !hamburgerMenu.contains(e.target) && 
+                !playlistWrapper.contains(e.target) &&
+                playlistWrapper.classList.contains('mobile-expanded')) {
+              playlistWrapper.classList.remove('mobile-expanded');
+              hamburgerMenu.classList.remove('active');
+            }
           });
         }
-      });
 
-      // Sync random toggle
-      const randomToggle = document.getElementById('randomToggle');
-      const randomToggleMobile = document.getElementById('randomToggleMobile');
-      if (randomToggleMobile) {
-        randomToggleMobile.addEventListener('click', () => {
-          randomToggle.click();
-          randomToggleMobile.classList.toggle('active');
+        // Sync reset buttons
+        const resetBtn = document.getElementById('resetMapBtn');
+        const resetBtnMobile = document.getElementById('resetMapBtnMobile');
+        if (resetBtnMobile) {
+          resetBtnMobile.addEventListener('click', () => {
+            resetBtn.click();
+          });
+        }
+
+        // Sync fullscreen buttons
+        const fullscreenBtn = document.getElementById('fullscreenBtn');
+        const fullscreenBtnMobile = document.getElementById('fullscreenBtnMobile');
+        if (fullscreenBtnMobile) {
+          fullscreenBtnMobile.addEventListener('click', () => {
+            fullscreenBtn.click();
+          });
+        }
+
+        // Sync 3D terrain buttons
+        const terrain3dBtn = document.getElementById('terrain3dBtn');
+        const terrain3dBtnMobile = document.getElementById('terrain3dBtnMobile');
+        if (terrain3dBtnMobile) {
+          terrain3dBtnMobile.addEventListener('click', () => {
+            terrain3dBtn.click();
+          });
+        }
+
+        // Sync sort buttons
+        ['Nobo', 'Sobo', 'Date'].forEach(mode => {
+          const desktopBtn = document.getElementById('sort' + mode);
+          const mobileBtn = document.getElementById('sort' + mode + 'Mobile');
+          if (mobileBtn) {
+            mobileBtn.addEventListener('click', () => {
+              desktopBtn.click();
+              // Sync active state
+              document.querySelectorAll('#sortNoboMobile, #sortSoboMobile, #sortDateMobile').forEach(btn => {
+                btn.classList.remove('active');
+              });
+              mobileBtn.classList.add('active');
+            });
+          }
         });
+
+        // Sync random toggle
+        const randomToggle = document.getElementById('randomToggle');
+        const randomToggleMobile = document.getElementById('randomToggleMobile');
+        if (randomToggleMobile) {
+          randomToggleMobile.addEventListener('click', () => {
+            randomToggle.click();
+            randomToggleMobile.classList.toggle('active');
+          });
+        }
       }
-    }
 
-    // Initialize control sync after DOM loads and after controllers are initialized
-    if (document.readyState === 'loading') {
-      document.addEventListener('DOMContentLoaded', () => {
-        setTimeout(syncControls, 100);
-      });
-    } else {
-      setTimeout(syncControls, 100);
-    }
+      // Initialize controls
+      syncControls();
 
-    // Initialize map data update after first load
-    setTimeout(() => {
-      if (typeof mapController !== 'undefined') {
-        mapController.updateMapData();
-      }
-    }, 1000);
-
+      // Initialize map data update after first load
+      setTimeout(() => {
+        if (window.mapController) {
+          mapController.updateMapData();
+        }
+      }, 1000);
+    });
   </script>
 
   <script src="https://storage.ko-fi.com/cdn/scripts/overlay-widget.js"></script>
