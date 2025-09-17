@@ -477,9 +477,9 @@
           div.appendChild(trackMile);
           
           div.addEventListener('click', (e) => {
-            // Collapse mobile playlist immediately when track is clicked
+            // Collapse mobile menu immediately when track is clicked
             if (uiController.isMobile && uiController.mobilePlaylistExpanded) {
-              uiController.collapseMobilePlaylist();
+              uiController.collapseMobileMenu();
             }
             this.playAudio(index);
           });
