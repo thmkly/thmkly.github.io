@@ -18,14 +18,13 @@
           this.togglePlaylist();
         });
 
-        // Mobile playlist toggles
-        document.getElementById('mobilePlaylistToggle').addEventListener('click', () => {
-          this.toggleMobilePlaylist();
-        });
-
-        document.getElementById('mobilePlaylistCollapse').addEventListener('click', () => {
-          this.collapseMobilePlaylist();
-        });
+        // Hamburger menu for mobile
+        const hamburgerMenu = document.getElementById('hamburgerMenu');
+        if (hamburgerMenu) {
+          hamburgerMenu.addEventListener('click', () => {
+            this.toggleMobileMenu();
+          });
+        }
 
         // Sort buttons
         document.querySelectorAll('.sort-btn').forEach(btn => {
@@ -93,25 +92,30 @@
         }
       }
 
-      toggleMobilePlaylist() {
+      toggleMobileMenu() {
         if (!this.isMobile) return;
         
         const wrapper = document.getElementById('playlistWrapper');
+        const hamburger = document.getElementById('hamburgerMenu');
         this.mobilePlaylistExpanded = !this.mobilePlaylistExpanded;
         
         if (this.mobilePlaylistExpanded) {
           wrapper.classList.add('mobile-expanded');
+          hamburger.classList.add('active');
         } else {
           wrapper.classList.remove('mobile-expanded');
+          hamburger.classList.remove('active');
         }
       }
 
-      collapseMobilePlaylist() {
+      collapseMobileMenu() {
         if (!this.isMobile) return;
         
         const wrapper = document.getElementById('playlistWrapper');
+        const hamburger = document.getElementById('hamburgerMenu');
         this.mobilePlaylistExpanded = false;
         wrapper.classList.remove('mobile-expanded');
+        hamburger.classList.remove('active');
       }
 
       setupResizeListener() {
@@ -122,15 +126,18 @@
           // Reset mobile playlist state when switching between mobile/desktop
           if (wasMobile !== this.isMobile) {
             const wrapper = document.getElementById('playlistWrapper');
+            const hamburger = document.getElementById('hamburgerMenu');
             if (this.isMobile) {
               // Switching to mobile
               wrapper.classList.remove('collapsed');
               wrapper.classList.remove('mobile-expanded');
+              if (hamburger) hamburger.classList.remove('active');
               this.mobilePlaylistExpanded = false;
               this.playlistExpanded = true; // Reset desktop state
             } else {
               // Switching to desktop
               wrapper.classList.remove('mobile-expanded');
+              if (hamburger) hamburger.classList.remove('active');
               this.mobilePlaylistExpanded = false;
             }
           }
