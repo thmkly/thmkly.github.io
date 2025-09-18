@@ -498,6 +498,11 @@
     .hamburger-menu {
       display: flex;
     }
+    
+    /* Hide hamburger when menu is expanded */
+    body.mobile-menu-open .hamburger-menu {
+      display: none;
+    }
 
     /* Mobile playlist wrapper - slides in from left */
     .playlist-wrapper {
@@ -532,7 +537,7 @@
     /* Mobile controls integrated into playlist wrapper */
     .mobile-controls {
       display: block;
-      padding: 60px 15px 15px 15px; /* Extra top padding for close button clearance */
+      padding: 45px 15px 15px 15px; /* Reduced top padding since no hamburger */
       border-bottom: 1px solid #ddd;
       background: rgba(255, 255, 255, 0.6);
       border-radius: 0;
