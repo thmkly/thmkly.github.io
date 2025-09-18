@@ -433,7 +433,7 @@
     width: 40px;
     height: 40px;
     padding: 0;
-    background: rgba(255, 255, 255, 0.7);
+    background: rgba(255, 255, 255, 0.6);
     backdrop-filter: blur(10px);
     border: 1px solid #ccc;
     border-radius: 5px;
@@ -448,7 +448,7 @@
   }
 
   .hamburger-menu:hover {
-    background-color: rgba(255, 255, 255, 0.8);
+    background-color: rgba(255, 255, 255, 0.7);
   }
 
   .hamburger-menu span {
@@ -459,16 +459,24 @@
     transition: all 0.3s;
   }
 
-  .hamburger-menu.active span:nth-child(1) {
-    transform: rotate(45deg) translate(5px, 5px);
+  /* Mobile close button */
+  .mobile-menu-close {
+    display: none;
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    padding: 5px 10px;
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    font-size: 14px;
+    color: #666;
+    font-weight: normal;
+    z-index: 1002;
   }
 
-  .hamburger-menu.active span:nth-child(2) {
-    opacity: 0;
-  }
-
-  .hamburger-menu.active span:nth-child(3) {
-    transform: rotate(-45deg) translate(5px, -5px);
+  .mobile-menu-close:hover {
+    color: #333;
   }
 
   .mobile-playlist-toggle {
@@ -500,7 +508,7 @@
       width: calc(100vw - 50px);
       max-width: 350px;
       height: 100vh;
-      background-color: rgba(255, 255, 255, 0.7);
+      background-color: rgba(255, 255, 255, 0.6);
       backdrop-filter: blur(10px);
       z-index: 1000;
       border-radius: 0;
@@ -516,12 +524,17 @@
       transform: translateX(0);
     }
 
+    /* Show close button when menu is expanded */
+    .playlist-wrapper.mobile-expanded .mobile-menu-close {
+      display: block;
+    }
+
     /* Mobile controls integrated into playlist wrapper */
     .mobile-controls {
       display: block;
-      padding: 60px 15px 15px 15px; /* Extra top padding for hamburger clearance */
+      padding: 60px 15px 15px 15px; /* Extra top padding for close button clearance */
       border-bottom: 1px solid #ddd;
-      background: rgba(255, 255, 255, 0.7);
+      background: rgba(255, 255, 255, 0.6);
       border-radius: 0;
     }
     
@@ -647,6 +660,8 @@
 
   <div class="playlist-wrapper" id="playlistWrapper">
     <button class="playlist-toggle" id="playlistToggle" title="Collapse playlist">◀</button>
+    <!-- Mobile close button -->
+    <button class="mobile-menu-close" id="mobileMenuClose">Close</button>
     <!-- Mobile controls - hidden on desktop, shown on mobile inside playlist -->
     <div class="mobile-controls" style="display: none;">
       <div class="control-row">
@@ -764,31 +779,30 @@
         // Hamburger menu toggle
         const hamburgerMenu = document.getElementById('hamburgerMenu');
         const playlistWrapper = document.getElementById('playlistWrapper');
+        const mobileMenuClose = document.getElementById('mobileMenuClose');
         
         if (hamburgerMenu) {
           hamburgerMenu.addEventListener('click', () => {
-            const isExpanded = playlistWrapper.classList.contains('mobile-expanded');
-            
-            if (isExpanded) {
-              playlistWrapper.classList.remove('mobile-expanded');
-              hamburgerMenu.classList.remove('active');
-            } else {
-              playlistWrapper.classList.add('mobile-expanded');
-              hamburgerMenu.classList.add('active');
-            }
-          });
-          
-          // Close menu when clicking outside on mobile
-          document.addEventListener('click', (e) => {
-            if (window.innerWidth <= 768 && 
-                !hamburgerMenu.contains(e.target) && 
-                !playlistWrapper.contains(e.target) &&
-                playlistWrapper.classList.contains('mobile-expanded')) {
-              playlistWrapper.classList.remove('mobile-expanded');
-              hamburgerMenu.classList.remove('active');
-            }
+            playlistWrapper.classList.add('mobile-expanded');
           });
         }
+        
+        // Mobile close button
+        if (mobileMenuClose) {
+          mobileMenuClose.addEventListener('click', () => {
+            playlistWrapper.classList.remove('mobile-expanded');
+          });
+        }
+        
+        // Close menu when clicking outside on mobile
+        document.addEventListener('click', (e) => {
+          if (window.innerWidth <= 768 && 
+              !hamburgerMenu.contains(e.target) && 
+              !playlistWrapper.contains(e.target) &&
+              playlistWrapper.classList.contains('mobile-expanded')) {
+            playlistWrapper.classList.remove('mobile-expanded');
+          }
+        });
 
         // Sync reset buttons
         const resetBtn = document.getElementById('resetMapBtn');
@@ -873,25 +887,30 @@
         right: 16px !important;
         bottom: 30px !important;
         transform: none !important;
+        -webkit-transform: none !important;
       }
       .floating-chat-kofi-popup-iframe {
         left: unset !important;
         right: 16px !important;
         bottom: 30px !important;
         transform: none !important;
+        -webkit-transform: none !important;
       }
     }
     
-    @media (max-width: 768px) {
+    /* Mobile and iOS-specific positioning */
+    @media (max-width: 768px), (pointer: coarse) and (hover: none) {
       .floatingchat-container-wrap {
         left: 50% !important;
         transform: translateX(-50%) !important;
+        -webkit-transform: translateX(-50%) !important;
         right: unset !important;
         bottom: 20px !important;
       }
       .floating-chat-kofi-popup-iframe {
         left: 50% !important;
         transform: translateX(-50%) !important;
+        -webkit-transform: translateX(-50%) !important;
         right: unset !important;
         bottom: 80px !important;
       }
