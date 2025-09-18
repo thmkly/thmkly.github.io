@@ -49,8 +49,11 @@
           container: 'map',
           style: 'mapbox://styles/thmkly/clyup637d004201ri2tkpaywq',
           center: CONFIG.DEFAULT_CENTER,
-          zoom: CONFIG.getDefaultZoom()
-          // Removed projection: 'globe' to keep your original projection
+          zoom: CONFIG.getDefaultZoom(),
+          // Add touch event options for better mobile support
+          touchZoomRotate: true,
+          touchPitch: false,
+          dragRotate: false
         });
 
         map.on('load', () => {
@@ -139,55 +142,138 @@
       }
 
       setupMapEvents() {
-        ['clusters', 'unclustered-point'].forEach(layer => {
-          map.on('mouseenter', layer, () => map.getCanvas().style.cursor = 'pointer');
-          map.on('mouseleave', layer, () => map.getCanvas().style.cursor = '');
-        });
-
-        map.on('click', 'clusters', (e) => {
-          const features = map.queryRenderedFeatures(e.point, { layers: ['clusters'] });
-          if (!features.length) return;
-          
-          const clusterId = features[0].properties.cluster_id;
-          map.getSource('audio').getClusterExpansionZoom(clusterId, (err, zoom) => {
-            if (err) return;
-            map.getSource('audio').getClusterLeaves(clusterId, 100, 0, (_, leaves) => {
-              const bounds = new mapboxgl.LngLatBounds();
-              leaves.forEach(leaf => bounds.extend(leaf.geometry.coordinates));
-              map.fitBounds(bounds, { 
-                padding: { top: 50, bottom: 50, left: this.getLeftPadding(), right: 20 } 
-              });
+        // For desktop - show pointer cursor
+        if (!('ontouchstart' in window)) {
+          ['clusters', 'unclustered-point'].forEach(layer => {
+            map.on('mouseenter', layer, () => {
+              map.getCanvas().style.cursor = 'pointer';
+            });
+            map.on('mouseleave', layer, () => {
+              map.getCanvas().style.cursor = '';
             });
           });
-        });
+        }
 
-        map.on('mouseenter', 'clusters', (e) => {
-          // Cluster hover playlist removed - redundant with main playlist and mini info boxes
-        });
+        // Handle cluster clicks - use touchend for mobile
+        const clusterClickHandler = (e) => {
+          // Prevent default behavior
+          if (e.preventDefault) e.preventDefault();
+          
+          const features = map.queryRenderedFeatures(e.point, { layers: ['clusters'] });
+          
+          if (!features || features.length === 0) {
+            console.log('No cluster features found at point:', e.point);
+            return;
+          }
+          
+          const feature = features[0];
+          const clusterId = feature.properties.cluster_id;
+          const coordinates = feature.geometry.coordinates.slice();
+          
+          console.log('Cluster clicked:', clusterId, 'at', coordinates);
+          
+          const source = map.getSource('audio');
+          if (!source) {
+            console.error('Audio source not found');
+            return;
+          }
+          
+          // Use a simpler approach for mobile - just zoom in incrementally
+          if (window.innerWidth <= 768 || 'ontouchstart' in window) {
+            const currentZoom = map.getZoom();
+            const targetZoom = Math.min(currentZoom + 2, 16);
+            
+            console.log('Mobile cluster zoom from', currentZoom, 'to', targetZoom);
+            
+            map.flyTo({
+              center: coordinates,
+              zoom: targetZoom,
+              duration: 1000
+            });
+          } else {
+            // Desktop - use the expansion zoom
+            source.getClusterExpansionZoom(clusterId, (err, zoom) => {
+              if (err) {
+                console.error('Cluster expansion error:', err);
+                map.flyTo({
+                  center: coordinates,
+                  zoom: map.getZoom() + 2,
+                  duration: 1000
+                });
+                return;
+              }
+              
+              map.flyTo({
+                center: coordinates,
+                zoom: zoom,
+                duration: 1000
+              });
+            });
+          }
+        };
 
-        map.on('mouseleave', 'clusters', () => {
-          // Cluster hover playlist removed
-        });
+        // Add both click and touchend handlers
+        map.on('click', 'clusters', clusterClickHandler);
+        
+        // For iOS specifically, we need touchend
+        if ('ontouchstart' in window) {
+          map.on('touchend', 'clusters', (e) => {
+            // Convert touch event to have a point property like click events
+            if (e.originalEvent && e.originalEvent.changedTouches) {
+              const touch = e.originalEvent.changedTouches[0];
+              e.point = map.project([e.lngLat.lng, e.lngLat.lat]);
+            }
+            clusterClickHandler(e);
+          });
+        }
 
-        map.on('click', 'unclustered-point', (e) => {
-          const feature = e.features[0];
-          if (!feature) return;
+        // Handle individual point clicks
+        const pointClickHandler = (e) => {
+          if (e.preventDefault) e.preventDefault();
+          
+          const features = map.queryRenderedFeatures(e.point, { layers: ['unclustered-point'] });
+          
+          if (!features || features.length === 0) {
+            console.log('No point features found');
+            return;
+          }
+          
+          const feature = features[0];
           const originalIndex = parseInt(feature.properties.originalIndex);
           
-          // Find this track in the current sorted playlist
+          console.log('Point clicked with original index:', originalIndex);
+          
           const currentIndex = this.audioData.findIndex(track => track.originalIndex === originalIndex);
+          
           if (currentIndex !== -1) {
+            // Close mobile menu if open
+            if (uiController.isMobile && uiController.mobilePlaylistExpanded) {
+              uiController.collapseMobileMenu();
+            }
             this.playAudio(currentIndex);
+          } else {
+            console.error('Track not found in playlist');
           }
-        });
+        };
+
+        map.on('click', 'unclustered-point', pointClickHandler);
+        
+        // Add touchend for iOS
+        if ('ontouchstart' in window) {
+          map.on('touchend', 'unclustered-point', (e) => {
+            if (e.originalEvent && e.originalEvent.changedTouches) {
+              const touch = e.originalEvent.changedTouches[0];
+              e.point = map.project([e.lngLat.lng, e.lngLat.lat]);
+            }
+            pointClickHandler(e);
+          });
+        }
 
         map.on('move', () => {
-          // Update mini box positions in real-time during movement
           uiController.updateMiniInfoBoxPositions();
         });
 
         map.on('moveend', () => {
-          // Refresh mini boxes when movement is completely finished
           if (!this.isPositioning) {
             const visiblePoints = map.queryRenderedFeatures({ layers: ['unclustered-point'] });
             if (visiblePoints.length > 0 && visiblePoints.length < 50) {
@@ -199,11 +285,9 @@
         document.addEventListener('fullscreenchange', () => {
           uiController.isFullscreen = !!document.fullscreenElement;
           const btn = document.getElementById('fullscreenBtn');
-          btn.textContent = uiController.isFullscreen ? 'Exit Fullscreen' : 'Fullscreen';
-          btn.classList.toggle('active', uiController.isFullscreen);
-          
-          if (uiController.isFullscreen) {
-            // Removed redundant fullscreen message - browsers show native notification
+          if (btn) {
+            btn.textContent = uiController.isFullscreen ? 'Exit Fullscreen' : 'Fullscreen';
+            btn.classList.toggle('active', uiController.isFullscreen);
           }
         });
       }
@@ -212,7 +296,7 @@
         return uiController.playlistExpanded ? 370 : 20;
       }
 
-      loadAudioData() {
+      loadAudioData(retryCount = 0) {
         // Playlist wrapper is already hidden via CSS
         const playlistWrapper = document.getElementById('playlistWrapper');
         
@@ -222,10 +306,21 @@
         const url = `${CONFIG.GOOGLE_SCRIPT_URL}?nocache=${Date.now()}`;
         console.log('Fetching data from:', url);
         
-        fetch(url)
+        fetch(url, {
+          method: 'GET',
+          mode: 'cors',
+          cache: 'no-cache',
+          headers: {
+            'Content-Type': 'application/json',
+          }
+        })
           .then(response => {
             console.log('Response status:', response.status);
             console.log('Response headers:', response.headers);
+            
+            if (!response.ok) {
+              throw new Error(`HTTP error! status: ${response.status}`);
+            }
             return response.text();
           })
           .then(text => {
@@ -290,23 +385,31 @@
               
             } catch (parseError) {
               console.error('JSON Parse Error:', parseError);
-              // Hide loading notification and show error
-              hideNotification();
-              setTimeout(() => {
-                this.showLoadingError(`Invalid JSON response: ${parseError.message}`);
-              }, 100);
               throw new Error(`Invalid JSON response: ${parseError.message}`);
             }
           })
           .catch(e => {
             console.error('Load Error:', e);
             const errorMsg = e.message || 'Unknown error occurred';
-            // Hide loading notification and show error
-            hideNotification();
-            setTimeout(() => {
-              this.showLoadingError(`Failed to load recordings: ${errorMsg}`);
-              showNotification(`Error: ${errorMsg}`, 5000);
-            }, 100);
+            
+            // Retry logic for intermittent failures
+            if (retryCount < 3) {
+              console.log(`Retrying... attempt ${retryCount + 1} of 3`);
+              hideNotification();
+              setTimeout(() => {
+                showNotification(`Connection issue, retrying... (${retryCount + 1}/3)`, 2000);
+                setTimeout(() => {
+                  this.loadAudioData(retryCount + 1);
+                }, 2000);
+              }, 100);
+            } else {
+              // Hide loading notification and show error after max retries
+              hideNotification();
+              setTimeout(() => {
+                this.showLoadingError(`Failed to load recordings after 3 attempts: ${errorMsg}`);
+                showNotification(`Error: ${errorMsg}`, 5000);
+              }, 100);
+            }
           });
       }
 
@@ -489,7 +592,7 @@
         
         // Show collapse arrow now that playlist is rendered
         const toggleBtn = document.getElementById('playlistToggle');
-        toggleBtn.classList.add('visible');
+        if (toggleBtn) toggleBtn.classList.add('visible');
         
         uiController.updateScrollArrows();
         
@@ -811,11 +914,19 @@
         if (uiController.is3DEnabled) {
           uiController.is3DEnabled = false;
           const btn = document.getElementById('terrain3dBtn');
+          const btnMobile = document.getElementById('terrain3dBtnMobile');
+          if (btn) btn.classList.remove('active');
+          if (btnMobile) btnMobile.classList.remove('active');
           
           map.setTerrain(null);
           if (map.getSource('mapbox-dem')) {
             map.removeSource('mapbox-dem');
           }
+        }
+        
+        // Close mobile menu if open
+        if (uiController.isMobile && uiController.mobilePlaylistExpanded) {
+          uiController.collapseMobileMenu();
         }
         
         map.flyTo({
