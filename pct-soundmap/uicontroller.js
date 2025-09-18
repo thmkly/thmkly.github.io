@@ -125,18 +125,32 @@
           if (wasMobile !== this.isMobile) {
             const wrapper = document.getElementById('playlistWrapper');
             const hamburger = document.getElementById('hamburgerMenu');
+            
             if (this.isMobile) {
               // Switching to mobile
               wrapper.classList.remove('collapsed');
               wrapper.classList.remove('mobile-expanded');
-              if (hamburger) hamburger.classList.remove('active');
+              document.body.classList.remove('mobile-menu-open');
               this.mobilePlaylistExpanded = false;
               this.playlistExpanded = true; // Reset desktop state
+              
+              // Ensure hamburger is visible
+              if (hamburger) {
+                hamburger.style.display = 'flex';
+              }
             } else {
               // Switching to desktop
               wrapper.classList.remove('mobile-expanded');
-              if (hamburger) hamburger.classList.remove('active');
+              document.body.classList.remove('mobile-menu-open');
               this.mobilePlaylistExpanded = false;
+              
+              // Ensure playlist wrapper is visible on desktop
+              wrapper.style.display = 'flex';
+              
+              // Hide hamburger on desktop
+              if (hamburger) {
+                hamburger.style.display = 'none';
+              }
             }
           }
         });
