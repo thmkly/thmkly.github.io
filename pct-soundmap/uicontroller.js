@@ -100,8 +100,10 @@
         
         if (this.mobilePlaylistExpanded) {
           wrapper.classList.add('mobile-expanded');
+          document.body.classList.add('mobile-menu-open');
         } else {
           wrapper.classList.remove('mobile-expanded');
+          document.body.classList.remove('mobile-menu-open');
         }
       }
 
@@ -111,6 +113,7 @@
         const wrapper = document.getElementById('playlistWrapper');
         this.mobilePlaylistExpanded = false;
         wrapper.classList.remove('mobile-expanded');
+        document.body.classList.remove('mobile-menu-open');
       }
 
       setupResizeListener() {
