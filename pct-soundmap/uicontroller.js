@@ -96,15 +96,12 @@
         if (!this.isMobile) return;
         
         const wrapper = document.getElementById('playlistWrapper');
-        const hamburger = document.getElementById('hamburgerMenu');
         this.mobilePlaylistExpanded = !this.mobilePlaylistExpanded;
         
         if (this.mobilePlaylistExpanded) {
           wrapper.classList.add('mobile-expanded');
-          hamburger.classList.add('active');
         } else {
           wrapper.classList.remove('mobile-expanded');
-          hamburger.classList.remove('active');
         }
       }
 
@@ -112,10 +109,8 @@
         if (!this.isMobile) return;
         
         const wrapper = document.getElementById('playlistWrapper');
-        const hamburger = document.getElementById('hamburgerMenu');
         this.mobilePlaylistExpanded = false;
         wrapper.classList.remove('mobile-expanded');
-        hamburger.classList.remove('active');
       }
 
       setupResizeListener() {
