@@ -463,20 +463,40 @@
   .mobile-menu-close {
     display: none;
     position: absolute;
-    top: 10px;
-    right: 10px;
-    padding: 5px 10px;
+    top: 15px;
+    right: 15px;
+    width: 30px;
+    height: 30px;
+    padding: 0;
     background: transparent;
     border: none;
     cursor: pointer;
-    font-size: 14px;
-    color: #666;
-    font-weight: normal;
     z-index: 1002;
   }
 
-  .mobile-menu-close:hover {
-    color: #333;
+  .mobile-menu-close::before,
+  .mobile-menu-close::after {
+    content: '';
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    width: 20px;
+    height: 2px;
+    background-color: #666;
+    transform-origin: center;
+  }
+
+  .mobile-menu-close::before {
+    transform: translate(-50%, -50%) rotate(45deg);
+  }
+
+  .mobile-menu-close::after {
+    transform: translate(-50%, -50%) rotate(-45deg);
+  }
+
+  .mobile-menu-close:hover::before,
+  .mobile-menu-close:hover::after {
+    background-color: #333;
   }
 
   .mobile-playlist-toggle {
@@ -504,7 +524,7 @@
       display: none;
     }
 
-    /* Mobile playlist wrapper - slides in from left */
+    /* Mobile playlist wrapper - slides in from left with high z-index */
     .playlist-wrapper {
       position: fixed;
       top: 0;
@@ -515,7 +535,7 @@
       height: 100vh;
       background-color: rgba(255, 255, 255, 0.6);
       backdrop-filter: blur(10px);
-      z-index: 1000;
+      z-index: 10000; /* High z-index to be above ko-fi widget */
       border-radius: 0;
       box-shadow: 4px 0 20px rgba(0, 0, 0, 0.3);
       transition: transform 0.3s ease;
@@ -537,7 +557,7 @@
     /* Mobile controls integrated into playlist wrapper */
     .mobile-controls {
       display: block;
-      padding: 45px 15px 15px 15px; /* Reduced top padding since no hamburger */
+      padding: 15px; /* Uniform padding since close button is absolute positioned */
       border-bottom: 1px solid #ddd;
       background: rgba(255, 255, 255, 0.6);
       border-radius: 0;
@@ -665,8 +685,8 @@
 
   <div class="playlist-wrapper" id="playlistWrapper">
     <button class="playlist-toggle" id="playlistToggle" title="Collapse playlist">◀</button>
-    <!-- Mobile close button -->
-    <button class="mobile-menu-close" id="mobileMenuClose">Close</button>
+    <!-- Mobile close button (X) -->
+    <button class="mobile-menu-close" id="mobileMenuClose" aria-label="Close menu"></button>
     <!-- Mobile controls - hidden on desktop, shown on mobile inside playlist -->
     <div class="mobile-controls" style="display: none;">
       <div class="control-row">
@@ -888,7 +908,8 @@
     });
   </script>
   <style>
-    /* Ko-fi widget positioning overrides - desktop right, mobile center */
+    /* Ko-fi widget positioning overrides */
+    /* Desktop - right aligned */
     @media (min-width: 769px) {
       .floatingchat-container-wrap {
         left: unset !important;
@@ -906,21 +927,41 @@
       }
     }
     
-    /* Mobile and iOS-specific positioning */
-    @media (max-width: 768px), (pointer: coarse) and (hover: none) {
+    /* Mobile - centered, with iOS-specific handling */
+    @media (max-width: 768px) {
       .floatingchat-container-wrap {
+        position: fixed !important;
         left: 50% !important;
         transform: translateX(-50%) !important;
         -webkit-transform: translateX(-50%) !important;
         right: unset !important;
         bottom: 20px !important;
+        z-index: 9999 !important; /* Below playlist (10000) but above everything else */
       }
       .floating-chat-kofi-popup-iframe {
+        position: fixed !important;
         left: 50% !important;
         transform: translateX(-50%) !important;
         -webkit-transform: translateX(-50%) !important;
         right: unset !important;
         bottom: 80px !important;
+        z-index: 9999 !important;
+      }
+    }
+    
+    /* iOS Safari specific - uses -webkit-touch-callout as iOS indicator */
+    @supports (-webkit-touch-callout: none) {
+      .floatingchat-container-wrap {
+        position: fixed !important;
+        left: calc(50% - 30px) !important; /* Adjust for widget width */
+        transform: none !important;
+        -webkit-transform: none !important;
+      }
+      .floating-chat-kofi-popup-iframe {
+        position: fixed !important;
+        left: calc(50% - 150px) !important; /* Adjust for popup width */
+        transform: none !important;
+        -webkit-transform: none !important;
       }
     }
   </style>
