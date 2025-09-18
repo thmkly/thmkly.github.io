@@ -789,6 +789,7 @@
         if (hamburgerMenu) {
           hamburgerMenu.addEventListener('click', () => {
             playlistWrapper.classList.add('mobile-expanded');
+            document.body.classList.add('mobile-menu-open');
           });
         }
         
@@ -796,6 +797,7 @@
         if (mobileMenuClose) {
           mobileMenuClose.addEventListener('click', () => {
             playlistWrapper.classList.remove('mobile-expanded');
+            document.body.classList.remove('mobile-menu-open');
           });
         }
         
@@ -806,6 +808,7 @@
               !playlistWrapper.contains(e.target) &&
               playlistWrapper.classList.contains('mobile-expanded')) {
             playlistWrapper.classList.remove('mobile-expanded');
+            document.body.classList.remove('mobile-menu-open');
           }
         });
 
