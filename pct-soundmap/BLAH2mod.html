@@ -883,6 +883,7 @@
           const mobileBtn = document.getElementById('sort' + mode + 'Mobile');
           if (mobileBtn) {
             mobileBtn.addEventListener('click', () => {
+              // Don't collapse menu
               desktopBtn.click();
               // Sync active state
               document.querySelectorAll('#sortNoboMobile, #sortSoboMobile, #sortDateMobile').forEach(btn => {
@@ -898,6 +899,7 @@
         const randomToggleMobile = document.getElementById('randomToggleMobile');
         if (randomToggleMobile) {
           randomToggleMobile.addEventListener('click', () => {
+            // Don't collapse menu
             randomToggle.click();
             randomToggleMobile.classList.toggle('active');
           });
@@ -906,6 +908,20 @@
 
       // Initialize controls
       syncControls();
+      
+      // Force Ko-fi widget centering on mobile after it loads
+      if (window.innerWidth <= 768) {
+        setTimeout(() => {
+          const kofiWidget = document.querySelector('.floatingchat-container-wrap');
+          if (kofiWidget) {
+            kofiWidget.style.cssText = 'position: fixed !important; left: 50% !important; margin-left: -30px !important; bottom: 20px !important; z-index: 9000 !important;';
+          }
+          const kofiPopup = document.querySelector('.floating-chat-kofi-popup-iframe');
+          if (kofiPopup) {
+            kofiPopup.style.cssText = 'position: fixed !important; left: 50% !important; margin-left: -150px !important; bottom: 80px !important; z-index: 9000 !important;';
+          }
+        }, 2000); // Wait for Ko-fi to load
+      }
 
       // Initialize map data update after first load
       setTimeout(() => {
