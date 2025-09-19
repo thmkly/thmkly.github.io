@@ -558,8 +558,21 @@
         // Clear old mini boxes before positioning
         uiController.clearMiniInfoBoxes();
         
-        // Apply atmospheric lighting for this track
-        atmosphereController.transitionToTrack(track);
+        // Apply atmospheric lighting for this track (removed notification)
+        if (typeof atmosphereController !== 'undefined' && atmosphereController.transitionToTrack) {
+          // Apply without notification
+          const conditions = atmosphereController.getAtmosphericConditions(track);
+          atmosphereController.currentConditions = conditions;
+          atmosphereController.applyEnhancedSky(conditions);
+          atmosphereController.applyEnhancedFog(conditions);
+          atmosphereController.applyEnhanced3DEffects(conditions);
+          atmosphereController.applyFallbackAtmosphere(conditions);
+        }
+        
+        // Collapse mobile menu if in mobile mode and menu is open
+        if (uiController.isMobile && uiController.mobilePlaylistExpanded) {
+          uiController.collapseMobileMenu();
+        }
         
         // Add delay before positioning to prevent conflicts
         this.animationTimeout = setTimeout(() => {
