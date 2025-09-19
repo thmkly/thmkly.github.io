@@ -165,10 +165,10 @@
                 bounds.extend(leaf.geometry.coordinates);
               });
               
-              // Different padding for mobile vs desktop
+              // Enhanced padding to account for mini info boxes
               const padding = uiController.isMobile ? 
-                { top: 50, bottom: 50, left: 50, right: 50 } :  // Mobile: even padding
-                { top: 50, bottom: 50, left: this.getLeftPadding(), right: 50 }; // Desktop: account for playlist
+                { top: 100, bottom: 120, left: 80, right: 80 } :  // Mobile: extra padding for ko-fi widget bottom
+                { top: 80, bottom: 80, left: this.getLeftPadding() + 50, right: 100 }; // Desktop: extra padding for mini boxes
               
               map.fitBounds(bounds, { 
                 padding: padding,
@@ -665,7 +665,7 @@
         
         // Add 3D properties for smoother rainbow arc
         if (is3D) {
-          flyToOptions.pitch = 75;
+          flyToOptions.pitch = 82; // More immersive angle
           flyToOptions.bearing = map.getBearing();
           // Higher curve for ultra-smooth rainbow effect in 3D
           flyToOptions.curve = 2.5; // Even higher curve = smoother, more elevated arc
