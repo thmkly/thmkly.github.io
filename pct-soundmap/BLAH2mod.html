@@ -827,7 +827,6 @@
           hamburgerMenu.addEventListener('click', () => {
             playlistWrapper.classList.add('mobile-expanded');
             document.body.classList.add('mobile-menu-open');
-            uiController.mobilePlaylistExpanded = true;
           });
         }
         
@@ -836,7 +835,6 @@
           mobileMenuClose.addEventListener('click', () => {
             playlistWrapper.classList.remove('mobile-expanded');
             document.body.classList.remove('mobile-menu-open');
-            uiController.mobilePlaylistExpanded = false;
           });
         }
         
@@ -848,66 +846,62 @@
               playlistWrapper.classList.contains('mobile-expanded')) {
             playlistWrapper.classList.remove('mobile-expanded');
             document.body.classList.remove('mobile-menu-open');
-            uiController.mobilePlaylistExpanded = false;
           }
         });
 
-        // Sync reset buttons - call function directly, don't click desktop button
+        // Sync reset buttons - DON'T collapse menu
+        const resetBtn = document.getElementById('resetMapBtn');
         const resetBtnMobile = document.getElementById('resetMapBtnMobile');
         if (resetBtnMobile) {
           resetBtnMobile.addEventListener('click', () => {
-            mapController.resetMap();
+            // Don't collapse menu
+            resetBtn.click();
           });
         }
 
-        // Sync fullscreen buttons
-        const fullscreenBtnMobile = document.getElementById('fullscreenBtnMobile');
+        // Sync fullscreen buttons - DON'T collapse menu
+        const fullscreenBtn = document.getElementById('fullscreenBtn');
         if (fullscreenBtnMobile) {
           fullscreenBtnMobile.addEventListener('click', () => {
-            uiController.toggleFullscreen();
+            fullscreenBtn.click();
           });
         }
 
-        // Sync 3D terrain buttons
+        // Sync 3D terrain buttons - DON'T collapse menu
+        const terrain3dBtn = document.getElementById('terrain3dBtn');
         const terrain3dBtnMobile = document.getElementById('terrain3dBtnMobile');
         if (terrain3dBtnMobile) {
           terrain3dBtnMobile.addEventListener('click', () => {
+            // Don't collapse menu
             uiController.toggle3D();
           });
         }
 
-        // Sync sort buttons - call function directly
+        // Sync sort buttons - DON'T collapse menu
         ['Nobo', 'Sobo', 'Date'].forEach(mode => {
+          const desktopBtn = document.getElementById('sort' + mode);
           const mobileBtn = document.getElementById('sort' + mode + 'Mobile');
           if (mobileBtn) {
             mobileBtn.addEventListener('click', () => {
-              // Update active states
-              document.querySelectorAll('.sort-btn').forEach(btn => btn.classList.remove('active'));
+              // Don't collapse menu
+              desktopBtn.click();
+              // Sync active state
               document.querySelectorAll('#sortNoboMobile, #sortSoboMobile, #sortDateMobile').forEach(btn => {
                 btn.classList.remove('active');
               });
               mobileBtn.classList.add('active');
-              document.getElementById('sort' + mode).classList.add('active');
-              
-              // Set sort mode directly
-              const sortMap = {
-                'Nobo': 'nobo',
-                'Sobo': 'sobo',
-                'Date': 'date'
-              };
-              audioController.sortMode = sortMap[mode];
-              mapController.sortAndUpdatePlaylist();
             });
           }
         });
 
-        // Sync random toggle
+        // Sync random toggle - DON'T collapse menu
+        const randomToggle = document.getElementById('randomToggle');
         const randomToggleMobile = document.getElementById('randomToggleMobile');
         if (randomToggleMobile) {
           randomToggleMobile.addEventListener('click', () => {
-            audioController.playMode = audioController.playMode === 'random' ? 'sequential' : 'random';
+            // Don't collapse menu
+            randomToggle.click();
             randomToggleMobile.classList.toggle('active');
-            document.getElementById('randomToggle').classList.toggle('active');
           });
         }
       }
