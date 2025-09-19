@@ -849,21 +849,17 @@
           }
         });
 
-        // Sync reset buttons - collapse menu on mobile
+        // Sync reset buttons - DON'T collapse menu
         const resetBtn = document.getElementById('resetMapBtn');
         const resetBtnMobile = document.getElementById('resetMapBtnMobile');
         if (resetBtnMobile) {
           resetBtnMobile.addEventListener('click', () => {
-            // Collapse mobile menu when reset is clicked
-            if (window.innerWidth <= 768) {
-              playlistWrapper.classList.remove('mobile-expanded');
-              document.body.classList.remove('mobile-menu-open');
-            }
+            // Don't collapse menu
             resetBtn.click();
           });
         }
 
-        // Sync fullscreen buttons
+        // Sync fullscreen buttons - DON'T collapse menu
         const fullscreenBtn = document.getElementById('fullscreenBtn');
         if (fullscreenBtnMobile) {
           fullscreenBtnMobile.addEventListener('click', () => {
@@ -871,17 +867,12 @@
           });
         }
 
-        // Sync 3D terrain buttons - collapse menu on mobile
+        // Sync 3D terrain buttons - DON'T collapse menu
         const terrain3dBtn = document.getElementById('terrain3dBtn');
         const terrain3dBtnMobile = document.getElementById('terrain3dBtnMobile');
         if (terrain3dBtnMobile) {
           terrain3dBtnMobile.addEventListener('click', () => {
-            // Collapse mobile menu when 3D is clicked
-            if (window.innerWidth <= 768) {
-              playlistWrapper.classList.remove('mobile-expanded');
-              document.body.classList.remove('mobile-menu-open');
-            }
-            // Toggle 3D state directly
+            // Don't collapse menu
             uiController.toggle3D();
           });
         }
@@ -954,25 +945,39 @@
       }
     }
     
-    /* Mobile - centered with vw units */
+    /* Mobile - force centered position */
     @media (max-width: 768px) {
       .floatingchat-container-wrap {
         position: fixed !important;
-        left: calc(50vw - 30px) !important;
+        left: 50% !important;
+        margin-left: -30px !important; /* Half of widget width */
         transform: none !important;
         -webkit-transform: none !important;
         right: unset !important;
         bottom: 20px !important;
-        z-index: 9990 !important; /* Below playlist (10000) */
+        z-index: 9000 !important; /* Below playlist (10000) */
       }
       .floating-chat-kofi-popup-iframe {
         position: fixed !important;
-        left: calc(50vw - 150px) !important;
+        left: 50% !important;
+        margin-left: -150px !important; /* Half of popup width */
         transform: none !important;
         -webkit-transform: none !important;
         right: unset !important;
         bottom: 80px !important;
-        z-index: 9990 !important;
+        z-index: 9000 !important;
+      }
+    }
+    
+    /* Force on actual mobile devices */
+    @media only screen and (max-device-width: 768px) {
+      .floatingchat-container-wrap {
+        left: 50% !important;
+        margin-left: -30px !important;
+      }
+      .floating-chat-kofi-popup-iframe {
+        left: 50% !important;
+        margin-left: -150px !important;
       }
     }
   </style>
