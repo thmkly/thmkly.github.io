@@ -121,36 +121,51 @@
           const wasMobile = this.isMobile;
           this.isMobile = window.innerWidth <= 768;
           
-          // Reset mobile playlist state when switching between mobile/desktop
+          // Only handle if we're actually switching between mobile/desktop
           if (wasMobile !== this.isMobile) {
             const wrapper = document.getElementById('playlistWrapper');
             const hamburger = document.getElementById('hamburgerMenu');
             
             if (this.isMobile) {
-              // Switching to mobile
+              // Switching from desktop to mobile
+              const wasExpanded = this.playlistExpanded;
+              
+              // Clear desktop state
               wrapper.classList.remove('collapsed');
-              wrapper.classList.remove('mobile-expanded');
-              document.body.classList.remove('mobile-menu-open');
-              this.mobilePlaylistExpanded = false;
-              this.playlistExpanded = true; // Reset desktop state
               
-              // Ensure hamburger is visible
-              if (hamburger) {
-                hamburger.style.display = 'flex';
+              // Apply mobile state based on previous desktop state
+              if (wasExpanded) {
+                wrapper.classList.add('mobile-expanded');
+                document.body.classList.add('mobile-menu-open');
+                this.mobilePlaylistExpanded = true;
+              } else {
+                wrapper.classList.remove('mobile-expanded');
+                document.body.classList.remove('mobile-menu-open');
+                this.mobilePlaylistExpanded = false;
               }
-            } else {
-              // Switching to desktop
-              wrapper.classList.remove('mobile-expanded');
-              document.body.classList.remove('mobile-menu-open');
-              this.mobilePlaylistExpanded = false;
               
-              // Ensure playlist wrapper is visible on desktop
+              // Ensure wrapper is visible
               wrapper.style.display = 'flex';
               
-              // Hide hamburger on desktop
-              if (hamburger) {
-                hamburger.style.display = 'none';
+            } else {
+              // Switching from mobile to desktop
+              const wasExpanded = this.mobilePlaylistExpanded;
+              
+              // Clear mobile state
+              wrapper.classList.remove('mobile-expanded');
+              document.body.classList.remove('mobile-menu-open');
+              
+              // Apply desktop state based on previous mobile state
+              if (wasExpanded) {
+                wrapper.classList.remove('collapsed');
+                this.playlistExpanded = true;
+              } else {
+                wrapper.classList.add('collapsed');
+                this.playlistExpanded = false;
               }
+              
+              // Ensure wrapper is visible
+              wrapper.style.display = 'flex';
             }
           }
         });
