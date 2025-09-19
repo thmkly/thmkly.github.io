@@ -142,138 +142,65 @@
       }
 
       setupMapEvents() {
-        // For desktop - show pointer cursor
-        if (!('ontouchstart' in window)) {
-          ['clusters', 'unclustered-point'].forEach(layer => {
-            map.on('mouseenter', layer, () => {
-              map.getCanvas().style.cursor = 'pointer';
-            });
-            map.on('mouseleave', layer, () => {
-              map.getCanvas().style.cursor = '';
-            });
-          });
-        }
+        ['clusters', 'unclustered-point'].forEach(layer => {
+          map.on('mouseenter', layer, () => map.getCanvas().style.cursor = 'pointer');
+          map.on('mouseleave', layer, () => map.getCanvas().style.cursor = '');
+        });
 
-        // Handle cluster clicks - use touchend for mobile
-        const clusterClickHandler = (e) => {
-          // Prevent default behavior
-          if (e.preventDefault) e.preventDefault();
-          
+        // Revert to original cluster logic - fit all points in view
+        map.on('click', 'clusters', (e) => {
           const features = map.queryRenderedFeatures(e.point, { layers: ['clusters'] });
+          if (!features.length) return;
           
-          if (!features || features.length === 0) {
-            console.log('No cluster features found at point:', e.point);
-            return;
-          }
-          
-          const feature = features[0];
-          const clusterId = feature.properties.cluster_id;
-          const coordinates = feature.geometry.coordinates.slice();
-          
-          console.log('Cluster clicked:', clusterId, 'at', coordinates);
-          
-          const source = map.getSource('audio');
-          if (!source) {
-            console.error('Audio source not found');
-            return;
-          }
-          
-          // Use a simpler approach for mobile - just zoom in incrementally
-          if (window.innerWidth <= 768 || 'ontouchstart' in window) {
-            const currentZoom = map.getZoom();
-            const targetZoom = Math.min(currentZoom + 2, 16);
+          const clusterId = features[0].properties.cluster_id;
+          map.getSource('audio').getClusterExpansionZoom(clusterId, (err, zoom) => {
+            if (err) return;
             
-            console.log('Mobile cluster zoom from', currentZoom, 'to', targetZoom);
-            
-            map.flyTo({
-              center: coordinates,
-              zoom: targetZoom,
-              duration: 1000
-            });
-          } else {
-            // Desktop - use the expansion zoom
-            source.getClusterExpansionZoom(clusterId, (err, zoom) => {
-              if (err) {
-                console.error('Cluster expansion error:', err);
-                map.flyTo({
-                  center: coordinates,
-                  zoom: map.getZoom() + 2,
-                  duration: 1000
-                });
-                return;
-              }
+            // Get all points in the cluster to calculate bounds
+            map.getSource('audio').getClusterLeaves(clusterId, 100, 0, (err, leaves) => {
+              if (err) return;
               
-              map.flyTo({
-                center: coordinates,
-                zoom: zoom,
-                duration: 1000
+              const bounds = new mapboxgl.LngLatBounds();
+              leaves.forEach(leaf => {
+                bounds.extend(leaf.geometry.coordinates);
+              });
+              
+              // Different padding for mobile vs desktop
+              const padding = uiController.isMobile ? 
+                { top: 50, bottom: 50, left: 50, right: 50 } :  // Mobile: even padding
+                { top: 50, bottom: 50, left: this.getLeftPadding(), right: 50 }; // Desktop: account for playlist
+              
+              map.fitBounds(bounds, { 
+                padding: padding,
+                maxZoom: 14  // Prevent zooming in too far
               });
             });
-          }
-        };
-
-        // Add both click and touchend handlers
-        map.on('click', 'clusters', clusterClickHandler);
-        
-        // For iOS specifically, we need touchend
-        if ('ontouchstart' in window) {
-          map.on('touchend', 'clusters', (e) => {
-            // Convert touch event to have a point property like click events
-            if (e.originalEvent && e.originalEvent.changedTouches) {
-              const touch = e.originalEvent.changedTouches[0];
-              e.point = map.project([e.lngLat.lng, e.lngLat.lat]);
-            }
-            clusterClickHandler(e);
           });
-        }
+        });
 
-        // Handle individual point clicks
-        const pointClickHandler = (e) => {
-          if (e.preventDefault) e.preventDefault();
-          
-          const features = map.queryRenderedFeatures(e.point, { layers: ['unclustered-point'] });
-          
-          if (!features || features.length === 0) {
-            console.log('No point features found');
-            return;
-          }
-          
-          const feature = features[0];
+        map.on('click', 'unclustered-point', (e) => {
+          const feature = e.features[0];
+          if (!feature) return;
           const originalIndex = parseInt(feature.properties.originalIndex);
           
-          console.log('Point clicked with original index:', originalIndex);
-          
+          // Find this track in the current sorted playlist
           const currentIndex = this.audioData.findIndex(track => track.originalIndex === originalIndex);
-          
           if (currentIndex !== -1) {
             // Close mobile menu if open
             if (uiController.isMobile && uiController.mobilePlaylistExpanded) {
               uiController.collapseMobileMenu();
             }
             this.playAudio(currentIndex);
-          } else {
-            console.error('Track not found in playlist');
           }
-        };
-
-        map.on('click', 'unclustered-point', pointClickHandler);
-        
-        // Add touchend for iOS
-        if ('ontouchstart' in window) {
-          map.on('touchend', 'unclustered-point', (e) => {
-            if (e.originalEvent && e.originalEvent.changedTouches) {
-              const touch = e.originalEvent.changedTouches[0];
-              e.point = map.project([e.lngLat.lng, e.lngLat.lat]);
-            }
-            pointClickHandler(e);
-          });
-        }
+        });
 
         map.on('move', () => {
+          // Update mini box positions in real-time during movement
           uiController.updateMiniInfoBoxPositions();
         });
 
         map.on('moveend', () => {
+          // Refresh mini boxes when movement is completely finished
           if (!this.isPositioning) {
             const visiblePoints = map.queryRenderedFeatures({ layers: ['unclustered-point'] });
             if (visiblePoints.length > 0 && visiblePoints.length < 50) {
@@ -574,7 +501,7 @@
           div.appendChild(trackMile);
           
           div.addEventListener('click', (e) => {
-            // Collapse mobile menu immediately when track is clicked
+            // Only collapse mobile menu when clicking playlist tracks, not controls
             if (uiController.isMobile && uiController.mobilePlaylistExpanded) {
               uiController.collapseMobileMenu();
             }
