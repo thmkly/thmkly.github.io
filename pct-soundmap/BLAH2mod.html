@@ -100,7 +100,14 @@
     padding: 4px 0;
     user-select: none;
     cursor: pointer;
-    display: none;
+    display: block; /* Always visible */
+    transition: opacity 0.2s, color 0.2s;
+  }
+
+  .scroll-arrow.disabled {
+    color: #ccc;
+    opacity: 0.3;
+    cursor: default;
   }
 
   .track {
@@ -691,7 +698,6 @@
     <div class="mobile-controls" style="display: none;">
       <div class="control-row">
         <button class="control-btn" id="resetMapBtnMobile" title="Reset view and stop playback">Reset Map</button>
-        <button class="control-btn" id="fullscreenBtnMobile" title="Fullscreen on/off">Fullscreen</button>
         <button class="control-btn" id="terrain3dBtnMobile" title="3D terrain on/off">3D Terrain</button>
       </div>
       <div class="sort-controls">
@@ -832,34 +838,37 @@
           }
         });
 
-        // Sync reset buttons
+        // Sync reset buttons - collapse menu on mobile
         const resetBtn = document.getElementById('resetMapBtn');
         const resetBtnMobile = document.getElementById('resetMapBtnMobile');
         if (resetBtnMobile) {
           resetBtnMobile.addEventListener('click', () => {
+            // Collapse mobile menu when reset is clicked
+            if (window.innerWidth <= 768) {
+              playlistWrapper.classList.remove('mobile-expanded');
+              document.body.classList.remove('mobile-menu-open');
+            }
             resetBtn.click();
           });
         }
 
-        // Sync fullscreen buttons
-        const fullscreenBtn = document.getElementById('fullscreenBtn');
-        const fullscreenBtnMobile = document.getElementById('fullscreenBtnMobile');
-        if (fullscreenBtnMobile) {
-          fullscreenBtnMobile.addEventListener('click', () => {
-            fullscreenBtn.click();
-          });
-        }
-
-        // Sync 3D terrain buttons
+        // Sync 3D terrain buttons - collapse menu on mobile
         const terrain3dBtn = document.getElementById('terrain3dBtn');
         const terrain3dBtnMobile = document.getElementById('terrain3dBtnMobile');
         if (terrain3dBtnMobile) {
           terrain3dBtnMobile.addEventListener('click', () => {
+            // Collapse mobile menu when 3D is clicked
+            if (window.innerWidth <= 768) {
+              playlistWrapper.classList.remove('mobile-expanded');
+              document.body.classList.remove('mobile-menu-open');
+            }
             terrain3dBtn.click();
+            // Sync the active state
+            terrain3dBtnMobile.classList.toggle('active');
           });
         }
 
-        // Sync sort buttons
+        // Sync sort buttons - DON'T collapse menu
         ['Nobo', 'Sobo', 'Date'].forEach(mode => {
           const desktopBtn = document.getElementById('sort' + mode);
           const mobileBtn = document.getElementById('sort' + mode + 'Mobile');
@@ -875,7 +884,7 @@
           }
         });
 
-        // Sync random toggle
+        // Sync random toggle - DON'T collapse menu
         const randomToggle = document.getElementById('randomToggle');
         const randomToggleMobile = document.getElementById('randomToggleMobile');
         if (randomToggleMobile) {
@@ -927,41 +936,31 @@
       }
     }
     
-    /* Mobile - centered, with iOS-specific handling */
+    /* Mobile - centered with iOS support */
     @media (max-width: 768px) {
       .floatingchat-container-wrap {
         position: fixed !important;
         left: 50% !important;
-        transform: translateX(-50%) !important;
-        -webkit-transform: translateX(-50%) !important;
+        left: calc(50% - 30px) !important; /* Fallback for calc support */
+        left: calc(50% - env(safe-area-inset-right, 0px) - 30px) !important; /* iOS safe area */
+        transform: none !important;
+        -webkit-transform: none !important;
         right: unset !important;
         bottom: 20px !important;
-        z-index: 9999 !important; /* Below playlist (10000) but above everything else */
+        bottom: calc(20px + env(safe-area-inset-bottom, 0px)) !important; /* iOS bottom safe area */
+        z-index: 9990 !important; /* Below playlist (10000) */
       }
       .floating-chat-kofi-popup-iframe {
         position: fixed !important;
         left: 50% !important;
-        transform: translateX(-50%) !important;
-        -webkit-transform: translateX(-50%) !important;
+        left: calc(50% - 150px) !important;
+        left: calc(50% - env(safe-area-inset-right, 0px) - 150px) !important;
+        transform: none !important;
+        -webkit-transform: none !important;
         right: unset !important;
         bottom: 80px !important;
-        z-index: 9999 !important;
-      }
-    }
-    
-    /* iOS Safari specific - uses -webkit-touch-callout as iOS indicator */
-    @supports (-webkit-touch-callout: none) {
-      .floatingchat-container-wrap {
-        position: fixed !important;
-        left: calc(50% - 30px) !important; /* Adjust for widget width */
-        transform: none !important;
-        -webkit-transform: none !important;
-      }
-      .floating-chat-kofi-popup-iframe {
-        position: fixed !important;
-        left: calc(50% - 150px) !important; /* Adjust for popup width */
-        transform: none !important;
-        -webkit-transform: none !important;
+        bottom: calc(80px + env(safe-area-inset-bottom, 0px)) !important;
+        z-index: 9990 !important;
       }
     }
   </style>
