@@ -864,23 +864,29 @@
           if (btn) btn.classList.remove('active');
           if (btnMobile) btnMobile.classList.remove('active');
           
+          // Disable drag rotation
+          if (map.dragRotate) map.dragRotate.disable();
+          
           map.setTerrain(null);
           if (map.getSource('mapbox-dem')) {
             map.removeSource('mapbox-dem');
           }
         }
         
-        // Close mobile menu if open
-        if (uiController.isMobile && uiController.mobilePlaylistExpanded) {
-          uiController.collapseMobileMenu();
-        }
+        // Don't close mobile menu
+        
+        // Fix centering with proper padding
+        const padding = uiController.isMobile ? 
+          { top: 20, bottom: 20, left: 20, right: 20 } :  // Mobile: even padding
+          { top: 20, bottom: 20, left: uiController.playlistExpanded ? 370 : 20, right: 20 }; // Desktop: account for playlist
         
         map.flyTo({
           center: CONFIG.DEFAULT_CENTER,
           zoom: CONFIG.getDefaultZoom(),
           pitch: 0,
           bearing: 0,
-          duration: 2000
+          duration: 2000,
+          padding: padding
         });
         
         document.querySelectorAll('.track').forEach(el => el.classList.remove('active-track'));
