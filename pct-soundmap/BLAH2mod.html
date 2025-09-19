@@ -827,6 +827,7 @@
           hamburgerMenu.addEventListener('click', () => {
             playlistWrapper.classList.add('mobile-expanded');
             document.body.classList.add('mobile-menu-open');
+            uiController.mobilePlaylistExpanded = true;
           });
         }
         
@@ -835,6 +836,7 @@
           mobileMenuClose.addEventListener('click', () => {
             playlistWrapper.classList.remove('mobile-expanded');
             document.body.classList.remove('mobile-menu-open');
+            uiController.mobilePlaylistExpanded = false;
           });
         }
         
@@ -846,62 +848,66 @@
               playlistWrapper.classList.contains('mobile-expanded')) {
             playlistWrapper.classList.remove('mobile-expanded');
             document.body.classList.remove('mobile-menu-open');
+            uiController.mobilePlaylistExpanded = false;
           }
         });
 
-        // Sync reset buttons - DON'T collapse menu
-        const resetBtn = document.getElementById('resetMapBtn');
+        // Sync reset buttons - call function directly, don't click desktop button
         const resetBtnMobile = document.getElementById('resetMapBtnMobile');
         if (resetBtnMobile) {
           resetBtnMobile.addEventListener('click', () => {
-            // Don't collapse menu
-            resetBtn.click();
+            mapController.resetMap();
           });
         }
 
-        // Sync fullscreen buttons - DON'T collapse menu
-        const fullscreenBtn = document.getElementById('fullscreenBtn');
+        // Sync fullscreen buttons
+        const fullscreenBtnMobile = document.getElementById('fullscreenBtnMobile');
         if (fullscreenBtnMobile) {
           fullscreenBtnMobile.addEventListener('click', () => {
-            fullscreenBtn.click();
+            uiController.toggleFullscreen();
           });
         }
 
-        // Sync 3D terrain buttons - DON'T collapse menu
-        const terrain3dBtn = document.getElementById('terrain3dBtn');
+        // Sync 3D terrain buttons
         const terrain3dBtnMobile = document.getElementById('terrain3dBtnMobile');
         if (terrain3dBtnMobile) {
           terrain3dBtnMobile.addEventListener('click', () => {
-            // Don't collapse menu
             uiController.toggle3D();
           });
         }
 
-        // Sync sort buttons - DON'T collapse menu
+        // Sync sort buttons - call function directly
         ['Nobo', 'Sobo', 'Date'].forEach(mode => {
-          const desktopBtn = document.getElementById('sort' + mode);
           const mobileBtn = document.getElementById('sort' + mode + 'Mobile');
           if (mobileBtn) {
             mobileBtn.addEventListener('click', () => {
-              // Don't collapse menu
-              desktopBtn.click();
-              // Sync active state
+              // Update active states
+              document.querySelectorAll('.sort-btn').forEach(btn => btn.classList.remove('active'));
               document.querySelectorAll('#sortNoboMobile, #sortSoboMobile, #sortDateMobile').forEach(btn => {
                 btn.classList.remove('active');
               });
               mobileBtn.classList.add('active');
+              document.getElementById('sort' + mode).classList.add('active');
+              
+              // Set sort mode directly
+              const sortMap = {
+                'Nobo': 'nobo',
+                'Sobo': 'sobo',
+                'Date': 'date'
+              };
+              audioController.sortMode = sortMap[mode];
+              mapController.sortAndUpdatePlaylist();
             });
           }
         });
 
-        // Sync random toggle - DON'T collapse menu
-        const randomToggle = document.getElementById('randomToggle');
+        // Sync random toggle
         const randomToggleMobile = document.getElementById('randomToggleMobile');
         if (randomToggleMobile) {
           randomToggleMobile.addEventListener('click', () => {
-            // Don't collapse menu
-            randomToggle.click();
+            audioController.playMode = audioController.playMode === 'random' ? 'sequential' : 'random';
             randomToggleMobile.classList.toggle('active');
+            document.getElementById('randomToggle').classList.toggle('active');
           });
         }
       }
@@ -910,18 +916,30 @@
       syncControls();
       
       // Force Ko-fi widget centering on mobile after it loads
-      if (window.innerWidth <= 768) {
-        setTimeout(() => {
-          const kofiWidget = document.querySelector('.floatingchat-container-wrap');
+      function centerKofiWidget() {
+        const kofiWidget = document.querySelector('.floatingchat-container-wrap');
+        const kofiPopup = document.querySelector('.floating-chat-kofi-popup-iframe');
+        
+        if (window.innerWidth <= 768) {
           if (kofiWidget) {
-            kofiWidget.style.cssText = 'position: fixed !important; left: 50% !important; margin-left: -30px !important; bottom: 20px !important; z-index: 9000 !important;';
+            // Force override all styles with inline CSS
+            kofiWidget.setAttribute('style', 'position: fixed !important; left: 50% !important; margin-left: -30px !important; transform: none !important; -webkit-transform: none !important; right: unset !important; bottom: 20px !important; z-index: 9000 !important;');
           }
-          const kofiPopup = document.querySelector('.floating-chat-kofi-popup-iframe');
           if (kofiPopup) {
-            kofiPopup.style.cssText = 'position: fixed !important; left: 50% !important; margin-left: -150px !important; bottom: 80px !important; z-index: 9000 !important;';
+            kofiPopup.setAttribute('style', 'position: fixed !important; left: 50% !important; margin-left: -150px !important; transform: none !important; -webkit-transform: none !important; right: unset !important; bottom: 80px !important; z-index: 9000 !important;');
           }
-        }, 2000); // Wait for Ko-fi to load
+        }
       }
+      
+      // Try multiple times to ensure Ko-fi is centered
+      setTimeout(centerKofiWidget, 1000);
+      setTimeout(centerKofiWidget, 2000);
+      setTimeout(centerKofiWidget, 3000);
+      
+      // Also center on window resize
+      window.addEventListener('resize', () => {
+        setTimeout(centerKofiWidget, 100);
+      });
 
       // Initialize map data update after first load
       setTimeout(() => {
