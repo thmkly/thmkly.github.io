@@ -1,0 +1,1019 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>A Soundmap of the PCT, Stereo 2023</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <link href="https://api.mapbox.com/mapbox-gl-js/v3.8.0/mapbox-gl.css" rel="stylesheet" />
+<style>
+  body {
+    margin: 0;
+    padding: 0;
+    font-family: helvetica, sans-serif;
+  }
+
+  #map {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    width: 100%;
+  }
+
+  /* Playlist Styles */
+  .playlist-wrapper {
+    position: absolute;
+    top: 30px;
+    left: 10px;
+    width: 350px;
+    max-height: 90vh;
+    border-radius: 5px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+    background-color: rgba(255, 255, 255, 0.75);
+    font-family: helvetica;
+    font-size: small;
+    display: none; /* Initially hidden to prevent flash */
+    flex-direction: column;
+    align-items: stretch;
+    z-index: 2;
+    transition: transform 0.3s ease;
+  }
+
+  .playlist-wrapper.collapsed {
+    transform: translateX(-360px);
+  }
+
+  .playlist-toggle {
+    position: absolute;
+    right: -30px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 30px;
+    height: 60px;
+    background-color: rgba(255, 255, 255, 0.75);
+    border: none;
+    border-radius: 0 5px 5px 0;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 16px;
+    color: #333;
+    box-shadow: 2px 0 5px rgba(0, 0, 0, 0.2);
+    z-index: 3;
+    transition: background-color 0.2s;
+    opacity: 0;
+    transition: opacity 0.3s ease, background-color 0.2s;
+  }
+
+  .playlist-toggle.visible {
+    opacity: 1;
+  }
+
+  .playlist-toggle:hover {
+    background-color: rgba(255, 255, 255, 0.9);
+  }
+
+  .playlist-wrapper:not(.collapsed) .playlist-toggle {
+    background-color: transparent;
+    box-shadow: none;
+  }
+
+  .playlist {
+    overflow-y: auto;
+    max-height: 85vh;
+    padding: 5px;
+    cursor: grab;
+    user-select: none;
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+  }
+
+  .playlist.dragging {
+    cursor: grabbing;
+  }
+
+  .scroll-arrow {
+    text-align: center;
+    font-size: 12px;
+    color: black;
+    padding: 4px 0;
+    user-select: none;
+    cursor: pointer;
+    display: block; /* Always visible */
+    transition: opacity 0.2s, color 0.2s;
+  }
+
+  .scroll-arrow.disabled {
+    color: #ccc;
+    opacity: 0.3;
+    cursor: default;
+  }
+
+  .track {
+    cursor: pointer;
+    padding: 5px;
+    margin: 1px;
+    border-bottom: 1px solid #ccc;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .track:hover {
+    background-color: #f0f0f0;
+  }
+
+  .active-track {
+    background-color: #d0d0d0;
+  }
+
+  .track-info {
+    flex: 1;
+  }
+
+  .track-mile {
+    font-size: 0.8em;
+    color: #666;
+    min-width: 40px;
+    text-align: right;
+  }
+
+  /* Control Panel */
+  .control-panel {
+    position: absolute;
+    top: 25px;
+    right: 25px;
+    background-color: rgba(255, 255, 255, 0.9);
+    border-radius: 5px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+    padding: 10px;
+    z-index: 2;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .control-row {
+    display: flex;
+    gap: 8px;
+  }
+
+  .control-btn {
+    padding: 6px 12px;
+    border: 1px solid #ccc;
+    border-radius: 3px;
+    background-color: white;
+    cursor: pointer;
+    font-size: 12px;
+    transition: all 0.2s;
+  }
+
+  .control-btn:hover {
+    background-color: #f0f0f0;
+  }
+
+  .control-btn.active {
+    background-color: #5c3a2e;
+    color: white;
+    border-color: #5c3a2e;
+  }
+
+  .sort-controls {
+    display: flex;
+    gap: 4px;
+    align-items: center;
+  }
+
+  .sort-btn {
+    padding: 4px 8px;
+    font-size: 11px;
+  }
+
+  .random-control {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-left: 8px;
+  }
+
+  .random-label {
+    font-size: 11px;
+    color: #333;
+  }
+
+  .toggle-switch {
+    position: relative;
+    width: 36px;
+    height: 18px;
+    background-color: #ccc;
+    border-radius: 9px;
+    cursor: pointer;
+    transition: background-color 0.3s;
+  }
+
+  .toggle-switch.active {
+    background-color: #5c3a2e;
+  }
+
+  .toggle-slider {
+    position: absolute;
+    top: 2px;
+    left: 2px;
+    width: 14px;
+    height: 14px;
+    background-color: white;
+    border-radius: 50%;
+    transition: transform 0.3s;
+  }
+
+  .toggle-switch.active .toggle-slider {
+    transform: translateX(18px);
+  }
+
+  /* Mini Info Boxes */
+  .mini-infobox {
+    position: absolute;
+    background: rgba(255, 255, 255, 0.85);
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    padding: 4px 8px;
+    font-size: 11px;
+    color: #333;
+    pointer-events: auto;
+    cursor: pointer;
+    z-index: 1;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    max-width: 200px;
+    white-space: nowrap;
+    overflow: visible;
+    transition: background-color 0.2s;
+  }
+
+  .mini-infobox:hover {
+    background: rgba(240, 240, 240, 0.9);
+  }
+
+  .mini-infobox-title {
+    flex: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    cursor: pointer;
+  }
+
+  .play-icon {
+    width: 0;
+    height: 0;
+    border-left: 6px solid #5c3a2e;
+    border-top: 4px solid transparent;
+    border-bottom: 4px solid transparent;
+    flex-shrink: 0;
+    cursor: pointer;
+  }
+
+  .play-icon:hover {
+    border-left-color: #4a2e24;
+  }
+
+  /* Popup Controls */
+  .popup-controls {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 10px;
+    margin: 8px 0;
+    position: relative;
+  }
+
+  .nav-arrow {
+    background: transparent;
+    color: #333;
+    border: 1px solid #ccc;
+    border-radius: 3px;
+    padding: 8px 12px;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: bold;
+    transition: all 0.2s;
+    min-width: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .nav-arrow:hover {
+    background: #f0f0f0;
+    color: #000;
+  }
+
+  .nav-arrow:disabled {
+    background: transparent;
+    color: #ccc;
+    border-color: #eee;
+    cursor: not-allowed;
+  }
+
+  .audio-container {
+    flex: 1;
+    margin: 0 10px;
+  }
+
+  /* Cluster Playlist */
+  .cluster-playlist {
+    position: absolute;
+    background: rgba(255, 255, 255, 0.85);
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    padding: 4px;
+    font-size: 11px;
+    max-width: 250px;
+    max-height: 200px;
+    overflow-y: auto;
+    z-index: 1000;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+  }
+
+  .cluster-item {
+    padding: 4px 8px;
+    cursor: pointer;
+    border-bottom: 1px solid #eee;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    transition: background-color 0.2s;
+    border-radius: 2px;
+    margin: 1px 0;
+  }
+
+  .cluster-item:hover {
+    background-color: rgba(240, 240, 240, 0.9);
+  }
+
+  .cluster-item:last-child {
+    border-bottom: none;
+  }
+
+  .cluster-item-title {
+    flex: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .cluster-item .play-icon {
+    width: 0;
+    height: 0;
+    border-left: 5px solid #5c3a2e;
+    border-top: 3px solid transparent;
+    border-bottom: 3px solid transparent;
+    flex-shrink: 0;
+  }
+
+  .cluster-item:hover .play-icon {
+    border-left-color: #4a2e24;
+  }
+
+  /* Map Controls */
+  .mapboxgl-canvas {
+    cursor: grab;
+  }
+
+  .mapboxgl-popup {
+    z-index: 10 !important;
+  }
+
+  .mapboxgl-popup-content {
+    opacity: 0.8;
+    transition: opacity 0.3s ease;
+    min-width: 320px;
+    max-width: 90vw;
+    box-sizing: border-box;
+  }
+
+  .mapboxgl-popup-close-button:focus {
+    outline: none;
+    box-shadow: none;
+  }
+
+  .loading-placeholder {
+    text-align: center;
+    color: #555;
+    padding: 8px;
+  }
+
+  /* Notification Messages */
+  .notification {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: rgba(0, 0, 0, 0.7);
+    color: white;
+    padding: 12px 20px;
+    border-radius: 6px;
+    font-size: 14px;
+    z-index: 10000;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+  }
+
+  .notification.show {
+    opacity: 1;
+  }
+
+  /* Mobile controls - hidden on desktop */
+  .mobile-controls {
+    display: none;
+  }
+
+  /* Hamburger menu button */
+  .hamburger-menu {
+    display: none;
+    position: fixed;
+    top: 15px;
+    left: 15px;
+    width: 40px;
+    height: 40px;
+    padding: 0;
+    background: rgba(255, 255, 255, 0.6);
+    backdrop-filter: blur(10px);
+    border: 1px solid #ccc;
+    border-radius: 5px;
+    cursor: pointer;
+    z-index: 1001;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+    transition: background-color 0.2s;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .hamburger-menu:hover {
+    background-color: rgba(255, 255, 255, 0.7);
+  }
+
+  .hamburger-menu span {
+    display: block;
+    width: 22px;
+    height: 2px;
+    background-color: #333;
+    transition: all 0.3s;
+  }
+
+  /* Mobile close button */
+  .mobile-menu-close {
+    display: none;
+    position: absolute;
+    top: 15px;
+    right: 15px;
+    width: 30px;
+    height: 30px;
+    padding: 0;
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    z-index: 1002;
+  }
+
+  .mobile-menu-close::before,
+  .mobile-menu-close::after {
+    content: '';
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    width: 20px;
+    height: 2px;
+    background-color: #666;
+    transform-origin: center;
+  }
+
+  .mobile-menu-close::before {
+    transform: translate(-50%, -50%) rotate(45deg);
+  }
+
+  .mobile-menu-close::after {
+    transform: translate(-50%, -50%) rotate(-45deg);
+  }
+
+  .mobile-menu-close:hover::before,
+  .mobile-menu-close:hover::after {
+    background-color: #333;
+  }
+
+  .mobile-playlist-toggle {
+    display: none;
+  }
+
+  .mobile-playlist-collapse {
+    display: none;
+  }
+
+  /* Mobile Layout */
+  @media (max-width: 768px) {
+    /* Hide desktop control panel on mobile */
+    .control-panel {
+      display: none;
+    }
+
+    /* Show hamburger menu on mobile */
+    .hamburger-menu {
+      display: flex;
+    }
+    
+    /* Hide hamburger when menu is expanded */
+    body.mobile-menu-open .hamburger-menu {
+      display: none;
+    }
+
+    /* Mobile playlist wrapper - slides in from left with high z-index */
+    .playlist-wrapper {
+      position: fixed;
+      top: 0;
+      left: 0;
+      transform: translateX(-100%);
+      width: calc(100vw - 50px);
+      max-width: 350px;
+      height: 100vh;
+      background-color: rgba(255, 255, 255, 0.6);
+      backdrop-filter: blur(10px);
+      z-index: 10000; /* High z-index to be above ko-fi widget */
+      border-radius: 0;
+      box-shadow: 4px 0 20px rgba(0, 0, 0, 0.3);
+      transition: transform 0.3s ease;
+      display: flex;
+      flex-direction: column;
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    .playlist-wrapper.mobile-expanded {
+      transform: translateX(0);
+    }
+
+    /* Show close button when menu is expanded */
+    .playlist-wrapper.mobile-expanded .mobile-menu-close {
+      display: block;
+    }
+
+    /* Mobile controls integrated into playlist wrapper */
+    .mobile-controls {
+      display: block;
+      padding: 15px; /* Uniform padding since close button is absolute positioned */
+      border-bottom: 1px solid #ddd;
+      background: rgba(255, 255, 255, 0.6);
+      border-radius: 0;
+    }
+    
+    .mobile-controls .control-row {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 10px;
+    }
+    
+    .mobile-controls .sort-controls {
+      display: flex;
+      gap: 4px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+
+    /* Mobile playlist toggle - hide since we use hamburger */
+    .playlist-wrapper .playlist-toggle {
+      display: none;
+    }
+
+    /* Remove mobile-specific show/hide buttons */
+    .mobile-playlist-toggle {
+      display: none !important;
+    }
+
+    .mobile-playlist-collapse {
+      display: none !important;
+    }
+
+    /* Show mobile controls inside playlist when on mobile */
+    .playlist-wrapper .mobile-controls {
+      display: block !important;
+    }
+
+    /* Mobile playlist content */
+    .playlist-wrapper .playlist {
+      max-height: none;
+      flex: 1;
+      overflow-y: auto;
+      margin-top: 0;
+    }
+
+    /* Hide desktop scroll arrows on mobile */
+    .playlist-wrapper .scroll-arrow {
+      display: none !important;
+    }
+
+    /* Ko-fi widget positioning for mobile - centered at bottom */
+    .floatingchat-container-wrap {
+      left: 50% !important;
+      transform: translateX(-50%) !important;
+      right: unset !important;
+      bottom: 20px !important;
+    }
+    .floating-chat-kofi-popup-iframe {
+      left: 50% !important;
+      transform: translateX(-50%) !important;
+      right: unset !important;
+      bottom: 80px !important;
+    }
+
+    /* Mobile mini info boxes */
+    .mini-infobox {
+      max-width: 120px;
+      font-size: 10px;
+      padding: 3px 6px;
+    }
+
+    /* Mobile popup adjustments */
+    .mapboxgl-popup-content {
+      min-width: 280px;
+      max-width: calc(100vw - 40px);
+    }
+
+    /* Mobile track items - tighter spacing for more content */
+    .track {
+      padding: 8px 8px;
+      font-size: 13px;
+    }
+
+    .track-mile {
+      font-size: 11px;
+    }
+
+    /* Mobile control buttons - slightly larger */
+    .control-btn {
+      padding: 8px 10px;
+      font-size: 11px;
+    }
+
+    .sort-btn {
+      padding: 6px 8px;
+      font-size: 10px;
+    }
+  }
+
+  /* Fullscreen styles */
+  .fullscreen-active {
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    width: 100vw !important;
+    height: 100vh !important;
+    z-index: 9999 !important;
+  }
+
+  /* Hide audio focus outline */
+  audio:focus {
+    outline: none;
+  }
+</style>
+</head>
+<body>
+  <div id="map"></div>
+  
+  <!-- Hamburger menu button for mobile -->
+  <button class="hamburger-menu" id="hamburgerMenu" title="Menu">
+    <span></span>
+    <span></span>
+    <span></span>
+  </button>
+
+  <div class="playlist-wrapper" id="playlistWrapper">
+    <button class="playlist-toggle" id="playlistToggle" title="Collapse playlist">◀</button>
+    <!-- Mobile close button (X) -->
+    <button class="mobile-menu-close" id="mobileMenuClose" aria-label="Close menu"></button>
+    <!-- Mobile controls - hidden on desktop, shown on mobile inside playlist -->
+    <div class="mobile-controls" style="display: none;">
+      <div class="control-row">
+        <button class="control-btn" id="resetMapBtnMobile" title="Reset view and stop playback">Reset Map</button>
+        <button class="control-btn" id="fullscreenBtnMobile" title="Fullscreen on/off" style="display: none;">Fullscreen</button>
+        <button class="control-btn" id="terrain3dBtnMobile" title="3D terrain on/off">3D Terrain</button>
+      </div>
+      <div class="sort-controls">
+        <button class="control-btn sort-btn active" id="sortNoboMobile" title="Northbound playlist">NOBO</button>
+        <button class="control-btn sort-btn" id="sortSoboMobile" title="Southbound playlist">SOBO</button>
+        <button class="control-btn sort-btn" id="sortDateMobile" title="Chronological playlist">STEREO</button>
+        <div class="random-control">
+          <span class="random-label">Random</span>
+          <div class="toggle-switch" id="randomToggleMobile" title="Random on/off">
+            <div class="toggle-slider"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="scroll-arrow up" id="scrollUp" title="Scroll up">▲</div>
+    <div class="playlist" id="playlist">
+      <div class="loading-placeholder">loading recordings...</div>
+    </div>
+    <div class="scroll-arrow down" id="scrollDown" title="Scroll down">▼</div>
+  </div>
+
+  <!-- Desktop control panel - hidden on mobile -->
+  <div class="control-panel">
+    <div class="control-row">
+      <button class="control-btn" id="resetMapBtn" title="Reset view and stop playback">Reset Map</button>
+      <button class="control-btn" id="fullscreenBtn" title="Fullscreen on/off">Fullscreen</button>
+      <button class="control-btn" id="terrain3dBtn" title="3D terrain on/off">3D Terrain</button>
+    </div>
+    <div class="sort-controls">
+      <button class="control-btn sort-btn active" id="sortNobo" title="Northbound playlist">NOBO</button>
+      <button class="control-btn sort-btn" id="sortSobo" title="Southbound playlist">SOBO</button>
+      <button class="control-btn sort-btn" id="sortDate" title="Chronological playlist">STEREO</button>
+      <div class="random-control">
+        <span class="random-label">Random</span>
+        <div class="toggle-switch" id="randomToggle" title="Random on/off">
+          <div class="toggle-slider"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="notification" id="notification"></div>
+
+  <script src="https://api.mapbox.com/mapbox-gl-js/v3.8.0/mapbox-gl.js"></script>
+  <script src="config.js"></script>
+  <script src="audiocontroller.js"></script>
+  <script src="atmospherecontroller.js"></script>
+  <script src="uicontroller.js"></script>
+  <script src="mapcontroller.js"></script>
+  
+  <script>
+    // Detect if actual mobile device (not just small window)
+    function isActualMobile() {
+      const userAgent = navigator.userAgent.toLowerCase();
+      return /iphone|ipad|ipod|android|mobile|blackberry|iemobile|wpdesktop/.test(userAgent);
+    }
+    
+    // Wait for DOM to be ready before initializing controllers
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', initializeApp);
+    } else {
+      initializeApp();
+    }
+    
+    function initializeApp() {
+      // Initialize controllers after DOM is ready
+      audioController = new AudioController();
+      atmosphereController = new AtmosphereController();
+      uiController = new UIController();
+      mapController = new MapController();
+      
+      // Make them available globally
+      window.audioController = audioController;
+      window.atmosphereController = atmosphereController;
+      window.uiController = uiController;
+      window.mapController = mapController;
+      window.isActualMobile = isActualMobile;
+      
+      // Enhanced Notification System
+      let currentNotificationTimeout = null;
+
+      window.showNotification = function(message, duration = 3000) {
+        const notification = document.getElementById('notification');
+        
+        // Clear any existing timeout
+        if (currentNotificationTimeout) {
+          clearTimeout(currentNotificationTimeout);
+          currentNotificationTimeout = null;
+        }
+        
+        notification.textContent = message;
+        notification.classList.add('show');
+        
+        // Only set timeout if duration is provided and > 0
+        if (duration > 0) {
+          currentNotificationTimeout = setTimeout(() => {
+            notification.classList.remove('show');
+            currentNotificationTimeout = null;
+          }, duration);
+        }
+      }
+
+      window.hideNotification = function() {
+        const notification = document.getElementById('notification');
+        if (currentNotificationTimeout) {
+          clearTimeout(currentNotificationTimeout);
+          currentNotificationTimeout = null;
+        }
+        notification.classList.remove('show');
+      }
+
+      // Sync mobile and desktop controls
+      function syncControls() {
+        // Show/hide fullscreen button based on actual mobile device
+        const fullscreenBtnMobile = document.getElementById('fullscreenBtnMobile');
+        if (fullscreenBtnMobile && !isActualMobile()) {
+          fullscreenBtnMobile.style.display = 'inline-block';
+        }
+        
+        // Hamburger menu toggle
+        const hamburgerMenu = document.getElementById('hamburgerMenu');
+        const playlistWrapper = document.getElementById('playlistWrapper');
+        const mobileMenuClose = document.getElementById('mobileMenuClose');
+        
+        if (hamburgerMenu) {
+          hamburgerMenu.addEventListener('click', () => {
+            playlistWrapper.classList.add('mobile-expanded');
+            document.body.classList.add('mobile-menu-open');
+            uiController.mobilePlaylistExpanded = true;
+          });
+        }
+        
+        // Mobile close button
+        if (mobileMenuClose) {
+          mobileMenuClose.addEventListener('click', () => {
+            playlistWrapper.classList.remove('mobile-expanded');
+            document.body.classList.remove('mobile-menu-open');
+            uiController.mobilePlaylistExpanded = false;
+          });
+        }
+        
+        // Close menu when clicking outside on mobile
+        document.addEventListener('click', (e) => {
+          if (window.innerWidth <= 768 && 
+              !hamburgerMenu.contains(e.target) && 
+              !playlistWrapper.contains(e.target) &&
+              playlistWrapper.classList.contains('mobile-expanded')) {
+            playlistWrapper.classList.remove('mobile-expanded');
+            document.body.classList.remove('mobile-menu-open');
+            uiController.mobilePlaylistExpanded = false;
+          }
+        });
+
+        // Sync reset buttons - call function directly, don't click desktop button
+        const resetBtnMobile = document.getElementById('resetMapBtnMobile');
+        if (resetBtnMobile) {
+          resetBtnMobile.addEventListener('click', () => {
+            mapController.resetMap();
+          });
+        }
+
+        // Sync fullscreen buttons
+        const fullscreenBtnMobile = document.getElementById('fullscreenBtnMobile');
+        if (fullscreenBtnMobile) {
+          fullscreenBtnMobile.addEventListener('click', () => {
+            uiController.toggleFullscreen();
+          });
+        }
+
+        // Sync 3D terrain buttons
+        const terrain3dBtnMobile = document.getElementById('terrain3dBtnMobile');
+        if (terrain3dBtnMobile) {
+          terrain3dBtnMobile.addEventListener('click', () => {
+            uiController.toggle3D();
+          });
+        }
+
+        // Sync sort buttons - call function directly
+        ['Nobo', 'Sobo', 'Date'].forEach(mode => {
+          const mobileBtn = document.getElementById('sort' + mode + 'Mobile');
+          if (mobileBtn) {
+            mobileBtn.addEventListener('click', () => {
+              // Update active states
+              document.querySelectorAll('.sort-btn').forEach(btn => btn.classList.remove('active'));
+              document.querySelectorAll('#sortNoboMobile, #sortSoboMobile, #sortDateMobile').forEach(btn => {
+                btn.classList.remove('active');
+              });
+              mobileBtn.classList.add('active');
+              document.getElementById('sort' + mode).classList.add('active');
+              
+              // Set sort mode directly
+              const sortMap = {
+                'Nobo': 'nobo',
+                'Sobo': 'sobo',
+                'Date': 'date'
+              };
+              audioController.sortMode = sortMap[mode];
+              mapController.sortAndUpdatePlaylist();
+            });
+          }
+        });
+
+        // Sync random toggle
+        const randomToggleMobile = document.getElementById('randomToggleMobile');
+        if (randomToggleMobile) {
+          randomToggleMobile.addEventListener('click', () => {
+            audioController.playMode = audioController.playMode === 'random' ? 'sequential' : 'random';
+            randomToggleMobile.classList.toggle('active');
+            document.getElementById('randomToggle').classList.toggle('active');
+          });
+        }
+      }
+
+      // Initialize controls
+      syncControls();
+      
+      // Force Ko-fi widget centering on mobile after it loads
+      function centerKofiWidget() {
+        const kofiWidget = document.querySelector('.floatingchat-container-wrap');
+        const kofiPopup = document.querySelector('.floating-chat-kofi-popup-iframe');
+        
+        if (window.innerWidth <= 768) {
+          if (kofiWidget) {
+            // Force override all styles with inline CSS
+            kofiWidget.setAttribute('style', 'position: fixed !important; left: 50% !important; margin-left: -30px !important; transform: none !important; -webkit-transform: none !important; right: unset !important; bottom: 20px !important; z-index: 9000 !important;');
+          }
+          if (kofiPopup) {
+            kofiPopup.setAttribute('style', 'position: fixed !important; left: 50% !important; margin-left: -150px !important; transform: none !important; -webkit-transform: none !important; right: unset !important; bottom: 80px !important; z-index: 9000 !important;');
+          }
+        }
+      }
+      
+      // Try multiple times to ensure Ko-fi is centered
+      setTimeout(centerKofiWidget, 1000);
+      setTimeout(centerKofiWidget, 2000);
+      setTimeout(centerKofiWidget, 3000);
+      
+      // Also center on window resize
+      window.addEventListener('resize', () => {
+        setTimeout(centerKofiWidget, 100);
+      });
+
+      // Initialize map data update after first load
+      setTimeout(() => {
+        if (window.mapController) {
+          mapController.updateMapData();
+        }
+      }, 1000);
+    }
+  </script>
+
+  <script src="https://storage.ko-fi.com/cdn/scripts/overlay-widget.js"></script>
+  <script>
+    kofiWidgetOverlay.draw('thmkly', {
+      'type': 'floating-chat',
+      'floating-chat.donateButton.text': 'Support me',
+      'floating-chat.donateButton.background-color': '#ff5f5f',
+      'floating-chat.donateButton.text-color': '#fff'
+    });
+  </script>
+  <style>
+    /* Ko-fi widget positioning overrides */
+    /* Desktop - right aligned */
+    @media (min-width: 769px) {
+      .floatingchat-container-wrap {
+        left: unset !important;
+        right: 16px !important;
+        bottom: 30px !important;
+        transform: none !important;
+        -webkit-transform: none !important;
+      }
+      .floating-chat-kofi-popup-iframe {
+        left: unset !important;
+        right: 16px !important;
+        bottom: 30px !important;
+        transform: none !important;
+        -webkit-transform: none !important;
+      }
+    }
+    
+    /* Mobile - force centered position */
+    @media (max-width: 768px) {
+      .floatingchat-container-wrap {
+        position: fixed !important;
+        left: 50% !important;
+        margin-left: -30px !important; /* Half of widget width */
+        transform: none !important;
+        -webkit-transform: none !important;
+        right: unset !important;
+        bottom: 20px !important;
+        z-index: 9000 !important; /* Below playlist (10000) */
+      }
+      .floating-chat-kofi-popup-iframe {
+        position: fixed !important;
+        left: 50% !important;
+        margin-left: -150px !important; /* Half of popup width */
+        transform: none !important;
+        -webkit-transform: none !important;
+        right: unset !important;
+        bottom: 80px !important;
+        z-index: 9000 !important;
+      }
+    }
+    
+    /* Force on actual mobile devices */
+    @media only screen and (max-device-width: 768px) {
+      .floatingchat-container-wrap {
+        left: 50% !important;
+        margin-left: -30px !important;
+      }
+      .floating-chat-kofi-popup-iframe {
+        left: 50% !important;
+        margin-left: -150px !important;
+      }
+    }
+  </style>
+</body>
+</html>
