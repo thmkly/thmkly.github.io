@@ -1,959 +1,501 @@
-// Map Controller Class
-    class MapController {
+// UI Controller Class
+    class UIController {
       constructor() {
-        this.audioData = [];
-        this.originalAudioData = []; // Keep original order for stable map references
-        this.currentPopup = null;
-        this.isPositioning = false;
-        this.animationTimeout = null;
-        this.moveTimeout = null;
-        this.setupMap();
+        this.playlistExpanded = true;
+        this.isFullscreen = false;
+        this.is3DEnabled = false;
+        this.miniInfoBoxes = [];
+        this.clusterPlaylist = null;
+        this.isMobile = window.innerWidth <= 768;
+        this.mobilePlaylistExpanded = false;
+        this.setupEventListeners();
+        this.setupResizeListener();
       }
 
-      // Helper function to get display mile based on sort mode (UNCHANGED - your working version)
-      getDisplayMile(track) {
-        // Don't display mile if it's a placeholder (starts with ~)
-        if (track.mile && track.mile.toString().startsWith('~')) {
-          return null;
-        }
-        
-        if (audioController.sortMode === 'sobo' && track.mile && track.mile.toString().trim().toLowerCase() !== 'n/a') {
-          const nobobMile = parseFloat(track.mile);
-          if (!isNaN(nobobMile)) {
-            const soboMile = Math.round((2655.8 - nobobMile) * 10) / 10;
-            return soboMile.toFixed(1);
-          }
-        }
-        return track.mile;
-      }
-
-      // Helper function to get numeric mile value for sorting (handles ~ placeholders)
-      getMileForSorting(track) {
-        if (!track.mile || track.mile.toString().trim().toLowerCase() === 'n/a') {
-          return null;
-        }
-        
-        const mileStr = track.mile.toString();
-        if (mileStr.startsWith('~')) {
-          // Placeholder mile - remove ~ and parse
-          return parseFloat(mileStr.substring(1));
-        }
-        
-        return parseFloat(mileStr);
-      }
-
-      setupMap() {
-        mapboxgl.accessToken = CONFIG.MAPBOX_TOKEN;
-        
-        window.map = new mapboxgl.Map({
-          container: 'map',
-          style: 'mapbox://styles/thmkly/clyup637d004201ri2tkpaywq',
-          center: CONFIG.DEFAULT_CENTER,
-          zoom: CONFIG.getDefaultZoom(),
-          // Add touch event options for better mobile support
-          touchZoomRotate: true,
-          touchPitch: false,
-          dragRotate: false
+      setupEventListeners() {
+        // Playlist toggle (desktop)
+        document.getElementById('playlistToggle').addEventListener('click', () => {
+          this.togglePlaylist();
         });
 
-        map.on('load', () => {
-          // Check for API availability before using
-          if (typeof map.setSky === 'function') {
-            map.setSky({
-              'sky-type': 'atmosphere',
-              'sky-atmosphere-sun': [0, 90],
-              'sky-atmosphere-sun-intensity': 15
-            });
-          }
-          
-          if (typeof map.setFog === 'function') {
-            map.setFog({
-              'range': [0.5, 10],
-              'color': 'white',
-              'high-color': '#87CEEB',
-              'space-color': '#000033',
-              'horizon-blend': 0.1,
-              'star-intensity': 0
-            });
-          }
-          
-          this.setupMapLayers();
-          this.setupMapEvents();
-          this.loadAudioData();
-        });
-      }
-
-      setupMapLayers() {
-        map.addSource('audio', {
-          type: 'geojson',
-          data: { type: 'FeatureCollection', features: [] },
-          cluster: true,
-          clusterMaxZoom: 14,
-          clusterRadius: 45
-        });
-
-        map.addLayer({
-          id: 'clusters',
-          type: 'circle',
-          source: 'audio',
-          filter: ['has', 'point_count'],
-          paint: {
-            'circle-color': '#51bbd6',
-            'circle-opacity': 0.7,
-            'circle-stroke-width': 1,
-            'circle-stroke-color': '#197991',
-            'circle-stroke-opacity': 0.75,
-            'circle-radius': [
-              'step',
-              ['get', 'point_count'],
-              18, 3, 22, 5, 26, 6, 30, 7, 34, 8, 36,
-              10, 38, 15, 40, 18, 42, 22, 44, 25, 46,
-              30, 48, 35, 50, 40, 52, 50, 54, 100, 56
-            ]
-          }
-        });
-
-        map.addLayer({
-          id: 'cluster-count',
-          type: 'symbol',
-          source: 'audio',
-          filter: ['has', 'point_count'],
-          layout: {
-            'text-field': '{point_count_abbreviated}',
-            'text-font': ['Open Sans Semibold', 'Arial Unicode MS Bold'],
-            'text-size': 12
-          }
-        });
-
-        map.addLayer({
-          id: 'unclustered-point',
-          type: 'circle',
-          source: 'audio',
-          filter: ['!', ['has', 'point_count']],
-          paint: {
-            'circle-color': '#5c3a2e',
-            'circle-radius': 6,
-            'circle-opacity': 0.6,
-            'circle-stroke-width': 1,
-            'circle-stroke-color': '#fff',
-            'circle-stroke-opacity': 0.8
-          }
-        });
-      }
-
-      setupMapEvents() {
-        // For desktop - show pointer cursor
-        if (!('ontouchstart' in window)) {
-          ['clusters', 'unclustered-point'].forEach(layer => {
-            map.on('mouseenter', layer, () => {
-              map.getCanvas().style.cursor = 'pointer';
-            });
-            map.on('mouseleave', layer, () => {
-              map.getCanvas().style.cursor = '';
-            });
+        // Hamburger menu for mobile
+        const hamburgerMenu = document.getElementById('hamburgerMenu');
+        if (hamburgerMenu) {
+          hamburgerMenu.addEventListener('click', () => {
+            this.toggleMobileMenu();
           });
         }
 
-        // Handle cluster clicks - use touchend for mobile
-        const clusterClickHandler = (e) => {
-          // Prevent default behavior
-          if (e.preventDefault) e.preventDefault();
-          
-          const features = map.queryRenderedFeatures(e.point, { layers: ['clusters'] });
-          
-          if (!features || features.length === 0) {
-            console.log('No cluster features found at point:', e.point);
-            return;
-          }
-          
-          const feature = features[0];
-          const clusterId = feature.properties.cluster_id;
-          const coordinates = feature.geometry.coordinates.slice();
-          
-          console.log('Cluster clicked:', clusterId, 'at', coordinates);
-          
-          const source = map.getSource('audio');
-          if (!source) {
-            console.error('Audio source not found');
-            return;
-          }
-          
-          // Use a simpler approach for mobile - just zoom in incrementally
-          if (window.innerWidth <= 768 || 'ontouchstart' in window) {
-            const currentZoom = map.getZoom();
-            const targetZoom = Math.min(currentZoom + 2, 16);
-            
-            console.log('Mobile cluster zoom from', currentZoom, 'to', targetZoom);
-            
-            map.flyTo({
-              center: coordinates,
-              zoom: targetZoom,
-              duration: 1000
-            });
-          } else {
-            // Desktop - use the expansion zoom
-            source.getClusterExpansionZoom(clusterId, (err, zoom) => {
-              if (err) {
-                console.error('Cluster expansion error:', err);
-                map.flyTo({
-                  center: coordinates,
-                  zoom: map.getZoom() + 2,
-                  duration: 1000
-                });
-                return;
-              }
-              
-              map.flyTo({
-                center: coordinates,
-                zoom: zoom,
-                duration: 1000
-              });
-            });
-          }
-        };
-
-        // Add both click and touchend handlers
-        map.on('click', 'clusters', clusterClickHandler);
-        
-        // For iOS specifically, we need touchend
-        if ('ontouchstart' in window) {
-          map.on('touchend', 'clusters', (e) => {
-            // Convert touch event to have a point property like click events
-            if (e.originalEvent && e.originalEvent.changedTouches) {
-              const touch = e.originalEvent.changedTouches[0];
-              e.point = map.project([e.lngLat.lng, e.lngLat.lat]);
-            }
-            clusterClickHandler(e);
+        // Sort buttons
+        document.querySelectorAll('.sort-btn').forEach(btn => {
+          btn.addEventListener('click', (e) => {
+            this.handleSortChange(e.target.id);
           });
-        }
-
-        // Handle individual point clicks
-        const pointClickHandler = (e) => {
-          if (e.preventDefault) e.preventDefault();
-          
-          const features = map.queryRenderedFeatures(e.point, { layers: ['unclustered-point'] });
-          
-          if (!features || features.length === 0) {
-            console.log('No point features found');
-            return;
-          }
-          
-          const feature = features[0];
-          const originalIndex = parseInt(feature.properties.originalIndex);
-          
-          console.log('Point clicked with original index:', originalIndex);
-          
-          const currentIndex = this.audioData.findIndex(track => track.originalIndex === originalIndex);
-          
-          if (currentIndex !== -1) {
-            // Close mobile menu if open
-            if (uiController.isMobile && uiController.mobilePlaylistExpanded) {
-              uiController.collapseMobileMenu();
-            }
-            this.playAudio(currentIndex);
-          } else {
-            console.error('Track not found in playlist');
-          }
-        };
-
-        map.on('click', 'unclustered-point', pointClickHandler);
-        
-        // Add touchend for iOS
-        if ('ontouchstart' in window) {
-          map.on('touchend', 'unclustered-point', (e) => {
-            if (e.originalEvent && e.originalEvent.changedTouches) {
-              const touch = e.originalEvent.changedTouches[0];
-              e.point = map.project([e.lngLat.lng, e.lngLat.lat]);
-            }
-            pointClickHandler(e);
-          });
-        }
-
-        map.on('move', () => {
-          uiController.updateMiniInfoBoxPositions();
         });
 
-        map.on('moveend', () => {
-          if (!this.isPositioning) {
-            const visiblePoints = map.queryRenderedFeatures({ layers: ['unclustered-point'] });
-            if (visiblePoints.length > 0 && visiblePoints.length < 50) {
-              uiController.showMiniInfoBoxes(null, this.audioData);
+        // Random toggle
+        document.getElementById('randomToggle').addEventListener('click', () => {
+          audioController.playMode = audioController.playMode === 'random' ? 'sequential' : 'random';
+          this.updateRandomToggle();
+        });
+
+        document.getElementById('resetMapBtn').addEventListener('click', () => {
+          mapController.resetMap();
+        });
+
+        document.getElementById('fullscreenBtn').addEventListener('click', () => {
+          this.toggleFullscreen();
+        });
+
+        document.getElementById('terrain3dBtn').addEventListener('click', () => {
+          this.toggle3D();
+        });
+
+        // Global spacebar handler - prevent focus on audio elements
+        document.addEventListener('keydown', (e) => {
+          if (e.code === 'Space' && audioController.currentAudio) {
+            e.preventDefault();
+            audioController.togglePlayPause();
+            // Blur any focused audio elements
+            if (document.activeElement.tagName === 'AUDIO') {
+              document.activeElement.blur();
             }
           }
         });
 
-        document.addEventListener('fullscreenchange', () => {
-          uiController.isFullscreen = !!document.fullscreenElement;
-          const btn = document.getElementById('fullscreenBtn');
-          if (btn) {
-            btn.textContent = uiController.isFullscreen ? 'Exit Fullscreen' : 'Fullscreen';
-            btn.classList.toggle('active', uiController.isFullscreen);
-          }
-        });
+        // Scroll arrows
+        const playlist = document.getElementById('playlist');
+        const scrollUp = document.getElementById('scrollUp');
+        const scrollDown = document.getElementById('scrollDown');
+
+        playlist.addEventListener('scroll', () => this.updateScrollArrows());
+        scrollUp.addEventListener('click', () => playlist.scrollBy({ top: -100, behavior: 'smooth' }));
+        scrollDown.addEventListener('click', () => playlist.scrollBy({ top: 100, behavior: 'smooth' }));
+
+        this.setupPlaylistDrag();
       }
 
-      getLeftPadding() {
-        return uiController.playlistExpanded ? 370 : 20;
+      togglePlaylist() {
+        const wrapper = document.getElementById('playlistWrapper');
+        const toggle = document.getElementById('playlistToggle');
+        
+        this.playlistExpanded = !this.playlistExpanded;
+        
+        if (this.playlistExpanded) {
+          wrapper.classList.remove('collapsed');
+          toggle.textContent = '◀';
+          toggle.title = 'Collapse playlist';
+        } else {
+          wrapper.classList.add('collapsed');
+          toggle.textContent = '▶';
+          toggle.title = 'Expand playlist';
+        }
       }
 
-      loadAudioData(retryCount = 0) {
-        // Playlist wrapper is already hidden via CSS
-        const playlistWrapper = document.getElementById('playlistWrapper');
+      toggleMobileMenu() {
+        if (!this.isMobile) return;
         
-        // Show persistent loading notification (centered, like success message)
-        showNotification('loading recordings...'); // No duration = stays visible
+        const wrapper = document.getElementById('playlistWrapper');
+        this.mobilePlaylistExpanded = !this.mobilePlaylistExpanded;
         
-        const url = `${CONFIG.GOOGLE_SCRIPT_URL}?nocache=${Date.now()}`;
-        console.log('Fetching data from:', url);
+        if (this.mobilePlaylistExpanded) {
+          wrapper.classList.add('mobile-expanded');
+          document.body.classList.add('mobile-menu-open');
+        } else {
+          wrapper.classList.remove('mobile-expanded');
+          document.body.classList.remove('mobile-menu-open');
+        }
+      }
+
+      collapseMobileMenu() {
+        if (!this.isMobile) return;
         
-        // Simple fetch without extra headers to avoid CORS preflight
-        fetch(url)
-          .then(response => {
-            console.log('Response status:', response.status);
-            console.log('Response headers:', response.headers);
+        const wrapper = document.getElementById('playlistWrapper');
+        this.mobilePlaylistExpanded = false;
+        wrapper.classList.remove('mobile-expanded');
+        document.body.classList.remove('mobile-menu-open');
+      }
+
+      setupResizeListener() {
+        window.addEventListener('resize', () => {
+          const wasMobile = this.isMobile;
+          this.isMobile = window.innerWidth <= 768;
+          
+          // Reset mobile playlist state when switching between mobile/desktop
+          if (wasMobile !== this.isMobile) {
+            const wrapper = document.getElementById('playlistWrapper');
+            const hamburger = document.getElementById('hamburgerMenu');
             
-            if (!response.ok) {
-              throw new Error(`HTTP error! status: ${response.status}`);
-            }
-            return response.text();
-          })
-          .then(text => {
-            console.log('Raw response:', text);
-            try {
-              const response = JSON.parse(text);
-              console.log('Parsed response:', response);
+            if (this.isMobile) {
+              // Switching to mobile
+              wrapper.classList.remove('collapsed');
+              wrapper.classList.remove('mobile-expanded');
+              document.body.classList.remove('mobile-menu-open');
+              this.mobilePlaylistExpanded = false;
+              this.playlistExpanded = true; // Reset desktop state
               
-              // Handle new response format with data/metadata structure
-              let data;
-              if (response.data && Array.isArray(response.data)) {
-                // New format: {data: [...], metadata: {...}}
-                data = response.data;
-                console.log('Using new response format with metadata');
-                console.log('Metadata:', response.metadata);
-              } else if (Array.isArray(response)) {
-                // Old format: [...]
-                data = response;
-                console.log('Using legacy response format');
-              } else {
-                throw new Error('Invalid response format');
+              // Ensure hamburger is visible
+              if (hamburger) {
+                hamburger.style.display = 'flex';
               }
-              
-              console.log('Final data array:', data);
-              console.log('Data length:', data.length);
-              
-              if (data.error) {
-                throw new Error(data.error);
-              }
-              
-              if (data.length === 0) {
-                throw new Error('No recordings found');
-              }
-              
-              // Log first item to check structure (including elevation)
-              if (data.length > 0) {
-                console.log('First item structure:', data[0]);
-                console.log('First item elevation:', data[0].elevation);
-                console.log('First item audioUrl:', data[0].audioUrl);
-              }
-              
-              // Add original index to each track for stable map references
-              this.originalAudioData = data.map((track, index) => ({
-                ...track,
-                originalIndex: index
-              }));
-              
-              // Set up data in NOBO order by default (Mexico at bottom, Canada at top)
-              this.audioData = this.sortByMileAndDate([...this.originalAudioData], 'nobo');
-              
-              this.sortAndUpdatePlaylist();
-              this.updateMapData();
-              
-              // Show playlist wrapper again with flex display
-              playlistWrapper.style.display = 'flex';
-              
-              // Hide loading notification and show success message
-              hideNotification();
-              setTimeout(() => {
-                showNotification(`${data.length} recordings loaded`, 3000);
-              }, 100);
-              
-            } catch (parseError) {
-              console.error('JSON Parse Error:', parseError);
-              throw new Error(`Invalid JSON response: ${parseError.message}`);
-            }
-          })
-          .catch(e => {
-            console.error('Load Error:', e);
-            const errorMsg = e.message || 'Unknown error occurred';
-            
-            // Retry logic for intermittent failures
-            if (retryCount < 3) {
-              console.log(`Retrying... attempt ${retryCount + 1} of 3`);
-              hideNotification();
-              setTimeout(() => {
-                showNotification(`Connection issue, retrying... (${retryCount + 1}/3)`, 2000);
-                setTimeout(() => {
-                  this.loadAudioData(retryCount + 1);
-                }, 2000);
-              }, 100);
             } else {
-              // Hide loading notification and show error after max retries
-              hideNotification();
-              setTimeout(() => {
-                this.showLoadingError(`Failed to load recordings after 3 attempts: ${errorMsg}`);
-                showNotification(`Error: ${errorMsg}`, 5000);
-              }, 100);
+              // Switching to desktop
+              wrapper.classList.remove('mobile-expanded');
+              document.body.classList.remove('mobile-menu-open');
+              this.mobilePlaylistExpanded = false;
+              
+              // Ensure playlist wrapper is visible on desktop
+              wrapper.style.display = 'flex';
+              
+              // Hide hamburger on desktop
+              if (hamburger) {
+                hamburger.style.display = 'none';
+              }
             }
-          });
-      }
-
-      showLoadingError(message) {
-        const playlist = document.getElementById('playlist');
-        playlist.innerHTML = `
-          <div class="loading-placeholder">
-            <div style="color: #cc0000; margin-bottom: 10px;">${message}</div>
-            <button onclick="location.reload()" style="
-              padding: 8px 16px;
-              background: #5c3a2e;
-              color: white;
-              border: none;
-              border-radius: 4px;
-              cursor: pointer;
-            ">Reload Page</button>
-          </div>
-        `;
-        // Also make sure playlist wrapper is visible in case of error
-        const playlistWrapper = document.getElementById('playlistWrapper');
-        playlistWrapper.style.display = 'flex';
-      }
-
-      sortAndUpdatePlaylist() {
-        // Remember currently playing track
-        const currentlyPlayingTrack = audioController.currentIndex >= 0 ? 
-          this.audioData[audioController.currentIndex] : null;
-        
-        // Always re-sort based on current mode to ensure correct ordering
-        if (audioController.sortMode === 'date') {
-          // STEREO: Chronological order (earliest to latest)
-          this.audioData = this.sortByMileAndDate([...this.originalAudioData], 'date');
-        } else if (audioController.sortMode === 'sobo') {
-          // SOBO: Canada to Mexico order
-          this.audioData = this.sortByMileAndDate([...this.originalAudioData], 'sobo');
-        } else {
-          // NOBO: Mexico to Canada order  
-          this.audioData = this.sortByMileAndDate([...this.originalAudioData], 'nobo');
-        }
-        
-        // Update current index to match new order
-        if (currentlyPlayingTrack) {
-          audioController.currentIndex = this.audioData.findIndex(track => 
-            track.originalIndex === currentlyPlayingTrack.originalIndex
-          );
-        }
-        
-        // Update playlist display
-        this.updatePlaylistOnly();
-        
-        // Restore the active track highlighting after playlist update
-        if (currentlyPlayingTrack) {
-          this.updateActiveTrack(audioController.currentIndex);
-        }
-        
-        // Set scroll position based on sort mode
-        this.setPlaylistScrollPosition();
-        
-        // Update popup if one is open to show correct mileage
-        if (this.currentPopup && currentlyPlayingTrack) {
-          this.refreshPopupMileage(currentlyPlayingTrack);
-        }
-      }
-
-      // Helper to detect if playlist is currently in chronological order
-      isCurrentlyChronological() {
-        if (this.audioData.length < 2) return false;
-        
-        // Check if first few items are in chronological order (indicating STEREO mode was used)
-        for (let i = 0; i < Math.min(5, this.audioData.length - 1); i++) {
-          const currentTime = new Date(this.audioData[i].timestamp);
-          const nextTime = new Date(this.audioData[i + 1].timestamp);
-          if (currentTime > nextTime) {
-            return false; // Not chronological
           }
-        }
-        return true; // Appears to be chronological
+        });
       }
 
-      sortByMileAndDate(data, mode = 'nobo') {
-        if (mode === 'date') {
-          // STEREO mode: sort everything by timestamp (earliest to latest)
-          return [...data].sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
-        }
-        
-        // For NOBO/SOBO: purely spatial sorting by mile
-        const tracksWithMiles = data.filter(track => {
-          const mile = this.getMileForSorting(track);
-          return mile !== null && !isNaN(mile);
-        });
-        
-        const tracksWithoutMiles = data.filter(track => {
-          const mile = this.getMileForSorting(track);
-          return mile === null || isNaN(mile);
-        });
+      handleSortChange(sortId) {
+        document.querySelectorAll('.sort-btn').forEach(btn => btn.classList.remove('active'));
+        document.getElementById(sortId).classList.add('active');
 
-        // Sort tracks with miles by mile number (ascending: 0 → 2655.8)
-        tracksWithMiles.sort((a, b) => {
-          const mileA = this.getMileForSorting(a);
-          const mileB = this.getMileForSorting(b);
-          if (Math.abs(mileA - mileB) < 0.01) { // Same mile (accounting for decimals)
-            // If same mile, sort by timestamp
-            return new Date(a.timestamp) - new Date(b.timestamp);
-          }
-          return mileA - mileB; // Always ascending by mile
-        });
-
-        // Apply different ordering for playlist display based on mode
-        if (mode === 'sobo') {
-          // SOBO: reverse so Canada (high miles) appears at top
-          // This gives us: Canada at top (index 0), Mexico at bottom (last index)
-          tracksWithMiles.reverse();
-        }
-        // NOBO: keep natural order so Mexico (low miles) appears at top
-        // This gives us: Mexico at top (index 0), Canada at bottom (last index)
-
-        // Sort tracks without miles by timestamp
-        tracksWithoutMiles.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
-
-        // Combine: mile-sorted tracks first, then timestamp-sorted tracks without miles
-        return [...tracksWithMiles, ...tracksWithoutMiles];
-      }
-
-      updateMapData() {
-        const source = map.getSource('audio');
-        if (!source) return;
-        
-        // Use original data for map - points stay static regardless of sort order
-        const geojson = {
-          type: 'FeatureCollection',
-          features: this.originalAudioData.map((track, index) => ({
-            type: 'Feature',
-            geometry: { 
-              type: 'Point', 
-              coordinates: [parseFloat(track.lng), parseFloat(track.lat)] 
-            },
-            properties: { 
-              ...track, 
-              originalIndex: index, // Use original index for stable reference
-              mile: track.mile || 'N/A'
-            }
-          }))
+        const sortMap = {
+          'sortNobo': 'nobo',
+          'sortSobo': 'sobo',
+          'sortDate': 'date'
         };
         
-        source.setData(geojson);
+        audioController.sortMode = sortMap[sortId];
+        mapController.sortAndUpdatePlaylist();
       }
 
-      updatePlaylistOnly() {
-        const playlist = document.getElementById('playlist');
-        playlist.innerHTML = '';
+      updateRandomToggle() {
+        const toggle = document.getElementById('randomToggle');
+        toggle.classList.toggle('active', audioController.playMode === 'random');
+      }
+
+      toggleFullscreen() {
+        const body = document.body;
         
-        this.audioData.forEach((track, index) => {
-          const div = document.createElement('div');
-          div.className = 'track';
-          div.dataset.id = index;
+        if (!this.isFullscreen) {
+          if (body.requestFullscreen) {
+            body.requestFullscreen();
+          } else if (body.webkitRequestFullscreen) {
+            body.webkitRequestFullscreen();
+          } else if (body.msRequestFullscreen) {
+            body.msRequestFullscreen();
+          }
+        } else {
+          if (document.exitFullscreen) {
+            document.exitFullscreen();
+          } else if (document.webkitExitFullscreen) {
+            document.webkitExitFullscreen();
+          } else if (document.msExitFullscreen) {
+            document.msExitFullscreen();
+          }
+        }
+      }
+
+      toggle3D() {
+        this.is3DEnabled = !this.is3DEnabled;
+        const btn = document.getElementById('terrain3dBtn');
+        btn.classList.toggle('active', this.is3DEnabled);
+
+        if (this.is3DEnabled) {
+          // Add 3D terrain source (enhanced for v3)
+          if (!map.getSource('mapbox-dem')) {
+            map.addSource('mapbox-dem', {
+              'type': 'raster-dem',
+              'url': 'mapbox://mapbox.mapbox-terrain-dem-v1',
+              'tileSize': 512,
+              'maxzoom': 14
+            });
+          }
           
-          const trackInfo = document.createElement('div');
-          trackInfo.className = 'track-info';
-          trackInfo.textContent = track.name.replace(/^[^\s]+\s+-\s+/, '');
-          
-          const trackMile = document.createElement('div');
-          trackMile.className = 'track-mile';
-          const displayMile = this.getDisplayMile(track);
-          const mile = displayMile !== null && displayMile.toString().trim().toLowerCase() !== 'n/a' ? `mi.${displayMile}` : '';
-          trackMile.textContent = mile;
-          
-          div.appendChild(trackInfo);
-          div.appendChild(trackMile);
-          
-          div.addEventListener('click', (e) => {
-            // Collapse mobile menu immediately when track is clicked
-            if (uiController.isMobile && uiController.mobilePlaylistExpanded) {
-              uiController.collapseMobileMenu();
-            }
-            this.playAudio(index);
+          // Set terrain with v3 optimizations
+          map.setTerrain({ 
+            'source': 'mapbox-dem', 
+            'exaggeration': 1.5 
           });
           
-          playlist.appendChild(div);
-        });
-        
-        // Show collapse arrow now that playlist is rendered
-        const toggleBtn = document.getElementById('playlistToggle');
-        if (toggleBtn) toggleBtn.classList.add('visible');
-        
-        uiController.updateScrollArrows();
-        
-        // Force scroll position update on initial load
-        if (audioController.currentIndex === -1) {
-          setTimeout(() => {
-            this.setPlaylistScrollPosition();
-          }, 150);
-        }
-      }
-
-      setPlaylistScrollPosition() {
-        const playlist = document.getElementById('playlist');
-        
-        // Always scroll to top since we're always playing top→down now
-        if (audioController.currentIndex === -1) {
-          setTimeout(() => {
-            playlist.scrollTop = 0; // Always start at top
-          }, 100);
-        }
-      }
-
-      playAudio(index) {
-        console.log('playAudio called with index:', index);
-        
-        const track = this.audioData[index];
-        if (!track) {
-          console.error('No track found at index:', index);
-          return;
-        }
-
-        console.log('Playing track:', track.name);
-
-        // Stop any runaway animations
-        if (this.animationTimeout) {
-          clearTimeout(this.animationTimeout);
-        }
-
-        this.updateActiveTrack(index);
-        const audio = audioController.play(index, this.audioData);
-        
-        // Clear old mini boxes before positioning
-        uiController.clearMiniInfoBoxes();
-        
-        // Apply atmospheric lighting for this track
-        atmosphereController.transitionToTrack(track);
-        
-        // Add delay before positioning to prevent conflicts
-        this.animationTimeout = setTimeout(() => {
-          this.positionMapForTrack(track, index);
-          this.showPopup([parseFloat(track.lng), parseFloat(track.lat)], track, audio, index);
-          
-          // Show mini boxes after map positioning is complete
-          const duration = this.getMovementDuration(track);
-          setTimeout(() => {
-            uiController.showMiniInfoBoxes(null, this.audioData);
-          }, duration + 300);
-        }, 100);
-      }
-
-      showTrackPopup(index, autoPlay = true) {
-        const track = this.audioData[index];
-        if (!track) return;
-
-        const coords = [parseFloat(track.lng), parseFloat(track.lat)];
-        
-        if (autoPlay) {
-          this.playAudio(index);
-        } else {
-          this.positionMapForTrack(track, index);
-          this.showPopup(coords, track, null, index);
-        }
-      }
-
-      updateActiveTrack(index) {
-        document.querySelectorAll('.track').forEach(el => el.classList.remove('active-track'));
-        const activeTrack = document.querySelector(`.track[data-id="${index}"]`);
-        if (activeTrack) {
-          activeTrack.classList.add('active-track');
-          // Smoother, slower scroll to center the track
-          activeTrack.scrollIntoView({ 
-            behavior: 'smooth', 
-            block: 'center',
-            inline: 'nearest'
-          });
-        }
-      }
-
-      positionMapForTrack(track, index) {
-        console.log('positionMapForTrack called for:', track.name);
-        
-        // Prevent multiple simultaneous map movements
-        if (this.isPositioning) {
-          console.log('Already positioning, skipping...');
-          return;
-        }
-        this.isPositioning = true;
-
-        const coords = [parseFloat(track.lng), parseFloat(track.lat)];
-        
-        const resetPositioning = () => {
-          this.isPositioning = false;
-        };
-
-        // Calculate distance for duration scaling
-        const currentCenter = map.getCenter();
-        const distance = this.calculateDistance(
-          currentCenter.lat, currentCenter.lng,
-          coords[1], coords[0]
-        );
-        
-        // Distance-based duration: longer for farther points
-        const distanceKm = distance / 1000;
-        let duration;
-        if (distanceKm < 5) {
-          duration = 2200; // Close points: normal speed
-        } else if (distanceKm < 50) {
-          duration = 2200 + ((distanceKm - 5) / 45) * 1800; // Medium: 2.2-4s
-        } else {
-          duration = Math.min(5000, 4000 + ((distanceKm - 50) / 100) * 1000); // Far: 4-5s max
-        }
-
-        // Smooth easing with pronounced landing deceleration
-        const smoothLandingEasing = (t) => {
-          if (t < 0.3) {
-            // Gentle acceleration (30% of time)
-            return 2 * t * t;
-          } else if (t < 0.7) {
-            // Steady cruise (40% of time)
-            const localT = (t - 0.3) / 0.4;
-            return 0.18 + 0.64 * localT; // Linear middle section
-          } else {
-            // Slow landing approach (30% of time)
-            const localT = (t - 0.7) / 0.3;
-            return 0.82 + 0.18 * (1 - Math.pow(1 - localT, 3));
+          // Enhanced lighting for 3D in v3
+          if (typeof map.setLight === 'function') {
+            map.setLight({
+              'anchor': 'viewport',
+              'color': 'white',
+              'intensity': 0.5,
+              'position': [1.15, 210, 30]
+            });
           }
-        };
-
-        // Check if we're in 3D mode
-        const is3D = uiController.is3DEnabled;
-        const targetZoom = is3D ? CONFIG.ZOOM_3D : CONFIG.ZOOM_2D;
-
-        const flyToOptions = {
-          center: coords,
-          zoom: targetZoom,
-          duration,
-          easing: smoothLandingEasing
-        };
-        
-        // Add 3D properties for smoother rainbow arc
-        if (is3D) {
-          flyToOptions.pitch = 75;
-          flyToOptions.bearing = map.getBearing();
-          // Higher curve for ultra-smooth rainbow effect in 3D
-          flyToOptions.curve = 2.5; // Even higher curve = smoother, more elevated arc
-        }
-        
-        map.flyTo(flyToOptions);
-        setTimeout(resetPositioning, duration + 200);
-      }
-
-      calculateDistance(lat1, lng1, lat2, lng2) {
-        const R = 6371e3;
-        const toRad = deg => deg * Math.PI / 180;
-        const dLat = toRad(lat2 - lat1);
-        const dLng = toRad(lng2 - lng1);
-        const a = Math.sin(dLat / 2) ** 2 +
-                  Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLng / 2) ** 2;
-        return 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a)) * R;
-      }
-
-      showPopup(coords, track, audio, index) {
-        if (this.currentPopup) {
-          this.currentPopup.remove();
-        }
-
-        const container = document.createElement('div');
-        container.style.fontFamily = 'helvetica, sans-serif';
-        container.style.padding = '2px';
-
-        const title = document.createElement('h3');
-        title.textContent = track.name;
-        title.style.margin = '0 0 4px 0';
-        container.appendChild(title);
-
-        const timestamp = document.createElement('p');
-        timestamp.style.margin = '0';
-        timestamp.style.fontSize = '0.9em';
-        timestamp.style.color = '#555';
-        timestamp.innerHTML = `<strong>${this.formatTimestamp(track.timestamp)}</strong>`;
-        container.appendChild(timestamp);
-
-        if (track.mile && track.mile.toString().trim().toLowerCase() !== 'n/a') {
-          const displayMile = this.getDisplayMile(track);
-          if (displayMile !== null) {
-            const mile = document.createElement('p');
-            mile.className = 'popup-mile';
-            mile.style.margin = '0';
-            mile.style.fontSize = '0.9em';
-            mile.style.color = '#555';
-            mile.innerHTML = `<strong>mi.${displayMile}</strong>`;
-            container.appendChild(mile);
-          }
-        }
-
-        if (track.notes?.trim()) {
-          const notes = document.createElement('p');
-          notes.style.margin = '4px 0';
-          notes.style.fontSize = '0.9em';
-          notes.textContent = track.notes;
-          container.appendChild(notes);
-        }
-
-        const controls = document.createElement('div');
-        controls.className = 'popup-controls';
-        
-        const prevBtn = document.createElement('button');
-        prevBtn.className = 'nav-arrow';
-        prevBtn.innerHTML = '&laquo;';
-        prevBtn.title = 'Previous';
-        
-        // Disable previous button logic based on mode and history
-        if (audioController.playMode === 'random') {
-          prevBtn.disabled = audioController.playHistory.length === 0;
-        } else {
-          // In playlist order: previous is always the item above in the list
-          prevBtn.disabled = index === 0;
-        }
-        
-        prevBtn.addEventListener('click', () => {
-          audioController.playPrevious(this.audioData);
-        });
-        
-        const nextBtn = document.createElement('button');
-        nextBtn.className = 'nav-arrow';
-        nextBtn.innerHTML = '&raquo;';
-        nextBtn.title = 'Next';
-        // In playlist order: next is always the item below in the list
-        nextBtn.disabled = index === this.audioData.length - 1;
-        nextBtn.addEventListener('click', () => {
-          audioController.playNext(this.audioData);
-        });
-        
-        controls.appendChild(prevBtn);
-        
-        if (audio) {
-          const audioContainer = document.createElement('div');
-          audioContainer.className = 'audio-container';
           
-          // Ensure audio controls always render properly
-          audio.controls = true;
-          audio.autoplay = true;
-          audio.style.width = '100%';
-          audio.controlsList = 'nodownload';
-          audio.oncontextmenu = () => false;
-          
-          // Force audio element to load controls
-          audio.load();
-          
-          // Fallback: if controls don't appear, try recreating
-          setTimeout(() => {
-            if (!audio.controls || audio.offsetHeight === 0) {
-              console.warn('Audio controls not rendering, attempting fix...');
-              audio.controls = true;
-              audio.style.display = 'block';
-              audio.style.visibility = 'visible';
+          // Wait for terrain to be ready, then apply 3D positioning
+          const apply3DView = () => {
+            if (audioController.currentIndex >= 0) {
+              const currentTrack = mapController.audioData[audioController.currentIndex];
+              if (currentTrack) {
+                // Position for 3D view of current track
+                const coords = [parseFloat(currentTrack.lng), parseFloat(currentTrack.lat)];
+                map.flyTo({
+                  center: coords,
+                  zoom: CONFIG.ZOOM_3D,
+                  pitch: 75,
+                  bearing: 0,
+                  duration: 2500,
+                  easing: t => 1 - Math.pow(1 - t, 3)
+                });
+                
+                // Apply atmospheric lighting for current track
+                atmosphereController.applyAtmosphere(currentTrack);
+              } else {
+                // No valid track, just enable 3D at current location
+                map.flyTo({
+                  pitch: 75,
+                  zoom: Math.max(map.getZoom(), CONFIG.ZOOM_3D),
+                  duration: 2000
+                });
+              }
+            } else {
+              // No active track, just enable 3D at current location
+              map.flyTo({
+                pitch: 75,
+                zoom: Math.max(map.getZoom(), CONFIG.ZOOM_3D),
+                duration: 2000
+              });
             }
-          }, 100);
+            showNotification('3D view enabled - Hold Ctrl + drag to rotate', 4000);
+          };
           
-          audioContainer.appendChild(audio);
-          controls.appendChild(audioContainer);
-        }
-        
-        controls.appendChild(nextBtn);
-        container.appendChild(controls);
-
-        const popup = new mapboxgl.Popup({ 
-          offset: 25,
-          closeOnClick: false,
-          closeOnMove: false,
-          maxWidth: '400px'
-        })
-          .setLngLat(coords)
-          .setDOMContent(container)
-          .addTo(map);
-
-        this.currentPopup = popup;
-      }
-
-      refreshPopupMileage(track) {
-        if (!this.currentPopup) return;
-        
-        const popupContent = this.currentPopup._content;
-        const mileElement = popupContent.querySelector('.popup-mile');
-        if (mileElement && track.mile && track.mile.toString().trim().toLowerCase() !== 'n/a') {
-          const displayMile = this.getDisplayMile(track);
-          mileElement.innerHTML = `<strong>mi.${displayMile}</strong>`;
-        }
-      }
-
-      formatTimestamp(timestamp) {
-        const date = new Date(timestamp);
-        if (isNaN(date)) return timestamp;
-        
-        // Use the enhanced atmosphere controller's Pacific Time formatting
-        const pacificTime = atmosphereController.convertToPacificTime(timestamp);
-        return atmosphereController.formatPacificTime(pacificTime);
-      }
-
-      resetMap() {
-        audioController.stop();
-        uiController.clearMiniInfoBoxes();
-        if (this.currentPopup) {
-          this.currentPopup.remove();
-          this.currentPopup = null;
-        }
-        
-        // Disable 3D mode if it's enabled
-        if (uiController.is3DEnabled) {
-          uiController.is3DEnabled = false;
-          const btn = document.getElementById('terrain3dBtn');
-          const btnMobile = document.getElementById('terrain3dBtnMobile');
-          if (btn) btn.classList.remove('active');
-          if (btnMobile) btnMobile.classList.remove('active');
+          // Wait a moment for terrain to initialize, then apply 3D view
+          setTimeout(apply3DView, 300);
           
+        } else {
+          // Disable 3D
           map.setTerrain(null);
-          if (map.getSource('mapbox-dem')) {
-            map.removeSource('mapbox-dem');
+          if (typeof map.setLight === 'function') {
+            map.setLight(null); // Reset lighting
           }
+          map.flyTo({
+            pitch: 0,
+            duration: 1500
+          });
+          
+          // Clean up terrain source
+          setTimeout(() => {
+            if (map.getSource('mapbox-dem')) {
+              map.removeSource('mapbox-dem');
+            }
+          }, 1600);
+          
+          showNotification('3D view disabled', 2000);
         }
-        
-        // Close mobile menu if open
-        if (uiController.isMobile && uiController.mobilePlaylistExpanded) {
-          uiController.collapseMobileMenu();
-        }
-        
-        map.flyTo({
-          center: CONFIG.DEFAULT_CENTER,
-          zoom: CONFIG.getDefaultZoom(),
-          pitch: 0,
-          bearing: 0,
-          duration: 2000
-        });
-        
-        document.querySelectorAll('.track').forEach(el => el.classList.remove('active-track'));
-        
-        showNotification('Map reset to default view', 2000);
       }
 
-      getMovementDuration(track) {
-        // Calculate the same duration logic used in positionMapForTrack
-        const coords = [parseFloat(track.lng), parseFloat(track.lat)];
-        const currentCenter = map.getCenter();
-        const distance = this.calculateDistance(
-          currentCenter.lat, currentCenter.lng,
-          coords[1], coords[0]
-        );
+      updateScrollArrows() {
+        const playlist = document.getElementById('playlist');
+        const scrollUp = document.getElementById('scrollUp');
+        const scrollDown = document.getElementById('scrollDown');
         
-        const distanceKm = distance / 1000;
-        let duration;
-        if (distanceKm < 5) {
-          duration = 2200;
-        } else if (distanceKm < 50) {
-          duration = 2200 + ((distanceKm - 5) / 45) * 1800;
-        } else {
-          duration = Math.min(5000, 4000 + ((distanceKm - 50) / 100) * 1000);
+        scrollUp.style.display = playlist.scrollTop > 0 ? 'block' : 'none';
+        scrollDown.style.display = (playlist.scrollTop + playlist.clientHeight) < playlist.scrollHeight ? 'block' : 'none';
+      }
+
+      setupPlaylistDrag() {
+        const playlist = document.getElementById('playlist');
+        let dragging = false, startY, scrollStart, vel = 0, lastY = 0, lastTime = 0, raf;
+        let dragStarted = false, preventClick = false;
+
+        playlist.addEventListener('mousedown', e => {
+          dragging = true;
+          dragStarted = false;
+          playlist.classList.add('dragging');
+          startY = e.pageY;
+          scrollStart = playlist.scrollTop;
+          vel = 0;
+          lastY = e.pageY;
+          lastTime = Date.now();
+          if (raf) cancelAnimationFrame(raf);
+        });
+
+        playlist.addEventListener('mousemove', e => {
+          if (!dragging) return;
+          e.preventDefault();
+          const now = Date.now();
+          const dy = e.pageY - lastY;
+          const dt = now - lastTime;
+          if (dt > 0) vel = dy / dt * 16;
+          playlist.scrollTop = scrollStart - (e.pageY - startY);
+          lastY = e.pageY;
+          lastTime = now;
+          this.updateScrollArrows();
+
+          if (!dragStarted && Math.abs(e.pageY - startY) > 5) {
+            dragStarted = true;
+            preventClick = true;
+          }
+        });
+
+        ['mouseup', 'mouseleave'].forEach(ev => {
+          playlist.addEventListener(ev, () => {
+            if (!dragging) return;
+            dragging = false;
+            playlist.classList.remove('dragging');
+            
+            const momentum = () => {
+              if (Math.abs(vel) < 0.5) return;
+              playlist.scrollTop -= vel;
+              vel *= 0.95;
+              raf = requestAnimationFrame(momentum);
+              this.updateScrollArrows();
+            };
+            momentum();
+
+            if (preventClick) {
+              setTimeout(() => { preventClick = false; }, 100);
+            }
+          });
+        });
+
+        playlist.addEventListener('click', e => {
+          if (preventClick) {
+            e.preventDefault();
+            e.stopPropagation();
+          }
+        }, true);
+      }
+
+      showMiniInfoBoxes(currentTrack, audioData) {
+        this.clearMiniInfoBoxes();
+
+        const visiblePoints = map.queryRenderedFeatures({ layers: ['unclustered-point'] });
+        
+        visiblePoints.forEach(point => {
+          const originalIndex = parseInt(point.properties.originalIndex);
+          
+          // Find this track in current sorted data
+          const currentIndex = audioData.findIndex(track => track.originalIndex === originalIndex);
+          if (currentIndex === -1) return;
+          
+          // Skip the currently playing track - it has the main popup
+          if (currentIndex === audioController.currentIndex) return;
+          
+          const track = audioData[currentIndex];
+          if (!track) return;
+
+          const coords = point.geometry.coordinates;
+          const pixelCoords = map.project(coords);
+          
+          const infoBox = document.createElement('div');
+          infoBox.className = 'mini-infobox';
+          infoBox.dataset.trackIndex = currentIndex; // Store current playlist index
+          
+          const playIcon = document.createElement('div');
+          playIcon.className = 'play-icon';
+          
+          const title = document.createElement('span');
+          title.className = 'mini-infobox-title';
+          title.textContent = track.name.replace(/^[^\s]+\s+-\s+/, '');
+          
+          // Make entire mini box clickable to play audio and show popup
+          infoBox.addEventListener('click', (e) => {
+            e.stopPropagation();
+            mapController.playAudio(currentIndex);
+          });
+          
+          infoBox.appendChild(playIcon);
+          infoBox.appendChild(title);
+          
+          // Auto-size based on content
+          document.body.appendChild(infoBox);
+          const textWidth = title.scrollWidth;
+          infoBox.style.maxWidth = Math.min(Math.max(textWidth + 50, 120), 250) + 'px';
+          document.body.removeChild(infoBox);
+          
+          infoBox.style.left = `${pixelCoords.x + 10}px`;
+          infoBox.style.top = `${pixelCoords.y - 20}px`;
+          
+          map.getContainer().appendChild(infoBox);
+          this.miniInfoBoxes.push(infoBox);
+        });
+      }
+
+      updateMiniInfoBoxPositions() {
+        // Update positions of existing mini info boxes to follow their geographic points
+        this.miniInfoBoxes.forEach(infoBox => {
+          const trackIndex = parseInt(infoBox.dataset.trackIndex);
+          const track = mapController.audioData[trackIndex];
+          if (track) {
+            const coords = [parseFloat(track.lng), parseFloat(track.lat)];
+            const pixelCoords = map.project(coords);
+            infoBox.style.left = `${pixelCoords.x + 10}px`;
+            infoBox.style.top = `${pixelCoords.y - 20}px`;
+          }
+        });
+      }
+
+      clearMiniInfoBoxes() {
+        this.miniInfoBoxes.forEach(box => {
+          if (box.parentNode) {
+            box.parentNode.removeChild(box);
+          }
+        });
+        this.miniInfoBoxes = [];
+      }
+
+      showClusterPlaylist(e, leaves) {
+        this.hideClusterPlaylist();
+
+        const playlist = document.createElement('div');
+        playlist.className = 'cluster-playlist';
+        
+        leaves.forEach(leaf => {
+          const item = document.createElement('div');
+          item.className = 'cluster-item';
+          
+          const playIcon = document.createElement('div');
+          playIcon.className = 'play-icon';
+          
+          const title = document.createElement('span');
+          title.className = 'cluster-item-title';
+          title.textContent = leaf.properties.name.replace(/^[^\s]+\s+-\s+/, '');
+          
+          item.appendChild(playIcon);
+          item.appendChild(title);
+          
+          item.addEventListener('click', () => {
+            mapController.playAudio(parseInt(leaf.properties.id));
+            this.hideClusterPlaylist();
+          });
+          
+          item.addEventListener('mouseleave', () => {
+            // Small delay to allow moving between items
+            setTimeout(() => {
+              if (!playlist.matches(':hover')) {
+                this.hideClusterPlaylist();
+              }
+            }, 100);
+          });
+          
+          playlist.appendChild(item);
+        });
+
+        // Position the playlist
+        playlist.style.left = `${e.point.x + 10}px`;
+        playlist.style.top = `${e.point.y - 10}px`;
+        
+        // Handle playlist mouse leave
+        playlist.addEventListener('mouseleave', () => {
+          this.hideClusterPlaylist();
+        });
+        
+        map.getContainer().appendChild(playlist);
+        this.clusterPlaylist = playlist;
+      }
+
+      hideClusterPlaylist() {
+        if (this.clusterPlaylist) {
+          this.clusterPlaylist.remove();
+          this.clusterPlaylist = null;
         }
-        return duration;
       }
     }
