@@ -50,13 +50,17 @@
           style: 'mapbox://styles/thmkly/clyup637d004201ri2tkpaywq',
           center: CONFIG.DEFAULT_CENTER,
           zoom: CONFIG.getDefaultZoom(),
-          // Add touch event options for better mobile support
+          // Touch controls settings
           touchZoomRotate: true,
-          touchPitch: false,
+          touchPitch: false, // Keep pitch locked on mobile
+          // Initially disable drag rotate (will be enabled in 3D mode on desktop)
           dragRotate: false
         });
 
+        // Disable drag rotation initially
         map.on('load', () => {
+          map.dragRotate.disable();
+          
           // Check for API availability before using
           if (typeof map.setSky === 'function') {
             map.setSky({
@@ -501,7 +505,7 @@
           div.appendChild(trackMile);
           
           div.addEventListener('click', (e) => {
-            // Only collapse mobile menu when clicking playlist tracks, not controls
+            // Collapse mobile menu when track is clicked
             if (uiController.isMobile && uiController.mobilePlaylistExpanded) {
               uiController.collapseMobileMenu();
             }
@@ -513,9 +517,20 @@
         
         // Show collapse arrow now that playlist is rendered
         const toggleBtn = document.getElementById('playlistToggle');
-        if (toggleBtn) toggleBtn.classList.add('visible');
+        if (toggleBtn) {
+          toggleBtn.classList.add('visible');
+          // Ensure correct arrow direction
+          if (uiController && uiController.playlistExpanded) {
+            toggleBtn.textContent = '◀';
+          } else {
+            toggleBtn.textContent = '▶';
+          }
+        }
         
-        uiController.updateScrollArrows();
+        // Update scroll arrows after playlist is populated
+        if (uiController) {
+          setTimeout(() => uiController.updateScrollArrows(), 100);
+        }
         
         // Force scroll position update on initial load
         if (audioController.currentIndex === -1) {
@@ -569,10 +584,7 @@
           atmosphereController.applyFallbackAtmosphere(conditions);
         }
         
-        // Collapse mobile menu if in mobile mode and menu is open
-        if (uiController.isMobile && uiController.mobilePlaylistExpanded) {
-          uiController.collapseMobileMenu();
-        }
+        // Don't collapse menu - removed this functionality
         
         // Add delay before positioning to prevent conflicts
         this.animationTimeout = setTimeout(() => {
