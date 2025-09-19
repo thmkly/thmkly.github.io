@@ -215,7 +215,11 @@
       toggle3D() {
         this.is3DEnabled = !this.is3DEnabled;
         const btn = document.getElementById('terrain3dBtn');
+        const btnMobile = document.getElementById('terrain3dBtnMobile');
         btn.classList.toggle('active', this.is3DEnabled);
+        if (btnMobile) {
+          btnMobile.classList.toggle('active', this.is3DEnabled);
+        }
 
         if (this.is3DEnabled) {
           // Add 3D terrain source (enhanced for v3)
@@ -254,7 +258,7 @@
                 map.flyTo({
                   center: coords,
                   zoom: CONFIG.ZOOM_3D,
-                  pitch: 75,
+                  pitch: 82, // More immersive angle (was 75)
                   bearing: 0,
                   duration: 2500,
                   easing: t => 1 - Math.pow(1 - t, 3)
@@ -265,7 +269,7 @@
               } else {
                 // No valid track, just enable 3D at current location
                 map.flyTo({
-                  pitch: 75,
+                  pitch: 82, // More immersive angle
                   zoom: Math.max(map.getZoom(), CONFIG.ZOOM_3D),
                   duration: 2000
                 });
@@ -273,7 +277,7 @@
             } else {
               // No active track, just enable 3D at current location
               map.flyTo({
-                pitch: 75,
+                pitch: 82, // More immersive angle
                 zoom: Math.max(map.getZoom(), CONFIG.ZOOM_3D),
                 duration: 2000
               });
@@ -311,8 +315,21 @@
         const scrollUp = document.getElementById('scrollUp');
         const scrollDown = document.getElementById('scrollDown');
         
-        scrollUp.style.display = playlist.scrollTop > 0 ? 'block' : 'none';
-        scrollDown.style.display = (playlist.scrollTop + playlist.clientHeight) < playlist.scrollHeight ? 'block' : 'none';
+        // Always show arrows, but disable when can't scroll
+        const canScrollUp = playlist.scrollTop > 0;
+        const canScrollDown = (playlist.scrollTop + playlist.clientHeight) < playlist.scrollHeight;
+        
+        if (canScrollUp) {
+          scrollUp.classList.remove('disabled');
+        } else {
+          scrollUp.classList.add('disabled');
+        }
+        
+        if (canScrollDown) {
+          scrollDown.classList.remove('disabled');
+        } else {
+          scrollDown.classList.add('disabled');
+        }
       }
 
       setupPlaylistDrag() {
