@@ -234,6 +234,12 @@
         if (btnMobile) btnMobile.classList.toggle('active', this.is3DEnabled);
 
         if (this.is3DEnabled) {
+          // Enable drag rotation for desktop only
+          if (!this.isMobile) {
+            map.dragRotate.enable();
+            map.keyboard.enable();
+          }
+          
           // Add 3D terrain source (enhanced for v3)
           if (!map.getSource('mapbox-dem')) {
             map.addSource('mapbox-dem', {
@@ -302,12 +308,18 @@
           
         } else {
           // Disable 3D
+          // Disable drag rotation for desktop
+          if (!this.isMobile) {
+            map.dragRotate.disable();
+          }
+          
           map.setTerrain(null);
           if (typeof map.setLight === 'function') {
             map.setLight(null); // Reset lighting
           }
           map.flyTo({
             pitch: 0,
+            bearing: 0, // Reset bearing when disabling 3D
             duration: 1500
           });
           
@@ -329,7 +341,7 @@
         
         // Always show arrows, but disable when can't scroll
         const canScrollUp = playlist.scrollTop > 0;
-        const canScrollDown = (playlist.scrollTop + playlist.clientHeight) < playlist.scrollHeight;
+        const canScrollDown = (playlist.scrollTop + playlist.clientHeight) < playlist.scrollHeight - 1; // -1 for rounding
         
         if (canScrollUp) {
           scrollUp.classList.remove('disabled');
