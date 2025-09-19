@@ -69,8 +69,19 @@
         const scrollDown = document.getElementById('scrollDown');
 
         playlist.addEventListener('scroll', () => this.updateScrollArrows());
-        scrollUp.addEventListener('click', () => playlist.scrollBy({ top: -100, behavior: 'smooth' }));
-        scrollDown.addEventListener('click', () => playlist.scrollBy({ top: 100, behavior: 'smooth' }));
+        scrollUp.addEventListener('click', () => {
+          if (!scrollUp.classList.contains('disabled')) {
+            playlist.scrollBy({ top: -100, behavior: 'smooth' });
+          }
+        });
+        scrollDown.addEventListener('click', () => {
+          if (!scrollDown.classList.contains('disabled')) {
+            playlist.scrollBy({ top: 100, behavior: 'smooth' });
+          }
+        });
+
+        // Initialize scroll arrows state on load
+        setTimeout(() => this.updateScrollArrows(), 100);
 
         this.setupPlaylistDrag();
       }
@@ -139,34 +150,35 @@
                 document.body.classList.add('mobile-menu-open');
                 this.mobilePlaylistExpanded = true;
               } else {
-                wrapper.classList.remove('mobile-expanded');
+              wrapper.classList.remove('mobile-expanded');
                 document.body.classList.remove('mobile-menu-open');
                 this.mobilePlaylistExpanded = false;
               }
               
-              // Ensure wrapper is visible
-              wrapper.style.display = 'flex';
-              
             } else {
               // Switching from mobile to desktop
-              const wasExpanded = this.mobilePlaylistExpanded;
+              // Save mobile state
+              const wasMobileExpanded = wrapper.classList.contains('mobile-expanded');
               
-              // Clear mobile state
+              // Clear mobile classes
               wrapper.classList.remove('mobile-expanded');
               document.body.classList.remove('mobile-menu-open');
               
               // Apply desktop state based on previous mobile state
-              if (wasExpanded) {
+              if (wasMobileExpanded) {
                 wrapper.classList.remove('collapsed');
                 this.playlistExpanded = true;
               } else {
                 wrapper.classList.add('collapsed');
                 this.playlistExpanded = false;
               }
-              
-              // Ensure wrapper is visible
-              wrapper.style.display = 'flex';
             }
+            
+            // Always ensure wrapper is visible
+            wrapper.style.display = 'flex';
+            
+            // Update scroll arrows after resize
+            setTimeout(() => this.updateScrollArrows(), 100);
           }
         });
       }
@@ -216,10 +228,10 @@
         this.is3DEnabled = !this.is3DEnabled;
         const btn = document.getElementById('terrain3dBtn');
         const btnMobile = document.getElementById('terrain3dBtnMobile');
-        btn.classList.toggle('active', this.is3DEnabled);
-        if (btnMobile) {
-          btnMobile.classList.toggle('active', this.is3DEnabled);
-        }
+        
+        // Update both buttons
+        if (btn) btn.classList.toggle('active', this.is3DEnabled);
+        if (btnMobile) btnMobile.classList.toggle('active', this.is3DEnabled);
 
         if (this.is3DEnabled) {
           // Add 3D terrain source (enhanced for v3)
@@ -258,7 +270,7 @@
                 map.flyTo({
                   center: coords,
                   zoom: CONFIG.ZOOM_3D,
-                  pitch: 82, // More immersive angle (was 75)
+                  pitch: 82, // More immersive angle
                   bearing: 0,
                   duration: 2500,
                   easing: t => 1 - Math.pow(1 - t, 3)
@@ -282,7 +294,7 @@
                 duration: 2000
               });
             }
-            showNotification('3D view enabled - Hold Ctrl + drag to rotate', 4000);
+            // Removed notification
           };
           
           // Wait a moment for terrain to initialize, then apply 3D view
@@ -306,7 +318,7 @@
             }
           }, 1600);
           
-          showNotification('3D view disabled', 2000);
+          // Removed notification
         }
       }
 
