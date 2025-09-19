@@ -306,14 +306,8 @@
         const url = `${CONFIG.GOOGLE_SCRIPT_URL}?nocache=${Date.now()}`;
         console.log('Fetching data from:', url);
         
-        fetch(url, {
-          method: 'GET',
-          mode: 'cors',
-          cache: 'no-cache',
-          headers: {
-            'Content-Type': 'application/json',
-          }
-        })
+        // Simple fetch without extra headers to avoid CORS preflight
+        fetch(url)
           .then(response => {
             console.log('Response status:', response.status);
             console.log('Response headers:', response.headers);
