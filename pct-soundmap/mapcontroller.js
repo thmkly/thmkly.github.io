@@ -45,11 +45,18 @@
       setupMap() {
         mapboxgl.accessToken = CONFIG.MAPBOX_TOKEN;
         
+        // Calculate initial padding based on screen size
+        const isMobile = window.innerWidth <= 768;
+        const initialPadding = isMobile ? 
+          { top: 0, bottom: 0, left: 0, right: 0 } :
+          { top: 0, bottom: 0, left: 350, right: 0 }; // Account for desktop playlist
+        
         window.map = new mapboxgl.Map({
           container: 'map',
           style: 'mapbox://styles/thmkly/clyup637d004201ri2tkpaywq',
           center: CONFIG.DEFAULT_CENTER,
           zoom: CONFIG.getDefaultZoom(),
+          padding: initialPadding,
           // Touch controls settings
           touchZoomRotate: true,
           touchPitch: false, // Keep pitch locked on mobile
