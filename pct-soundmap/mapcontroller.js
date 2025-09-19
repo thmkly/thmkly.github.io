@@ -880,21 +880,28 @@
           }
         }
         
-        // Don't close mobile menu
-        
-        // Fix centering with proper padding
-        const padding = uiController.isMobile ? 
-          { top: 20, bottom: 20, left: 20, right: 20 } :  // Mobile: even padding
-          { top: 20, bottom: 20, left: uiController.playlistExpanded ? 370 : 20, right: 20 }; // Desktop: account for playlist
-        
-        map.flyTo({
-          center: CONFIG.DEFAULT_CENTER,
-          zoom: CONFIG.getDefaultZoom(),
-          pitch: 0,
-          bearing: 0,
-          duration: 2000,
-          padding: padding
-        });
+        // Reset to default view with proper centering
+        // Use jumpTo first to reset padding, then flyTo
+        if (!uiController.isMobile && uiController.playlistExpanded) {
+          // Desktop with playlist open - offset center to the right
+          const adjustedCenter = [CONFIG.DEFAULT_CENTER[0] + 1.5, CONFIG.DEFAULT_CENTER[1]];
+          map.flyTo({
+            center: adjustedCenter,
+            zoom: CONFIG.getDefaultZoom(),
+            pitch: 0,
+            bearing: 0,
+            duration: 2000
+          });
+        } else {
+          // Mobile or desktop with playlist closed - center normally
+          map.flyTo({
+            center: CONFIG.DEFAULT_CENTER,
+            zoom: CONFIG.getDefaultZoom(),
+            pitch: 0,
+            bearing: 0,
+            duration: 2000
+          });
+        }
         
         document.querySelectorAll('.track').forEach(el => el.classList.remove('active-track'));
         
