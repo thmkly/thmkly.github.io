@@ -101,7 +101,8 @@
         }
         
         if (nextIndex !== this.currentIndex) {
-          mapController.playAudio(nextIndex);
+          // Pass true flag to indicate this is from auto-play
+          mapController.playAudio(nextIndex, true);
         }
       }
 
@@ -123,7 +124,8 @@
           }
         }
         
-        mapController.playAudio(prevIndex);
+        // Pass false to indicate manual navigation
+        mapController.playAudio(prevIndex, false);
       }
 
       stop() {
