@@ -45,18 +45,11 @@
       setupMap() {
         mapboxgl.accessToken = CONFIG.MAPBOX_TOKEN;
         
-        // Calculate initial padding based on screen size
-        const isMobile = window.innerWidth <= 768;
-        const initialPadding = isMobile ? 
-          { top: 0, bottom: 0, left: 0, right: 0 } :
-          { top: 0, bottom: 0, left: 350, right: 0 }; // Account for desktop playlist
-        
         window.map = new mapboxgl.Map({
           container: 'map',
           style: 'mapbox://styles/thmkly/clyup637d004201ri2tkpaywq',
           center: CONFIG.DEFAULT_CENTER,
           zoom: CONFIG.getDefaultZoom(),
-          padding: initialPadding,
           // Touch controls settings
           touchZoomRotate: true,
           touchPitch: false, // Keep pitch locked on mobile
@@ -643,11 +636,14 @@
       }
 
       minimizePopup(track, index) {
-        // Remove the main popup
+        // Remove the main popup but keep audio playing
         if (this.currentPopup) {
           this.currentPopup.remove();
           this.currentPopup = null;
         }
+        
+        // Audio should continue playing - don't stop it
+        // The audio element is managed by audioController and should persist
         
         // Create a mini infobox for the minimized popup
         const coords = [parseFloat(track.lng), parseFloat(track.lat)];
@@ -657,6 +653,7 @@
         miniBox.className = 'mini-infobox minimized-popup';
         miniBox.dataset.trackIndex = index;
         miniBox.style.position = 'absolute';
+        miniBox.style.backgroundColor = 'rgba(255, 235, 220, 0.95)'; // Light orange background to indicate playing
         
         const playIcon = document.createElement('div');
         playIcon.className = 'play-icon';
@@ -671,6 +668,7 @@
           e.stopPropagation();
           // Remove this mini box
           miniBox.remove();
+          this.minimizedPopup = null;
           // Find the audio element if it exists
           const audio = audioController.currentAudio;
           // Show full popup again
@@ -688,6 +686,17 @@
         
         // Store reference to minimized popup
         this.minimizedPopup = miniBox;
+        
+        // Update position when map moves
+        const updatePosition = () => {
+          const newCoords = map.project(coords);
+          miniBox.style.left = `${newCoords.x + 10}px`;
+          miniBox.style.top = `${newCoords.y - 20}px`;
+        };
+        map.on('move', updatePosition);
+        
+        // Store the update function so we can remove it later
+        miniBox._updatePosition = updatePosition;
       }
 
       updateActiveTrack(index, shouldScrollPlaylist = false) {
@@ -697,11 +706,25 @@
           activeTrack.classList.add('active-track');
           // Only scroll if explicitly requested (for auto-play next)
           if (shouldScrollPlaylist) {
-            activeTrack.scrollIntoView({ 
-              behavior: 'smooth', 
-              block: 'center',
-              inline: 'nearest'
-            });
+            // Safari-specific scrollIntoView fix
+            if (/^((?!chrome|android).)*safari/i.test(navigator.userAgent)) {
+              // For Safari, use a more direct approach
+              const playlist = document.getElementById('playlist');
+              const trackRect = activeTrack.getBoundingClientRect();
+              const playlistRect = playlist.getBoundingClientRect();
+              const scrollTop = playlist.scrollTop + trackRect.top - playlistRect.top - (playlistRect.height / 2) + (trackRect.height / 2);
+              playlist.scrollTo({
+                top: scrollTop,
+                behavior: 'smooth'
+              });
+            } else {
+              // For other browsers, use scrollIntoView
+              activeTrack.scrollIntoView({ 
+                behavior: 'smooth', 
+                block: 'center',
+                inline: 'nearest'
+              });
+            }
           }
         }
       }
@@ -798,14 +821,19 @@
         container.style.fontFamily = 'helvetica, sans-serif';
         container.style.padding = '2px';
         container.style.position = 'relative';
-        container.style.paddingTop = '20px'; // Space for minimize button
+        container.style.paddingTop = '30px'; // More space for minimize button
 
         // Add minimize button
         const minimizeBtn = document.createElement('button');
         minimizeBtn.className = 'popup-minimize';
-        minimizeBtn.innerHTML = '−'; // Minus sign
+        minimizeBtn.innerHTML = '−'; // Minus sign using HTML entity
         minimizeBtn.title = 'Minimize';
-        minimizeBtn.addEventListener('click', () => {
+        minimizeBtn.type = 'button'; // Explicitly set type
+        // Prevent auto-focus
+        minimizeBtn.tabIndex = -1;
+        minimizeBtn.addEventListener('click', (e) => {
+          e.preventDefault();
+          e.stopPropagation();
           this.minimizePopup(track, index);
         });
         container.appendChild(minimizeBtn);
@@ -947,6 +975,15 @@
           this.currentPopup = null;
         }
         
+        // Clean up minimized popup if it exists
+        if (this.minimizedPopup) {
+          if (this.minimizedPopup._updatePosition) {
+            map.off('move', this.minimizedPopup._updatePosition);
+          }
+          this.minimizedPopup.remove();
+          this.minimizedPopup = null;
+        }
+        
         // Disable 3D mode if it's enabled
         if (uiController.is3DEnabled) {
           uiController.is3DEnabled = false;
@@ -964,28 +1001,14 @@
           }
         }
         
-        // Reset to default view with proper centering
-        // Use jumpTo first to reset padding, then flyTo
-        if (!uiController.isMobile && uiController.playlistExpanded) {
-          // Desktop with playlist open - offset center to the right
-          const adjustedCenter = [CONFIG.DEFAULT_CENTER[0] + 1.5, CONFIG.DEFAULT_CENTER[1]];
-          map.flyTo({
-            center: adjustedCenter,
-            zoom: CONFIG.getDefaultZoom(),
-            pitch: 0,
-            bearing: 0,
-            duration: 2000
-          });
-        } else {
-          // Mobile or desktop with playlist closed - center normally
-          map.flyTo({
-            center: CONFIG.DEFAULT_CENTER,
-            zoom: CONFIG.getDefaultZoom(),
-            pitch: 0,
-            bearing: 0,
-            duration: 2000
-          });
-        }
+        // Simple reset without padding adjustments - same as original
+        map.flyTo({
+          center: CONFIG.DEFAULT_CENTER,
+          zoom: CONFIG.getDefaultZoom(),
+          pitch: 0,
+          bearing: 0,
+          duration: 2000
+        });
         
         document.querySelectorAll('.track').forEach(el => el.classList.remove('active-track'));
         
