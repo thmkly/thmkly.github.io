@@ -558,8 +558,8 @@
         }
       }
 
-      playAudio(index) {
-        console.log('playAudio called with index:', index);
+      playAudio(index, fromAutoPlay = false) {
+        console.log('playAudio called with index:', index, 'fromAutoPlay:', fromAutoPlay);
         
         const track = this.audioData[index];
         if (!track) {
@@ -574,7 +574,29 @@
           clearTimeout(this.animationTimeout);
         }
 
-        this.updateActiveTrack(index);
+        // Clean up any minimized popup
+        if (this.minimizedPopup) {
+          this.minimizedPopup.remove();
+          this.minimizedPopup = null;
+        }
+
+        // Update active track, only scroll playlist if from auto-play and track not visible
+        if (fromAutoPlay) {
+          // Check if track is visible in playlist
+          const trackElement = document.querySelector(`.track[data-id="${index}"]`);
+          const playlist = document.getElementById('playlist');
+          if (trackElement && playlist) {
+            const trackRect = trackElement.getBoundingClientRect();
+            const playlistRect = playlist.getBoundingClientRect();
+            const isVisible = trackRect.top >= playlistRect.top && trackRect.bottom <= playlistRect.bottom;
+            this.updateActiveTrack(index, !isVisible); // Only scroll if not visible
+          } else {
+            this.updateActiveTrack(index, true); // Scroll if can't determine visibility
+          }
+        } else {
+          this.updateActiveTrack(index, false); // Don't scroll for manual clicks
+        }
+
         const audio = audioController.play(index, this.audioData);
         
         // Clear old mini boxes before positioning
@@ -620,17 +642,67 @@
         }
       }
 
-      updateActiveTrack(index) {
+      minimizePopup(track, index) {
+        // Remove the main popup
+        if (this.currentPopup) {
+          this.currentPopup.remove();
+          this.currentPopup = null;
+        }
+        
+        // Create a mini infobox for the minimized popup
+        const coords = [parseFloat(track.lng), parseFloat(track.lat)];
+        const pixelCoords = map.project(coords);
+        
+        const miniBox = document.createElement('div');
+        miniBox.className = 'mini-infobox minimized-popup';
+        miniBox.dataset.trackIndex = index;
+        miniBox.style.position = 'absolute';
+        
+        const playIcon = document.createElement('div');
+        playIcon.className = 'play-icon';
+        playIcon.style.borderLeftColor = '#ff6b35'; // Orange to indicate playing
+        
+        const title = document.createElement('span');
+        title.className = 'mini-infobox-title';
+        title.textContent = track.name.replace(/^[^\s]+\s+-\s+/, '');
+        
+        // Click to restore the full popup
+        miniBox.addEventListener('click', (e) => {
+          e.stopPropagation();
+          // Remove this mini box
+          miniBox.remove();
+          // Find the audio element if it exists
+          const audio = audioController.currentAudio;
+          // Show full popup again
+          this.showPopup(coords, track, audio, index);
+        });
+        
+        miniBox.appendChild(playIcon);
+        miniBox.appendChild(title);
+        
+        // Position the mini box
+        miniBox.style.left = `${pixelCoords.x + 10}px`;
+        miniBox.style.top = `${pixelCoords.y - 20}px`;
+        
+        map.getContainer().appendChild(miniBox);
+        
+        // Store reference to minimized popup
+        this.minimizedPopup = miniBox;
+      }
+
+      updateActiveTrack(index, shouldScrollPlaylist = false) {
         document.querySelectorAll('.track').forEach(el => el.classList.remove('active-track'));
         const activeTrack = document.querySelector(`.track[data-id="${index}"]`);
         if (activeTrack) {
           activeTrack.classList.add('active-track');
-          // Smoother, slower scroll to center the track
-          activeTrack.scrollIntoView({ 
-            behavior: 'smooth', 
-            block: 'center',
-            inline: 'nearest'
-          });
+          // Only scroll if explicitly requested (for auto-play next)
+          if (shouldScrollPlaylist) {
+            activeTrack.scrollIntoView({ 
+              behavior: 'smooth', 
+              block: 'center',
+              inline: 'nearest'
+            });
+          }
         }
       }
 
@@ -725,6 +797,18 @@
         const container = document.createElement('div');
         container.style.fontFamily = 'helvetica, sans-serif';
         container.style.padding = '2px';
+        container.style.position = 'relative';
+        container.style.paddingTop = '20px'; // Space for minimize button
+
+        // Add minimize button
+        const minimizeBtn = document.createElement('button');
+        minimizeBtn.className = 'popup-minimize';
+        minimizeBtn.innerHTML = '−'; // Minus sign
+        minimizeBtn.title = 'Minimize';
+        minimizeBtn.addEventListener('click', () => {
+          this.minimizePopup(track, index);
+        });
+        container.appendChild(minimizeBtn);
 
         const title = document.createElement('h3');
         title.textContent = track.name;
