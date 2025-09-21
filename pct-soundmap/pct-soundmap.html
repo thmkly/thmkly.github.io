@@ -298,11 +298,18 @@
     color: #666;
     padding: 0;
     transition: background-color 0.2s;
+    -webkit-appearance: none;
+    appearance: none;
   }
 
   .popup-minimize:hover {
     background-color: #f0f0f0;
     color: #333;
+  }
+
+  .popup-minimize:focus {
+    outline: none;
+    box-shadow: none;
   }
 
   /* Adjust popup close button to hide it */
@@ -890,6 +897,7 @@
         }
 
         // Sync fullscreen buttons
+        const fullscreenBtnMobile = document.getElementById('fullscreenBtnMobile');
         if (fullscreenBtnMobile) {
           fullscreenBtnMobile.addEventListener('click', () => {
             uiController.toggleFullscreen();
@@ -948,25 +956,40 @@
         const kofiWidget = document.querySelector('.floatingchat-container-wrap');
         const kofiPopup = document.querySelector('.floating-chat-kofi-popup-iframe');
         
-        if (window.innerWidth <= 768) {
+        const isMobile = window.innerWidth <= 768;
+        const isActualMobileDevice = /iphone|ipad|ipod|android|mobile/i.test(navigator.userAgent.toLowerCase());
+        
+        if (isActualMobileDevice || isMobile) {
+          // Mobile or small window - center it
           if (kofiWidget) {
-            // Force override all styles with inline CSS
             kofiWidget.setAttribute('style', 'position: fixed !important; left: 50% !important; margin-left: -30px !important; transform: none !important; -webkit-transform: none !important; right: unset !important; bottom: 20px !important; z-index: 9000 !important;');
           }
           if (kofiPopup) {
             kofiPopup.setAttribute('style', 'position: fixed !important; left: 50% !important; margin-left: -150px !important; transform: none !important; -webkit-transform: none !important; right: unset !important; bottom: 80px !important; z-index: 9000 !important;');
           }
+        } else {
+          // Desktop - bottom right
+          if (kofiWidget) {
+            kofiWidget.setAttribute('style', 'position: fixed !important; left: unset !important; right: 16px !important; bottom: 30px !important; transform: none !important; -webkit-transform: none !important; z-index: 9000 !important;');
+          }
+          if (kofiPopup) {
+            kofiPopup.setAttribute('style', 'position: fixed !important; left: unset !important; right: 16px !important; bottom: 30px !important; transform: none !important; -webkit-transform: none !important; z-index: 9000 !important;');
+          }
         }
       }
       
-      // Try multiple times to ensure Ko-fi is centered
+      // Try multiple times to ensure Ko-fi is positioned correctly
       setTimeout(centerKofiWidget, 1000);
       setTimeout(centerKofiWidget, 2000);
       setTimeout(centerKofiWidget, 3000);
       
-      // Also center on window resize
+      // Update Ko-fi position on window resize
+      let resizeTimer;
       window.addEventListener('resize', () => {
-        setTimeout(centerKofiWidget, 100);
+        clearTimeout(resizeTimer);
+        resizeTimer = setTimeout(() => {
+          centerKofiWidget();
+        }, 250);
       });
 
       // Initialize map data update after first load
