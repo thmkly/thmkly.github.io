@@ -638,14 +638,18 @@
       minimizePopup(track, index) {
         // Remove the main popup but keep audio playing
         if (this.currentPopup) {
+          // Clean up audio display sync
+          const audioDisplay = this.currentPopup._container.querySelector('audio');
+          if (audioDisplay && audioDisplay._actualAudio && audioDisplay._syncFunction) {
+            audioDisplay._actualAudio.removeEventListener('play', audioDisplay._syncFunction);
+            audioDisplay._actualAudio.removeEventListener('pause', audioDisplay._syncFunction);
+            audioDisplay._actualAudio.removeEventListener('timeupdate', audioDisplay._syncFunction);
+          }
           this.currentPopup.remove();
           this.currentPopup = null;
         }
         
-        // Audio should continue playing - don't stop it
-        // The audio element is managed by audioController and should persist
-        
-        // Create a mini infobox for the minimized popup
+        // Create a mini infobox with play/pause functionality
         const coords = [parseFloat(track.lng), parseFloat(track.lat)];
         const pixelCoords = map.project(coords);
         
@@ -653,29 +657,55 @@
         miniBox.className = 'mini-infobox minimized-popup';
         miniBox.dataset.trackIndex = index;
         miniBox.style.position = 'absolute';
-        miniBox.style.backgroundColor = 'rgba(255, 235, 220, 0.95)'; // Light orange background to indicate playing
+        miniBox.style.backgroundColor = 'rgba(255, 235, 220, 0.95)'; // Light orange for active track
+        miniBox.style.cursor = 'pointer';
         
-        const playIcon = document.createElement('div');
-        playIcon.className = 'play-icon';
-        playIcon.style.borderLeftColor = '#ff6b35'; // Orange to indicate playing
+        // Create play/pause icon that will toggle
+        const playPauseIcon = document.createElement('div');
+        const updatePlayPauseIcon = () => {
+          const isPlaying = audioController.currentAudio && !audioController.currentAudio.paused;
+          if (isPlaying) {
+            // Show pause icon (two bars)
+            playPauseIcon.innerHTML = '<div style="display: flex; gap: 2px; width: 8px; height: 10px;">' +
+                                     '<div style="width: 3px; background-color: #5c3a2e; height: 100%;"></div>' +
+                                     '<div style="width: 3px; background-color: #5c3a2e; height: 100%;"></div>' +
+                                     '</div>';
+          } else {
+            // Show play icon (triangle)
+            playPauseIcon.innerHTML = '';
+            playPauseIcon.className = 'play-icon';
+            playPauseIcon.style.borderLeftColor = '#5c3a2e';
+          }
+        };
+        updatePlayPauseIcon();
         
         const title = document.createElement('span');
         title.className = 'mini-infobox-title';
         title.textContent = track.name.replace(/^[^\s]+\s+-\s+/, '');
         
-        // Click to restore the full popup
+        // Click mini box to toggle play/pause
         miniBox.addEventListener('click', (e) => {
           e.stopPropagation();
-          // Remove this mini box
-          miniBox.remove();
-          this.minimizedPopup = null;
-          // Find the audio element if it exists
-          const audio = audioController.currentAudio;
-          // Show full popup again
-          this.showPopup(coords, track, audio, index);
+          if (audioController.currentAudio) {
+            if (audioController.currentAudio.paused) {
+              audioController.currentAudio.play();
+            } else {
+              audioController.currentAudio.pause();
+            }
+            updatePlayPauseIcon();
+          }
         });
         
-        miniBox.appendChild(playIcon);
+        // Listen for play/pause events on the audio
+        if (audioController.currentAudio) {
+          const updateIcon = () => updatePlayPauseIcon();
+          audioController.currentAudio.addEventListener('play', updateIcon);
+          audioController.currentAudio.addEventListener('pause', updateIcon);
+          miniBox._updateIcon = updateIcon;
+          miniBox._audio = audioController.currentAudio;
+        }
+        
+        miniBox.appendChild(playPauseIcon);
         miniBox.appendChild(title);
         
         // Position the mini box
@@ -684,19 +714,59 @@
         
         map.getContainer().appendChild(miniBox);
         
-        // Store reference to minimized popup
-        this.minimizedPopup = miniBox;
+        // Create expand button
+        const expandBtn = document.createElement('button');
+        expandBtn.className = 'mini-infobox-expand';
+        expandBtn.innerHTML = '▲';
+        expandBtn.title = 'Expand';
+        expandBtn.style.position = 'absolute';
+        expandBtn.style.left = `${pixelCoords.x + 10 + miniBox.offsetWidth + 5}px`;
+        expandBtn.style.top = `${pixelCoords.y - 20}px`;
+        expandBtn.style.padding = '4px 8px';
+        expandBtn.style.background = 'rgba(255, 255, 255, 0.9)';
+        expandBtn.style.border = '1px solid #ccc';
+        expandBtn.style.borderRadius = '3px';
+        expandBtn.style.cursor = 'pointer';
+        expandBtn.style.fontSize = '12px';
+        expandBtn.style.lineHeight = '1';
+        expandBtn.style.color = '#666';
         
-        // Update position when map moves
-        const updatePosition = () => {
+        expandBtn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          // Clean up event listeners
+          if (miniBox._audio && miniBox._updateIcon) {
+            miniBox._audio.removeEventListener('play', miniBox._updateIcon);
+            miniBox._audio.removeEventListener('pause', miniBox._updateIcon);
+          }
+          // Remove mini box and expand button
+          miniBox.remove();
+          expandBtn.remove();
+          this.minimizedPopup = null;
+          this.expandButton = null;
+          // Show full popup again
+          const audio = audioController.currentAudio;
+          this.showPopup(coords, track, audio, index);
+        });
+        
+        map.getContainer().appendChild(expandBtn);
+        
+        // Update positions when map moves
+        const updatePositions = () => {
           const newCoords = map.project(coords);
           miniBox.style.left = `${newCoords.x + 10}px`;
           miniBox.style.top = `${newCoords.y - 20}px`;
+          // Wait for next frame to get correct width
+          requestAnimationFrame(() => {
+            expandBtn.style.left = `${newCoords.x + 10 + miniBox.offsetWidth + 5}px`;
+            expandBtn.style.top = `${newCoords.y - 20}px`;
+          });
         };
-        map.on('move', updatePosition);
+        map.on('move', updatePositions);
         
-        // Store the update function so we can remove it later
-        miniBox._updatePosition = updatePosition;
+        // Store references for cleanup
+        miniBox._updatePositions = updatePositions;
+        this.minimizedPopup = miniBox;
+        this.expandButton = expandBtn;
       }
 
       updateActiveTrack(index, shouldScrollPlaylist = false) {
@@ -817,31 +887,44 @@
           this.currentPopup.remove();
         }
 
+        // Clean up any existing minimized popup
+        if (this.minimizedPopup) {
+          this.minimizedPopup.remove();
+          this.minimizedPopup = null;
+        }
+        if (this.expandButton) {
+          this.expandButton.remove();
+          this.expandButton = null;
+        }
+
         const container = document.createElement('div');
         container.style.fontFamily = 'helvetica, sans-serif';
         container.style.padding = '2px';
         container.style.position = 'relative';
-        container.style.paddingTop = '30px'; // More space for minimize button
 
-        // Add minimize button
+        // Create title first
+        const title = document.createElement('h3');
+        title.textContent = track.name;
+        title.style.margin = '0 0 4px 0';
+        title.style.paddingRight = '35px'; // Space for minimize button
+        container.appendChild(title);
+
+        // Add minimize button positioned inline with title
         const minimizeBtn = document.createElement('button');
         minimizeBtn.className = 'popup-minimize';
-        minimizeBtn.innerHTML = '−'; // Minus sign using HTML entity
+        minimizeBtn.innerHTML = '−'; // Minus sign
         minimizeBtn.title = 'Minimize';
-        minimizeBtn.type = 'button'; // Explicitly set type
-        // Prevent auto-focus
+        minimizeBtn.type = 'button';
         minimizeBtn.tabIndex = -1;
+        minimizeBtn.style.position = 'absolute';
+        minimizeBtn.style.top = '2px';
+        minimizeBtn.style.right = '8px';
         minimizeBtn.addEventListener('click', (e) => {
           e.preventDefault();
           e.stopPropagation();
           this.minimizePopup(track, index);
         });
         container.appendChild(minimizeBtn);
-
-        const title = document.createElement('h3');
-        title.textContent = track.name;
-        title.style.margin = '0 0 4px 0';
-        container.appendChild(title);
 
         const timestamp = document.createElement('p');
         timestamp.style.margin = '0';
@@ -907,27 +990,48 @@
           const audioContainer = document.createElement('div');
           audioContainer.className = 'audio-container';
           
-          // Ensure audio controls always render properly
-          audio.controls = true;
-          audio.autoplay = true;
-          audio.style.width = '100%';
-          audio.controlsList = 'nodownload';
-          audio.oncontextmenu = () => false;
+          // Clone the audio element to display in popup
+          // The actual audio stays in audioController
+          const audioDisplay = document.createElement('audio');
+          audioDisplay.controls = true;
+          audioDisplay.style.width = '100%';
+          audioDisplay.controlsList = 'nodownload';
+          audioDisplay.oncontextmenu = () => false;
           
-          // Force audio element to load controls
-          audio.load();
+          // Sync the display with the actual audio
+          audioDisplay.currentTime = audio.currentTime;
+          audioDisplay.src = audio.src;
           
-          // Fallback: if controls don't appear, try recreating
-          setTimeout(() => {
-            if (!audio.controls || audio.offsetHeight === 0) {
-              console.warn('Audio controls not rendering, attempting fix...');
-              audio.controls = true;
-              audio.style.display = 'block';
-              audio.style.visibility = 'visible';
+          // When user interacts with display, control the actual audio
+          audioDisplay.addEventListener('play', () => {
+            if (audio.paused) audio.play();
+          });
+          audioDisplay.addEventListener('pause', () => {
+            if (!audio.paused) audio.pause();
+          });
+          audioDisplay.addEventListener('seeked', () => {
+            audio.currentTime = audioDisplay.currentTime;
+          });
+          
+          // Sync display when actual audio updates
+          const syncDisplay = () => {
+            if (!audio.paused && audioDisplay.paused) {
+              audioDisplay.play().catch(() => {});
+            } else if (audio.paused && !audioDisplay.paused) {
+              audioDisplay.pause();
             }
-          }, 100);
+            audioDisplay.currentTime = audio.currentTime;
+          };
           
-          audioContainer.appendChild(audio);
+          audio.addEventListener('play', syncDisplay);
+          audio.addEventListener('pause', syncDisplay);
+          audio.addEventListener('timeupdate', syncDisplay);
+          
+          // Store sync function for cleanup
+          audioDisplay._syncFunction = syncDisplay;
+          audioDisplay._actualAudio = audio;
+          
+          audioContainer.appendChild(audioDisplay);
           controls.appendChild(audioContainer);
         }
         
@@ -977,11 +1081,20 @@
         
         // Clean up minimized popup if it exists
         if (this.minimizedPopup) {
-          if (this.minimizedPopup._updatePosition) {
-            map.off('move', this.minimizedPopup._updatePosition);
+          if (this.minimizedPopup._updatePositions) {
+            map.off('move', this.minimizedPopup._updatePositions);
+          }
+          if (this.minimizedPopup._audio && this.minimizedPopup._updateIcon) {
+            this.minimizedPopup._audio.removeEventListener('play', this.minimizedPopup._updateIcon);
+            this.minimizedPopup._audio.removeEventListener('pause', this.minimizedPopup._updateIcon);
           }
           this.minimizedPopup.remove();
           this.minimizedPopup = null;
+        }
+        
+        if (this.expandButton) {
+          this.expandButton.remove();
+          this.expandButton = null;
         }
         
         // Disable 3D mode if it's enabled
@@ -1001,7 +1114,10 @@
           }
         }
         
-        // Simple reset without padding adjustments - same as original
+        // Reset any map padding that might have been set
+        map.setPadding({ top: 0, bottom: 0, left: 0, right: 0 });
+        
+        // Simple reset to exact default center - same as pageload
         map.flyTo({
           center: CONFIG.DEFAULT_CENTER,
           zoom: CONFIG.getDefaultZoom(),
