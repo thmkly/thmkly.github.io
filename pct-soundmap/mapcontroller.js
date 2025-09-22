@@ -49,11 +49,18 @@
           container: 'map',
           style: 'mapbox://styles/thmkly/clyup637d004201ri2tkpaywq',
           center: CONFIG.DEFAULT_CENTER,
-          zoom: CONFIG.getDefaultZoom()
-          // Removed projection: 'globe' to keep your original projection
+          zoom: CONFIG.getDefaultZoom(),
+          // Touch controls settings
+          touchZoomRotate: true,
+          touchPitch: false, // Keep pitch locked on mobile
+          // Initially disable drag rotate (will be enabled in 3D mode on desktop)
+          dragRotate: false
         });
 
+        // Disable drag rotation initially
         map.on('load', () => {
+          map.dragRotate.disable();
+          
           // Check for API availability before using
           if (typeof map.setSky === 'function') {
             map.setSky({
@@ -144,6 +151,7 @@
           map.on('mouseleave', layer, () => map.getCanvas().style.cursor = '');
         });
 
+        // Revert to original cluster logic - fit all points in view
         map.on('click', 'clusters', (e) => {
           const features = map.queryRenderedFeatures(e.point, { layers: ['clusters'] });
           if (!features.length) return;
@@ -151,22 +159,27 @@
           const clusterId = features[0].properties.cluster_id;
           map.getSource('audio').getClusterExpansionZoom(clusterId, (err, zoom) => {
             if (err) return;
-            map.getSource('audio').getClusterLeaves(clusterId, 100, 0, (_, leaves) => {
+            
+            // Get all points in the cluster to calculate bounds
+            map.getSource('audio').getClusterLeaves(clusterId, 100, 0, (err, leaves) => {
+              if (err) return;
+              
               const bounds = new mapboxgl.LngLatBounds();
-              leaves.forEach(leaf => bounds.extend(leaf.geometry.coordinates));
+              leaves.forEach(leaf => {
+                bounds.extend(leaf.geometry.coordinates);
+              });
+              
+              // Enhanced padding to account for mini info boxes
+              const padding = uiController.isMobile ? 
+                { top: 100, bottom: 120, left: 80, right: 80 } :  // Mobile: extra padding for ko-fi widget bottom
+                { top: 80, bottom: 80, left: this.getLeftPadding() + 50, right: 100 }; // Desktop: extra padding for mini boxes
+              
               map.fitBounds(bounds, { 
-                padding: { top: 50, bottom: 50, left: this.getLeftPadding(), right: 20 } 
+                padding: padding,
+                maxZoom: 14  // Prevent zooming in too far
               });
             });
           });
-        });
-
-        map.on('mouseenter', 'clusters', (e) => {
-          // Cluster hover playlist removed - redundant with main playlist and mini info boxes
-        });
-
-        map.on('mouseleave', 'clusters', () => {
-          // Cluster hover playlist removed
         });
 
         map.on('click', 'unclustered-point', (e) => {
@@ -177,6 +190,10 @@
           // Find this track in the current sorted playlist
           const currentIndex = this.audioData.findIndex(track => track.originalIndex === originalIndex);
           if (currentIndex !== -1) {
+            // Close mobile menu if open
+            if (uiController.isMobile && uiController.mobilePlaylistExpanded) {
+              uiController.collapseMobileMenu();
+            }
             this.playAudio(currentIndex);
           }
         });
@@ -199,11 +216,9 @@
         document.addEventListener('fullscreenchange', () => {
           uiController.isFullscreen = !!document.fullscreenElement;
           const btn = document.getElementById('fullscreenBtn');
-          btn.textContent = uiController.isFullscreen ? 'Exit Fullscreen' : 'Fullscreen';
-          btn.classList.toggle('active', uiController.isFullscreen);
-          
-          if (uiController.isFullscreen) {
-            // Removed redundant fullscreen message - browsers show native notification
+          if (btn) {
+            btn.textContent = uiController.isFullscreen ? 'Exit Fullscreen' : 'Fullscreen';
+            btn.classList.toggle('active', uiController.isFullscreen);
           }
         });
       }
@@ -212,22 +227,28 @@
         return uiController.playlistExpanded ? 370 : 20;
       }
 
-      loadAudioData() {
-        // Create enhanced loading screen
-        this.showEnhancedLoading();
+      loadAudioData(retryCount = 0) {
+        // Playlist wrapper is already hidden via CSS
+        const playlistWrapper = document.getElementById('playlistWrapper');
+        
+        // Show persistent loading notification (centered, like success message)
+        showNotification('loading recordings...'); // No duration = stays visible
         
         const url = `${CONFIG.GOOGLE_SCRIPT_URL}?nocache=${Date.now()}`;
         console.log('Fetching data from:', url);
         
+        // Simple fetch without extra headers to avoid CORS preflight
         fetch(url)
           .then(response => {
-            this.updateLoadingProgress('Processing response...', 25);
             console.log('Response status:', response.status);
             console.log('Response headers:', response.headers);
+            
+            if (!response.ok) {
+              throw new Error(`HTTP error! status: ${response.status}`);
+            }
             return response.text();
           })
           .then(text => {
-            this.updateLoadingProgress('Parsing recordings...', 50);
             console.log('Raw response:', text);
             try {
               const response = JSON.parse(text);
@@ -259,8 +280,6 @@
                 throw new Error('No recordings found');
               }
               
-              this.updateLoadingProgress('Calculating atmospheric conditions...', 75);
-              
               // Log first item to check structure (including elevation)
               if (data.length > 0) {
                 console.log('First item structure:', data[0]);
@@ -277,220 +296,66 @@
               // Set up data in NOBO order by default (Mexico at bottom, Canada at top)
               this.audioData = this.sortByMileAndDate([...this.originalAudioData], 'nobo');
               
+              this.sortAndUpdatePlaylist();
+              this.updateMapData();
+              
+              // Show playlist wrapper again with flex display
+              playlistWrapper.style.display = 'flex';
+              
+              // Hide loading notification and show success message
+              hideNotification();
               setTimeout(() => {
-                this.updateLoadingProgress('Finalizing experience...', 90);
-                this.sortAndUpdatePlaylist();
-                this.updateMapData();
-                
-                setTimeout(() => {
-                  this.updateLoadingProgress('Ready!', 100);
-                  this.hideEnhancedLoading();
-                  showNotification(`Loaded ${data.length} recordings with enhanced atmosphere`, 3000);
-                }, 500);
-              }, 300);
+                showNotification(`${data.length} recordings loaded`, 3000);
+              }, 100);
               
             } catch (parseError) {
               console.error('JSON Parse Error:', parseError);
-              this.showLoadingError(`Invalid JSON response: ${parseError.message}`);
               throw new Error(`Invalid JSON response: ${parseError.message}`);
             }
           })
           .catch(e => {
             console.error('Load Error:', e);
             const errorMsg = e.message || 'Unknown error occurred';
-            this.showLoadingError(`Failed to load recordings: ${errorMsg}`);
-            showNotification(`Error: ${errorMsg}`, 5000);
+            
+            // Retry logic for intermittent failures
+            if (retryCount < 3) {
+              console.log(`Retrying... attempt ${retryCount + 1} of 3`);
+              hideNotification();
+              setTimeout(() => {
+                showNotification(`Connection issue, retrying... (${retryCount + 1}/3)`, 2000);
+                setTimeout(() => {
+                  this.loadAudioData(retryCount + 1);
+                }, 2000);
+              }, 100);
+            } else {
+              // Hide loading notification and show error after max retries
+              hideNotification();
+              setTimeout(() => {
+                this.showLoadingError(`Failed to load recordings after 3 attempts: ${errorMsg}`);
+                showNotification(`Error: ${errorMsg}`, 5000);
+              }, 100);
+            }
           });
-      }
-
-      // Enhanced loading screen methods
-      showEnhancedLoading() {
-        const playlist = document.getElementById('playlist');
-        
-        playlist.innerHTML = `
-          <div class="enhanced-loading" id="enhancedLoading">
-            <div class="loading-header">
-              <h3>🎵 PCT Sound Map 🏔️</h3>
-              <p>Preparing your atmospheric journey...</p>
-            </div>
-            
-            <div class="loading-progress">
-              <div class="progress-bar">
-                <div class="progress-fill" id="progressFill"></div>
-              </div>
-              <div class="progress-text" id="progressText">Loading recordings...</div>
-            </div>
-            
-            <div class="loading-features">
-              <div class="feature-item">
-                <span class="feature-icon">🌅</span>
-                <span class="feature-text">Dynamic atmospheric lighting</span>
-              </div>
-              <div class="feature-item">
-                <span class="feature-icon">🏔️</span>
-                <span class="feature-text">Terrain-aware environments</span>
-              </div>
-              <div class="feature-item">
-                <span class="feature-icon">🌤️</span>
-                <span class="feature-text">Real-time seasonal effects</span>
-              </div>
-              <div class="feature-item">
-                <span class="feature-icon">🧭</span>
-                <span class="feature-text">Precise solar positioning</span>
-              </div>
-            </div>
-            
-            <div class="loading-tips">
-              <p><strong>Tip:</strong> Use spacebar to play/pause • Hold Ctrl+drag in 3D mode to rotate</p>
-            </div>
-          </div>
-        `;
-        
-        // Add CSS for enhanced loading (inject into head)
-        if (!document.getElementById('enhanced-loading-styles')) {
-          const styles = document.createElement('style');
-          styles.id = 'enhanced-loading-styles';
-          styles.textContent = `
-            .enhanced-loading {
-              padding: 20px;
-              text-align: center;
-              background: linear-gradient(135deg, rgba(92, 58, 46, 0.1), rgba(135, 206, 235, 0.1));
-              border-radius: 8px;
-              margin: 10px;
-            }
-            
-            .loading-header h3 {
-              margin: 0 0 8px 0;
-              color: #5c3a2e;
-              font-size: 18px;
-            }
-            
-            .loading-header p {
-              margin: 0 0 20px 0;
-              color: #666;
-              font-size: 14px;
-            }
-            
-            .loading-progress {
-              margin: 20px 0;
-            }
-            
-            .progress-bar {
-              width: 100%;
-              height: 8px;
-              background: rgba(0, 0, 0, 0.1);
-              border-radius: 4px;
-              overflow: hidden;
-              margin-bottom: 8px;
-            }
-            
-            .progress-fill {
-              height: 100%;
-              background: linear-gradient(90deg, #5c3a2e, #87ceeb);
-              border-radius: 4px;
-              width: 0%;
-              transition: width 0.5s ease;
-            }
-            
-            .progress-text {
-              font-size: 12px;
-              color: #666;
-              font-weight: 500;
-            }
-            
-            .loading-features {
-              margin: 20px 0;
-              display: flex;
-              flex-direction: column;
-              gap: 8px;
-            }
-            
-            .feature-item {
-              display: flex;
-              align-items: center;
-              justify-content: flex-start;
-              gap: 8px;
-              padding: 4px 8px;
-              border-radius: 4px;
-              background: rgba(255, 255, 255, 0.3);
-            }
-            
-            .feature-icon {
-              font-size: 14px;
-              min-width: 20px;
-            }
-            
-            .feature-text {
-              font-size: 12px;
-              color: #555;
-            }
-            
-            .loading-tips {
-              margin-top: 20px;
-              padding-top: 15px;
-              border-top: 1px solid rgba(0, 0, 0, 0.1);
-            }
-            
-            .loading-tips p {
-              margin: 0;
-              font-size: 11px;
-              color: #777;
-              line-height: 1.4;
-            }
-            
-            @keyframes pulse {
-              0%, 100% { opacity: 1; }
-              50% { opacity: 0.7; }
-            }
-            
-            .enhanced-loading {
-              animation: pulse 2s ease-in-out infinite;
-            }
-          `;
-          document.head.appendChild(styles);
-        }
-      }
-
-      updateLoadingProgress(text, percentage) {
-        const progressFill = document.getElementById('progressFill');
-        const progressText = document.getElementById('progressText');
-        
-        if (progressFill && progressText) {
-          progressFill.style.width = percentage + '%';
-          progressText.textContent = text;
-        }
-      }
-
-      hideEnhancedLoading() {
-        const enhancedLoading = document.getElementById('enhancedLoading');
-        if (enhancedLoading) {
-          enhancedLoading.style.transition = 'opacity 0.5s ease';
-          enhancedLoading.style.opacity = '0';
-          setTimeout(() => {
-            // Will be replaced by actual playlist content
-          }, 500);
-        }
       }
 
       showLoadingError(message) {
         const playlist = document.getElementById('playlist');
         playlist.innerHTML = `
-          <div class="enhanced-loading">
-            <div class="loading-header">
-              <h3>⚠️ Loading Error</h3>
-              <p style="color: #cc0000;">${message}</p>
-              <button onclick="location.reload()" style="
-                padding: 8px 16px;
-                background: #5c3a2e;
-                color: white;
-                border: none;
-                border-radius: 4px;
-                cursor: pointer;
-                margin-top: 10px;
-              ">Reload Page</button>
-            </div>
+          <div class="loading-placeholder">
+            <div style="color: #cc0000; margin-bottom: 10px;">${message}</div>
+            <button onclick="location.reload()" style="
+              padding: 8px 16px;
+              background: #5c3a2e;
+              color: white;
+              border: none;
+              border-radius: 4px;
+              cursor: pointer;
+            ">Reload Page</button>
           </div>
         `;
+        // Also make sure playlist wrapper is visible in case of error
+        const playlistWrapper = document.getElementById('playlistWrapper');
+        playlistWrapper.style.display = 'flex';
       }
 
       sortAndUpdatePlaylist() {
@@ -577,9 +442,14 @@
           return mileA - mileB; // Always ascending by mile
         });
 
-        // For playlist display: reverse so Canada (high miles) appears at top
-        // This gives us: Canada at top (index 0), Mexico at bottom (last index)
-        tracksWithMiles.reverse();
+        // Apply different ordering for playlist display based on mode
+        if (mode === 'sobo') {
+          // SOBO: reverse so Canada (high miles) appears at top
+          // This gives us: Canada at top (index 0), Mexico at bottom (last index)
+          tracksWithMiles.reverse();
+        }
+        // NOBO: keep natural order so Mexico (low miles) appears at top
+        // This gives us: Mexico at top (index 0), Canada at bottom (last index)
 
         // Sort tracks without miles by timestamp
         tracksWithoutMiles.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
@@ -635,6 +505,10 @@
           div.appendChild(trackMile);
           
           div.addEventListener('click', (e) => {
+            // Collapse mobile menu when track is clicked
+            if (uiController.isMobile && uiController.mobilePlaylistExpanded) {
+              uiController.collapseMobileMenu();
+            }
             this.playAudio(index);
           });
           
@@ -643,9 +517,20 @@
         
         // Show collapse arrow now that playlist is rendered
         const toggleBtn = document.getElementById('playlistToggle');
-        toggleBtn.classList.add('visible');
+        if (toggleBtn) {
+          toggleBtn.classList.add('visible');
+          // Ensure correct arrow direction
+          if (uiController && uiController.playlistExpanded) {
+            toggleBtn.textContent = '◀';
+          } else {
+            toggleBtn.textContent = '▶';
+          }
+        }
         
-        uiController.updateScrollArrows();
+        // Update scroll arrows after playlist is populated
+        if (uiController) {
+          setTimeout(() => uiController.updateScrollArrows(), 100);
+        }
         
         // Force scroll position update on initial load
         if (audioController.currentIndex === -1) {
@@ -666,8 +551,8 @@
         }
       }
 
-      playAudio(index) {
-        console.log('playAudio called with index:', index);
+      playAudio(index, fromAutoPlay = false) {
+        console.log('playAudio called with index:', index, 'fromAutoPlay:', fromAutoPlay);
         
         const track = this.audioData[index];
         if (!track) {
@@ -682,14 +567,46 @@
           clearTimeout(this.animationTimeout);
         }
 
-        this.updateActiveTrack(index);
+        // Clean up any minimized popup
+        if (this.minimizedPopup) {
+          this.minimizedPopup.remove();
+          this.minimizedPopup = null;
+        }
+
+        // Update active track, only scroll playlist if from auto-play and track not visible
+        if (fromAutoPlay) {
+          // Check if track is visible in playlist
+          const trackElement = document.querySelector(`.track[data-id="${index}"]`);
+          const playlist = document.getElementById('playlist');
+          if (trackElement && playlist) {
+            const trackRect = trackElement.getBoundingClientRect();
+            const playlistRect = playlist.getBoundingClientRect();
+            const isVisible = trackRect.top >= playlistRect.top && trackRect.bottom <= playlistRect.bottom;
+            this.updateActiveTrack(index, !isVisible); // Only scroll if not visible
+          } else {
+            this.updateActiveTrack(index, true); // Scroll if can't determine visibility
+          }
+        } else {
+          this.updateActiveTrack(index, false); // Don't scroll for manual clicks
+        }
+
         const audio = audioController.play(index, this.audioData);
         
         // Clear old mini boxes before positioning
         uiController.clearMiniInfoBoxes();
         
-        // Apply atmospheric lighting for this track
-        atmosphereController.transitionToTrack(track);
+        // Apply atmospheric lighting for this track (removed notification)
+        if (typeof atmosphereController !== 'undefined' && atmosphereController.transitionToTrack) {
+          // Apply without notification
+          const conditions = atmosphereController.getAtmosphericConditions(track);
+          atmosphereController.currentConditions = conditions;
+          atmosphereController.applyEnhancedSky(conditions);
+          atmosphereController.applyEnhancedFog(conditions);
+          atmosphereController.applyEnhanced3DEffects(conditions);
+          atmosphereController.applyFallbackAtmosphere(conditions);
+        }
+        
+        // Don't collapse menu - removed this functionality
         
         // Add delay before positioning to prevent conflicts
         this.animationTimeout = setTimeout(() => {
@@ -718,17 +635,167 @@
         }
       }
 
-      updateActiveTrack(index) {
+      minimizePopup(track, index) {
+        // Remove the main popup but keep audio playing
+        if (this.currentPopup) {
+          // Clean up audio display sync
+          const audioDisplay = this.currentPopup._container.querySelector('audio');
+          if (audioDisplay && audioDisplay._actualAudio && audioDisplay._syncFunction) {
+            audioDisplay._actualAudio.removeEventListener('play', audioDisplay._syncFunction);
+            audioDisplay._actualAudio.removeEventListener('pause', audioDisplay._syncFunction);
+            audioDisplay._actualAudio.removeEventListener('timeupdate', audioDisplay._syncFunction);
+          }
+          this.currentPopup.remove();
+          this.currentPopup = null;
+        }
+        
+        // Create a mini infobox with play/pause functionality
+        const coords = [parseFloat(track.lng), parseFloat(track.lat)];
+        const pixelCoords = map.project(coords);
+        
+        const miniBox = document.createElement('div');
+        miniBox.className = 'mini-infobox minimized-popup';
+        miniBox.dataset.trackIndex = index;
+        miniBox.style.position = 'absolute';
+        miniBox.style.backgroundColor = 'rgba(255, 235, 220, 0.95)'; // Light orange for active track
+        miniBox.style.cursor = 'pointer';
+        
+        // Create play/pause icon that will toggle
+        const playPauseIcon = document.createElement('div');
+        const updatePlayPauseIcon = () => {
+          const isPlaying = audioController.currentAudio && !audioController.currentAudio.paused;
+          if (isPlaying) {
+            // Show pause icon (two bars)
+            playPauseIcon.innerHTML = '<div style="display: flex; gap: 2px; width: 8px; height: 10px;">' +
+                                     '<div style="width: 3px; background-color: #5c3a2e; height: 100%;"></div>' +
+                                     '<div style="width: 3px; background-color: #5c3a2e; height: 100%;"></div>' +
+                                     '</div>';
+          } else {
+            // Show play icon (triangle)
+            playPauseIcon.innerHTML = '';
+            playPauseIcon.className = 'play-icon';
+            playPauseIcon.style.borderLeftColor = '#5c3a2e';
+          }
+        };
+        updatePlayPauseIcon();
+        
+        const title = document.createElement('span');
+        title.className = 'mini-infobox-title';
+        title.textContent = track.name.replace(/^[^\s]+\s+-\s+/, '');
+        
+        // Click mini box to toggle play/pause
+        miniBox.addEventListener('click', (e) => {
+          e.stopPropagation();
+          if (audioController.currentAudio) {
+            if (audioController.currentAudio.paused) {
+              audioController.currentAudio.play();
+            } else {
+              audioController.currentAudio.pause();
+            }
+            updatePlayPauseIcon();
+          }
+        });
+        
+        // Listen for play/pause events on the audio
+        if (audioController.currentAudio) {
+          const updateIcon = () => updatePlayPauseIcon();
+          audioController.currentAudio.addEventListener('play', updateIcon);
+          audioController.currentAudio.addEventListener('pause', updateIcon);
+          miniBox._updateIcon = updateIcon;
+          miniBox._audio = audioController.currentAudio;
+        }
+        
+        miniBox.appendChild(playPauseIcon);
+        miniBox.appendChild(title);
+        
+        // Position the mini box
+        miniBox.style.left = `${pixelCoords.x + 10}px`;
+        miniBox.style.top = `${pixelCoords.y - 20}px`;
+        
+        map.getContainer().appendChild(miniBox);
+        
+        // Create expand button
+        const expandBtn = document.createElement('button');
+        expandBtn.className = 'mini-infobox-expand';
+        expandBtn.innerHTML = '▲';
+        expandBtn.title = 'Expand';
+        expandBtn.style.position = 'absolute';
+        expandBtn.style.left = `${pixelCoords.x + 10 + miniBox.offsetWidth + 5}px`;
+        expandBtn.style.top = `${pixelCoords.y - 20}px`;
+        expandBtn.style.padding = '4px 8px';
+        expandBtn.style.background = 'rgba(255, 255, 255, 0.9)';
+        expandBtn.style.border = '1px solid #ccc';
+        expandBtn.style.borderRadius = '3px';
+        expandBtn.style.cursor = 'pointer';
+        expandBtn.style.fontSize = '12px';
+        expandBtn.style.lineHeight = '1';
+        expandBtn.style.color = '#666';
+        
+        expandBtn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          // Clean up event listeners
+          if (miniBox._audio && miniBox._updateIcon) {
+            miniBox._audio.removeEventListener('play', miniBox._updateIcon);
+            miniBox._audio.removeEventListener('pause', miniBox._updateIcon);
+          }
+          // Remove mini box and expand button
+          miniBox.remove();
+          expandBtn.remove();
+          this.minimizedPopup = null;
+          this.expandButton = null;
+          // Show full popup again
+          const audio = audioController.currentAudio;
+          this.showPopup(coords, track, audio, index);
+        });
+        
+        map.getContainer().appendChild(expandBtn);
+        
+        // Update positions when map moves
+        const updatePositions = () => {
+          const newCoords = map.project(coords);
+          miniBox.style.left = `${newCoords.x + 10}px`;
+          miniBox.style.top = `${newCoords.y - 20}px`;
+          // Wait for next frame to get correct width
+          requestAnimationFrame(() => {
+            expandBtn.style.left = `${newCoords.x + 10 + miniBox.offsetWidth + 5}px`;
+            expandBtn.style.top = `${newCoords.y - 20}px`;
+          });
+        };
+        map.on('move', updatePositions);
+        
+        // Store references for cleanup
+        miniBox._updatePositions = updatePositions;
+        this.minimizedPopup = miniBox;
+        this.expandButton = expandBtn;
+      }
+
+      updateActiveTrack(index, shouldScrollPlaylist = false) {
         document.querySelectorAll('.track').forEach(el => el.classList.remove('active-track'));
         const activeTrack = document.querySelector(`.track[data-id="${index}"]`);
         if (activeTrack) {
           activeTrack.classList.add('active-track');
-          // Smoother, slower scroll to center the track
-          activeTrack.scrollIntoView({ 
-            behavior: 'smooth', 
-            block: 'center',
-            inline: 'nearest'
-          });
+          // Only scroll if explicitly requested (for auto-play next)
+          if (shouldScrollPlaylist) {
+            // Safari-specific scrollIntoView fix
+            if (/^((?!chrome|android).)*safari/i.test(navigator.userAgent)) {
+              // For Safari, use a more direct approach
+              const playlist = document.getElementById('playlist');
+              const trackRect = activeTrack.getBoundingClientRect();
+              const playlistRect = playlist.getBoundingClientRect();
+              const scrollTop = playlist.scrollTop + trackRect.top - playlistRect.top - (playlistRect.height / 2) + (trackRect.height / 2);
+              playlist.scrollTo({
+                top: scrollTop,
+                behavior: 'smooth'
+              });
+            } else {
+              // For other browsers, use scrollIntoView
+              activeTrack.scrollIntoView({ 
+                behavior: 'smooth', 
+                block: 'center',
+                inline: 'nearest'
+              });
+            }
+          }
         }
       }
 
@@ -795,7 +862,7 @@
         
         // Add 3D properties for smoother rainbow arc
         if (is3D) {
-          flyToOptions.pitch = 75;
+          flyToOptions.pitch = 82; // More immersive angle
           flyToOptions.bearing = map.getBearing();
           // Higher curve for ultra-smooth rainbow effect in 3D
           flyToOptions.curve = 2.5; // Even higher curve = smoother, more elevated arc
@@ -820,14 +887,44 @@
           this.currentPopup.remove();
         }
 
+        // Clean up any existing minimized popup
+        if (this.minimizedPopup) {
+          this.minimizedPopup.remove();
+          this.minimizedPopup = null;
+        }
+        if (this.expandButton) {
+          this.expandButton.remove();
+          this.expandButton = null;
+        }
+
         const container = document.createElement('div');
         container.style.fontFamily = 'helvetica, sans-serif';
         container.style.padding = '2px';
+        container.style.position = 'relative';
 
+        // Create title first
         const title = document.createElement('h3');
         title.textContent = track.name;
         title.style.margin = '0 0 4px 0';
+        title.style.paddingRight = '35px'; // Space for minimize button
         container.appendChild(title);
+
+        // Add minimize button positioned inline with title
+        const minimizeBtn = document.createElement('button');
+        minimizeBtn.className = 'popup-minimize';
+        minimizeBtn.innerHTML = '−'; // Minus sign
+        minimizeBtn.title = 'Minimize';
+        minimizeBtn.type = 'button';
+        minimizeBtn.tabIndex = -1;
+        minimizeBtn.style.position = 'absolute';
+        minimizeBtn.style.top = '2px';
+        minimizeBtn.style.right = '8px';
+        minimizeBtn.addEventListener('click', (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          this.minimizePopup(track, index);
+        });
+        container.appendChild(minimizeBtn);
 
         const timestamp = document.createElement('p');
         timestamp.style.margin = '0';
@@ -893,27 +990,48 @@
           const audioContainer = document.createElement('div');
           audioContainer.className = 'audio-container';
           
-          // Ensure audio controls always render properly
-          audio.controls = true;
-          audio.autoplay = true;
-          audio.style.width = '100%';
-          audio.controlsList = 'nodownload';
-          audio.oncontextmenu = () => false;
+          // Clone the audio element to display in popup
+          // The actual audio stays in audioController
+          const audioDisplay = document.createElement('audio');
+          audioDisplay.controls = true;
+          audioDisplay.style.width = '100%';
+          audioDisplay.controlsList = 'nodownload';
+          audioDisplay.oncontextmenu = () => false;
           
-          // Force audio element to load controls
-          audio.load();
+          // Sync the display with the actual audio
+          audioDisplay.currentTime = audio.currentTime;
+          audioDisplay.src = audio.src;
           
-          // Fallback: if controls don't appear, try recreating
-          setTimeout(() => {
-            if (!audio.controls || audio.offsetHeight === 0) {
-              console.warn('Audio controls not rendering, attempting fix...');
-              audio.controls = true;
-              audio.style.display = 'block';
-              audio.style.visibility = 'visible';
+          // When user interacts with display, control the actual audio
+          audioDisplay.addEventListener('play', () => {
+            if (audio.paused) audio.play();
+          });
+          audioDisplay.addEventListener('pause', () => {
+            if (!audio.paused) audio.pause();
+          });
+          audioDisplay.addEventListener('seeked', () => {
+            audio.currentTime = audioDisplay.currentTime;
+          });
+          
+          // Sync display when actual audio updates
+          const syncDisplay = () => {
+            if (!audio.paused && audioDisplay.paused) {
+              audioDisplay.play().catch(() => {});
+            } else if (audio.paused && !audioDisplay.paused) {
+              audioDisplay.pause();
             }
-          }, 100);
+            audioDisplay.currentTime = audio.currentTime;
+          };
           
-          audioContainer.appendChild(audio);
+          audio.addEventListener('play', syncDisplay);
+          audio.addEventListener('pause', syncDisplay);
+          audio.addEventListener('timeupdate', syncDisplay);
+          
+          // Store sync function for cleanup
+          audioDisplay._syncFunction = syncDisplay;
+          audioDisplay._actualAudio = audio;
+          
+          audioContainer.appendChild(audioDisplay);
           controls.appendChild(audioContainer);
         }
         
@@ -961,11 +1079,25 @@
           this.currentPopup = null;
         }
         
+        // Clean up minimized popup if it exists
+        if (this.minimizedPopup) {
+          if (this.minimizedPopup._updatePosition) {
+            map.off('move', this.minimizedPopup._updatePosition);
+          }
+          this.minimizedPopup.remove();
+          this.minimizedPopup = null;
+        }
+        
         // Disable 3D mode if it's enabled
         if (uiController.is3DEnabled) {
           uiController.is3DEnabled = false;
           const btn = document.getElementById('terrain3dBtn');
-          btn.classList.remove('active');
+          const btnMobile = document.getElementById('terrain3dBtnMobile');
+          if (btn) btn.classList.remove('active');
+          if (btnMobile) btnMobile.classList.remove('active');
+          
+          // Disable drag rotation
+          if (map.dragRotate) map.dragRotate.disable();
           
           map.setTerrain(null);
           if (map.getSource('mapbox-dem')) {
@@ -973,6 +1105,7 @@
           }
         }
         
+        // Simple reset without padding adjustments - same as original
         map.flyTo({
           center: CONFIG.DEFAULT_CENTER,
           zoom: CONFIG.getDefaultZoom(),
