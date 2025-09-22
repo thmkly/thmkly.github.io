@@ -279,22 +279,6 @@
     border-left-color: #4a2e24;
   }
 
-  /* Expand icon for minimized popup */
-  .expand-icon {
-    width: 0;
-    height: 0;
-    border-bottom: 6px solid #5c3a2e;
-    border-left: 4px solid transparent;
-    border-right: 4px solid transparent;
-    flex-shrink: 0;
-    cursor: pointer;
-    margin-left: 4px;
-  }
-
-  .expand-icon:hover {
-    border-bottom-color: #4a2e24;
-  }
-
   /* Popup Controls */
   .popup-controls {
     display: flex;
@@ -336,37 +320,6 @@
   .audio-container {
     flex: 1;
     margin: 0 10px;
-  }
-
-  /* Popup Minimize Button */
-  .popup-minimize {
-    position: absolute;
-    top: 5px;
-    right: 5px;
-    width: 20px;
-    height: 20px;
-    background: rgba(255, 255, 255, 0.9);
-    border: 1px solid #ccc;
-    border-radius: 3px;
-    cursor: pointer;
-    font-size: 14px;
-    font-weight: bold;
-    color: #666;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    z-index: 1000;
-    transition: all 0.2s;
-  }
-
-  .popup-minimize:hover {
-    background: rgba(240, 240, 240, 0.95);
-    color: #333;
-    border-color: #999;
-  }
-
-  .popup-minimize:focus {
-    outline: none;
   }
 
   /* Cluster Playlist */
