@@ -23,11 +23,8 @@
       }
 
       play(index, audioData) {
-        // Stop and clean up previous audio completely
         if (this.currentAudio) {
           this.currentAudio.pause();
-          this.currentAudio.currentTime = 0;
-          this.currentAudio.src = '';
           this.currentAudio = null;
         }
 
@@ -63,16 +60,6 @@
         });
 
         this.currentAudio = audio;
-        
-        // Attempt to play immediately since this is called from user interaction
-        const playPromise = audio.play();
-        if (playPromise !== undefined) {
-          playPromise.catch(error => {
-            console.log('Audio play prevented:', error.message);
-            // Audio will be shown with controls in popup
-          });
-        }
-        
         return audio;
       }
 
@@ -144,8 +131,6 @@
       stop() {
         if (this.currentAudio) {
           this.currentAudio.pause();
-          this.currentAudio.currentTime = 0;
-          this.currentAudio.src = '';
           this.currentAudio = null;
         }
         this.isPlaying = false;
