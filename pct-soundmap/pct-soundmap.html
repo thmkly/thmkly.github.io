@@ -298,18 +298,11 @@
     color: #666;
     padding: 0;
     transition: background-color 0.2s;
-    -webkit-appearance: none;
-    appearance: none;
   }
 
   .popup-minimize:hover {
     background-color: #f0f0f0;
     color: #333;
-  }
-
-  .popup-minimize:focus {
-    outline: none;
-    box-shadow: none;
   }
 
   /* Adjust popup close button to hide it */
@@ -897,7 +890,6 @@
         }
 
         // Sync fullscreen buttons
-        const fullscreenBtnMobile = document.getElementById('fullscreenBtnMobile');
         if (fullscreenBtnMobile) {
           fullscreenBtnMobile.addEventListener('click', () => {
             uiController.toggleFullscreen();
