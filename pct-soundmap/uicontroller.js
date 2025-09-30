@@ -1,16 +1,23 @@
 // UI Controller Class
-    class UIController {
-      constructor() {
-        this.playlistExpanded = true;
-        this.isFullscreen = false;
-        this.is3DEnabled = false;
-        this.miniInfoBoxes = [];
-        this.clusterPlaylist = null;
-        this.isMobile = window.innerWidth <= 768;
-        this.mobilePlaylistExpanded = false;
-        this.setupEventListeners();
-        this.setupResizeListener();
-      }
+    constructor() {
+      this.playlistExpanded = true;
+      this.isFullscreen = false;
+      this.is3DEnabled = false;
+      this.miniInfoBoxes = [];
+      this.clusterPlaylist = null;
+      this.isMobile = window.innerWidth <= 768;
+      this.mobilePlaylistExpanded = false;
+      
+      // Cache DOM references
+      this.playlist = document.getElementById('playlist');
+      this.playlistWrapper = document.getElementById('playlistWrapper');
+      this.playlistToggle = document.getElementById('playlistToggle');
+      this.scrollUp = document.getElementById('scrollUp');
+      this.scrollDown = document.getElementById('scrollDown');
+      
+      this.setupEventListeners();
+      this.setupResizeListener();
+    }
 
       setupEventListeners() {
         // Playlist toggle (desktop)
@@ -62,11 +69,11 @@
             }
           }
         });
-
-        // Scroll arrows
-        const playlist = document.getElementById('playlist');
-        const scrollUp = document.getElementById('scrollUp');
-        const scrollDown = document.getElementById('scrollDown');
+          
+        // Scroll arrows (use cached references)
+        const playlist = this.playlist;
+        const scrollUp = this.scrollUp;
+        const scrollDown = this.scrollDown;
 
         playlist.addEventListener('scroll', () => this.updateScrollArrows());
         scrollUp.addEventListener('click', () => {
@@ -334,10 +341,10 @@
         }
       }
 
-      updateScrollArrows() {
-        const playlist = document.getElementById('playlist');
-        const scrollUp = document.getElementById('scrollUp');
-        const scrollDown = document.getElementById('scrollDown');
+        updateScrollArrows() {
+          const playlist = this.playlist;
+          const scrollUp = this.scrollUp;
+          const scrollDown = this.scrollDown;
         
         // Always show arrows, but disable when can't scroll
         const canScrollUp = playlist.scrollTop > 0;
