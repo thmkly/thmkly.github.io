@@ -198,9 +198,16 @@
           }
         });
 
+        // Throttle mini box updates during map movement
+        let miniBoxUpdateScheduled = false;
         map.on('move', () => {
-          // Update mini box positions in real-time during movement
-          uiController.updateMiniInfoBoxPositions();
+          if (!miniBoxUpdateScheduled && !this.isPositioning) {
+            miniBoxUpdateScheduled = true;
+            requestAnimationFrame(() => {
+              uiController.updateMiniInfoBoxPositions();
+              miniBoxUpdateScheduled = false;
+            });
+          }
         });
 
         map.on('moveend', () => {
