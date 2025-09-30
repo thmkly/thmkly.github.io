@@ -1,4 +1,5 @@
 // UI Controller Class
+class UIController {
     constructor() {
       this.playlistExpanded = true;
       this.isFullscreen = false;
