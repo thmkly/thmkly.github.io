@@ -421,38 +421,6 @@
           
           return conditions;
         }
-        
-        console.log('Processing track:', track.name, 'Timestamp:', track.timestamp);
-        
-        // Calculate sun position
-        const sunPos = this.calculateSunPosition(date, lat, lng);
-        
-        // Classify terrain
-        const terrainInfo = this.classifyTerrain(lat, lng, elevation, track.mile);
-        
-        // Get season and weather effects
-        const season = this.getSeason(date, lat);
-        const weatherEffects = this.getWeatherEffects(track.weather || {});
-        
-        // Determine time period
-        const period = this.getTimePeriod(sunPos.altitude, sunPos.azimuth, season, this.convertToPacificTime(track.timestamp).hour);
-        
-        // Calculate enhanced colors and atmospheric effects
-        const colors = this.calculateEnhancedColors(sunPos, period, season, terrainInfo, weatherEffects);
-        
-        console.log('Period:', period, 'Terrain:', terrainInfo.terrain, 'Biome:', terrainInfo.biome);
-        
-        return {
-          sunPosition: sunPos,
-          period,
-          season,
-          terrainInfo,
-          weatherEffects,
-          colors,
-          fogSettings: this.calculateEnhancedFog(sunPos, period, terrainInfo, weatherEffects),
-          lightSettings: this.calculateEnhancedLight(sunPos, period, season, terrainInfo)
-        };
-      }
 
       // Enhanced color calculation with terrain and weather
       calculateEnhancedColors(sunPos, period, season, terrainInfo, weatherEffects) {
