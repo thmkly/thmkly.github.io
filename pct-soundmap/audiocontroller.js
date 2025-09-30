@@ -22,14 +22,17 @@
         }
       }
 
-      play(index, audioData) {
-        // Stop and clean up previous audio completely
-        if (this.currentAudio) {
-          this.currentAudio.pause();
-          this.currentAudio.currentTime = 0;
-          this.currentAudio.src = '';
-          this.currentAudio = null;
-        }
+    play(index, audioData) {
+      // Stop and clean up previous audio completely
+      if (this.currentAudio) {
+        // Remove event listeners before cleanup to prevent error notifications
+        this.currentAudio.removeEventListener('ended', this.currentAudio._endedHandler);
+        this.currentAudio.removeEventListener('error', this.currentAudio._errorHandler);
+        this.currentAudio.pause();
+        this.currentAudio.currentTime = 0;
+        this.currentAudio.src = '';
+        this.currentAudio = null;
+      }
 
         const track = audioData[index];
         if (!track) return;
@@ -51,16 +54,21 @@
         audio.controlsList = 'nodownload';
         audio.oncontextmenu = () => false;
         
-        audio.addEventListener('ended', () => {
+        // Store handler references so we can remove them later
+        const endedHandler = () => {
           this.playNext(audioData);
-        });
-
-        audio.addEventListener('error', () => {
+        };
+        const errorHandler = () => {
           console.warn('Audio failed to load:', track.name, 'URL:', track.audioUrl);
-          // Don't auto-play next track on error to prevent infinite loops
-          // this.playNext(audioData);
           showNotification(`Audio failed to load: ${track.name}`, 3000);
-        });
+        };
+        
+        audio.addEventListener('ended', endedHandler);
+        audio.addEventListener('error', errorHandler);
+        
+        // Store handlers on the audio element for cleanup
+        audio._endedHandler = endedHandler;
+        audio._errorHandler = errorHandler;
 
         this.currentAudio = audio;
         
