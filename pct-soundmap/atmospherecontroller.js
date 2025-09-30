@@ -3,7 +3,23 @@
       constructor() {
         this.currentConditions = null;
         this.transitionInProgress = false;
+        this.atmosphereCache = new Map();
+        this.lastCacheKey = null;
       }
+
+          getCacheKey(timestamp, lat, lng) {
+      // Round to 15-minute intervals and 0.01 degree precision
+      const date = new Date(timestamp);
+      const roundedMinutes = Math.floor(date.getMinutes() / 15) * 15;
+      date.setMinutes(roundedMinutes);
+      date.setSeconds(0);
+      date.setMilliseconds(0);
+      
+      const roundedLat = Math.round(lat * 100) / 100;
+      const roundedLng = Math.round(lng * 100) / 100;
+      
+      return `${date.getTime()}-${roundedLat}-${roundedLng}`;
+    }
       
       // Helper to get day of year
       getDayOfYear(year, month, day) {
@@ -352,11 +368,59 @@
       }
 
       // Enhanced atmospheric conditions with terrain and weather
-      getAtmosphericConditions(track) {
-        const date = new Date(track.timestamp);
-        const lat = parseFloat(track.lat);
-        const lng = parseFloat(track.lng);
-        const elevation = parseFloat(track.elevation) || this.estimateElevation(track.mile);
+        getAtmosphericConditions(track) {
+          const date = new Date(track.timestamp);
+          const lat = parseFloat(track.lat);
+          const lng = parseFloat(track.lng);
+          const elevation = parseFloat(track.elevation) || this.estimateElevation(track.mile);
+          
+          // Generate cache key
+          const cacheKey = this.getCacheKey(track.timestamp, lat, lng);
+          
+          // Return cached result if available
+          if (this.atmosphereCache.has(cacheKey)) {
+            console.log('Using cached atmosphere for:', track.name);
+            return this.atmosphereCache.get(cacheKey);
+          }
+          
+          console.log('Calculating new atmosphere for:', track.name);
+          
+          // Calculate sun position
+          const sunPos = this.calculateSunPosition(date, lat, lng);
+          
+          // Classify terrain
+          const terrainInfo = this.classifyTerrain(lat, lng, elevation, track.mile);
+          
+          // Get season and weather effects
+          const season = this.getSeason(date, lat);
+          const weatherEffects = this.getWeatherEffects(track.weather || {});
+          
+          // Determine time period
+          const period = this.getTimePeriod(sunPos.altitude, sunPos.azimuth, season, this.convertToPacificTime(track.timestamp).hour);
+          
+          // Calculate enhanced colors and atmospheric effects
+          const colors = this.calculateEnhancedColors(sunPos, period, season, terrainInfo, weatherEffects);
+          
+          const conditions = {
+            sunPosition: sunPos,
+            period,
+            season,
+            terrainInfo,
+            weatherEffects,
+            colors,
+            fogSettings: this.calculateEnhancedFog(sunPos, period, terrainInfo, weatherEffects),
+            lightSettings: this.calculateEnhancedLight(sunPos, period, season, terrainInfo)
+          };
+          
+          // Cache the result (limit cache size to 50 entries)
+          if (this.atmosphereCache.size > 50) {
+            const firstKey = this.atmosphereCache.keys().next().value;
+            this.atmosphereCache.delete(firstKey);
+          }
+          this.atmosphereCache.set(cacheKey, conditions);
+          
+          return conditions;
+        }
         
         console.log('Processing track:', track.name, 'Timestamp:', track.timestamp);
         
