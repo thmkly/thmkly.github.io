@@ -63,7 +63,7 @@
             this.playNext(audioData);
           };
           const errorHandler = () => {
-            console.warn('Audio failed to load:', track.name, 'URL:', track.audioUrl);
+            console.warn('Audio failed to load:', track.name);
             showNotification(`Audio failed to load: ${track.name}`, 3000);
           };
         
