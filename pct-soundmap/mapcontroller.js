@@ -567,10 +567,6 @@
           return;
         }
 
-        console.log('Playing track:', track.name);
-
-  }
-
   console.log('Playing track:', track.name);
 
       // FORCE CANCEL ALL IN-PROGRESS OPERATIONS
