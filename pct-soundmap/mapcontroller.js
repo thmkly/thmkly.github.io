@@ -241,11 +241,6 @@
         // Show persistent loading notification (centered, like success message)
         showNotification('loading recordings...'); // No duration = stays visible
         
-loadAudioData(retryCount = 0) {
-    
-        // Playlist wrapper is already hidden via CSS
-        const playlistWrapper = document.getElementById('playlistWrapper');
-        
         // Show persistent loading notification (centered, like success message)
         showNotification('loading recordings...'); // No duration = stays visible
         
