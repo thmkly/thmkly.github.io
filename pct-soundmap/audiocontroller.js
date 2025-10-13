@@ -22,67 +22,71 @@
         }
       }
 
-    play(index, audioData) {
-      // Stop and clean up previous audio completely
-      if (this.currentAudio) {
-        // Remove event listeners before cleanup to prevent error notifications
-        this.currentAudio.removeEventListener('ended', this.currentAudio._endedHandler);
-        this.currentAudio.removeEventListener('error', this.currentAudio._errorHandler);
-        this.currentAudio.pause();
-        this.currentAudio.currentTime = 0;
-        this.currentAudio.src = '';
-        this.currentAudio = null;
-      }
-
-        const track = audioData[index];
-        if (!track) return;
-
-        // Add to play history (keep last 50 for memory management)
-        if (this.currentIndex !== -1 && this.currentIndex !== index) {
-          this.playHistory.push(this.currentIndex);
-          if (this.playHistory.length > 50) {
-            this.playHistory.shift();
+        play(index, audioData) {
+          // Stop and clean up previous audio completely
+          if (this.currentAudio) {
+            // Remove event listeners first to prevent false error notifications
+            if (this.currentAudio._endedHandler) {
+              this.currentAudio.removeEventListener('ended', this.currentAudio._endedHandler);
+            }
+            if (this.currentAudio._errorHandler) {
+              this.currentAudio.removeEventListener('error', this.currentAudio._errorHandler);
+            }
+            this.currentAudio.pause();
+            this.currentAudio.currentTime = 0;
+            this.currentAudio.src = '';
+            this.currentAudio = null;
           }
+        
+          const track = audioData[index];
+          if (!track) return;
+        
+          // Add to play history (keep last 50 for memory management)
+          if (this.currentIndex !== -1 && this.currentIndex !== index) {
+            this.playHistory.push(this.currentIndex);
+            if (this.playHistory.length > 50) {
+              this.playHistory.shift();
+            }
+          }
+        
+          this.currentIndex = index;
+          this.isPlaying = true;
+        
+          const audio = document.createElement('audio');
+          audio.src = track.audioUrl;
+          audio.preload = 'auto';
+          audio.controlsList = 'nodownload';
+          audio.oncontextmenu = () => false;
+          
+          // Store handler references so we can remove them later
+          const endedHandler = () => {
+            this.playNext(audioData);
+          };
+          const errorHandler = () => {
+            console.warn('Audio failed to load:', track.name, 'URL:', track.audioUrl);
+            showNotification(`Audio failed to load: ${track.name}`, 3000);
+          };
+        
+          audio.addEventListener('ended', endedHandler);
+          audio.addEventListener('error', errorHandler);
+        
+          // Store handlers on the audio element for cleanup
+          audio._endedHandler = endedHandler;
+          audio._errorHandler = errorHandler;
+        
+          this.currentAudio = audio;
+          
+          // Attempt to play immediately since this is called from user interaction
+          const playPromise = audio.play();
+          if (playPromise !== undefined) {
+            playPromise.catch(error => {
+              console.log('Audio play prevented:', error.message);
+              // Audio will be shown with controls in popup
+            });
+          }
+          
+          return audio;
         }
-
-        this.currentIndex = index;
-        this.isPlaying = true;
-
-        const audio = document.createElement('audio');
-        audio.src = track.audioUrl;
-        audio.preload = 'auto';
-        audio.controlsList = 'nodownload';
-        audio.oncontextmenu = () => false;
-        
-        // Store handler references so we can remove them later
-        const endedHandler = () => {
-          this.playNext(audioData);
-        };
-        const errorHandler = () => {
-          console.warn('Audio failed to load:', track.name, 'URL:', track.audioUrl);
-          showNotification(`Audio failed to load: ${track.name}`, 3000);
-        };
-        
-        audio.addEventListener('ended', endedHandler);
-        audio.addEventListener('error', errorHandler);
-        
-        // Store handlers on the audio element for cleanup
-        audio._endedHandler = endedHandler;
-        audio._errorHandler = errorHandler;
-
-        this.currentAudio = audio;
-        
-        // Attempt to play immediately since this is called from user interaction
-        const playPromise = audio.play();
-        if (playPromise !== undefined) {
-          playPromise.catch(error => {
-            console.log('Audio play prevented:', error.message);
-            // Audio will be shown with controls in popup
-          });
-        }
-        
-        return audio;
-      }
 
       togglePlayPause() {
         if (!this.currentAudio) return;
