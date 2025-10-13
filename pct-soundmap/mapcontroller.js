@@ -241,43 +241,39 @@
         // Show persistent loading notification (centered, like success message)
         showNotification('loading recordings...'); // No duration = stays visible
         
+loadAudioData(retryCount = 0) {
+    
+        // Playlist wrapper is already hidden via CSS
+        const playlistWrapper = document.getElementById('playlistWrapper');
+        
+        // Show persistent loading notification (centered, like success message)
+        showNotification('loading recordings...'); // No duration = stays visible
+        
         const url = `${CONFIG.GOOGLE_SCRIPT_URL}?nocache=${Date.now()}`;
-        console.log('Fetching data from:', url);
         
         // Simple fetch without extra headers to avoid CORS preflight
         fetch(url)
           .then(response => {
-            console.log('Response status:', response.status);
-            console.log('Response headers:', response.headers);
-            
             if (!response.ok) {
               throw new Error(`HTTP error! status: ${response.status}`);
             }
             return response.text();
           })
           .then(text => {
-            console.log('Raw response:', text);
             try {
               const response = JSON.parse(text);
-              console.log('Parsed response:', response);
               
               // Handle new response format with data/metadata structure
               let data;
               if (response.data && Array.isArray(response.data)) {
                 // New format: {data: [...], metadata: {...}}
                 data = response.data;
-                console.log('Using new response format with metadata');
-                console.log('Metadata:', response.metadata);
               } else if (Array.isArray(response)) {
                 // Old format: [...]
                 data = response;
-                console.log('Using legacy response format');
               } else {
                 throw new Error('Invalid response format');
               }
-              
-              console.log('Final data array:', data);
-              console.log('Data length:', data.length);
               
               if (data.error) {
                 throw new Error(data.error);
@@ -287,13 +283,21 @@
                 throw new Error('No recordings found');
               }
               
-              // Log first item to check structure (including elevation)
+              // Validate data structure without logging content
               if (data.length > 0) {
-                console.log('First item structure:', data[0]);
-                console.log('First item elevation:', data[0].elevation);
-                console.log('First item audioUrl:', data[0].audioUrl);
+                const firstItem = data[0];
+                const hasRequiredFields = firstItem.lat && firstItem.lng && firstItem.audioUrl;
+                if (!hasRequiredFields) {
+                  console.warn('Data missing required fields');
+                }
               }
               
+              // Add original index to each track for stable map references
+              this.originalAudioData = data.map((track, index) => ({
+                ...track,
+                originalIndex: index
+              }));
+                
               // Add original index to each track for stable map references
               this.originalAudioData = data.map((track, index) => ({
                 ...track,
