@@ -569,13 +569,6 @@
 
         console.log('Playing track:', track.name);
 
-          playAudio(index, fromAutoPlay = false) {
-  console.log('playAudio called with index:', index, 'fromAutoPlay:', fromAutoPlay);
-  
-  const track = this.audioData[index];
-  if (!track) {
-    console.error('No track found at index:', index);
-    return;
   }
 
   console.log('Playing track:', track.name);
