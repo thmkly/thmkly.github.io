@@ -569,6 +569,34 @@
 
         console.log('Playing track:', track.name);
 
+          playAudio(index, fromAutoPlay = false) {
+  console.log('playAudio called with index:', index, 'fromAutoPlay:', fromAutoPlay);
+  
+  const track = this.audioData[index];
+  if (!track) {
+    console.error('No track found at index:', index);
+    return;
+  }
+
+  console.log('Playing track:', track.name);
+
+      // FORCE CANCEL ALL IN-PROGRESS OPERATIONS
+      // Clear any pending timeouts
+      if (this.animationTimeout) {
+        clearTimeout(this.animationTimeout);
+        this.animationTimeout = null;
+      }
+      if (this.moveTimeout) {
+        clearTimeout(this.moveTimeout);
+        this.moveTimeout = null;
+      }
+      
+      // Force reset positioning flag to allow new movement
+      this.isPositioning = false;
+      
+      // Stop any in-progress map animation
+      map.stop();
+
         // Stop any runaway animations
         if (this.animationTimeout) {
           clearTimeout(this.animationTimeout);
