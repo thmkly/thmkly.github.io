@@ -80,8 +80,7 @@
           const playPromise = audio.play();
           if (playPromise !== undefined) {
             playPromise.catch(error => {
-              console.log('Audio play prevented:', error.message);
-              // Audio will be shown with controls in popup
+              // Silently handle - audio will be shown with controls in popup
             });
           }
           
