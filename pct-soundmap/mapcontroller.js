@@ -665,10 +665,18 @@
             const popupContent = this.currentPopup._content;
             audioElement = popupContent.querySelector('audio');
             
-            // Detach audio from DOM so it doesn't get destroyed
-            if (audioElement && audioElement.parentNode) {
-              audioElement.parentNode.removeChild(audioElement);
-            }
+         // Detach audio from DOM so it doesn't get destroyed
+        if (audioElement && audioElement.parentNode) {
+          const wasPlaying = !audioElement.paused;
+          const currentTime = audioElement.currentTime;
+          audioElement.parentNode.removeChild(audioElement);
+          
+          // Resume playback after detaching
+          if (wasPlaying) {
+            audioElement.currentTime = currentTime;
+            audioElement.play().catch(e => console.log('Resume play failed:', e));
+          }
+        }
             
             // Now safe to remove popup
             this.currentPopup.remove();
