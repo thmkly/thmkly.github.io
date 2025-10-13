@@ -658,69 +658,79 @@
         }
       }
 
-      minimizePopup(track, index) {
-        // Remove the main popup but keep audio playing
-        if (this.currentPopup) {
-          this.currentPopup.remove();
-          this.currentPopup = null;
+        minimizePopup(track, index) {
+          // Extract the audio element BEFORE removing the popup
+          let audioElement = null;
+          if (this.currentPopup) {
+            const popupContent = this.currentPopup._content;
+            audioElement = popupContent.querySelector('audio');
+            
+            // Detach audio from DOM so it doesn't get destroyed
+            if (audioElement && audioElement.parentNode) {
+              audioElement.parentNode.removeChild(audioElement);
+            }
+            
+            // Now safe to remove popup
+            this.currentPopup.remove();
+            this.currentPopup = null;
+          }
+          
+          // Store audio element reference for later restoration
+          if (audioElement) {
+            audioElement._isMinimized = true;
+          }
+          
+          // Create a mini infobox for the minimized popup
+          const coords = [parseFloat(track.lng), parseFloat(track.lat)];
+          const pixelCoords = map.project(coords);
+          
+          const miniBox = document.createElement('div');
+          miniBox.className = 'mini-infobox minimized-popup';
+          miniBox.dataset.trackIndex = index;
+          miniBox.style.position = 'absolute';
+          miniBox.style.backgroundColor = 'rgba(255, 235, 220, 0.95)'; // Light orange background to indicate playing
+          
+          const playIcon = document.createElement('div');
+          playIcon.className = 'play-icon';
+          playIcon.style.borderLeftColor = '#ff6b35'; // Orange to indicate playing
+          
+          const title = document.createElement('span');
+          title.className = 'mini-infobox-title';
+          title.textContent = track.name.replace(/^[^\s]+\s+-\s+/, '');
+          
+          // Click to restore the full popup with existing audio
+          miniBox.addEventListener('click', (e) => {
+            e.stopPropagation();
+            // Remove this mini box
+            miniBox.remove();
+            this.minimizedPopup = null;
+            // Restore popup with the existing audio element
+            this.showPopup(coords, track, audioElement, index);
+          });
+          
+          miniBox.appendChild(playIcon);
+          miniBox.appendChild(title);
+          
+          // Position the mini box
+          miniBox.style.left = `${pixelCoords.x + 10}px`;
+          miniBox.style.top = `${pixelCoords.y - 20}px`;
+          
+          map.getContainer().appendChild(miniBox);
+          
+          // Store reference to minimized popup
+          this.minimizedPopup = miniBox;
+          
+          // Update position when map moves
+          const updatePosition = () => {
+            const newCoords = map.project(coords);
+            miniBox.style.left = `${newCoords.x + 10}px`;
+            miniBox.style.top = `${newCoords.y - 20}px`;
+          };
+          map.on('move', updatePosition);
+          
+          // Store the update function so we can remove it later
+          miniBox._updatePosition = updatePosition;
         }
-        
-        // Audio should continue playing - don't stop it
-        // The audio element is managed by audioController and should persist
-        
-        // Create a mini infobox for the minimized popup
-        const coords = [parseFloat(track.lng), parseFloat(track.lat)];
-        const pixelCoords = map.project(coords);
-        
-        const miniBox = document.createElement('div');
-        miniBox.className = 'mini-infobox minimized-popup';
-        miniBox.dataset.trackIndex = index;
-        miniBox.style.position = 'absolute';
-        miniBox.style.backgroundColor = 'rgba(255, 235, 220, 0.95)'; // Light orange background to indicate playing
-        
-        const playIcon = document.createElement('div');
-        playIcon.className = 'play-icon';
-        playIcon.style.borderLeftColor = '#ff6b35'; // Orange to indicate playing
-        
-        const title = document.createElement('span');
-        title.className = 'mini-infobox-title';
-        title.textContent = track.name.replace(/^[^\s]+\s+-\s+/, '');
-        
-        // Click to restore the full popup
-        miniBox.addEventListener('click', (e) => {
-          e.stopPropagation();
-          // Remove this mini box
-          miniBox.remove();
-          this.minimizedPopup = null;
-          // Find the audio element if it exists
-          const audio = audioController.currentAudio;
-          // Show full popup again
-          this.showPopup(coords, track, audio, index);
-        });
-        
-        miniBox.appendChild(playIcon);
-        miniBox.appendChild(title);
-        
-        // Position the mini box
-        miniBox.style.left = `${pixelCoords.x + 10}px`;
-        miniBox.style.top = `${pixelCoords.y - 20}px`;
-        
-        map.getContainer().appendChild(miniBox);
-        
-        // Store reference to minimized popup
-        this.minimizedPopup = miniBox;
-        
-        // Update position when map moves
-        const updatePosition = () => {
-          const newCoords = map.project(coords);
-          miniBox.style.left = `${newCoords.x + 10}px`;
-          miniBox.style.top = `${newCoords.y - 20}px`;
-        };
-        map.on('move', updatePosition);
-        
-        // Store the update function so we can remove it later
-        miniBox._updatePosition = updatePosition;
-      }
 
       updateActiveTrack(index, shouldScrollPlaylist = false) {
         document.querySelectorAll('.track').forEach(el => el.classList.remove('active-track'));
