@@ -234,106 +234,106 @@
         return uiController.playlistExpanded ? 370 : 20;
       }
 
-      loadAudioData(retryCount = 0) {
-        // Playlist wrapper is already hidden via CSS
-        const playlistWrapper = document.getElementById('playlistWrapper');
-        
-        // Show persistent loading notification (centered, like success message)
-        showNotification('loading recordings...'); // No duration = stays visible
-        
-        const url = `${CONFIG.GOOGLE_SCRIPT_URL}?nocache=${Date.now()}`;
-        
-        // Simple fetch without extra headers to avoid CORS preflight
-        fetch(url)
-          .then(response => {
-            if (!response.ok) {
-              throw new Error(`HTTP error! status: ${response.status}`);
-            }
-            return response.text();
-          })
-          .then(text => {
-            try {
-              const response = JSON.parse(text);
-              
-              // Handle new response format with data/metadata structure
-              let data;
-              if (response.data && Array.isArray(response.data)) {
-                // New format: {data: [...], metadata: {...}}
-                data = response.data;
-              } else if (Array.isArray(response)) {
-                // Old format: [...]
-                data = response;
-              } else {
-                throw new Error('Invalid response format');
+        loadAudioData(retryCount = 0) {
+          // Playlist wrapper is already hidden via CSS
+          const playlistWrapper = document.getElementById('playlistWrapper');
+          
+          // Show persistent loading notification (no duration = stays visible)
+          showNotification('loading recordings...');
+          
+          const url = `${CONFIG.GOOGLE_SCRIPT_URL}?nocache=${Date.now()}`;
+          
+          // Simple fetch without extra headers to avoid CORS preflight
+          fetch(url)
+            .then(response => {
+              if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
               }
-              
-              if (data.error) {
-                throw new Error(data.error);
-              }
-              
-              if (data.length === 0) {
-                throw new Error('No recordings found');
-              }
-              
-              // Validate data structure without logging content
-              if (data.length > 0) {
-                const firstItem = data[0];
-                const hasRequiredFields = firstItem.lat && firstItem.lng && firstItem.audioUrl;
-                if (!hasRequiredFields) {
-                  console.warn('Data missing required fields');
+              return response.text();
+            })
+            .then(text => {
+              try {
+                const response = JSON.parse(text);
+                
+                // Handle new response format with data/metadata structure
+                let data;
+                if (response.data && Array.isArray(response.data)) {
+                  // New format: {data: [...], metadata: {...}}
+                  data = response.data;
+                } else if (Array.isArray(response)) {
+                  // Old format: [...]
+                  data = response;
+                } else {
+                  throw new Error('Invalid response format');
                 }
-              }
-              
-              // Add original index to each track for stable map references
-              this.originalAudioData = data.map((track, index) => ({
-                ...track,
-                originalIndex: index
-              }));
-              
-              // Set up data in NOBO order by default (Mexico at bottom, Canada at top)
-              this.audioData = this.sortByMileAndDate([...this.originalAudioData], 'nobo');
-              
-              this.sortAndUpdatePlaylist();
-              this.updateMapData();
-              
-              // Show playlist wrapper again with flex display
-              playlistWrapper.style.display = 'flex';
-              
-              // Hide loading notification and show success message
-              hideNotification();
-              setTimeout(() => {
-                showNotification(`${data.length} recordings loaded`, 3000);
-              }, 100);
-              
-            } catch (parseError) {
-              console.error('JSON Parse Error:', parseError);
-              throw new Error(`Invalid JSON response: ${parseError.message}`);
-            }
-          })
-          .catch(e => {
-            console.error('Load Error:', e);
-            const errorMsg = e.message || 'Unknown error occurred';
-            
-            // Retry logic for intermittent failures
-            if (retryCount < 3) {
-              console.log(`Retrying... attempt ${retryCount + 1} of 3`);
-              hideNotification();
-              setTimeout(() => {
-                showNotification(`Connection issue, retrying... (${retryCount + 1}/3)`, 2000);
+                
+                if (data.error) {
+                  throw new Error(data.error);
+                }
+                
+                if (data.length === 0) {
+                  throw new Error('No recordings found');
+                }
+                
+                // Validate data structure without logging content
+                if (data.length > 0) {
+                  const firstItem = data[0];
+                  const hasRequiredFields = firstItem.lat && firstItem.lng && firstItem.audioUrl;
+                  if (!hasRequiredFields) {
+                    console.warn('Data missing required fields');
+                  }
+                }
+                
+                // Add original index to each track for stable map references
+                this.originalAudioData = data.map((track, index) => ({
+                  ...track,
+                  originalIndex: index
+                }));
+                
+                // Set up data in NOBO order by default (Mexico at bottom, Canada at top)
+                this.audioData = this.sortByMileAndDate([...this.originalAudioData], 'nobo');
+                
+                this.sortAndUpdatePlaylist();
+                this.updateMapData();
+                
+                // Show playlist wrapper again with flex display
+                playlistWrapper.style.display = 'flex';
+                
+                // Hide loading notification and show success message
+                hideNotification();
                 setTimeout(() => {
-                  this.loadAudioData(retryCount + 1);
-                }, 2000);
-              }, 100);
-            } else {
-              // Hide loading notification and show error after max retries
-              hideNotification();
-              setTimeout(() => {
-                this.showLoadingError(`Failed to load recordings after 3 attempts: ${errorMsg}`);
-                showNotification(`Error: ${errorMsg}`, 5000);
-              }, 100);
-            }
-          });
-      }
+                  showNotification(`${data.length} recordings loaded`, 3000);
+                }, 100);
+                
+              } catch (parseError) {
+                console.error('JSON Parse Error:', parseError);
+                throw new Error(`Invalid JSON response: ${parseError.message}`);
+              }
+            })
+            .catch(e => {
+              console.error('Load Error:', e);
+              const errorMsg = e.message || 'Unknown error occurred';
+              
+              // Retry logic for intermittent failures
+              if (retryCount < 3) {
+                console.log(`Retrying... attempt ${retryCount + 1} of 3`);
+                hideNotification();
+                setTimeout(() => {
+                  showNotification(`Connection issue, retrying... (${retryCount + 1}/3)`);
+                  setTimeout(() => {
+                    this.loadAudioData(retryCount + 1);
+                  }, 2000);
+                }, 100);
+              } else {
+                // Hide loading notification and show error after max retries
+                hideNotification();
+                setTimeout(() => {
+                  this.showLoadingError(`Failed to load recordings after 3 attempts: ${errorMsg}`);
+                  showNotification(`Error: ${errorMsg}`, 5000);
+                }, 100);
+              }
+            });
+        }
 
       showLoadingError(message) {
         const playlist = document.getElementById('playlist');
