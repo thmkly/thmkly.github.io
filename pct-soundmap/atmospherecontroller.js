@@ -770,6 +770,7 @@
             position: [1.15, sunPos.azimuth, Math.max(5, sunPos.altitude)]
           };
         }
+    }
 
         // Apply enhanced atmospheric effects
         this.applyEnhancedSky(conditions);
