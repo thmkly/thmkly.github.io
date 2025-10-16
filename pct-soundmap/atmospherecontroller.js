@@ -677,6 +677,7 @@
         
           return baseFog;
         }
+    }
 
         // Enhanced fog calculation
         calculateEnhancedFog(sunPos, period, terrainInfo, weatherEffects) {
@@ -769,7 +770,7 @@
             intensity: Math.max(0.1, intensity),
             position: [1.15, sunPos.azimuth, Math.max(5, sunPos.altitude)]
           };
-        };
+        }
 
         // Apply enhanced atmospheric effects
         this.applyEnhancedSky(conditions);
