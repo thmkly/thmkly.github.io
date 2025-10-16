@@ -755,7 +755,8 @@
             badge.style.whiteSpace = 'nowrap';
             
             document.body.appendChild(badge);
-  }
+          }
+        }
 
         updateActiveTrack(index, shouldScrollPlaylist = false) {
           document.querySelectorAll('.track').forEach(el => el.classList.remove('active-track'));
