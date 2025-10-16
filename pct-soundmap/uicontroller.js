@@ -94,22 +94,36 @@ class UIController {
         this.setupPlaylistDrag();
       }
 
-      togglePlaylist() {
-        const wrapper = document.getElementById('playlistWrapper');
-        const toggle = document.getElementById('playlistToggle');
-        
-        this.playlistExpanded = !this.playlistExpanded;
-        
-        if (this.playlistExpanded) {
-          wrapper.classList.remove('collapsed');
-          toggle.textContent = '◀';
-          toggle.title = 'Collapse playlist';
-        } else {
-          wrapper.classList.add('collapsed');
-          toggle.textContent = '▶';
-          toggle.title = 'Expand playlist';
+        togglePlaylist() {
+          const wrapper = document.getElementById('playlistWrapper');
+          const toggle = document.getElementById('playlistToggle');
+          
+          this.playlistExpanded = !this.playlistExpanded;
+          
+          if (this.playlistExpanded) {
+            wrapper.classList.remove('collapsed');
+            toggle.textContent = '◀';
+            toggle.title = 'Collapse playlist';
+            
+            // Remove header badge when playlist is expanded
+            const existingBadge = document.getElementById('playing-badge');
+            if (existingBadge) {
+              existingBadge.remove();
+            }
+          } else {
+            wrapper.classList.add('collapsed');
+            toggle.textContent = '▶';
+            toggle.title = 'Expand playlist';
+            
+            // Show header badge when playlist is collapsed (if something is playing and minimized)
+            if (mapController.minimizedPopup && audioController.currentIndex >= 0) {
+              const currentTrack = mapController.audioData[audioController.currentIndex];
+              if (currentTrack) {
+                mapController.updateHeaderBadge(currentTrack);
+              }
+            }
+          }
         }
-      }
 
       toggleMobileMenu() {
         if (!this.isMobile) return;
