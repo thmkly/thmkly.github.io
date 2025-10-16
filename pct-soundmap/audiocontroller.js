@@ -162,14 +162,28 @@
         mapController.playAudio(prevIndex, false);
       }
 
-      stop() {
-        if (this.currentAudio) {
-          this.currentAudio.pause();
-          this.currentAudio.currentTime = 0;
-          this.currentAudio.src = '';
-          this.currentAudio = null;
+        stop() {
+          if (this.currentAudio) {
+            // Remove event listeners BEFORE stopping to prevent false errors
+            if (this.currentAudio._endedHandler) {
+              this.currentAudio.removeEventListener('ended', this.currentAudio._endedHandler);
+            }
+            if (this.currentAudio._errorHandler) {
+              this.currentAudio.removeEventListener('error', this.currentAudio._errorHandler);
+            }
+            
+            this.currentAudio.pause();
+            this.currentAudio.currentTime = 0;
+            this.currentAudio.src = '';
+            
+            // Remove from DOM if it exists
+            if (this.currentAudio.parentNode) {
+              this.currentAudio.parentNode.removeChild(this.currentAudio);
+            }
+            
+            this.currentAudio = null;
+          }
+          this.isPlaying = false;
+          this.currentIndex = -1;
         }
-        this.isPlaying = false;
-        this.currentIndex = -1;
-      }
     }
