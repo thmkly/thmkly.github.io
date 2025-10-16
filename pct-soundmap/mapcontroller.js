@@ -682,12 +682,14 @@
               e.stopPropagation();
               miniBox.remove();
               this.minimizedPopup = null;
-
-              // Update badge visibility based on playlist state
-              this.updateHeaderBadge(track);
               
               // Restore popup with the audio from audioController
               this.showPopup(coords, track, audioController.currentAudio, index);
+              
+              // Update badge AFTER popup is shown
+              setTimeout(() => {
+                this.updateHeaderBadge(audioController.currentIndex >= 0 ? this.audioData[audioController.currentIndex] : null);
+              }, 50);
             });
           
           miniBox.appendChild(playIcon);
