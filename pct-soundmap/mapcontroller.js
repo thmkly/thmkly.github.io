@@ -748,11 +748,33 @@
             badge.style.color = '#333';
             badge.style.fontWeight = '500';
             badge.style.zIndex = '1';
-            badge.style.pointerEvents = 'none';
+            badge.style.pointerEvents = 'auto'; // Make it clickable
+            badge.style.cursor = 'pointer';
             badge.style.maxWidth = '300px';
             badge.style.overflow = 'hidden';
             badge.style.textOverflow = 'ellipsis';
             badge.style.whiteSpace = 'nowrap';
+            
+            // Click to fly to track location and restore popup
+            badge.addEventListener('click', () => {
+              const coords = [parseFloat(track.lng), parseFloat(track.lat)];
+              
+              // Remove the minimized popup
+              if (this.minimizedPopup) {
+                this.minimizedPopup.remove();
+                this.minimizedPopup = null;
+              }
+              
+              // Fly to location and restore popup
+              this.positionMapForTrack(track, audioController.currentIndex);
+              
+              // Show popup after a short delay for positioning
+              setTimeout(() => {
+                this.showPopup(coords, track, audioController.currentAudio, audioController.currentIndex);
+              }, 100);
+              
+              // Badge will be removed by playAudio cleanup
+            });
             
             document.body.appendChild(badge);
           }
