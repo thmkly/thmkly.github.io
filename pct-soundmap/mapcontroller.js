@@ -684,14 +684,16 @@
           title.className = 'mini-infobox-title';
           title.textContent = track.name.replace(/^[^\s]+\s+-\s+/, '');
           
-          // Click to restore the full popup
-          miniBox.addEventListener('click', (e) => {
-            e.stopPropagation();
-            miniBox.remove();
-            this.minimizedPopup = null;
-            // Restore popup with the audio from audioController
-            this.showPopup(coords, track, audioController.currentAudio, index);
-          });
+            miniBox.addEventListener('click', (e) => {
+              e.stopPropagation();
+              miniBox.remove();
+              this.minimizedPopup = null;
+              
+              // DON'T remove badge here - let playlist state control it
+              
+              // Restore popup with the audio from audioController
+              this.showPopup(coords, track, audioController.currentAudio, index);
+            });
           
           miniBox.appendChild(playIcon);
           miniBox.appendChild(title);
