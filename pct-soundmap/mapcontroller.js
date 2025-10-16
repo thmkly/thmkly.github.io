@@ -948,32 +948,11 @@
           const audioContainer = document.createElement('div');
           audioContainer.className = 'audio-container';
           
-          // Check if this is a minimized audio element being restored
-          if (audio._isMinimized) {
-            // Reuse existing audio element - don't reset properties
-            delete audio._isMinimized;
-            audio.controls = true; // Ensure controls are visible
-          } else {
-            // New audio element - set up properties
-            audio.controls = true;
-            audio.autoplay = true;
-            audio.style.width = '100%';
-            audio.controlsList = 'nodownload';
-            audio.oncontextmenu = () => false;
-            
-            // Force audio element to load controls
-            audio.load();
-            
-            // Fallback: if controls don't appear, try recreating
-            setTimeout(() => {
-              if (!audio.controls || audio.offsetHeight === 0) {
-                console.warn('Audio controls not rendering, attempting fix...');
-                audio.controls = true;
-                audio.style.display = 'block';
-                audio.style.visibility = 'visible';
-              }
-            }, 100);
-          }
+          // Audio lives in document.body, managed by audioController
+          // Just make it visible in the popup and ensure controls render
+          audio.style.display = 'block';
+          audio.style.width = '100%';
+          audio.controls = true;
           
           audioContainer.appendChild(audio);
           controls.appendChild(audioContainer);
