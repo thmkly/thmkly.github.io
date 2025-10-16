@@ -214,8 +214,20 @@
           // Refresh mini boxes when movement is completely finished
           if (!this.isPositioning) {
             const visiblePoints = map.queryRenderedFeatures({ layers: ['unclustered-point'] });
-            if (visiblePoints.length > 0 && visiblePoints.length < 50) {
-              uiController.showMiniInfoBoxes(null, this.audioData);
+            
+            // Only update if cluster state changed or boxes are missing
+            const currentPointCount = visiblePoints.length;
+            const existingBoxCount = uiController.miniInfoBoxes.length;
+            
+            // Check if we need to update (clustering changed or boxes don't match)
+            const shouldUpdate = currentPointCount !== existingBoxCount || 
+                                 (currentPointCount > 0 && currentPointCount < 50 && existingBoxCount === 0);
+            
+            if (shouldUpdate) {
+              uiController.clearMiniInfoBoxes();
+              if (currentPointCount > 0 && currentPointCount < 50) {
+                uiController.showMiniInfoBoxes(null, this.audioData);
+              }
             }
           }
         });
