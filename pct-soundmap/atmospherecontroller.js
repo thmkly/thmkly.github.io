@@ -678,96 +678,98 @@
           return baseFog;
         }
 
-        // Terrain-based fog modifications
-        const terrainFogMods = {
-          desert_floor: { range: [0.8, 15], intensity: 0.6 },
-          alpine: { range: [1.2, 20], intensity: 1.2 },
-          temperate_forest: { range: [0.3, 8], intensity: 1.1 }
-        };
-
-        const mod = terrainFogMods[terrainInfo.terrain] || { range: [0.5, 10], intensity: 1.0 };
+        // Enhanced fog calculation
+        calculateEnhancedFog(sunPos, period, terrainInfo, weatherEffects) {
+          const baseFog = {
+            range: [0.5, 10],
+            color: 'white',
+            'horizon-blend': 0.1,
+            'high-color': '#87CEEB',
+            'space-color': '#000033',
+            'star-intensity': 0
+          };
         
-        // Apply terrain modifications
-        baseFog.range = mod.range;
+          // Terrain-based fog modifications
+          const terrainFogMods = {
+            desert_floor: { range: [0.8, 15], intensity: 0.6 },
+            alpine: { range: [1.2, 20], intensity: 1.2 },
+            temperate_forest: { range: [0.3, 8], intensity: 1.1 }
+          };
         
-        // Time-based modifications
-        const timeFogMods = {
-          astronomicalNight: { 'horizon-blend': 0.02, 'star-intensity': 0.9 },
-          sunrise: { 'horizon-blend': 0.15, range: [0.3, 8] },
-          morningGoldenHour: { 'horizon-blend': 0.12, range: [0.4, 9] },
-          eveningGoldenHour: { 'horizon-blend': 0.12, range: [0.4, 9] },
-          highNoon: { 'horizon-blend': 0.05, range: [1.0, 15] }
-        };
-
-        const timeMod = timeFogMods[period] || {};
-        Object.assign(baseFog, timeMod);
-
-        return baseFog;
-      }
-
-      // Enhanced lighting calculation
-      calculateEnhancedLight(sunPos, period, season, terrainInfo) {
-        let intensity = Math.max(0, Math.min(1, (sunPos.altitude + 10) / 70));
+          const mod = terrainFogMods[terrainInfo.terrain] || { range: [0.5, 10], intensity: 1.0 };
+          
+          // Apply terrain modifications
+          baseFog.range = mod.range;
+          
+          // Time-based modifications with improved dark visibility
+          const timeFogMods = {
+            astronomicalNight: { 
+              'horizon-blend': 0.05,
+              'star-intensity': 0.9,
+              'high-color': '#1a1a2a'
+            },
+            astronomicalTwilight: {
+              'horizon-blend': 0.08,
+              'high-color': '#2a2a3a'
+            },
+            nauticalTwilight: {
+              'horizon-blend': 0.1,
+              'high-color': '#3a3a4a'
+            },
+            civilTwilight: {
+              'horizon-blend': 0.12,
+              'high-color': '#4a4a5a'
+            },
+            sunrise: { 'horizon-blend': 0.15, range: [0.3, 8] },
+            morningGoldenHour: { 'horizon-blend': 0.12, range: [0.4, 9] },
+            eveningGoldenHour: { 'horizon-blend': 0.12, range: [0.4, 9] },
+            highNoon: { 'horizon-blend': 0.05, range: [1.0, 15] }
+          };
         
-        // Terrain-based intensity modifications
-        const terrainMods = {
-          alpine: 1.3,
-          desert_floor: 1.2,
-          temperate_forest: 0.8
-        };
+          const timeMod = timeFogMods[period] || {};
+          Object.assign(baseFog, timeMod);
         
-        intensity *= terrainMods[terrainInfo.terrain] || 1.0;
-        
-        // Seasonal adjustments
-        const seasonalIntensity = {
-          winter: 0.85,
-          spring: 0.95,
-          summer: 1.1,
-          autumn: 0.9
-        };
-        
-        intensity *= seasonalIntensity[season] || 1;
-
-        // Color based on time and terrain
-        let color = '#ffffff';
-        if (period === 'morningGoldenHour' || period === 'eveningGoldenHour') {
-          color = '#ffcc66';
-        } else if (period === 'sunrise' || period === 'sunset') {
-          color = '#ff8844';
+          return baseFog;
         }
-
-        return {
-          anchor: 'viewport',
-          color: color,
-          intensity: Math.max(0.1, intensity),
-          position: [1.15, sunPos.azimuth, Math.max(5, sunPos.altitude)]
-        };
-      }
-
-      getSeason(date, lat) {
-        const month = date.getMonth() + 1;
-        const day = date.getDate();
         
-        // Seasons for Northern Hemisphere
-        if (month === 12 && day >= 21 || month <= 2 || month === 3 && day < 20) return 'winter';
-        if (month === 3 && day >= 20 || month <= 5 || month === 6 && day < 21) return 'spring';
-        if (month === 6 && day >= 21 || month <= 8 || month === 9 && day < 23) return 'summer';
-        return 'autumn';
-      }
-
-      // Enhanced atmosphere application
-      applyAtmosphere(track) {
-        if (!map || !track) return;
+        // Enhanced lighting calculation
+        calculateEnhancedLight(sunPos, period, season, terrainInfo) {
+          let intensity = Math.max(0, Math.min(1, (sunPos.altitude + 10) / 70));
+          
+          // Terrain-based intensity modifications
+          const terrainMods = {
+            alpine: 1.3,
+            desert_floor: 1.2,
+            temperate_forest: 0.8
+          };
+          
+          intensity *= terrainMods[terrainInfo.terrain] || 1.0;
+          
+          // Seasonal adjustments
+          const seasonalIntensity = {
+            winter: 0.85,
+            spring: 0.95,
+            summer: 1.1,
+            autumn: 0.9
+          };
+          
+          intensity *= seasonalIntensity[season] || 1;
         
-        const conditions = this.getAtmosphericConditions(track);
-        this.currentConditions = conditions;
+          // Color based on time and terrain
+          let color = '#ffffff';
+          if (period === 'morningGoldenHour' || period === 'eveningGoldenHour') {
+            color = '#ffcc66';
+          } else if (period === 'sunrise' || period === 'sunset') {
+            color = '#ff8844';
+          }
         
-        // Enhanced debug logging
-        console.log('Applying enhanced atmosphere for track:', track.name);
-        console.log('Time:', this.formatPacificTime(this.convertToPacificTime(track.timestamp)));
-        console.log('Sun position:', conditions.sunPosition);
-        console.log('Period:', conditions.period);
-        console.log('Terrain:', conditions.terrainInfo);
+          return {
+            anchor: 'viewport',
+            color: color,
+            intensity: Math.max(0.1, intensity),
+            position: [1.15, sunPos.azimuth, Math.max(5, sunPos.altitude)]
+          };
+        }
 
         // Apply enhanced atmospheric effects
         this.applyEnhancedSky(conditions);
@@ -822,12 +824,13 @@
         }
       }
 
-      applyEnhanced3DEffects(conditions) {
-        if (uiController.is3DEnabled && typeof map.setLight === 'function') {
-          map.setLight(conditions.lightSettings);
+        applyEnhanced3DEffects(conditions) {
+          if (uiController.is3DEnabled && typeof map.setLight === 'function') {
+            map.setLight(conditions.lightSettings);
+          }
         }
-
-          // Reset atmosphere to neutral default
+        
+        // Reset atmosphere to neutral default
         resetToDefault() {
           console.log('Resetting atmosphere to default');
           
@@ -877,8 +880,6 @@
           // Clear cached conditions
           this.currentConditions = null;
         }
-      
-      }
 
       // Enhanced CSS fallback with terrain-aware effects
       applyFallbackAtmosphere(conditions) {
