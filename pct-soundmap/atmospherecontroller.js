@@ -624,16 +624,59 @@
         return color;
       }
 
-      // Enhanced fog calculation
-      calculateEnhancedFog(sunPos, period, terrainInfo, weatherEffects) {
-        const baseFog = {
-          range: [0.5, 10],
-          color: 'white',
-          'horizon-blend': 0.1,
-          'high-color': '#87CEEB',
-          'space-color': '#000033',
-          'star-intensity': 0
-        };
+        // Enhanced fog calculation
+        calculateEnhancedFog(sunPos, period, terrainInfo, weatherEffects) {
+          const baseFog = {
+            range: [0.5, 10],
+            color: 'white',
+            'horizon-blend': 0.1,
+            'high-color': '#87CEEB',
+            'space-color': '#000033',
+            'star-intensity': 0
+          };
+        
+          // Terrain-based fog modifications
+          const terrainFogMods = {
+            desert_floor: { range: [0.8, 15], intensity: 0.6 },
+            alpine: { range: [1.2, 20], intensity: 1.2 },
+            temperate_forest: { range: [0.3, 8], intensity: 1.1 }
+          };
+        
+          const mod = terrainFogMods[terrainInfo.terrain] || { range: [0.5, 10], intensity: 1.0 };
+          
+          // Apply terrain modifications
+          baseFog.range = mod.range;
+          
+          // Time-based modifications with improved dark visibility
+          const timeFogMods = {
+            astronomicalNight: { 
+              'horizon-blend': 0.05,  // Increased from 0.02 for better visibility
+              'star-intensity': 0.9,
+              'high-color': '#1a1a2a'  // Lighter space color for visibility
+            },
+            astronomicalTwilight: {
+              'horizon-blend': 0.08,
+              'high-color': '#2a2a3a'
+            },
+            nauticalTwilight: {
+              'horizon-blend': 0.1,
+              'high-color': '#3a3a4a'
+            },
+            civilTwilight: {
+              'horizon-blend': 0.12,
+              'high-color': '#4a4a5a'
+            },
+            sunrise: { 'horizon-blend': 0.15, range: [0.3, 8] },
+            morningGoldenHour: { 'horizon-blend': 0.12, range: [0.4, 9] },
+            eveningGoldenHour: { 'horizon-blend': 0.12, range: [0.4, 9] },
+            highNoon: { 'horizon-blend': 0.05, range: [1.0, 15] }
+          };
+        
+          const timeMod = timeFogMods[period] || {};
+          Object.assign(baseFog, timeMod);
+        
+          return baseFog;
+        }
 
         // Terrain-based fog modifications
         const terrainFogMods = {
@@ -783,6 +826,58 @@
         if (uiController.is3DEnabled && typeof map.setLight === 'function') {
           map.setLight(conditions.lightSettings);
         }
+
+          // Reset atmosphere to neutral default
+        resetToDefault() {
+          console.log('Resetting atmosphere to default');
+          
+          // Reset sky
+          if (typeof map.setSky === 'function') {
+            map.setSky({
+              'sky-type': 'atmosphere',
+              'sky-atmosphere-sun': [0, 90],
+              'sky-atmosphere-sun-intensity': 15
+            });
+          }
+          
+          // Reset fog
+          if (typeof map.setFog === 'function') {
+            map.setFog({
+              'range': [0.5, 10],
+              'color': 'white',
+              'high-color': '#87CEEB',
+              'space-color': '#000033',
+              'horizon-blend': 0.1,
+              'star-intensity': 0
+            });
+          }
+          
+          // Reset 3D lighting
+          if (typeof map.setLight === 'function') {
+            map.setLight({
+              'anchor': 'viewport',
+              'color': 'white',
+              'intensity': 0.5,
+              'position': [1.15, 210, 30]
+            });
+          }
+          
+          // Remove CSS fallback overlays
+          const existingOverlay = document.getElementById('atmosphere-overlay');
+          if (existingOverlay) {
+            existingOverlay.remove();
+          }
+          
+          // Reset map filter
+          const mapContainer = document.getElementById('map');
+          if (mapContainer) {
+            mapContainer.style.filter = 'none';
+          }
+          
+          // Clear cached conditions
+          this.currentConditions = null;
+        }
+      
       }
 
       // Enhanced CSS fallback with terrain-aware effects
