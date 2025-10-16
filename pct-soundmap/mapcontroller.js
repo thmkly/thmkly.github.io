@@ -595,6 +595,12 @@
           this.minimizedPopup.remove();
           this.minimizedPopup = null;
         }
+        
+        // Remove header badge when opening new track
+        const existingBadge = document.getElementById('playing-badge');
+        if (existingBadge) {
+          existingBadge.remove();
+        }
 
         // Update active track, only scroll playlist if from auto-play and track not visible
         if (fromAutoPlay) {
@@ -717,37 +723,88 @@
           map.on('move', updatePosition);
           
           miniBox._updatePosition = updatePosition;
+            
+        // Add header badge only if playlist is collapsed
+          this.updateHeaderBadge(track);
         }
+        
+        // New helper method - add this RIGHT AFTER minimizePopup() closes
+        updateHeaderBadge(track) {
+          // Remove existing badge if any
+          const existingBadge = document.getElementById('playing-badge');
+          if (existingBadge) {
+            existingBadge.remove();
+          }
+          
+          // Only show badge if playlist is collapsed
+          if (!uiController.playlistExpanded && track) {
+            const badge = document.createElement('div');
+            badge.id = 'playing-badge';
+            badge.textContent = `▶ ${track.name.replace(/^[^\s]+\s+-\s+/, '')}`;
+            badge.style.position = 'absolute';
+            badge.style.top = '20px';
+            badge.style.left = '20px';
+            badge.style.fontSize = '14px';
+            badge.style.color = '#333';
+            badge.style.fontWeight = '500';
+            badge.style.zIndex = '1';
+            badge.style.pointerEvents = 'none';
+            badge.style.maxWidth = '300px';
+            badge.style.overflow = 'hidden';
+            badge.style.textOverflow = 'ellipsis';
+            badge.style.whiteSpace = 'nowrap';
+            
+            document.body.appendChild(badge);
+  }
 
-      updateActiveTrack(index, shouldScrollPlaylist = false) {
-        document.querySelectorAll('.track').forEach(el => el.classList.remove('active-track'));
-        const activeTrack = document.querySelector(`.track[data-id="${index}"]`);
-        if (activeTrack) {
-          activeTrack.classList.add('active-track');
-          // Only scroll if explicitly requested (for auto-play next)
-          if (shouldScrollPlaylist) {
-            // Safari-specific scrollIntoView fix
-            if (/^((?!chrome|android).)*safari/i.test(navigator.userAgent)) {
-              // For Safari, use a more direct approach
-              const playlist = document.getElementById('playlist');
-              const trackRect = activeTrack.getBoundingClientRect();
-              const playlistRect = playlist.getBoundingClientRect();
-              const scrollTop = playlist.scrollTop + trackRect.top - playlistRect.top - (playlistRect.height / 2) + (trackRect.height / 2);
-              playlist.scrollTo({
-                top: scrollTop,
-                behavior: 'smooth'
-              });
-            } else {
-              // For other browsers, use scrollIntoView
-              activeTrack.scrollIntoView({ 
-                behavior: 'smooth', 
-                block: 'center',
-                inline: 'nearest'
-              });
+        updateActiveTrack(index, shouldScrollPlaylist = false) {
+          document.querySelectorAll('.track').forEach(el => el.classList.remove('active-track'));
+          const activeTrack = document.querySelector(`.track[data-id="${index}"]`);
+          if (activeTrack) {
+            activeTrack.classList.add('active-track');
+            
+            // Enhanced styling for active track
+            activeTrack.style.backgroundColor = 'rgba(255, 235, 220, 0.5)'; // Warm beige
+            activeTrack.style.fontWeight = '600'; // Bold
+            
+            // Add play triangle if not already there
+            const trackInfo = activeTrack.querySelector('.track-info');
+            if (trackInfo && !trackInfo.textContent.startsWith('▶')) {
+              trackInfo.textContent = '▶ ' + trackInfo.textContent;
+            }
+            
+            // Only scroll if explicitly requested (for auto-play next)
+            if (shouldScrollPlaylist) {
+              // Safari-specific scrollIntoView fix
+              if (/^((?!chrome|android).)*safari/i.test(navigator.userAgent)) {
+                const playlist = document.getElementById('playlist');
+                const trackRect = activeTrack.getBoundingClientRect();
+                const playlistRect = playlist.getBoundingClientRect();
+                const scrollTop = playlist.scrollTop + trackRect.top - playlistRect.top - (playlistRect.height / 2) + (trackRect.height / 2);
+                playlist.scrollTo({
+                  top: scrollTop,
+                  behavior: 'smooth'
+                });
+              } else {
+                activeTrack.scrollIntoView({ 
+                  behavior: 'smooth', 
+                  block: 'center',
+                  inline: 'nearest'
+                });
+              }
             }
           }
+          
+          // Remove play triangle from inactive tracks and reset styling
+          document.querySelectorAll('.track:not(.active-track)').forEach(el => {
+            el.style.backgroundColor = '';
+            el.style.fontWeight = '';
+            const trackInfo = el.querySelector('.track-info');
+            if (trackInfo && trackInfo.textContent.startsWith('▶')) {
+              trackInfo.textContent = trackInfo.textContent.substring(2);
+            }
+          });
         }
-      }
 
       positionMapForTrack(track, index) {
         console.log('positionMapForTrack called for:', track.name);
