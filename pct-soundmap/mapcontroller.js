@@ -241,9 +241,6 @@
         // Show persistent loading notification (centered, like success message)
         showNotification('loading recordings...'); // No duration = stays visible
         
-        // Show persistent loading notification (centered, like success message)
-        showNotification('loading recordings...'); // No duration = stays visible
-        
         const url = `${CONFIG.GOOGLE_SCRIPT_URL}?nocache=${Date.now()}`;
         
         // Simple fetch without extra headers to avoid CORS preflight
@@ -287,12 +284,6 @@
                 }
               }
               
-              // Add original index to each track for stable map references
-              this.originalAudioData = data.map((track, index) => ({
-                ...track,
-                originalIndex: index
-              }));
-                
               // Add original index to each track for stable map references
               this.originalAudioData = data.map((track, index) => ({
                 ...track,
