@@ -586,12 +586,6 @@
           this.minimizedPopup.remove();
           this.minimizedPopup = null;
         }
-        
-        // Remove header badge when opening new track
-        const existingBadge = document.getElementById('playing-badge');
-        if (existingBadge) {
-          existingBadge.remove();
-        }
 
         // Update active track, only scroll playlist if from auto-play and track not visible
         if (fromAutoPlay) {
