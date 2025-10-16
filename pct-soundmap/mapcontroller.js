@@ -1134,13 +1134,34 @@
         return atmosphereController.formatPacificTime(pacificTime);
       }
 
-      resetMap() {
-        audioController.stop();
-        uiController.clearMiniInfoBoxes();
-        if (this.currentPopup) {
-          this.currentPopup.remove();
-          this.currentPopup = null;
-        }
+        resetMap() {
+          audioController.stop();
+          uiController.clearMiniInfoBoxes();
+          
+          // Remove header badge on reset
+          const existingBadge = document.getElementById('playing-badge');
+          if (existingBadge) {
+            existingBadge.remove();
+          }
+          
+          if (this.currentPopup) {
+            this.currentPopup.remove();
+            this.currentPopup = null;
+          }
+          
+          // Clean up minimized popup if it exists
+          if (this.minimizedPopup) {
+            if (this.minimizedPopup._updatePosition) {
+              map.off('move', this.minimizedPopup._updatePosition);
+            }
+            this.minimizedPopup.remove();
+            this.minimizedPopup = null;
+          }
+          
+          // Reset atmosphere to default/neutral
+          if (typeof atmosphereController !== 'undefined') {
+            atmosphereController.resetToDefault();
+          }
         
         // Clean up minimized popup if it exists
         if (this.minimizedPopup) {
