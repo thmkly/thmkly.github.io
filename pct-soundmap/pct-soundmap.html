@@ -234,7 +234,7 @@
   /* Mini Info Boxes */
   .mini-infobox {
     position: absolute;
-    background: rgba(255, 255, 255, 0.85);
+    background-color: rgba(255, 255, 255, 0.85);
     border: 1px solid #ccc;
     border-radius: 4px;
     padding: 4px 8px;
@@ -254,11 +254,19 @@
   }
 
   .mini-infobox:hover {
-    background: rgba(240, 240, 240, 0.9);
+    background-color: rgba(220, 220, 220, 0.95);
   }
-
+  
+  .mini-infobox.minimized-popup {
+    background-color: rgba(255, 235, 220, 0.95);
+  }
+  
   .mini-infobox.minimized-popup:hover {
-  background-color: rgba(255, 200, 170, 0.95); 
+    background-color: rgba(255, 180, 140, 0.98);
+  }
+  
+  .mini-infobox:hover .mini-infobox-title {
+    text-decoration: underline;
   }
 
   .mini-infobox-title {
