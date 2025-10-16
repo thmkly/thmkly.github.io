@@ -35,6 +35,10 @@
             this.currentAudio.pause();
             this.currentAudio.currentTime = 0;
             this.currentAudio.src = '';
+            // Remove from DOM
+            if (this.currentAudio.parentNode) {
+              this.currentAudio.parentNode.removeChild(this.currentAudio);
+            }
             this.currentAudio = null;
           }
         
@@ -55,8 +59,10 @@
           const audio = document.createElement('audio');
           audio.src = track.audioUrl;
           audio.preload = 'auto';
+          audio.controls = true;
           audio.controlsList = 'nodownload';
           audio.oncontextmenu = () => false;
+          audio.style.width = '100%';
           
           // Store handler references so we can remove them later
           const endedHandler = () => {
@@ -75,6 +81,10 @@
           audio._errorHandler = errorHandler;
         
           this.currentAudio = audio;
+          
+          // Append to body (hidden) - it lives independently of popups
+          audio.style.display = 'none';
+          document.body.appendChild(audio);
           
           // Attempt to play immediately since this is called from user interaction
           const playPromise = audio.play();
