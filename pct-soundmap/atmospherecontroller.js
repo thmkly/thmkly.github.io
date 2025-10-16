@@ -677,7 +677,6 @@
         
           return baseFog;
         }
-    }
 
         // Enhanced fog calculation
         calculateEnhancedFog(sunPos, period, terrainInfo, weatherEffects) {
