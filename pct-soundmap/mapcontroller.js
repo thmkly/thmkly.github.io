@@ -682,8 +682,9 @@
               e.stopPropagation();
               miniBox.remove();
               this.minimizedPopup = null;
-              
-              // DON'T remove badge here - let playlist state control it
+
+              // Update badge visibility based on playlist state
+              this.updateHeaderBadge(track);
               
               // Restore popup with the audio from audioController
               this.showPopup(coords, track, audioController.currentAudio, index);
