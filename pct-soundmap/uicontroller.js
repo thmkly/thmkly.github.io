@@ -94,7 +94,7 @@ class UIController {
         this.setupPlaylistDrag();
       }
 
-        togglePlaylist() {
+         togglePlaylist() {
           const wrapper = document.getElementById('playlistWrapper');
           const toggle = document.getElementById('playlistToggle');
           
@@ -115,8 +115,8 @@ class UIController {
             toggle.textContent = '▶';
             toggle.title = 'Expand playlist';
             
-            // Show header badge when playlist is collapsed (if something is playing and minimized)
-            if (mapController.minimizedPopup && audioController.currentIndex >= 0) {
+            // Show header badge when playlist is collapsed (if something is playing)
+            if (audioController.currentIndex >= 0) {
               const currentTrack = mapController.audioData[audioController.currentIndex];
               if (currentTrack) {
                 mapController.updateHeaderBadge(currentTrack);
