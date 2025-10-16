@@ -923,17 +923,55 @@
         
         controls.appendChild(prevBtn);
         
-        if (audio) {
-          const audioContainer = document.createElement('div');
-          audioContainer.className = 'audio-container';
+if (audio) {
+  const audioContainer = document.createElement('div');
+  audioContainer.className = 'audio-container';
+  audioContainer.style.padding = '10px 0';
+  
+  // Custom play/pause button
+  const playPauseBtn = document.createElement('button');
+  playPauseBtn.textContent = audio.paused ? '▶' : '⏸';
+  playPauseBtn.style.fontSize = '20px';
+  playPauseBtn.style.padding = '8px 16px';
+  playPauseBtn.style.cursor = 'pointer';
+  playPauseBtn.style.border = '1px solid #ccc';
+  playPauseBtn.style.borderRadius = '4px';
+  playPauseBtn.style.background = 'white';
+  
+  playPauseBtn.addEventListener('click', () => {
+      
+            if (audio.paused) {
+              audio.play();
+              playPauseBtn.textContent = '⏸';
+            } else {
+              audio.pause();
+              playPauseBtn.textContent = '▶';
+            }
+          });
           
-          // Audio lives in document.body, managed by audioController
-          // Just make it visible in the popup and ensure controls render
-          audio.style.display = 'block';
-          audio.style.width = '100%';
-          audio.controls = true;
+          // Time display
+          const timeDisplay = document.createElement('div');
+          timeDisplay.style.fontSize = '12px';
+          timeDisplay.style.marginTop = '8px';
+          timeDisplay.style.color = '#666';
           
-          audioContainer.appendChild(audio);
+          const updateTime = () => {
+            const current = Math.floor(audio.currentTime);
+            const duration = Math.floor(audio.duration) || 0;
+            const formatTime = (secs) => {
+              const mins = Math.floor(secs / 60);
+              const remainingSecs = secs % 60;
+              return `${mins}:${remainingSecs.toString().padStart(2, '0')}`;
+            };
+            timeDisplay.textContent = `${formatTime(current)} / ${formatTime(duration)}`;
+          };
+          
+          audio.addEventListener('timeupdate', updateTime);
+          audio.addEventListener('loadedmetadata', updateTime);
+          updateTime();
+          
+          audioContainer.appendChild(playPauseBtn);
+          audioContainer.appendChild(timeDisplay);
           controls.appendChild(audioContainer);
         }
         
