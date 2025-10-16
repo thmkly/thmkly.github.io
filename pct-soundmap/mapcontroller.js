@@ -715,37 +715,45 @@
         }
         
         // New helper method - add this RIGHT AFTER minimizePopup() closes
-        updateHeaderBadge(track) {
+              updateHeaderBadge(track) {
           // Remove existing badge if any
           const existingBadge = document.getElementById('playing-badge');
           if (existingBadge) {
             existingBadge.remove();
           }
           
-          // Only show badge if playlist is collapsed
+          // Only show badge if playlist is collapsed AND track is provided
           if (!uiController.playlistExpanded && track) {
             const badge = document.createElement('div');
             badge.id = 'playing-badge';
             badge.textContent = `▶ ${track.name.replace(/^[^\s]+\s+-\s+/, '')}`;
             badge.style.position = 'absolute';
-            badge.style.top = '20px';
-            badge.style.left = '20px';
             badge.style.fontSize = '14px';
             badge.style.color = '#333';
             badge.style.fontWeight = '500';
             badge.style.zIndex = '1';
-            badge.style.pointerEvents = 'auto'; // Make it clickable
+            badge.style.pointerEvents = 'auto';
             badge.style.cursor = 'pointer';
             badge.style.maxWidth = '300px';
             badge.style.overflow = 'hidden';
             badge.style.textOverflow = 'ellipsis';
             badge.style.whiteSpace = 'nowrap';
             
+            // Position badge based on mobile/desktop
+            if (uiController.isMobile) {
+              badge.style.top = '20px';
+              badge.style.right = '20px';
+              badge.style.left = 'auto';
+              badge.style.textAlign = 'right';
+            } else {
+              badge.style.top = '20px';
+              badge.style.left = '20px';
+              badge.style.right = 'auto';
+            }
+            
             // Click to fly to track location (keep minimized state)
             badge.addEventListener('click', () => {
               const coords = [parseFloat(track.lng), parseFloat(track.lat)];
-              
-              // Just fly to the location, don't restore popup
               this.positionMapForTrack(track, audioController.currentIndex);
             });
             
