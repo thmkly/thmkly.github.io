@@ -675,7 +675,6 @@
           miniBox.className = 'mini-infobox minimized-popup';
           miniBox.dataset.trackIndex = index;
           miniBox.style.position = 'absolute';
-          miniBox.style.backgroundColor = 'rgba(255, 235, 220, 0.95)';
           
           const playIcon = document.createElement('div');
           playIcon.className = 'play-icon';
