@@ -832,164 +832,223 @@
         return 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a)) * R;
       }
 
-      showPopup(coords, track, audio, index) {
-        if (this.currentPopup) {
-          this.currentPopup.remove();
-        }
-
-        const container = document.createElement('div');
-        container.style.fontFamily = 'helvetica, sans-serif';
-        container.style.padding = '2px';
-        container.style.position = 'relative';
-        container.style.paddingTop = '30px'; // More space for minimize button
-
-        // Add minimize button
-        const minimizeBtn = document.createElement('button');
-        minimizeBtn.className = 'popup-minimize';
-        minimizeBtn.innerHTML = '−'; // Minus sign using HTML entity
-        minimizeBtn.title = 'Minimize';
-        minimizeBtn.type = 'button'; // Explicitly set type
-        // Prevent auto-focus
-        minimizeBtn.tabIndex = -1;
-        minimizeBtn.addEventListener('click', (e) => {
-          e.preventDefault();
-          e.stopPropagation();
-          this.minimizePopup(track, index);
-        });
-        container.appendChild(minimizeBtn);
-
-        const title = document.createElement('h3');
-        title.textContent = track.name;
-        title.style.margin = '0 0 4px 0';
-        container.appendChild(title);
-
-        const timestamp = document.createElement('p');
-        timestamp.style.margin = '0';
-        timestamp.style.fontSize = '0.9em';
-        timestamp.style.color = '#555';
-        timestamp.innerHTML = `<strong>${this.formatTimestamp(track.timestamp)}</strong>`;
-        container.appendChild(timestamp);
-
-        if (track.mile && track.mile.toString().trim().toLowerCase() !== 'n/a') {
-          const displayMile = this.getDisplayMile(track);
-          if (displayMile !== null) {
-            const mile = document.createElement('p');
-            mile.className = 'popup-mile';
-            mile.style.margin = '0';
-            mile.style.fontSize = '0.9em';
-            mile.style.color = '#555';
-            mile.innerHTML = `<strong>mi.${displayMile}</strong>`;
-            container.appendChild(mile);
+        showPopup(coords, track, audio, index) {
+          if (this.currentPopup) {
+            this.currentPopup.remove();
           }
-        }
-
-        if (track.notes?.trim()) {
-          const notes = document.createElement('p');
-          notes.style.margin = '4px 0';
-          notes.style.fontSize = '0.9em';
-          notes.textContent = track.notes;
-          container.appendChild(notes);
-        }
-
-        const controls = document.createElement('div');
-        controls.className = 'popup-controls';
         
-        const prevBtn = document.createElement('button');
-        prevBtn.className = 'nav-arrow';
-        prevBtn.innerHTML = '&laquo;';
-        prevBtn.title = 'Previous';
+          const container = document.createElement('div');
+          container.style.fontFamily = 'helvetica, sans-serif';
+          container.style.padding = '12px';
+          container.style.position = 'relative';
+          container.style.minWidth = '280px';
         
-        // Disable previous button logic based on mode and history
-        if (audioController.playMode === 'random') {
-          prevBtn.disabled = audioController.playHistory.length === 0;
-        } else {
-          // In playlist order: previous is always the item above in the list
-          prevBtn.disabled = index === 0;
-        }
+          // Add minimize button (top-right, subtle)
+          const minimizeBtn = document.createElement('button');
+          minimizeBtn.className = 'popup-minimize';
+          minimizeBtn.innerHTML = '−';
+          minimizeBtn.title = 'Minimize';
+          minimizeBtn.type = 'button';
+          minimizeBtn.tabIndex = -1;
+          minimizeBtn.style.position = 'absolute';
+          minimizeBtn.style.top = '8px';
+          minimizeBtn.style.right = '8px';
+          minimizeBtn.style.border = 'none';
+          minimizeBtn.style.background = 'transparent';
+          minimizeBtn.style.fontSize = '20px';
+          minimizeBtn.style.cursor = 'pointer';
+          minimizeBtn.style.color = '#999';
+          minimizeBtn.style.padding = '0';
+          minimizeBtn.style.width = '24px';
+          minimizeBtn.style.height = '24px';
+          minimizeBtn.style.lineHeight = '24px';
+          minimizeBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            this.minimizePopup(track, index);
+          });
+          container.appendChild(minimizeBtn);
         
-        prevBtn.addEventListener('click', () => {
-          audioController.playPrevious(this.audioData);
-        });
+          // Title
+          const title = document.createElement('h3');
+          title.textContent = track.name;
+          title.style.margin = '0 0 8px 0';
+          title.style.fontSize = '15px';
+          title.style.fontWeight = '600';
+          title.style.paddingRight = '30px'; // Space for minimize button
+          container.appendChild(title);
         
-        const nextBtn = document.createElement('button');
-        nextBtn.className = 'nav-arrow';
-        nextBtn.innerHTML = '&raquo;';
-        nextBtn.title = 'Next';
-        // In playlist order: next is always the item below in the list
-        nextBtn.disabled = index === this.audioData.length - 1;
-        nextBtn.addEventListener('click', () => {
-          audioController.playNext(this.audioData);
-        });
-        
-        controls.appendChild(prevBtn);
-        
-if (audio) {
-  const audioContainer = document.createElement('div');
-  audioContainer.className = 'audio-container';
-  audioContainer.style.padding = '10px 0';
-  
-  // Custom play/pause button
-  const playPauseBtn = document.createElement('button');
-  playPauseBtn.textContent = audio.paused ? '▶' : '⏸';
-  playPauseBtn.style.fontSize = '20px';
-  playPauseBtn.style.padding = '8px 16px';
-  playPauseBtn.style.cursor = 'pointer';
-  playPauseBtn.style.border = '1px solid #ccc';
-  playPauseBtn.style.borderRadius = '4px';
-  playPauseBtn.style.background = 'white';
-  
-  playPauseBtn.addEventListener('click', () => {
-      
-            if (audio.paused) {
-              audio.play();
-              playPauseBtn.textContent = '⏸';
-            } else {
-              audio.pause();
-              playPauseBtn.textContent = '▶';
+          // Timestamp and Mile on same line
+          const metaLine = document.createElement('div');
+          metaLine.style.fontSize = '13px';
+          metaLine.style.color = '#666';
+          metaLine.style.marginBottom = '8px';
+          
+          let metaText = this.formatTimestamp(track.timestamp);
+          if (track.mile && track.mile.toString().trim().toLowerCase() !== 'n/a') {
+            const displayMile = this.getDisplayMile(track);
+            if (displayMile !== null) {
+              metaText += ` • mi.${displayMile}`;
             }
+          }
+          metaLine.textContent = metaText;
+          container.appendChild(metaLine);
+        
+          // Notes section (collapsible)
+          if (track.notes?.trim()) {
+            const notesToggle = document.createElement('button');
+            notesToggle.textContent = 'Show Notes';
+            notesToggle.style.fontSize = '12px';
+            notesToggle.style.color = '#5c3a2e';
+            notesToggle.style.background = 'none';
+            notesToggle.style.border = 'none';
+            notesToggle.style.padding = '0';
+            notesToggle.style.cursor = 'pointer';
+            notesToggle.style.textDecoration = 'underline';
+            notesToggle.style.marginBottom = '8px';
+            
+            const notesContent = document.createElement('div');
+            notesContent.style.display = 'none';
+            notesContent.style.fontSize = '13px';
+            notesContent.style.color = '#555';
+            notesContent.style.marginTop = '4px';
+            notesContent.style.marginBottom = '8px';
+            notesContent.textContent = track.notes;
+            
+            let notesExpanded = false;
+            notesToggle.addEventListener('click', () => {
+              notesExpanded = !notesExpanded;
+              notesContent.style.display = notesExpanded ? 'block' : 'none';
+              notesToggle.textContent = notesExpanded ? 'Hide Notes' : 'Show Notes';
+            });
+            
+            container.appendChild(notesToggle);
+            container.appendChild(notesContent);
+          }
+        
+          // Player controls
+          const controls = document.createElement('div');
+          controls.style.display = 'flex';
+          controls.style.alignItems = 'center';
+          controls.style.gap = '12px';
+          controls.style.marginTop = '12px';
+          controls.style.paddingTop = '12px';
+          controls.style.borderTop = '1px solid #eee';
+          
+          // Previous button
+          const prevBtn = document.createElement('button');
+          prevBtn.textContent = '‹ prev';
+          prevBtn.style.fontSize = '13px';
+          prevBtn.style.padding = '6px 10px';
+          prevBtn.style.cursor = 'pointer';
+          prevBtn.style.border = '1px solid #ccc';
+          prevBtn.style.borderRadius = '4px';
+          prevBtn.style.background = 'white';
+          prevBtn.style.color = '#333';
+          
+          if (audioController.playMode === 'random') {
+            prevBtn.disabled = audioController.playHistory.length === 0;
+          } else {
+            prevBtn.disabled = index === 0;
+          }
+          
+          if (prevBtn.disabled) {
+            prevBtn.style.opacity = '0.4';
+            prevBtn.style.cursor = 'not-allowed';
+          }
+          
+          prevBtn.addEventListener('click', () => {
+            audioController.playPrevious(this.audioData);
           });
           
-          // Time display
-          const timeDisplay = document.createElement('div');
-          timeDisplay.style.fontSize = '12px';
-          timeDisplay.style.marginTop = '8px';
-          timeDisplay.style.color = '#666';
+          // Play/Pause button (centered, prominent)
+          if (audio) {
+            const playPauseBtn = document.createElement('button');
+            playPauseBtn.textContent = audio.paused ? '▶' : '⏸';
+            playPauseBtn.style.fontSize = '18px';
+            playPauseBtn.style.padding = '8px 14px';
+            playPauseBtn.style.cursor = 'pointer';
+            playPauseBtn.style.border = '1px solid #ccc';
+            playPauseBtn.style.borderRadius = '4px';
+            playPauseBtn.style.background = 'white';
+            
+            playPauseBtn.addEventListener('click', () => {
+              if (audio.paused) {
+                audio.play();
+                playPauseBtn.textContent = '⏸';
+              } else {
+                audio.pause();
+                playPauseBtn.textContent = '▶';
+              }
+            });
+            
+            controls.appendChild(prevBtn);
+            controls.appendChild(playPauseBtn);
+          }
           
-          const updateTime = () => {
-            const current = Math.floor(audio.currentTime);
-            const duration = Math.floor(audio.duration) || 0;
-            const formatTime = (secs) => {
-              const mins = Math.floor(secs / 60);
-              const remainingSecs = secs % 60;
-              return `${mins}:${remainingSecs.toString().padStart(2, '0')}`;
+          // Next button
+          const nextBtn = document.createElement('button');
+          nextBtn.textContent = 'next ›';
+          nextBtn.style.fontSize = '13px';
+          nextBtn.style.padding = '6px 10px';
+          nextBtn.style.cursor = 'pointer';
+          nextBtn.style.border = '1px solid #ccc';
+          nextBtn.style.borderRadius = '4px';
+          nextBtn.style.background = 'white';
+          nextBtn.style.color = '#333';
+          nextBtn.disabled = index === this.audioData.length - 1;
+          
+          if (nextBtn.disabled) {
+            nextBtn.style.opacity = '0.4';
+            nextBtn.style.cursor = 'not-allowed';
+          }
+          
+          nextBtn.addEventListener('click', () => {
+            audioController.playNext(this.audioData);
+          });
+          
+          controls.appendChild(nextBtn);
+          
+          // Time display (right side)
+          if (audio) {
+            const timeDisplay = document.createElement('div');
+            timeDisplay.style.fontSize = '12px';
+            timeDisplay.style.color = '#666';
+            timeDisplay.style.marginLeft = 'auto';
+            timeDisplay.style.fontFamily = 'monospace';
+            
+            const updateTime = () => {
+              const current = Math.floor(audio.currentTime);
+              const duration = Math.floor(audio.duration) || 0;
+              const formatTime = (secs) => {
+                const mins = Math.floor(secs / 60);
+                const remainingSecs = secs % 60;
+                return `${mins}:${remainingSecs.toString().padStart(2, '0')}`;
+              };
+              timeDisplay.textContent = `${formatTime(current)} / ${formatTime(duration)}`;
             };
-            timeDisplay.textContent = `${formatTime(current)} / ${formatTime(duration)}`;
-          };
+            
+            audio.addEventListener('timeupdate', updateTime);
+            audio.addEventListener('loadedmetadata', updateTime);
+            updateTime();
+            
+            controls.appendChild(timeDisplay);
+          }
           
-          audio.addEventListener('timeupdate', updateTime);
-          audio.addEventListener('loadedmetadata', updateTime);
-          updateTime();
-          
-          audioContainer.appendChild(playPauseBtn);
-          audioContainer.appendChild(timeDisplay);
-          controls.appendChild(audioContainer);
-        }
+          container.appendChild(controls);
         
-        controls.appendChild(nextBtn);
-        container.appendChild(controls);
-
-        const popup = new mapboxgl.Popup({ 
-          offset: 25,
-          closeOnClick: false,
-          closeOnMove: false,
-          maxWidth: '400px'
-        })
-          .setLngLat(coords)
-          .setDOMContent(container)
-          .addTo(map);
-
-        this.currentPopup = popup;
-      }
+          const popup = new mapboxgl.Popup({ 
+            offset: 25,
+            closeOnClick: false,
+            closeOnMove: false,
+            maxWidth: '400px'
+          })
+            .setLngLat(coords)
+            .setDOMContent(container)
+            .addTo(map);
+        
+          this.currentPopup = popup;
+        }
 
       refreshPopupMileage(track) {
         if (!this.currentPopup) return;
