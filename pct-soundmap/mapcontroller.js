@@ -755,25 +755,12 @@
             badge.style.textOverflow = 'ellipsis';
             badge.style.whiteSpace = 'nowrap';
             
-            // Click to fly to track location and restore popup
+            // Click to fly to track location (keep minimized state)
             badge.addEventListener('click', () => {
               const coords = [parseFloat(track.lng), parseFloat(track.lat)];
               
-              // Remove the minimized popup
-              if (this.minimizedPopup) {
-                this.minimizedPopup.remove();
-                this.minimizedPopup = null;
-              }
-              
-              // Fly to location and restore popup
+              // Just fly to the location, don't restore popup
               this.positionMapForTrack(track, audioController.currentIndex);
-              
-              // Show popup after a short delay for positioning
-              setTimeout(() => {
-                this.showPopup(coords, track, audioController.currentAudio, audioController.currentIndex);
-              }, 100);
-              
-              // Badge will be removed by playAudio cleanup
             });
             
             document.body.appendChild(badge);
