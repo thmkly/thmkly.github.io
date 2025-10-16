@@ -56,7 +56,8 @@ class AtmosphereController {
     // Calculate sun position using simplified SPA algorithm
     const sunPos = this.calculateSolarPosition(jd, lat, lng, pacificTime);
     
-    console.log(`Time: ${this.formatPacificTime(pacificTime)}, Sun altitude: ${sunPos.altitude.toFixed(1)}°, azimuth: ${sunPos.azimuth.toFixed(1)}°`);
+    // Commented out for performance - uncomment for debugging
+    // console.log(`Time: ${this.formatPacificTime(pacificTime)}, Sun altitude: ${sunPos.altitude.toFixed(1)}°, azimuth: ${sunPos.azimuth.toFixed(1)}°`);
     
     return sunPos;
   }
@@ -74,7 +75,7 @@ class AtmosphereController {
     
     if (isAlreadyPacific) {
       // Timestamp is already in Pacific Time, use directly
-      console.log('Timestamp appears to be already in Pacific Time:', date);
+      // console.log('Timestamp appears to be already in Pacific Time:', date);
       return {
         year: d.getFullYear(),
         month: d.getMonth() + 1,
@@ -161,7 +162,8 @@ class AtmosphereController {
   calculateSolarPosition(jd, lat, lng, pacificTime) {
     const { year, month, day, hour, minute } = pacificTime;
     
-    console.log(`Calculating sun position for: ${hour}:${minute.toString().padStart(2, '0')} PDT`);
+    // Commented out for performance
+    // console.log(`Calculating sun position for: ${hour}:${minute.toString().padStart(2, '0')} PDT`);
     
     // Convert to decimal hour
     const timeDecimal = hour + minute / 60;
@@ -184,7 +186,8 @@ class AtmosphereController {
     const sunrise = solarNoon - hourAngle;
     const sunset = solarNoon + hourAngle;
     
-    console.log(`Solar times - Sunrise: ${sunrise.toFixed(1)}h, Sunset: ${sunset.toFixed(1)}h, Solar noon: ${solarNoon.toFixed(1)}h`);
+    // Commented out for performance
+    // console.log(`Solar times - Sunrise: ${sunrise.toFixed(1)}h, Sunset: ${sunset.toFixed(1)}h, Solar noon: ${solarNoon.toFixed(1)}h`);
     
     let altitude, azimuth;
     
@@ -214,10 +217,12 @@ class AtmosphereController {
       // Azimuth from east (90°) to west (270°)
       azimuth = 90 + (dayProgress * 180);
       
-      console.log(`Day progress: ${(dayProgress * 100).toFixed(1)}%, Max altitude: ${maxAltitude.toFixed(1)}°`);
+      // Commented out for performance
+      // console.log(`Day progress: ${(dayProgress * 100).toFixed(1)}%, Max altitude: ${maxAltitude.toFixed(1)}°`);
     }
     
-    console.log(`Final result - Sun altitude: ${altitude.toFixed(1)}°, azimuth: ${azimuth.toFixed(1)}°`);
+    // Commented out for performance
+    // console.log(`Final result - Sun altitude: ${altitude.toFixed(1)}°, azimuth: ${azimuth.toFixed(1)}°`);
     
     return { altitude, azimuth };
   }
@@ -379,79 +384,103 @@ class AtmosphereController {
 
   // Main method to get atmospheric conditions
   getAtmosphericConditions(track) {
-    const date = new Date(track.timestamp);
-    const lat = parseFloat(track.lat);
-    const lng = parseFloat(track.lng);
-    const elevation = parseFloat(track.elevation) || this.estimateElevation(track.mile);
-    
-    // Generate cache key
-    const cacheKey = this.getCacheKey(track.timestamp, lat, lng);
-    
-    // Return cached result if available
-    if (this.atmosphereCache.has(cacheKey)) {
-      console.log('Using cached atmosphere for:', track.name);
-      return this.atmosphereCache.get(cacheKey);
+    try {
+      const date = new Date(track.timestamp);
+      const lat = parseFloat(track.lat);
+      const lng = parseFloat(track.lng);
+      const elevation = parseFloat(track.elevation) || this.estimateElevation(track.mile);
+      
+      // Generate cache key
+      const cacheKey = this.getCacheKey(track.timestamp, lat, lng);
+      
+      // Return cached result if available
+      if (this.atmosphereCache.has(cacheKey)) {
+        // Commented out for performance
+        // console.log('Using cached atmosphere for:', track.name);
+        return this.atmosphereCache.get(cacheKey);
+      }
+      
+      // Commented out for performance
+      // console.log('Calculating new atmosphere for:', track.name);
+      
+      // Calculate sun position
+      const sunPos = this.calculateSunPosition(date, lat, lng);
+      
+      // Classify terrain
+      const terrainInfo = this.classifyTerrain(lat, lng, elevation, track.mile);
+      
+      // Get season and weather effects
+      const season = this.getSeason(date, lat);
+      const weatherEffects = this.getWeatherEffects(track.weather || {});
+      
+      // Determine time period
+      const period = this.getTimePeriod(sunPos.altitude, sunPos.azimuth, season, this.convertToPacificTime(track.timestamp).hour);
+      
+      // Calculate enhanced colors and atmospheric effects
+      const colors = this.calculateEnhancedColors(sunPos, period, season, terrainInfo, weatherEffects);
+      
+      const conditions = {
+        sunPosition: sunPos,
+        period,
+        season,
+        terrainInfo,
+        weatherEffects,
+        colors,
+        fogSettings: this.calculateEnhancedFog(sunPos, period, terrainInfo, weatherEffects),
+        lightSettings: this.calculateEnhancedLight(sunPos, period, season, terrainInfo)
+      };
+      
+      // Cache the result (limit cache size to 50 entries)
+      if (this.atmosphereCache.size > 50) {
+        const firstKey = this.atmosphereCache.keys().next().value;
+        this.atmosphereCache.delete(firstKey);
+      }
+      this.atmosphereCache.set(cacheKey, conditions);
+      
+      return conditions;
+    } catch (error) {
+      console.error('Error calculating atmospheric conditions:', error);
+      // Return default conditions on error
+      return {
+        sunPosition: { altitude: 30, azimuth: 180 },
+        period: 'midday',
+        season: 'summer',
+        terrainInfo: { terrain: 'foothills', biome: 'temperate', exposure: 'moderate', elevation: 3000 },
+        weatherEffects: { cloudCover: 0, visibility: 10, temperature: 70, humidity: 50, conditions: 'clear' },
+        colors: this.getBasePeriodColors('midday'),
+        fogSettings: { range: [0.5, 10], color: 'white', 'horizon-blend': 0.1 },
+        lightSettings: { anchor: 'viewport', color: '#ffffff', intensity: 0.5, position: [1.15, 210, 30] }
+      };
     }
-    
-    console.log('Calculating new atmosphere for:', track.name);
-    
-    // Calculate sun position
-    const sunPos = this.calculateSunPosition(date, lat, lng);
-    
-    // Classify terrain
-    const terrainInfo = this.classifyTerrain(lat, lng, elevation, track.mile);
-    
-    // Get season and weather effects
-    const season = this.getSeason(date, lat);
-    const weatherEffects = this.getWeatherEffects(track.weather || {});
-    
-    // Determine time period
-    const period = this.getTimePeriod(sunPos.altitude, sunPos.azimuth, season, this.convertToPacificTime(track.timestamp).hour);
-    
-    // Calculate enhanced colors and atmospheric effects
-    const colors = this.calculateEnhancedColors(sunPos, period, season, terrainInfo, weatherEffects);
-    
-    const conditions = {
-      sunPosition: sunPos,
-      period,
-      season,
-      terrainInfo,
-      weatherEffects,
-      colors,
-      fogSettings: this.calculateEnhancedFog(sunPos, period, terrainInfo, weatherEffects),
-      lightSettings: this.calculateEnhancedLight(sunPos, period, season, terrainInfo)
-    };
-    
-    // Cache the result (limit cache size to 50 entries)
-    if (this.atmosphereCache.size > 50) {
-      const firstKey = this.atmosphereCache.keys().next().value;
-      this.atmosphereCache.delete(firstKey);
-    }
-    this.atmosphereCache.set(cacheKey, conditions);
-    
-    return conditions;
   }
 
-  // Main method to apply atmospheric conditions to the map
+  // Main method to apply atmospheric conditions to the map (non-blocking)
   applyAtmosphere(track) {
-    const conditions = this.getAtmosphericConditions(track);
-    this.currentConditions = conditions;
-    
-    // Apply enhanced atmospheric effects
-    this.applyEnhancedSky(conditions);
-    this.applyEnhancedFog(conditions);
-    this.applyEnhanced3DEffects(conditions);
-    this.applyFallbackAtmosphere(conditions);
-    
-    // Enhanced notification with more detail
-    const timeDesc = conditions.period.replace(/([A-Z])/g, ' $1').toLowerCase();
-    const terrainDesc = conditions.terrainInfo.terrain.replace(/_/g, ' ');
-    const elevationDisplay = Math.round(conditions.terrainInfo.elevation / 100) * 100; // Round to nearest 100ft
-    
-    // Only show notification if showNotification function exists
-    if (typeof showNotification === 'function') {
-      showNotification(`${timeDesc} in ${terrainDesc} (${elevationDisplay}ft)`, 3000);
-    }
+    // Use setTimeout to make this asynchronous and non-blocking
+    setTimeout(() => {
+      try {
+        const conditions = this.getAtmosphericConditions(track);
+        this.currentConditions = conditions;
+        
+        // Apply enhanced atmospheric effects
+        this.applyEnhancedSky(conditions);
+        this.applyEnhancedFog(conditions);
+        this.applyEnhanced3DEffects(conditions);
+        this.applyFallbackAtmosphere(conditions);
+        
+        // Enhanced notification with more detail
+        const timeDesc = conditions.period.replace(/([A-Z])/g, ' $1').toLowerCase();
+        const terrainDesc = conditions.terrainInfo.terrain.replace(/_/g, ' ');
+        const elevationDisplay = Math.round(conditions.terrainInfo.elevation / 100) * 100; // Round to nearest 100ft
+        
+        // Only show notification if showNotification function exists
+        if (typeof showNotification === 'function') {
+          showNotification(`${timeDesc} in ${terrainDesc} (${elevationDisplay}ft)`, 3000);
+        }
+      } catch (error) {
+        console.error('Error applying atmosphere:', error);
+      }
+    }, 10); // Small delay to not block audio/UI
   }
 
   // Enhanced color calculation with terrain and weather
@@ -805,59 +834,64 @@ class AtmosphereController {
   
   // Reset atmosphere to neutral default
   resetToDefault() {
-    console.log('Resetting atmosphere to default');
+    // Commented out for performance
+    // console.log('Resetting atmosphere to default');
     
-    if (typeof map === 'undefined') {
-      console.log('Map not available for reset');
-      return;
+    try {
+      if (typeof map === 'undefined') {
+        // console.log('Map not available for reset');
+        return;
+      }
+      
+      // Reset sky
+      if (typeof map.setSky === 'function') {
+        map.setSky({
+          'sky-type': 'atmosphere',
+          'sky-atmosphere-sun': [0, 90],
+          'sky-atmosphere-sun-intensity': 15
+        });
+      }
+      
+      // Reset fog
+      if (typeof map.setFog === 'function') {
+        map.setFog({
+          'range': [0.5, 10],
+          'color': 'white',
+          'high-color': '#87CEEB',
+          'space-color': '#000033',
+          'horizon-blend': 0.1,
+          'star-intensity': 0
+        });
+      }
+      
+      // Reset 3D lighting
+      if (typeof map.setLight === 'function') {
+        map.setLight({
+          'anchor': 'viewport',
+          'color': 'white',
+          'intensity': 0.5,
+          'position': [1.15, 210, 30]
+        });
+      }
+      
+      // Remove CSS fallback overlays
+      const existingOverlay = document.getElementById('atmosphere-overlay');
+      if (existingOverlay) {
+        existingOverlay.remove();
+      }
+      
+      // Reset map filter
+      const mapContainer = document.getElementById('map');
+      if (mapContainer) {
+        mapContainer.style.filter = 'none';
+      }
+      
+      // Clear cached conditions
+      this.currentConditions = null;
+      this.atmosphereCache.clear();
+    } catch (error) {
+      console.error('Error resetting atmosphere:', error);
     }
-    
-    // Reset sky
-    if (typeof map.setSky === 'function') {
-      map.setSky({
-        'sky-type': 'atmosphere',
-        'sky-atmosphere-sun': [0, 90],
-        'sky-atmosphere-sun-intensity': 15
-      });
-    }
-    
-    // Reset fog
-    if (typeof map.setFog === 'function') {
-      map.setFog({
-        'range': [0.5, 10],
-        'color': 'white',
-        'high-color': '#87CEEB',
-        'space-color': '#000033',
-        'horizon-blend': 0.1,
-        'star-intensity': 0
-      });
-    }
-    
-    // Reset 3D lighting
-    if (typeof map.setLight === 'function') {
-      map.setLight({
-        'anchor': 'viewport',
-        'color': 'white',
-        'intensity': 0.5,
-        'position': [1.15, 210, 30]
-      });
-    }
-    
-    // Remove CSS fallback overlays
-    const existingOverlay = document.getElementById('atmosphere-overlay');
-    if (existingOverlay) {
-      existingOverlay.remove();
-    }
-    
-    // Reset map filter
-    const mapContainer = document.getElementById('map');
-    if (mapContainer) {
-      mapContainer.style.filter = 'none';
-    }
-    
-    // Clear cached conditions
-    this.currentConditions = null;
-    this.atmosphereCache.clear();
   }
 
   // Enhanced CSS fallback with terrain-aware effects
