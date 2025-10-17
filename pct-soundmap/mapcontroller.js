@@ -774,7 +774,28 @@
             // Click to fly to track location (keep minimized state)
             badge.addEventListener('click', () => {
               const coords = [parseFloat(track.lng), parseFloat(track.lat)];
+              
+              // Clear stale mini boxes before flying
+              uiController.clearMiniInfoBoxes();
+              
+              // Just fly to the location, don't restore popup
               this.positionMapForTrack(track, audioController.currentIndex);
+              
+              // Ensure mini box exists after flying completes
+              setTimeout(() => {
+                if (this.minimizedPopup) {
+                  // Update mini box position after map movement
+                  const pixelCoords = map.project(coords);
+                  this.minimizedPopup.style.left = `${pixelCoords.x + 10}px`;
+                  this.minimizedPopup.style.top = `${pixelCoords.y - 20}px`;
+                }
+                
+                // Redraw other mini boxes
+                const visiblePoints = map.queryRenderedFeatures({ layers: ['unclustered-point'] });
+                if (visiblePoints.length > 0 && visiblePoints.length < 50) {
+                  uiController.showMiniInfoBoxes(null, this.audioData);
+                }
+              }, this.getMovementDuration(track) + 300);
             });
             
             document.body.appendChild(badge);
