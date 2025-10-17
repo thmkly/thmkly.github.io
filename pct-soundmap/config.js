@@ -3,11 +3,11 @@
       MAPBOX_TOKEN: window.MAPBOX_CONFIG?.token || 'pk.eyJ1IjoidGhta2x5IiwiYSI6ImNseXVyMjhueDA3YTQybW9mcHJrZGJ3YnEifQ.Nv-LsNg5eKIE6SeOVVJpYg',
       GOOGLE_SCRIPT_URL: 'https://script.google.com/macros/s/AKfycbwEvzIyQTFTwmPqU0xIoty1iuBd3xxBeLFYHljXrXCYSkxJEsWKPKYJKti9rBqGx6-0/exec',
       DEFAULT_CENTER: [-122.50276, 41.31727],
-      DEFAULT_CENTER_MOBILE: [-120.57981124042142, 41.35749162590474],
+      DEFAULT_CENTER_MOBILE: [-123.106, 43.066],
       getDefaultZoom: () => {
         // Mobile gets fixed zoom to account for Ko-fi widget
         if (window.innerWidth <= 768) {
-          return 4.23;
+          return 4.35;
         }
   
   const screenWidth = window.screen.width;
