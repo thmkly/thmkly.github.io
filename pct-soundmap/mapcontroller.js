@@ -752,9 +752,9 @@
             const badge = document.createElement('div');
             badge.id = 'playing-badge';
             const trackName = track.name.replace(/^[^\s]+\s+-\s+/, '');
-            badge.innerHTML = `<span style="display: inline-block; margin-right: 8px;">▶</span><span class="badge-title">${trackName}</span><span class="badge-time" style="margin-left: 8px; font-family: monospace; font-size: 12px; color: #666;">0:00</span>`;
+            badge.innerHTML = `<span style="display: inline-block; margin-right: 8px;">▶</span><span class="badge-title">${trackName}</span><span class="badge-time" style="margin-left: 8px; font-family: monospace; color: #333;">0:00</span>`;
             badge.style.position = 'absolute';
-            badge.style.fontSize = '14px';
+            badge.style.fontSize = '16px';
             badge.style.color = '#333';
             badge.style.fontWeight = '500';
             badge.style.zIndex = '1';
