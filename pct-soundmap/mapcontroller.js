@@ -623,8 +623,8 @@
           this.updateHeaderBadge(track);
         }
         
-        // Clear old mini boxes before positioning
-        uiController.clearMiniInfoBoxes();
+        // Don't clear mini boxes here - let them persist during track changes
+        // They'll be refreshed after map positioning if needed
         
         // Apply atmospheric lighting for this track (removed notification)
         if (typeof atmosphereController !== 'undefined' && atmosphereController.transitionToTrack) {
@@ -644,11 +644,18 @@
           this.positionMapForTrack(track, index);
           this.showPopup([parseFloat(track.lng), parseFloat(track.lat)], track, audio, index);
           
-          // Show mini boxes after map positioning is complete
-          const duration = this.getMovementDuration(track);
-          setTimeout(() => {
-            uiController.showMiniInfoBoxes(null, this.audioData);
-          }, duration + 300);
+            // Refresh mini boxes after map positioning is complete
+            const duration = this.getMovementDuration(track);
+            setTimeout(() => {
+              const visiblePoints = map.queryRenderedFeatures({ layers: ['unclustered-point'] });
+              // Only update if we need to (cluster state changed or boxes missing)
+              if (visiblePoints.length > 0 && visiblePoints.length < 50) {
+                if (uiController.miniInfoBoxes.length === 0 || uiController.miniInfoBoxes.length !== visiblePoints.length) {
+                  uiController.clearMiniInfoBoxes();
+                  uiController.showMiniInfoBoxes(null, this.audioData);
+                }
+              }
+            }, duration + 300);
         }, 100);
       }
 
