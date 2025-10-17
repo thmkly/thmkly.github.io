@@ -617,6 +617,11 @@
         }
 
         const audio = audioController.play(index, this.audioData);
+
+        // Update badge if playlist is collapsed (regardless of minimize state)
+        if (!uiController.playlistExpanded) {
+          this.updateHeaderBadge(track);
+        }
         
         // Clear old mini boxes before positioning
         uiController.clearMiniInfoBoxes();
