@@ -1102,6 +1102,7 @@
           // Play/Pause button (centered, prominent)
           if (audio) {
             const playPauseBtn = document.createElement('button');
+            playPauseBtn.className = 'play-pause-btn';
             playPauseBtn.textContent = audio.paused ? '▶' : '⏸';
             playPauseBtn.style.fontSize = '18px';
             playPauseBtn.style.padding = '8px 14px';
@@ -1110,13 +1111,18 @@
             playPauseBtn.style.borderRadius = '4px';
             playPauseBtn.style.background = 'white';
             
+            // Update button text when audio state changes (handles spacebar play/pause)
+            const updateButton = () => {
+              playPauseBtn.textContent = audio.paused ? '▶' : '⏸';
+            };
+            audio.addEventListener('play', updateButton);
+            audio.addEventListener('pause', updateButton);
+            
             playPauseBtn.addEventListener('click', () => {
               if (audio.paused) {
                 audio.play();
-                playPauseBtn.textContent = '⏸';
               } else {
                 audio.pause();
-                playPauseBtn.textContent = '▶';
               }
             });
             
