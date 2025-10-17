@@ -914,8 +914,10 @@
       }
 
         showPopup(coords, track, audio, index) {
-          if (this.currentPopup) {
-            this.currentPopup.remove();
+          // Clear badge when showing full popup
+          const existingBadge = document.getElementById('playing-badge');
+          if (existingBadge) {
+            existingBadge.remove();
           }
         
           const container = document.createElement('div');
