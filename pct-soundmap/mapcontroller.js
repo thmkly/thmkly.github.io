@@ -1144,6 +1144,7 @@
         
           const popup = new mapboxgl.Popup({ 
             offset: 25,
+            closeButton: false,
             closeOnClick: false,
             closeOnMove: false,
             maxWidth: '400px'
@@ -1203,15 +1204,6 @@
           if (typeof atmosphereController !== 'undefined') {
             atmosphereController.resetToDefault();
           }
-        
-        // Clean up minimized popup if it exists
-        if (this.minimizedPopup) {
-          if (this.minimizedPopup._updatePosition) {
-            map.off('move', this.minimizedPopup._updatePosition);
-          }
-          this.minimizedPopup.remove();
-          this.minimizedPopup = null;
-        }
         
         // Disable 3D mode if it's enabled
         if (uiController.is3DEnabled) {
