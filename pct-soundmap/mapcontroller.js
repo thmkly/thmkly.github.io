@@ -1111,6 +1111,9 @@ class MapController {
             playPauseBtn.style.border = '1px solid #ccc';
             playPauseBtn.style.borderRadius = '4px';
             playPauseBtn.style.background = 'white';
+            playPauseBtn.style.fontFamily = 'Arial, sans-serif';
+            playPauseBtn.style.fontWeight = 'normal';
+            playPauseBtn.style.webkitAppearance = 'none';
             
             // Update button text when audio state changes (handles spacebar play/pause)
             const updateButton = () => {
