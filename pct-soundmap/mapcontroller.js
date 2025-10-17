@@ -775,10 +775,10 @@ class MapController {
             badge.style.zIndex = '1';
             badge.style.pointerEvents = 'auto';
             badge.style.cursor = 'pointer';
-            badge.style.maxWidth = '300px';
-            badge.style.overflow = 'hidden';
-            badge.style.textOverflow = 'ellipsis';
-            badge.style.whiteSpace = 'nowrap';
+            badge.style.maxWidth = uiController.isMobile ? 'calc(100vw - 100px)' : '500px';
+            badge.style.overflow = 'visible';
+            badge.style.whiteSpace = 'normal';
+            badge.style.lineHeight = '1.3';
             
             // Position badge based on mobile/desktop
             if (uiController.isMobile) {
