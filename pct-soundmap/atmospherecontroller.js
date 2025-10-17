@@ -454,34 +454,28 @@ class AtmosphereController {
     }
   }
 
-  // Main method to apply atmospheric conditions to the map (non-blocking)
-  applyAtmosphere(track) {
-    // Use setTimeout to make this asynchronous and non-blocking
-    setTimeout(() => {
-      try {
-        const conditions = this.getAtmosphericConditions(track);
-        this.currentConditions = conditions;
-        
-        // Apply enhanced atmospheric effects
-        this.applyEnhancedSky(conditions);
-        this.applyEnhancedFog(conditions);
-        this.applyEnhanced3DEffects(conditions);
-        this.applyFallbackAtmosphere(conditions);
-        
-        // Enhanced notification with more detail
-        const timeDesc = conditions.period.replace(/([A-Z])/g, ' $1').toLowerCase();
-        const terrainDesc = conditions.terrainInfo.terrain.replace(/_/g, ' ');
-        const elevationDisplay = Math.round(conditions.terrainInfo.elevation / 100) * 100; // Round to nearest 100ft
-        
-        // Only show notification if showNotification function exists
-        if (typeof showNotification === 'function') {
-          showNotification(`${timeDesc} in ${terrainDesc} (${elevationDisplay}ft)`, 3000);
-        }
-      } catch (error) {
-        console.error('Error applying atmosphere:', error);
+      applyAtmosphere(track) {
+        // Make this completely asynchronous - don't block audio
+        requestAnimationFrame(() => {
+          try {
+            const conditions = this.getAtmosphericConditions(track);
+            this.currentConditions = conditions;
+            
+            // Apply effects in batches to avoid blocking
+            this.applyEnhancedSky(conditions);
+            
+            requestAnimationFrame(() => {
+              this.applyEnhancedFog(conditions);
+              this.applyEnhanced3DEffects(conditions);
+            });
+            
+            // Don't show notification - it's noise
+            // Removed: showNotification call
+          } catch (error) {
+            console.error('Error applying atmosphere:', error);
+          }
+        });
       }
-    }, 10); // Small delay to not block audio/UI
-  }
 
   // Enhanced color calculation with terrain and weather
   calculateEnhancedColors(sunPos, period, season, terrainInfo, weatherEffects) {
