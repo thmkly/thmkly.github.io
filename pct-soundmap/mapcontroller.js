@@ -1283,6 +1283,7 @@
         }
         
         showNotification('Map reset to default view', 2000);
+        }
 
       getMovementDuration(track) {
         // Calculate the same duration logic used in positionMapForTrack
