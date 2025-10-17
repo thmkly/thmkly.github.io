@@ -1265,10 +1265,24 @@
           duration: 2000
         });
         
-        document.querySelectorAll('.track').forEach(el => el.classList.remove('active-track'));
+        // Clear active track highlighting and reset styling
+        document.querySelectorAll('.track').forEach(el => {
+          el.classList.remove('active-track');
+          el.style.backgroundColor = '';
+          el.style.fontWeight = '';
+          const trackInfo = el.querySelector('.track-info');
+          if (trackInfo && trackInfo.textContent.startsWith('▶')) {
+            trackInfo.textContent = trackInfo.textContent.substring(2);
+          }
+        });
+        
+        // Reset playlist scroll position to top
+        const playlist = document.getElementById('playlist');
+        if (playlist) {
+          playlist.scrollTop = 0;
+        }
         
         showNotification('Map reset to default view', 2000);
-      }
 
       getMovementDuration(track) {
         // Calculate the same duration logic used in positionMapForTrack
