@@ -736,11 +736,16 @@
         
         // New helper method - add this RIGHT AFTER minimizePopup() closes
               updateHeaderBadge(track) {
-          // Remove existing badge if any
-          const existingBadge = document.getElementById('playing-badge');
-          if (existingBadge) {
-            existingBadge.remove();
+        // Remove existing badge if any and clean up listeners
+        const existingBadge = document.getElementById('playing-badge');
+        if (existingBadge) {
+          // Clean up old event listeners
+          if (existingBadge._updateTimeHandler && existingBadge._audioElement) {
+            existingBadge._audioElement.removeEventListener('timeupdate', existingBadge._updateTimeHandler);
+            existingBadge._audioElement.removeEventListener('play', existingBadge._updateTimeHandler);
           }
+          existingBadge.remove();
+        }
           
           // Only show badge if playlist is collapsed AND track is provided
           if (!uiController.playlistExpanded && track) {
@@ -803,17 +808,26 @@
             
             // Update time display
             if (audioController.currentAudio) {
+              const audio = audioController.currentAudio;
+              const timeSpan = badge.querySelector('.badge-time');
+              
               const updateBadgeTime = () => {
-                const timeSpan = badge.querySelector('.badge-time');
-                if (timeSpan && audioController.currentAudio) {
-                  const current = Math.floor(audioController.currentAudio.currentTime);
+                if (timeSpan && audio && !audio.paused) {
+                  const current = Math.floor(audio.currentTime);
                   const mins = Math.floor(current / 60);
                   const secs = current % 60;
                   timeSpan.textContent = `${mins}:${secs.toString().padStart(2, '0')}`;
                 }
               };
-              audioController.currentAudio.addEventListener('timeupdate', updateBadgeTime);
-              updateBadgeTime();
+              
+              audio.addEventListener('timeupdate', updateBadgeTime);
+              audio.addEventListener('play', updateBadgeTime);
+              updateBadgeTime(); // Initial update
+              
+              // Store reference for cleanup
+              badge._updateTimeHandler = updateBadgeTime;
+              badge._audioElement = audio;
+            }
             }
           }
         }
