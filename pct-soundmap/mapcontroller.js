@@ -1276,12 +1276,6 @@
           }
         });
         
-        // Reset playlist scroll position to top
-        const playlist = document.getElementById('playlist');
-        if (playlist) {
-          playlist.scrollTop = 0;
-        }
-        
         showNotification('Map reset to default view', 2000);
         }
 
