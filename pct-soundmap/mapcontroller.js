@@ -647,17 +647,10 @@
           this.positionMapForTrack(track, index);
           this.showPopup([parseFloat(track.lng), parseFloat(track.lat)], track, audio, index);
           
-            // Refresh mini boxes after map positioning is complete
+            // Show mini boxes after map positioning is complete
             const duration = this.getMovementDuration(track);
             setTimeout(() => {
-              const visiblePoints = map.queryRenderedFeatures({ layers: ['unclustered-point'] });
-              // Only update if we need to (cluster state changed or boxes missing)
-              if (visiblePoints.length > 0 && visiblePoints.length < 50) {
-                if (uiController.miniInfoBoxes.length === 0 || uiController.miniInfoBoxes.length !== visiblePoints.length) {
-                  uiController.clearMiniInfoBoxes();
-                  uiController.showMiniInfoBoxes(null, this.audioData);
-                }
-              }
+              uiController.showMiniInfoBoxes(null, this.audioData);
             }, duration + 300);
         }, 100);
       }
