@@ -935,6 +935,12 @@
       }
 
         showPopup(coords, track, audio, index) {
+            
+        // Remove old popup before creating new one
+          if (this.currentPopup) {
+            this.currentPopup.remove();
+            this.currentPopup = null;
+          }
         
           const container = document.createElement('div');
           container.style.fontFamily = 'helvetica, sans-serif';
