@@ -517,6 +517,16 @@ class MapController {
           div.appendChild(trackMile);
           
           div.addEventListener('click', (e) => {
+            // If clicking the currently playing track, toggle pause/play
+            if (index === audioController.currentIndex && audioController.currentAudio) {
+              if (audioController.currentAudio.paused) {
+                audioController.currentAudio.play();
+              } else {
+                audioController.currentAudio.pause();
+              }
+              return; // Don't restart the track
+            }
+            
             // Collapse mobile menu when track is clicked
             if (uiController.isMobile && uiController.mobilePlaylistExpanded) {
               uiController.collapseMobileMenu();
