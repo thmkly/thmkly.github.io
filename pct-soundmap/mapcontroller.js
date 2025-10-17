@@ -746,7 +746,8 @@
           if (!uiController.playlistExpanded && track) {
             const badge = document.createElement('div');
             badge.id = 'playing-badge';
-            badge.textContent = `▶ ${track.name.replace(/^[^\s]+\s+-\s+/, '')}`;
+            const trackName = track.name.replace(/^[^\s]+\s+-\s+/, '');
+            badge.innerHTML = `<span style="display: inline-block; margin-right: 8px;">▶</span><span class="badge-title">${trackName}</span><span class="badge-time" style="margin-left: 8px; font-family: monospace; font-size: 12px; color: #666;">0:00</span>`;
             badge.style.position = 'absolute';
             badge.style.fontSize = '14px';
             badge.style.color = '#333';
@@ -799,6 +800,21 @@
             });
             
             document.body.appendChild(badge);
+            
+            // Update time display
+            if (audioController.currentAudio) {
+              const updateBadgeTime = () => {
+                const timeSpan = badge.querySelector('.badge-time');
+                if (timeSpan && audioController.currentAudio) {
+                  const current = Math.floor(audioController.currentAudio.currentTime);
+                  const mins = Math.floor(current / 60);
+                  const secs = current % 60;
+                  timeSpan.textContent = `${mins}:${secs.toString().padStart(2, '0')}`;
+                }
+              };
+              audioController.currentAudio.addEventListener('timeupdate', updateBadgeTime);
+              updateBadgeTime();
+            }
           }
         }
 
