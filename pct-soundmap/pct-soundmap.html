@@ -659,18 +659,22 @@
       display: none !important;
     }
 
-    /* Ko-fi widget positioning for mobile - centered at bottom */
-    .floatingchat-container-wrap {
+    /* Ko-fi widget positioning for mobile - centered at bottom with higher specificity */
+    .floatingchat-container-wrap,
+    .floatingchat-container-wrap[style] {
       left: 50% !important;
+      right: auto !important;
       transform: translateX(-50%) !important;
-      right: unset !important;
       bottom: 20px !important;
+      margin-left: 0 !important;
     }
-    .floating-chat-kofi-popup-iframe {
+    .floating-chat-kofi-popup-iframe,
+    .floating-chat-kofi-popup-iframe[style] {
       left: 50% !important;
+      right: auto !important;
       transform: translateX(-50%) !important;
-      right: unset !important;
       bottom: 80px !important;
+      margin-left: 0 !important;
     }
 
     /* Mobile mini info boxes */
