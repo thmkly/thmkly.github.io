@@ -1,4 +1,5 @@
 // Map Controller Class
+class MapController {
      constructor() {
        this.audioData = [];
        this.originalAudioData = [];
