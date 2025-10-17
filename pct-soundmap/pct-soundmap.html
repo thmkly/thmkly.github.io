@@ -663,9 +663,12 @@
       display: none !important;
     }
 
-    /* Ko-fi widget positioning for mobile - centered at bottom with higher specificity */
+    /* Ko-fi widget positioning for mobile - centered at bottom below playlist */
     .floatingchat-container-wrap,
-    .floatingchat-container-wrap[style] {
+    .floatingchat-container-wrap[style],
+    .floatingchat-container-wrap-mobi,
+    div[id*="kofi-widget-overlay"],
+    div[class*="floatingchat"] {
       left: 50% !important;
       right: auto !important;
       transform: translateX(-50%) !important;
@@ -674,7 +677,9 @@
       z-index: 100 !important;
     }
     .floating-chat-kofi-popup-iframe,
-    .floating-chat-kofi-popup-iframe[style] {
+    .floating-chat-kofi-popup-iframe[style],
+    iframe[class*="floating-chat"],
+    iframe[id*="kofi"] {
       left: 50% !important;
       right: auto !important;
       transform: translateX(-50%) !important;
