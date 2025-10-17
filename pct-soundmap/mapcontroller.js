@@ -935,10 +935,12 @@
       }
 
         showPopup(coords, track, audio, index) {
-          // Clear badge when showing full popup
-          const existingBadge = document.getElementById('playing-badge');
-          if (existingBadge) {
-            existingBadge.remove();
+          // Only clear badge if playlist is expanded
+          if (uiController.playlistExpanded) {
+            const existingBadge = document.getElementById('playing-badge');
+            if (existingBadge) {
+              existingBadge.remove();
+            }
           }
         
           const container = document.createElement('div');
