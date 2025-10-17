@@ -935,13 +935,6 @@
       }
 
         showPopup(coords, track, audio, index) {
-          // Only clear badge if playlist is expanded
-          if (uiController.playlistExpanded) {
-            const existingBadge = document.getElementById('playing-badge');
-            if (existingBadge) {
-              existingBadge.remove();
-            }
-          }
         
           const container = document.createElement('div');
           container.style.fontFamily = 'helvetica, sans-serif';
