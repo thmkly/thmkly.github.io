@@ -828,7 +828,6 @@
               badge._updateTimeHandler = updateBadgeTime;
               badge._audioElement = audio;
             }
-            }
           }
         }
 
