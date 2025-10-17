@@ -623,6 +623,9 @@
           this.updateHeaderBadge(track);
         }
         
+        // Clear old mini boxes before positioning
+        uiController.clearMiniInfoBoxes();
+        
         // Don't clear mini boxes here - let them persist during track changes
         // They'll be refreshed after map positioning if needed
         
