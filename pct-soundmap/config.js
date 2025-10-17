@@ -5,8 +5,13 @@
       DEFAULT_CENTER: [-122.50276, 41.31727],
       DEFAULT_CENTER_MOBILE: [-120.57981124042142, 41.35749162590474],
       getDefaultZoom: () => {
-        const screenWidth = window.screen.width;
-        const screenHeight = window.screen.height;
+        // Mobile gets fixed zoom to account for Ko-fi widget
+        if (window.innerWidth <= 768) {
+          return 4.23;
+        }
+  
+  const screenWidth = window.screen.width;
+  const screenHeight = window.screen.height;
         
         // Detect browsers that might report altered screen dimensions
         const isBrave = navigator.brave && navigator.brave.isBrave;
