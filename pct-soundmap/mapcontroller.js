@@ -846,11 +846,21 @@ class MapController {
             activeTrack.style.backgroundColor = 'rgba(255, 235, 220, 0.5)'; // Warm beige
             activeTrack.style.fontWeight = '600'; // Bold
             
-            // Add play triangle if not already there
-            const trackInfo = activeTrack.querySelector('.track-info');
-            if (trackInfo && !trackInfo.textContent.startsWith('▶')) {
-              trackInfo.textContent = '▶ ' + trackInfo.textContent;
-            }
+          // Add play indicator if not already there
+          const trackInfo = activeTrack.querySelector('.track-info');
+          if (trackInfo && !trackInfo.querySelector('.play-indicator')) {
+            const indicator = document.createElement('span');
+            indicator.className = 'play-indicator';
+            indicator.style.display = 'inline-block';
+            indicator.style.marginRight = '6px';
+            indicator.style.width = '0';
+            indicator.style.height = '0';
+            indicator.style.borderLeft = '8px solid #333';
+            indicator.style.borderTop = '5px solid transparent';
+            indicator.style.borderBottom = '5px solid transparent';
+            indicator.style.verticalAlign = 'middle';
+            trackInfo.insertBefore(indicator, trackInfo.firstChild);
+          }
             
             // Only scroll if explicitly requested (for auto-play next)
             if (shouldScrollPlaylist) {
@@ -878,12 +888,13 @@ class MapController {
           document.querySelectorAll('.track:not(.active-track)').forEach(el => {
             el.style.backgroundColor = '';
             el.style.fontWeight = '';
-            const trackInfo = el.querySelector('.track-info');
-            if (trackInfo && trackInfo.textContent.startsWith('▶')) {
-              trackInfo.textContent = trackInfo.textContent.substring(2);
-            }
-          });
-        }
+           const trackInfo = el.querySelector('.track-info');
+           const indicator = trackInfo?.querySelector('.play-indicator');
+           if (indicator) {
+             indicator.remove();
+           }
+           });
+         }
 
       positionMapForTrack(track, index) {
         console.log('positionMapForTrack called for:', track.name);
