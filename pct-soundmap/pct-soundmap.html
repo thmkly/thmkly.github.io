@@ -730,6 +730,23 @@
   audio:focus {
     outline: none;
   }
+
+  /* Play/Pause button styling */
+  .play-pause-btn {
+    font-family: helvetica, sans-serif !important;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    appearance: none;
+  }
+
+/* Mobile - make symbols less emoji-like */
+  @media (max-width: 768px) {
+    .play-pause-btn {
+      font-family: Arial, sans-serif !important;
+      font-weight: normal !important;
+    }
+  }
+  
 </style>
 </head>
 <body>
