@@ -48,7 +48,7 @@
         window.map = new mapboxgl.Map({
           container: 'map',
           style: 'mapbox://styles/thmkly/clyup637d004201ri2tkpaywq',
-          center: CONFIG.DEFAULT_CENTER,
+          center: uiController.isMobile ? CONFIG.DEFAULT_CENTER_MOBILE : CONFIG.DEFAULT_CENTER,
           zoom: CONFIG.getDefaultZoom(),
           // Touch controls settings
           touchZoomRotate: true,
@@ -84,13 +84,7 @@
             this.setupMapLayers();
             this.setupMapEvents();
             this.loadAudioData();
-            
-            // Fix mobile centering issue - recenter after layout settles
-            if (uiController.isMobile) {
-              setTimeout(() => {
-                map.jumpTo({ center: CONFIG.DEFAULT_CENTER });
-              }, 100);
-            }
+
             });
             }
 
@@ -1264,7 +1258,7 @@
         
         // Reset to default position - use flyTo like 3D mode does
         map.flyTo({
-          center: CONFIG.DEFAULT_CENTER,
+          center: uiController.isMobile ? CONFIG.DEFAULT_CENTER_MOBILE : CONFIG.DEFAULT_CENTER,
           zoom: CONFIG.getDefaultZoom(),
           pitch: 0,
           bearing: 0,
