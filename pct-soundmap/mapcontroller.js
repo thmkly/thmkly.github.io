@@ -81,11 +81,16 @@
             });
           }
           
-          this.setupMapLayers();
-          this.setupMapEvents();
-          this.loadAudioData();
-        });
-      }
+            this.setupMapLayers();
+            this.setupMapEvents();
+            this.loadAudioData();
+            
+            // Fix mobile centering issue - recenter after layout settles
+            if (uiController.isMobile) {
+              setTimeout(() => {
+                map.jumpTo({ center: CONFIG.DEFAULT_CENTER });
+              }, 100);
+            }
 
       setupMapLayers() {
         map.addSource('audio', {
