@@ -1104,21 +1104,45 @@ class MapController {
           if (audio) {
             const playPauseBtn = document.createElement('button');
             playPauseBtn.className = 'play-pause-btn';
-            playPauseBtn.textContent = audio.paused ? '▶' : '⏸';
-            playPauseBtn.style.fontSize = '18px';
             playPauseBtn.style.padding = '8px 14px';
             playPauseBtn.style.cursor = 'pointer';
             playPauseBtn.style.border = '1px solid #ccc';
             playPauseBtn.style.borderRadius = '4px';
             playPauseBtn.style.background = 'white';
-            playPauseBtn.style.fontFamily = 'Arial, sans-serif';
-            playPauseBtn.style.fontWeight = 'normal';
-            playPauseBtn.style.webkitAppearance = 'none';
+            playPauseBtn.style.display = 'flex';
+            playPauseBtn.style.alignItems = 'center';
+            playPauseBtn.style.justifyContent = 'center';
+            playPauseBtn.style.minWidth = '50px';
             
-            // Update button text when audio state changes (handles spacebar play/pause)
+            // Create CSS triangle or pause bars
             const updateButton = () => {
-              playPauseBtn.textContent = audio.paused ? '▶' : '⏸';
+              playPauseBtn.innerHTML = '';
+              if (audio.paused) {
+                // Play triangle
+                const triangle = document.createElement('div');
+                triangle.style.width = '0';
+                triangle.style.height = '0';
+                triangle.style.borderLeft = '10px solid #333';
+                triangle.style.borderTop = '7px solid transparent';
+                triangle.style.borderBottom = '7px solid transparent';
+                playPauseBtn.appendChild(triangle);
+              } else {
+                // Pause bars
+                const bar1 = document.createElement('div');
+                bar1.style.width = '4px';
+                bar1.style.height = '14px';
+                bar1.style.backgroundColor = '#333';
+                const bar2 = document.createElement('div');
+                bar2.style.width = '4px';
+                bar2.style.height = '14px';
+                bar2.style.backgroundColor = '#333';
+                bar2.style.marginLeft = '4px';
+                playPauseBtn.appendChild(bar1);
+                playPauseBtn.appendChild(bar2);
+              }
             };
+            updateButton(); // Initial state
+               
             audio.addEventListener('play', updateButton);
             audio.addEventListener('pause', updateButton);
             
