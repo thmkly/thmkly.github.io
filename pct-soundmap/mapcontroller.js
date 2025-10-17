@@ -1254,12 +1254,15 @@
           }
         }
         
-        // Simple reset without padding adjustments - same as original
-        map.flyTo({
+        // Reset to exact default position with proper padding
+        const leftPadding = uiController.playlistExpanded ? 185 : 0; // Half of 370px playlist width
+        
+        map.easeTo({
           center: CONFIG.DEFAULT_CENTER,
           zoom: CONFIG.getDefaultZoom(),
           pitch: 0,
           bearing: 0,
+          padding: { top: 0, bottom: 0, left: leftPadding, right: 0 },
           duration: 2000
         });
         
