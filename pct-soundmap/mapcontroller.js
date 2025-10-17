@@ -1,14 +1,14 @@
 // Map Controller Class
-    class MapController {
-      constructor() {
-        this.audioData = [];
-        this.originalAudioData = []; // Keep original order for stable map references
-        this.currentPopup = null;
-        this.isPositioning = false;
-        this.animationTimeout = null;
-        this.moveTimeout = null;
-        this.setupMap();
-      }
+     constructor() {
+       this.audioData = [];
+       this.originalAudioData = [];
+       this.currentPopup = null;
+       this.isPositioning = false;
+       this.animationTimeout = null;
+       this.moveTimeout = null;
+       this.hasInitiallyLoaded = false;
+       this.setupMap();
+     }
 
       // Helper function to get display mile based on sort mode (UNCHANGED - your working version)
       getDisplayMile(track) {
@@ -551,16 +551,18 @@
         }
       }
 
-      setPlaylistScrollPosition() {
-        const playlist = document.getElementById('playlist');
-        
-        // Always scroll to top since we're always playing top→down now
-        if (audioController.currentIndex === -1) {
-          setTimeout(() => {
-            playlist.scrollTop = 0; // Always start at top
-          }, 100);
+        setPlaylistScrollPosition() {
+          // Only scroll to top on initial load, not when resetting
+          // This method is called from sortAndUpdatePlaylist which happens during initial load
+          const playlist = document.getElementById('playlist');
+          
+          if (audioController.currentIndex === -1 && this.audioData.length > 0 && !this.hasInitiallyLoaded) {
+            setTimeout(() => {
+              playlist.scrollTop = 0; // Start at top on first load only
+              this.hasInitiallyLoaded = true;
+            }, 100);
+          }
         }
-      }
 
       playAudio(index, fromAutoPlay = false) {
         console.log('playAudio called with index:', index, 'fromAutoPlay:', fromAutoPlay);
@@ -627,9 +629,6 @@
         
         // Clear old mini boxes before positioning
         uiController.clearMiniInfoBoxes();
-        
-        // Don't clear mini boxes here - let them persist during track changes
-        // They'll be refreshed after map positioning if needed
         
         // Apply atmospheric lighting for this track (removed notification)
         if (typeof atmosphereController !== 'undefined' && atmosphereController.transitionToTrack) {
