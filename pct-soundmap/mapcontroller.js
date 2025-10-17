@@ -856,20 +856,54 @@ class MapController {
             activeTrack.style.backgroundColor = 'rgba(255, 235, 220, 0.5)'; // Warm beige
             activeTrack.style.fontWeight = '600'; // Bold
             
-          // Add play indicator if not already there
+          // Add play/pause indicator if not already there
           const trackInfo = activeTrack.querySelector('.track-info');
           if (trackInfo && !trackInfo.querySelector('.play-indicator')) {
-            const indicator = document.createElement('span');
-            indicator.className = 'play-indicator';
-            indicator.style.display = 'inline-block';
-            indicator.style.marginRight = '6px';
-            indicator.style.width = '0';
-            indicator.style.height = '0';
-            indicator.style.borderLeft = '8px solid #333';
-            indicator.style.borderTop = '5px solid transparent';
-            indicator.style.borderBottom = '5px solid transparent';
-            indicator.style.verticalAlign = 'middle';
-            trackInfo.insertBefore(indicator, trackInfo.firstChild);
+            const indicatorContainer = document.createElement('span');
+            indicatorContainer.className = 'play-indicator';
+            indicatorContainer.style.display = 'inline-flex';
+            indicatorContainer.style.marginRight = '6px';
+            indicatorContainer.style.verticalAlign = 'middle';
+            indicatorContainer.style.alignItems = 'center';
+            indicatorContainer.style.minWidth = '12px';
+            
+            // Function to update the indicator based on audio state
+            const updateIndicator = () => {
+              indicatorContainer.innerHTML = '';
+              if (audioController.currentAudio && !audioController.currentAudio.paused) {
+                // Pause bars
+                const bar1 = document.createElement('div');
+                bar1.style.width = '3px';
+                bar1.style.height = '10px';
+                bar1.style.backgroundColor = '#333';
+                const bar2 = document.createElement('div');
+                bar2.style.width = '3px';
+                bar2.style.height = '10px';
+                bar2.style.backgroundColor = '#333';
+                bar2.style.marginLeft = '2px';
+                indicatorContainer.appendChild(bar1);
+                indicatorContainer.appendChild(bar2);
+              } else {
+                // Play triangle
+                const triangle = document.createElement('div');
+                triangle.style.width = '0';
+                triangle.style.height = '0';
+                triangle.style.borderLeft = '8px solid #333';
+                triangle.style.borderTop = '5px solid transparent';
+                triangle.style.borderBottom = '5px solid transparent';
+                indicatorContainer.appendChild(triangle);
+              }
+            };
+            
+            updateIndicator(); // Initial state
+            
+            // Update when audio state changes
+            if (audioController.currentAudio) {
+              audioController.currentAudio.addEventListener('play', updateIndicator);
+              audioController.currentAudio.addEventListener('pause', updateIndicator);
+            }
+            
+            trackInfo.insertBefore(indicatorContainer, trackInfo.firstChild);
           }
             
             // Only scroll if explicitly requested (for auto-play next)
