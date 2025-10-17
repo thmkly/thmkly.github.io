@@ -91,6 +91,9 @@
                 map.jumpTo({ center: CONFIG.DEFAULT_CENTER });
               }, 100);
             }
+            });
+            }
+
 
       setupMapLayers() {
         map.addSource('audio', {
