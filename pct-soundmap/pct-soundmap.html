@@ -484,7 +484,8 @@
     display: none;
     position: fixed;
     top: 15px;
-    left: 15px;
+    right: 15px;
+    left: auto;
     width: 40px;
     height: 40px;
     padding: 0;
@@ -579,11 +580,25 @@
       display: none;
     }
 
+    /* Hamburger transforms to X when menu is open */
+    .hamburger-menu.open span:nth-child(1) {
+      transform: rotate(45deg) translate(5px, 5px);
+    }
+    
+    .hamburger-menu.open span:nth-child(2) {
+      opacity: 0;
+    }
+    
+    .hamburger-menu.open span:nth-child(3) {
+      transform: rotate(-45deg) translate(5px, -5px);
+    }
+
     /* Mobile playlist wrapper - slides in from left with high z-index */
     .playlist-wrapper {
       position: fixed;
       top: 0;
-      left: 0;
+      right: 0;
+      left: auto;
       transform: translateX(-100%);
       width: calc(100vw - 50px);
       max-width: 350px;
