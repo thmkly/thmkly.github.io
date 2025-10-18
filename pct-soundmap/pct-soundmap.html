@@ -662,31 +662,34 @@
     .playlist-wrapper .scroll-arrow {
       display: none !important;
     }
-
-    /* Ko-fi widget positioning for mobile - centered at bottom below playlist */
-    .floatingchat-container-wrap,
-    .floatingchat-container-wrap[style],
+  
+    /* Ko-fi widget - force center position on mobile */
     .floatingchat-container-wrap-mobi,
-    div[id*="kofi-widget-overlay"],
-    div[class*="floatingchat"] {
+    .floatingchat-container-wrap-mobi[style] {
       left: 50% !important;
-      right: auto !important;
+      right: unset !important;
       transform: translateX(-50%) !important;
       bottom: 20px !important;
-      margin-left: 0 !important;
+      width: auto !important;
       z-index: 9999 !important;
     }
-    .floating-chat-kofi-popup-iframe,
-    .floating-chat-kofi-popup-iframe[style],
-    iframe[class*="floating-chat"],
-    iframe[id*="kofi"] {
+    
+    .floating-chat-kofi-popup-iframe-mobi,
+    .floating-chat-kofi-popup-iframe-mobi[style] {
       left: 50% !important;
-      right: auto !important;
+      right: unset !important;
       transform: translateX(-50%) !important;
       bottom: 80px !important;
-      margin-left: 0 !important;
       z-index: 9999 !important;
     }
+    
+    .floating-chat-kofi-popup-iframe-closer-mobi,
+    .floating-chat-kofi-popup-iframe-closer-mobi[style] {
+      left: 50% !important;
+      right: unset !important;
+      transform: translateX(-50%) !important;
+    }
+  }
 
     /* Mobile mini info boxes */
     .mini-infobox {
