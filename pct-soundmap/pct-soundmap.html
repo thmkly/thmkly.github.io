@@ -775,6 +775,24 @@
       font-weight: normal !important;
     }
   }
+
+/* Desktop - ensure right positioning is restored */
+  @media (min-width: 769px) {
+    .floatingchat-container-wrap,
+    .floatingchat-container-wrap[style] {
+      left: auto !important;
+      right: 20px !important;
+      transform: none !important;
+      bottom: 20px !important;
+    }
+    .floating-chat-kofi-popup-iframe,
+    .floating-chat-kofi-popup-iframe[style] {
+      left: auto !important;
+      right: 20px !important;
+      transform: none !important;
+      bottom: 80px !important;
+    }
+  }
   
 </style>
 </head>
