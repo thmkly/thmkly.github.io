@@ -956,18 +956,14 @@
         
         if (hamburgerMenu) {
           hamburgerMenu.addEventListener('click', () => {
-            playlistWrapper.classList.add('mobile-expanded');
-            document.body.classList.add('mobile-menu-open');
-            uiController.mobilePlaylistExpanded = true;
+            uiController.toggleMobileMenu();
           });
         }
         
         // Mobile close button
         if (mobileMenuClose) {
           mobileMenuClose.addEventListener('click', () => {
-            playlistWrapper.classList.remove('mobile-expanded');
-            document.body.classList.remove('mobile-menu-open');
-            uiController.mobilePlaylistExpanded = false;
+            uiController.collapseMobileMenu();
           });
         }
         
