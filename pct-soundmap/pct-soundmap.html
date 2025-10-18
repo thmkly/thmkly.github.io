@@ -1013,27 +1013,6 @@
       // Initialize controls
       syncControls();
       
-      // Force Ko-fi widget centering on mobile after it loads
-      function centerKofiWidget() {
-        const kofiWidget = document.querySelector('.floatingchat-container-wrap');
-        const kofiPopup = document.querySelector('.floating-chat-kofi-popup-iframe');
-        
-        if (window.innerWidth <= 768) {
-          if (kofiWidget) {
-            // Force override all styles with inline CSS
-            kofiWidget.setAttribute('style', 'position: fixed !important; left: 50% !important; margin-left: -30px !important; transform: none !important; -webkit-transform: none !important; right: unset !important; bottom: 20px !important; z-index: 9000 !important;');
-          }
-          if (kofiPopup) {
-            kofiPopup.setAttribute('style', 'position: fixed !important; left: 50% !important; margin-left: -0px !important; transform: none !important; -webkit-transform: none !important; right: unset !important; bottom: 80px !important; z-index: 9000 !important;');
-          }
-        }
-      }
-      
-      // Try multiple times to ensure Ko-fi is centered
-      setTimeout(centerKofiWidget, 1000);
-      setTimeout(centerKofiWidget, 2000);
-      setTimeout(centerKofiWidget, 3000);
-      
       // Also center on window resize
       window.addEventListener('resize', () => {
         setTimeout(centerKofiWidget, 100);
@@ -1057,61 +1036,7 @@
       'floating-chat.donateButton.text-color': '#fff'
     });
   </script>
-  <style>
-    /* Ko-fi widget positioning overrides */
-    /* Desktop - right aligned */
-    @media (min-width: 769px) {
-      .floatingchat-container-wrap {
-        left: unset !important;
-        right: 16px !important;
-        bottom: 30px !important;
-        transform: none !important;
-        -webkit-transform: none !important;
-      }
-      .floating-chat-kofi-popup-iframe {
-        left: unset !important;
-        right: 16px !important;
-        bottom: 30px !important;
-        transform: none !important;
-        -webkit-transform: none !important;
-      }
-    }
-    
-    /* Mobile - force centered position */
-    @media (max-width: 768px) {
-      .floatingchat-container-wrap {
-        position: fixed !important;
-        left: 50% !important;
-        margin-left: -30px !important; /* Half of widget width */
-        transform: none !important;
-        -webkit-transform: none !important;
-        right: unset !important;
-        bottom: 20px !important;
-        z-index: 9000 !important; /* Below playlist (10000) */
-      }
-      .floating-chat-kofi-popup-iframe {
-        position: fixed !important;
-        left: 50% !important;
-        margin-left: -150px !important; /* Half of popup width */
-        transform: none !important;
-        -webkit-transform: none !important;
-        right: unset !important;
-        bottom: 80px !important;
-        z-index: 9000 !important;
-      }
-    }
-    
-    /* Force on actual mobile devices */
-    @media only screen and (max-device-width: 768px) {
-      .floatingchat-container-wrap {
-        left: 50% !important;
-        margin-left: -30px !important;
-      }
-      .floating-chat-kofi-popup-iframe {
-        left: 50% !important;
-        margin-left: -150px !important;
-      }
-    }
+
   </style>
 </body>
 </html>
