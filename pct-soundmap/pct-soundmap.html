@@ -956,7 +956,14 @@
         
         if (hamburgerMenu) {
           hamburgerMenu.addEventListener('click', () => {
-            uiController.toggleMobileMenu();
+            if (!uiController.mobilePlaylistExpanded) {
+              const wrapper = document.getElementById('playlistWrapper');
+              const hamburger = document.querySelector('.hamburger-menu');
+              uiController.mobilePlaylistExpanded = true;
+              wrapper.classList.add('mobile-expanded');
+              document.body.classList.add('mobile-menu-open');
+              if (hamburger) hamburger.classList.add('open');
+            }
           });
         }
         
