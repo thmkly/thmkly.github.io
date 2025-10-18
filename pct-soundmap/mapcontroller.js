@@ -633,15 +633,18 @@ class MapController {
             if (fromMap) {
               const trackElement = document.querySelector(`.track[data-id="${index}"]`);
               const playlist = document.getElementById('playlist');
+              console.log('Map click - trackElement:', trackElement, 'playlist:', playlist);
               if (trackElement && playlist) {
                 const trackRect = trackElement.getBoundingClientRect();
                 const playlistRect = playlist.getBoundingClientRect();
                 const isVisible = trackRect.top >= playlistRect.top && trackRect.bottom <= playlistRect.bottom;
                 shouldScroll = !isVisible;
+                console.log('Track visible:', isVisible, 'shouldScroll:', shouldScroll);
               } else {
-                shouldScroll = true; // Can't determine visibility, scroll to be safe
+                shouldScroll = true;
               }
             }
+            console.log('Final shouldScroll:', shouldScroll);
             this.updateActiveTrack(index, shouldScroll);
           }
 
