@@ -1047,11 +1047,6 @@
 
       // Initialize controls
       syncControls();
-      
-      // Also center on window resize
-      window.addEventListener('resize', () => {
-        setTimeout(centerKofiWidget, 100);
-      });
 
       // Initialize map data update after first load
       setTimeout(() => {
