@@ -125,29 +125,34 @@ class UIController {
           }
         }
 
-      toggleMobileMenu() {
-        if (!this.isMobile) return;
-        
-        const wrapper = document.getElementById('playlistWrapper');
-        this.mobilePlaylistExpanded = !this.mobilePlaylistExpanded;
-        
-        if (this.mobilePlaylistExpanded) {
-          wrapper.classList.add('mobile-expanded');
-          document.body.classList.add('mobile-menu-open');
-        } else {
+        toggleMobileMenu() {
+          if (!this.isMobile) return;
+          
+          const wrapper = document.getElementById('playlistWrapper');
+          const hamburger = document.querySelector('.hamburger-menu');
+          this.mobilePlaylistExpanded = !this.mobilePlaylistExpanded;
+          
+          if (this.mobilePlaylistExpanded) {
+            wrapper.classList.add('mobile-expanded');
+            document.body.classList.add('mobile-menu-open');
+            if (hamburger) hamburger.classList.add('open');
+          } else {
+            wrapper.classList.remove('mobile-expanded');
+            document.body.classList.remove('mobile-menu-open');
+            if (hamburger) hamburger.classList.remove('open');
+          }
+        }
+
+        collapseMobileMenu() {
+          if (!this.isMobile) return;
+          
+          const wrapper = document.getElementById('playlistWrapper');
+          const hamburger = document.querySelector('.hamburger-menu');
+          this.mobilePlaylistExpanded = false;
           wrapper.classList.remove('mobile-expanded');
           document.body.classList.remove('mobile-menu-open');
+          if (hamburger) hamburger.classList.remove('open');
         }
-      }
-
-      collapseMobileMenu() {
-        if (!this.isMobile) return;
-        
-        const wrapper = document.getElementById('playlistWrapper');
-        this.mobilePlaylistExpanded = false;
-        wrapper.classList.remove('mobile-expanded');
-        document.body.classList.remove('mobile-menu-open');
-      }
 
       setupResizeListener() {
         window.addEventListener('resize', () => {
