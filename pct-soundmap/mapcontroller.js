@@ -185,21 +185,23 @@ class MapController {
           });
         });
 
-        map.on('click', 'unclustered-point', (e) => {
-          const feature = e.features[0];
-          if (!feature) return;
-          const originalIndex = parseInt(feature.properties.originalIndex);
-          
-          // Find this track in the current sorted playlist
-          const currentIndex = this.audioData.findIndex(track => track.originalIndex === originalIndex);
-          if (currentIndex !== -1) {
-            // Close mobile menu if open
-            if (uiController.isMobile && uiController.mobilePlaylistExpanded) {
-              uiController.collapseMobileMenu();
+           map.on('click', 'unclustered-point', (e) => {
+            console.log('MAP POINT CLICKED');
+            const feature = e.features[0];
+            if (!feature) return;
+            const originalIndex = parseInt(feature.properties.originalIndex);
+            
+            // Find this track in the current sorted playlist
+            const currentIndex = this.audioData.findIndex(track => track.originalIndex === originalIndex);
+            console.log('Calling playAudio with fromMap=true, currentIndex:', currentIndex);
+            if (currentIndex !== -1) {
+              // Close mobile menu if open
+              if (uiController.isMobile && uiController.mobilePlaylistExpanded) {
+                uiController.collapseMobileMenu();
+              }
+              this.playAudio(currentIndex, false, true);
             }
-            this.playAudio(currentIndex, false, true);
-          }
-        });
+          });
 
         // Throttle mini box updates during map movement
         let miniBoxUpdateScheduled = false;
