@@ -666,11 +666,13 @@
     /* Ko-fi widget - force center position on mobile */
     .floatingchat-container-wrap-mobi,
     .floatingchat-container-wrap-mobi[style] {
+      position: fixed !important;
       left: 50% !important;
-      right: unset !important;
+      right: auto !important;
       transform: translateX(-50%) !important;
-      margin-left: -100px !important; /* Half the button width */
-      bottom: 5px !important;
+      -webkit-transform: translateX(-50%) !important;
+      margin-left: 0 !important;
+      bottom: 20px !important;
       width: auto !important;
       z-index: 9999 !important;
     }
@@ -714,7 +716,7 @@
       .mapboxgl-popup-content {
         min-width: 280px;
         max-width: calc(100vw - 40px);
-        font-size: 15px;
+        font-size: px;
       }
     }
     
@@ -726,7 +728,7 @@
     /* Mobile track items - larger text for readability */
     .track {
       padding: 8px 8px;
-      font-size: 15px;
+      font-size: px;
     }
     
     .track-mile {
@@ -1022,7 +1024,7 @@
             kofiWidget.setAttribute('style', 'position: fixed !important; left: 50% !important; margin-left: -30px !important; transform: none !important; -webkit-transform: none !important; right: unset !important; bottom: 20px !important; z-index: 9000 !important;');
           }
           if (kofiPopup) {
-            kofiPopup.setAttribute('style', 'position: fixed !important; left: 50% !important; margin-left: -150px !important; transform: none !important; -webkit-transform: none !important; right: unset !important; bottom: 80px !important; z-index: 9000 !important;');
+            kofiPopup.setAttribute('style', 'position: fixed !important; left: 50% !important; margin-left: -0px !important; transform: none !important; -webkit-transform: none !important; right: unset !important; bottom: 80px !important; z-index: 9000 !important;');
           }
         }
       }
