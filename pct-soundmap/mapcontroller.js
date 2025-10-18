@@ -197,7 +197,7 @@ class MapController {
             if (uiController.isMobile && uiController.mobilePlaylistExpanded) {
               uiController.collapseMobileMenu();
             }
-            this.playAudio(currentIndex);
+            this.playAudio(currentIndex, false, true);
           }
         });
 
@@ -575,7 +575,7 @@ class MapController {
           }
         }
 
-      playAudio(index, fromAutoPlay = false) {
+      playAudio(index, fromAutoPlay = false, fromMap=false) {
         console.log('playAudio called with index:', index, 'fromAutoPlay:', fromAutoPlay);
         
         const track = this.audioData[index];
@@ -627,9 +627,23 @@ class MapController {
           } else {
             this.updateActiveTrack(index, true); // Scroll if can't determine visibility
           }
-        } else {
-          this.updateActiveTrack(index, false); // Don't scroll for manual clicks
-        }
+          } else {
+            // For manual clicks: scroll if from map click AND track not visible
+            let shouldScroll = false;
+            if (fromMap) {
+              const trackElement = document.querySelector(`.track[data-id="${index}"]`);
+              const playlist = document.getElementById('playlist');
+              if (trackElement && playlist) {
+                const trackRect = trackElement.getBoundingClientRect();
+                const playlistRect = playlist.getBoundingClientRect();
+                const isVisible = trackRect.top >= playlistRect.top && trackRect.bottom <= playlistRect.bottom;
+                shouldScroll = !isVisible;
+              } else {
+                shouldScroll = true; // Can't determine visibility, scroll to be safe
+              }
+            }
+            this.updateActiveTrack(index, shouldScroll);
+          }
 
         const audio = audioController.play(index, this.audioData);
 
