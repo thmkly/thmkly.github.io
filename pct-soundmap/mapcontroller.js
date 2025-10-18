@@ -576,7 +576,7 @@ class MapController {
         }
 
       playAudio(index, fromAutoPlay = false, fromMap=false) {
-        console.log('playAudio called with index:', index, 'fromAutoPlay:', fromAutoPlay);
+        console.log('playAudio called with index:', index, 'fromAutoPlay:', fromAutoPlay, 'fromMap:', fromMap);
         
         const track = this.audioData[index];
         if (!track) {
