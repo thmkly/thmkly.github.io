@@ -186,14 +186,12 @@ class MapController {
         });
 
            map.on('click', 'unclustered-point', (e) => {
-            console.log('MAP POINT CLICKED');
             const feature = e.features[0];
             if (!feature) return;
             const originalIndex = parseInt(feature.properties.originalIndex);
             
             // Find this track in the current sorted playlist
             const currentIndex = this.audioData.findIndex(track => track.originalIndex === originalIndex);
-            console.log('Calling playAudio with fromMap=true, currentIndex:', currentIndex);
             if (currentIndex !== -1) {
               // Close mobile menu if open
               if (uiController.isMobile && uiController.mobilePlaylistExpanded) {
@@ -578,8 +576,6 @@ class MapController {
         }
 
       playAudio(index, fromAutoPlay = false, fromMap=false) {
-        console.log('playAudio called with index:', index, 'fromAutoPlay:', fromAutoPlay, 'fromMap:', fromMap);
-        
         const track = this.audioData[index];
         if (!track) {
           console.error('No track found at index:', index);
@@ -641,12 +637,10 @@ class MapController {
                 const playlistRect = playlist.getBoundingClientRect();
                 const isVisible = trackRect.top >= playlistRect.top && trackRect.bottom <= playlistRect.bottom;
                 shouldScroll = !isVisible;
-                console.log('Track visible:', isVisible, 'shouldScroll:', shouldScroll);
               } else {
                 shouldScroll = true;
               }
             }
-            console.log('Final shouldScroll:', shouldScroll);
             this.updateActiveTrack(index, shouldScroll);
           }
 
