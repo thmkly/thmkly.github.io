@@ -788,7 +788,8 @@ class MapController {
         }
           
           // Only show badge if playlist is collapsed AND track is provided
-          if (!uiController.playlistExpanded && track) {
+          const isPlaylistCollapsed = uiController.isMobile ? !uiController.mobilePlaylistExpanded : !uiController.playlistExpanded;
+          if (isPlaylistCollapsed && track) {
             const badge = document.createElement('div');
             badge.id = 'playing-badge';
             const trackName = track.name.replace(/^[^\s]+\s+-\s+/, '');
