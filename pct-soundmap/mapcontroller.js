@@ -575,14 +575,15 @@ class MapController {
           }
         }
 
-      playAudio(index, fromAutoPlay = false, fromMap = false) {
-        const track = this.audioData[index];
-        if (!track) {
-          console.error('No track found at index:', index);
-          return;
-        }
-
-  console.log('Playing track:', track.name);
+     playAudio(index, fromAutoPlay = false, fromMap = false) {
+       console.log('playAudio called - index:', index, 'fromAutoPlay:', fromAutoPlay, 'fromMap:', fromMap);
+       const track = this.audioData[index];
+       if (!track) {
+         console.error('No track found at index:', index);
+         return;
+       }
+     
+       console.log('Playing track:', track.name);
 
       // FORCE CANCEL ALL IN-PROGRESS OPERATIONS
       // Clear any pending timeouts
