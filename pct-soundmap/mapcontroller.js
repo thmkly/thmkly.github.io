@@ -1289,9 +1289,25 @@ class MapController {
         return atmosphereController.formatPacificTime(pacificTime);
       }
 
-        resetMap() {
-          audioController.stop();
-          uiController.clearMiniInfoBoxes();
+          resetMap() {
+            audioController.stop();
+            
+            // Clear ALL pending animation timeouts
+            if (this.animationTimeout) {
+              clearTimeout(this.animationTimeout);
+              this.animationTimeout = null;
+            }
+            if (this.moveTimeout) {
+              clearTimeout(this.moveTimeout);
+              this.moveTimeout = null;
+            }
+            
+            // Force remove ALL popups from the DOM (not just tracked ones)
+            document.querySelectorAll('.mapboxgl-popup').forEach(popup => {
+              popup.remove();
+            });
+            
+            uiController.clearMiniInfoBoxes();
           
           // Remove header badge on reset
           const existingBadge = document.getElementById('playing-badge');
