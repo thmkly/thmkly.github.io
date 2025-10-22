@@ -612,19 +612,21 @@ class MapController {
           this.minimizedPopup = null;
         }
 
-        // Update active track, only scroll playlist if from auto-play and track not visible
-        if (fromAutoPlay) {
-          // Check if track is visible in playlist
-          const trackElement = document.querySelector(`.track[data-id="${index}"]`);
-          const playlist = document.getElementById('playlist');
-          if (trackElement && playlist) {
-            const trackRect = trackElement.getBoundingClientRect();
-            const playlistRect = playlist.getBoundingClientRect();
-            const isVisible = trackRect.top >= playlistRect.top && trackRect.bottom <= playlistRect.bottom;
-            this.updateActiveTrack(index, !isVisible); // Only scroll if not visible
-          } else {
-            this.updateActiveTrack(index, true); // Scroll if can't determine visibility
-          }
+       // Add small delay to let DOM settle before checking visibility
+        setTimeout(() => {
+          // Update active track, only scroll playlist if from auto-play and track not visible
+          if (fromAutoPlay) {
+            // Check if track is visible in playlist
+            const trackElement = document.querySelector(`.track[data-id="${index}"]`);
+            const playlist = document.getElementById('playlist');
+            if (trackElement && playlist) {
+              const trackRect = trackElement.getBoundingClientRect();
+              const playlistRect = playlist.getBoundingClientRect();
+              const isVisible = trackRect.top >= playlistRect.top && trackRect.bottom <= playlistRect.bottom;
+              this.updateActiveTrack(index, !isVisible); // Only scroll if not visible
+            } else {
+              this.updateActiveTrack(index, true); // Scroll if can't determine visibility
+            }
           } else {
             // For manual clicks: scroll if from map click AND track not visible
             let shouldScroll = false;
@@ -643,6 +645,7 @@ class MapController {
             }
             this.updateActiveTrack(index, shouldScroll);
           }
+        }, 50);  // 50ms delay - just enough for DOM to settle
 
         const audio = audioController.play(index, this.audioData);
 
