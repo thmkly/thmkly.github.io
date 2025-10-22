@@ -159,7 +159,7 @@
         }
         
         // Pass false to indicate manual navigation
-        mapController.playAudio(prevIndex, false);
+        mapController.playAudio(prevIndex, false, true);
       }
 
         stop() {
