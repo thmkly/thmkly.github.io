@@ -185,13 +185,15 @@ class MapController {
           });
         });
 
-           map.on('click', 'unclustered-point', (e) => {
+          map.on('click', 'unclustered-point', (e) => {
+            console.log('MAP MARKER CLICKED - unclustered-point handler');
             const feature = e.features[0];
             if (!feature) return;
             const originalIndex = parseInt(feature.properties.originalIndex);
             
             // Find this track in the current sorted playlist
             const currentIndex = this.audioData.findIndex(track => track.originalIndex === originalIndex);
+            console.log('About to call playAudio with currentIndex:', currentIndex, 'fromMap: true');
             if (currentIndex !== -1) {
               // Close mobile menu if open
               if (uiController.isMobile && uiController.mobilePlaylistExpanded) {
