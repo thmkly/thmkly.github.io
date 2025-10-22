@@ -690,6 +690,7 @@ class MapController {
             this.showPopup([parseFloat(track.lng), parseFloat(track.lat)], track, audio, index);
             uiController.showMiniInfoBoxes(null, this.audioData);
           }, duration + 200); // 200ms additional delay after flyto completes
+        }
 
       showTrackPopup(index, autoPlay = true) {
         const track = this.audioData[index];
