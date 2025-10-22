@@ -690,11 +690,12 @@ class MapController {
             this.showPopup([parseFloat(track.lng), parseFloat(track.lat)], track, audio, index);
             uiController.showMiniInfoBoxes(null, this.audioData);
           }, duration + 200); // 200ms additional delay after flyto completes
+        }, 100);
+      }
 
       showTrackPopup(index, autoPlay = true) {
         const track = this.audioData[index];
         if (!track) return;
-
         const coords = [parseFloat(track.lng), parseFloat(track.lat)];
         
         if (autoPlay) {
