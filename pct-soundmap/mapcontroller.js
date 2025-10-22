@@ -1014,13 +1014,15 @@ class MapController {
         return 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a)) * R;
       }
 
-        showPopup(coords, track, audio, index) {
-            
-        // Remove old popup before creating new one
-          if (this.currentPopup) {
-            this.currentPopup.remove();
-            this.currentPopup = null;
-          }
+          showPopup(coords, track, audio, index) {
+            // Don't create popups if audio has been stopped (reset in progress)
+            if (audioController.currentIndex === -1) return;
+              
+          // Remove old popup before creating new one
+            if (this.currentPopup) {
+              this.currentPopup.remove();
+              this.currentPopup = null;
+            }
         
           const container = document.createElement('div');
           container.style.fontFamily = 'helvetica, sans-serif';
