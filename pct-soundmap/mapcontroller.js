@@ -685,17 +685,11 @@ class MapController {
           // Get the flyto duration and delay popup creation until after it completes
           const duration = this.getMovementDuration(track);
           
-          // Show popup after flyto completes with a small additional delay for smoothness
+          // Show popup and mini boxes after flyto completes
           setTimeout(() => {
             this.showPopup([parseFloat(track.lng), parseFloat(track.lat)], track, audio, index);
-          }, duration + 200); // 200ms additional delay after flyto completes
-          
-          // Show mini boxes after map positioning is complete
-          setTimeout(() => {
             uiController.showMiniInfoBoxes(null, this.audioData);
-          }, duration + 300);
-        }, 100);
-      }
+          }, duration + 200); // 200ms additional delay after flyto completes
 
       showTrackPopup(index, autoPlay = true) {
         const track = this.audioData[index];
