@@ -805,17 +805,11 @@ class MapController {
             badge.style.whiteSpace = 'normal';
             badge.style.lineHeight = '1.3';
             
-            // Position badge based on mobile/desktop
-            if (uiController.isMobile) {
-              badge.style.top = '20px';
-              badge.style.right = '20px';
-              badge.style.left = 'auto';
-              badge.style.textAlign = 'right';
-            } else {
-              badge.style.top = '20px';
-              badge.style.left = '20px';
-              badge.style.right = 'auto';
-            }
+               // Position badge in upper left for both mobile and desktop
+               badge.style.top = '20px';
+               badge.style.left = '20px';
+               badge.style.right = 'auto';
+               badge.style.textAlign = 'left';
             
             // Click to fly to track location (keep minimized state)
             badge.addEventListener('click', () => {
