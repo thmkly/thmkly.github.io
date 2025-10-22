@@ -575,7 +575,7 @@ class MapController {
           }
         }
 
-      playAudio(index, fromAutoPlay = false, fromMap=false) {
+      playAudio(index, fromAutoPlay = false, fromMap = false) {
         const track = this.audioData[index];
         if (!track) {
           console.error('No track found at index:', index);
