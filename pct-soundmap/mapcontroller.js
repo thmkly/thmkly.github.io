@@ -665,20 +665,23 @@ class MapController {
           atmosphereController.applyFallbackAtmosphere(conditions);
         }
         
-        // Don't collapse menu - removed this functionality
-        
-        // Add delay before positioning to prevent conflicts
+          // Add delay before positioning to prevent conflicts
         this.animationTimeout = setTimeout(() => {
           this.positionMapForTrack(track, index);
-          this.showPopup([parseFloat(track.lng), parseFloat(track.lat)], track, audio, index);
           
-            // Show mini boxes after map positioning is complete
-            const duration = this.getMovementDuration(track);
-            setTimeout(() => {
-              uiController.showMiniInfoBoxes(null, this.audioData);
-            }, duration + 300);
+          // Get the flyto duration and delay popup creation until after it completes
+          const duration = this.getMovementDuration(track);
+          
+          // Show popup after flyto completes with a small additional delay for smoothness
+          setTimeout(() => {
+            this.showPopup([parseFloat(track.lng), parseFloat(track.lat)], track, audio, index);
+          }, duration + 200); // 200ms additional delay after flyto completes
+          
+          // Show mini boxes after map positioning is complete
+          setTimeout(() => {
+            uiController.showMiniInfoBoxes(null, this.audioData);
+          }, duration + 300);
         }, 100);
-      }
 
       showTrackPopup(index, autoPlay = true) {
         const track = this.audioData[index];
