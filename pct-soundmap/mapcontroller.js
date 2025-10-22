@@ -533,7 +533,7 @@ class MapController {
             if (uiController.isMobile && uiController.mobilePlaylistExpanded) {
               uiController.collapseMobileMenu();
             }
-            this.playAudio(index);
+            this.playAudio(index, false, false);
           });
           
           playlist.appendChild(div);
