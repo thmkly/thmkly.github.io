@@ -651,7 +651,11 @@ class MapController {
           this.updateHeaderBadge(track);
         }
         
-        // Clear old mini boxes before positioning
+        // Clear old popup and mini boxes immediately before positioning
+        if (this.currentPopup) {
+          this.currentPopup.remove();
+          this.currentPopup = null;
+        }
         uiController.clearMiniInfoBoxes();
         
         // Apply atmospheric lighting for this track (removed notification)
