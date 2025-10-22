@@ -682,6 +682,7 @@ class MapController {
             uiController.showMiniInfoBoxes(null, this.audioData);
           }, duration + 300);
         }, 100);
+      }
 
       showTrackPopup(index, autoPlay = true) {
         const track = this.audioData[index];
