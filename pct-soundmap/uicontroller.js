@@ -479,10 +479,10 @@ class UIController {
           title.className = 'mini-infobox-title';
           title.textContent = track.name.replace(/^[^\s]+\s+-\s+/, '');
           
-          // Make entire mini box clickable to play audio and show popup
+           // Make entire mini box clickable to play audio and show popup
           infoBox.addEventListener('click', (e) => {
-            e.stopPropagation();
-            mapController.playAudio(currentIndex);
+           e.stopPropagation();
+           mapController.playAudio(currentIndex, false, true);
           });
           
           infoBox.appendChild(playIcon);
