@@ -793,7 +793,31 @@ class MapController {
             const badge = document.createElement('div');
             badge.id = 'playing-badge';
             const trackName = track.name.replace(/^[^\s]+\s+-\s+/, '');
-            badge.innerHTML = `<span style="display: inline-block; margin-right: 8px;">▶</span><span class="badge-title">${trackName}</span><span class="badge-time" style="margin-left: 8px; font-family: monospace; color: #333;">0:00</span>`;
+            badge.innerHTM
+          const playTriangle = document.createElement('span');
+               playTriangle.style.display = 'inline-block';
+               playTriangle.style.marginRight = '6px';
+               playTriangle.style.width = '0';
+               playTriangle.style.height = '0';
+               playTriangle.style.borderLeft = '8px solid #333';
+               playTriangle.style.borderTop = '5px solid transparent';
+               playTriangle.style.borderBottom = '5px solid transparent';
+               playTriangle.style.verticalAlign = 'middle';
+               
+               const titleSpan = document.createElement('span');
+               titleSpan.className = 'badge-title';
+               titleSpan.textContent = trackName;
+               
+               const timeSpan = document.createElement('span');
+               timeSpan.className = 'badge-time';
+               timeSpan.style.marginLeft = '8px';
+               timeSpan.style.fontFamily = 'monospace';
+               timeSpan.style.color = '#333';
+               timeSpan.textContent = '0:00';
+               
+               badge.appendChild(playTriangle);
+               badge.appendChild(titleSpan);
+               badge.appendChild(timeSpan);
             badge.style.position = 'absolute';
             badge.style.fontSize = '16px';
             badge.style.color = '#333';
