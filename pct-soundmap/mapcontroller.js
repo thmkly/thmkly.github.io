@@ -655,10 +655,8 @@ class MapController {
 
         const audio = audioController.play(index, this.audioData);
 
-        // Update badge if playlist is collapsed (regardless of minimize state)
-        if (!uiController.playlistExpanded) {
+          // Always update badge when audio plays (visibility is controlled inside updateHeaderBadge)
           this.updateHeaderBadge(track);
-        }
         
         // Clear old popup and mini boxes immediately before positioning
         if (this.currentPopup) {
