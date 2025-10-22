@@ -634,14 +634,17 @@ class MapController {
               const trackElement = document.querySelector(`.track[data-id="${index}"]`);
               const playlist = document.getElementById('playlist');
               console.log('Map click - trackElement:', trackElement, 'playlist:', playlist);
-              if (trackElement && playlist) {
-                const trackRect = trackElement.getBoundingClientRect();
-                const playlistRect = playlist.getBoundingClientRect();
-                const isVisible = trackRect.top >= playlistRect.top && trackRect.bottom <= playlistRect.bottom;
-                shouldScroll = !isVisible;
-              } else {
-                shouldScroll = true;
-              }
+               if (trackElement && playlist) {
+                 const trackRect = trackElement.getBoundingClientRect();
+                 const playlistRect = playlist.getBoundingClientRect();
+                 const isVisible = trackRect.top >= playlistRect.top && trackRect.bottom <= playlistRect.bottom;
+                 shouldScroll = !isVisible;
+                 console.log('isVisible:', isVisible, 'shouldScroll:', shouldScroll);
+                 console.log('trackRect.top:', trackRect.top, 'trackRect.bottom:', trackRect.bottom);
+                 console.log('playlistRect.top:', playlistRect.top, 'playlistRect.bottom:', playlistRect.bottom);
+               } else {
+                 shouldScroll = true;
+               }
             }
             this.updateActiveTrack(index, shouldScroll);
           }
