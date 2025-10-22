@@ -1360,16 +1360,16 @@ class MapController {
           duration: 2000
         });
         
-        // Clear active track highlighting and reset styling
-        document.querySelectorAll('.track').forEach(el => {
-          el.classList.remove('active-track');
-          el.style.backgroundColor = '';
-          el.style.fontWeight = '';
-          const trackInfo = el.querySelector('.track-info');
-          if (trackInfo && trackInfo.textContent.startsWith('▶')) {
-            trackInfo.textContent = trackInfo.textContent.substring(2);
-          }
-        });
+          // Clear active track highlighting and reset styling
+          document.querySelectorAll('.track').forEach(el => {
+            el.classList.remove('active-track');
+            el.style.backgroundColor = '';
+            el.style.fontWeight = '';
+            const indicator = el.querySelector('.play-indicator');
+            if (indicator) {
+              indicator.remove();
+            }
+          });
         
         showNotification('Map reset to default view', 2000);
         }
