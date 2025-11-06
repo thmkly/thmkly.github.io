@@ -387,6 +387,38 @@ class AtmosphereController {
     }
   }
 
+  applyFallbackAtmosphere(conditions) {
+    // CSS-based fallback for browsers that don't support Mapbox atmosphere APIs
+    // This is a simplified version - just applies basic filters
+    if (typeof map === 'undefined' || 
+        (typeof map.setSky === 'function' && typeof map.setFog === 'function')) {
+      // Map supports modern APIs, no fallback needed
+      return;
+    }
+  
+    // Remove any existing overlay
+    const existingOverlay = document.getElementById('atmosphere-overlay');
+    if (existingOverlay) {
+      existingOverlay.remove();
+    }
+  
+    // Apply CSS filter based on time period
+    const mapContainer = document.getElementById('map');
+    if (!mapContainer) return;
+  
+    const filters = {
+      night: 'brightness(0.4) contrast(1.1)',
+      blueHourDawn: 'brightness(0.7) contrast(1.05) saturate(0.9)',
+      morningGoldenHour: 'brightness(1.05) contrast(1.05) saturate(1.15) sepia(0.05)',
+      day: 'brightness(1.0) contrast(1.0)',
+      eveningGoldenHour: 'brightness(1.03) contrast(1.08) saturate(1.18) sepia(0.06)',
+      blueHourDusk: 'brightness(0.75) contrast(1.05) saturate(0.95)'
+    };
+  
+    mapContainer.style.filter = filters[conditions.period] || filters.day;
+    mapContainer.style.transition = 'filter 2s ease-in-out';
+  }
+
   // Reset atmosphere to neutral default
   resetToDefault() {
     try {
