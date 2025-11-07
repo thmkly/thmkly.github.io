@@ -20,6 +20,82 @@ class AtmosphereController {
     return `${date.getTime()}-${roundedLat}-${roundedLng}`;
   }
 
+  // Convert UTC timestamp to proper Pacific Time (handles PDT/PST automatically)
+  convertToPacificTime(date) {
+    let d = new Date(date);
+    
+    // Check if timestamp appears to be already in Pacific Time
+    const isAlreadyPacific = typeof date === 'string' && 
+      !date.endsWith('Z') && 
+      !date.includes('+') && 
+      !date.includes('GMT') &&
+      !date.includes('UTC');
+    
+    if (isAlreadyPacific) {
+      // Timestamp is already in Pacific Time, use directly
+      return {
+        year: d.getFullYear(),
+        month: d.getMonth() + 1,
+        day: d.getDate(),
+        hour: d.getHours(),
+        minute: d.getMinutes(),
+        second: d.getSeconds(),
+        originalDate: d
+      };
+    }
+    
+    // If it's a UTC timestamp (ends with Z), convert to Pacific
+    if (typeof date === 'string' && date.endsWith('Z')) {
+      d = new Date(date);
+    }
+    
+    // Convert to Pacific timezone using proper timezone handling
+    const pacificTime = new Intl.DateTimeFormat('en-US', {
+      timeZone: 'America/Los_Angeles',
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
+      hour12: false
+    }).formatToParts(d);
+
+    const year = parseInt(pacificTime.find(p => p.type === 'year').value);
+    const month = parseInt(pacificTime.find(p => p.type === 'month').value);
+    const day = parseInt(pacificTime.find(p => p.type === 'day').value);
+    const hour = parseInt(pacificTime.find(p => p.type === 'hour').value);
+    const minute = parseInt(pacificTime.find(p => p.type === 'minute').value);
+    const second = parseInt(pacificTime.find(p => p.type === 'second').value);
+
+    return { year, month, day, hour, minute, second, originalDate: d };
+  }
+
+  // Format Pacific time with correct PDT/PST designation
+  formatPacificTime(pacificTime) {
+    const { year, month, day, hour, minute, originalDate } = pacificTime;
+    const isDST = this.isDaylightSavingTime(originalDate);
+    const tz = isDST ? 'PDT' : 'PST';
+    
+    return `${year}-${month.toString().padStart(2, '0')}-${day.toString().padStart(2, '0')} ${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')} ${tz}`;
+  }
+
+  // Check if date is during Daylight Saving Time
+  isDaylightSavingTime(date) {
+    // DST in US: Second Sunday in March to First Sunday in November
+    const year = date.getFullYear();
+    
+    // Second Sunday in March
+    const march = new Date(year, 2, 1); // March 1st
+    const dstStart = new Date(year, 2, (14 - march.getDay()) % 7 + 8);
+    
+    // First Sunday in November  
+    const november = new Date(year, 10, 1); // November 1st
+    const dstEnd = new Date(year, 10, (7 - november.getDay()) % 7 + 1);
+    
+    return date >= dstStart && date < dstEnd;
+  }
+
   // Simple time period detection based on hour of day
   getTimePeriod(hour, month, lat) {
     // Adjust day length slightly by season and latitude
