@@ -10,6 +10,7 @@ class AudioController {
     this.playQueue = [];
     this.lastPlayNext = 0;
     this.playHistory = []; // Track play history for random mode
+    this.isNavigatingBack = false; // ADDED: Flag to prevent history corruption during backward navigation
     this.setupAudioElement(); // CHANGED: Setup persistent audio element first
     this.setupWakeLock();
   }
@@ -69,12 +70,16 @@ class AudioController {
     if (!track) return;
 
     // Add to play history (keep last 50 for memory management)
-    if (this.currentIndex !== -1 && this.currentIndex !== index) {
+    // FIXED: Don't add to history if we're navigating backwards
+    if (this.currentIndex !== -1 && this.currentIndex !== index && !this.isNavigatingBack) {
       this.playHistory.push(this.currentIndex);
       if (this.playHistory.length > 50) {
         this.playHistory.shift();
       }
     }
+
+    // Reset the backward navigation flag after processing
+    this.isNavigatingBack = false;
 
     this.currentIndex = index;
     this.isPlaying = true;
@@ -149,6 +154,8 @@ class AudioController {
         return; // Do nothing if no history
       }
       prevIndex = this.playHistory.pop();
+      // FIXED: Set flag to prevent re-adding current track to history
+      this.isNavigatingBack = true;
     } else {
       // Always go UP the playlist (bottom→top, higher index→0)
       // This works for all modes since the playlist is now arranged correctly
