@@ -358,18 +358,20 @@
   .hamburger-menu {
     display: none;
     position: fixed;
-    top: 20px;
-    left: 20px;
+    top: 15px;
+    right: 15px;
+    left: auto;
     z-index: 1001;
-    background-color: rgba(255, 255, 255, 0.9);
-    border: none;
-    border-radius: 4px;
-    padding: 8px;
-    cursor: pointer;
     width: 40px;
     height: 40px;
+    padding: 0;
+    background: rgba(255, 255, 255, 0.5);
+    backdrop-filter: blur(10px);
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
     flex-direction: column;
-    justify-content: space-around;
+    justify-content: center;
     align-items: center;
   }
 
@@ -668,23 +670,10 @@
           fullscreenBtnMobile.style.display = 'inline-block';
         }
         
-        // Hamburger menu toggle
-        const hamburgerMenu = document.getElementById('hamburgerMenu');
-        const playlistWrapper = document.getElementById('playlistWrapper');
-        const mobileMenuClose = document.getElementById('mobileMenuClose');
+        // REMOVED: Hamburger menu handler - uiController already handles this via toggleMobileMenu()
+        // The uiController properly toggles open/close, so we don't need duplicate logic here
         
-        if (hamburgerMenu) {
-          hamburgerMenu.addEventListener('click', () => {
-            if (!uiController.mobilePlaylistExpanded) {
-              const wrapper = document.getElementById('playlistWrapper');
-              const hamburger = document.querySelector('.hamburger-menu');
-              uiController.mobilePlaylistExpanded = true;
-              wrapper.classList.add('mobile-expanded');
-              document.body.classList.add('mobile-menu-open');
-              if (hamburger) hamburger.classList.add('open');
-            }
-          });
-        }
+        const mobileMenuClose = document.getElementById('mobileMenuClose');
         
         // Mobile close button
         if (mobileMenuClose) {
@@ -694,8 +683,11 @@
         }
         
         // Close menu when clicking outside on mobile
+        const hamburgerMenu = document.getElementById('hamburgerMenu');
+        const playlistWrapper = document.getElementById('playlistWrapper');
         document.addEventListener('click', (e) => {
           if (window.innerWidth <= 768 && 
+              hamburgerMenu && 
               !hamburgerMenu.contains(e.target) && 
               !playlistWrapper.contains(e.target) &&
               playlistWrapper.classList.contains('mobile-expanded')) {
