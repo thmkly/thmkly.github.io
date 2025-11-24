@@ -705,16 +705,14 @@ class MapController {
       }
 
         minimizePopup(track, index) {
-          // Just remove the popup - audio lives in document.body and keeps playing
+          // Just remove the popup - audio element is persistent and keeps playing
           if (this.currentPopup) {
             this.currentPopup.remove();
             this.currentPopup = null;
           }
           
-          // Hide the audio element (it's still playing in the background)
-          if (audioController.currentAudio) {
-            audioController.currentAudio.style.display = 'none';
-          }
+          // REMOVED: No need to hide audio element - it's persistent and always visible
+          // The audio player now lives independently at the bottom of the page
           
           // Create a mini infobox for the minimized popup
           const coords = [parseFloat(track.lng), parseFloat(track.lat)];
