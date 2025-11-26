@@ -19,14 +19,9 @@
     width: 100%;
   }
 
-  /* ADDED: Persistent audio player styling */
+  /* ADDED: Persistent audio player - hidden for iOS background playback support */
   #persistent-audio {
-    position: fixed;
-    bottom: 20px;
-    left: 20px;
-    z-index: 1000;
-    width: 300px;
-    max-width: calc(100vw - 40px);
+    display: none; /* Hidden but functional for iOS */
   }
 
   /* Playlist Styles */
@@ -278,48 +273,145 @@
     }
     
     .mini-infobox-title {
-      font-weight: 500;
-      white-space: nowrap;
+      flex: 1;
       overflow: hidden;
       text-overflow: ellipsis;
+      white-space: nowrap;
+      cursor: pointer;
     }
-    
-    .play-icon {
-      width: 0;
-      height: 0;
-      border-left: 8px solid #333;
-      border-top: 5px solid transparent;
-      border-bottom: 5px solid transparent;
-      flex-shrink: 0;
-    }
+
+  .play-icon {
+    width: 0;
+    height: 0;
+    border-left: 6px solid #5c3a2e;
+    border-top: 4px solid transparent;
+    border-bottom: 4px solid transparent;
+    flex-shrink: 0;
+    cursor: pointer;
+  }
+
+  .play-icon:hover {
+    border-left-color: #4a2e24;
+  }
+
+/* Currently Playing Sound Badge */
+  #playing-badge {
+    background-color: rgba(255, 235, 220, 0.7); /* ADDED: Subtle background for visibility */
+    padding: 8px 12px;
+    border-radius: 4px;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+  }
+
+  #playing-badge:hover {
+  text-decoration: underline;
+  background-color: rgba(255, 180, 140, 0.75); /* Slightly more visible on hover */
+}
+  
+  /* Popup minimize button */
+  .popup-minimize {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    width: 28px;
+    height: 28px;
+    background: transparent;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 20px;
+    line-height: 1;
+    color: #666;
+    padding: 0;
+    transition: background-color 0.2s;
+  }
+
+  .popup-minimize:hover {
+    background-color: #f0f0f0;
+    color: #333;
+  }
+
+  .popup-minimize:focus {
+  outline: none;
+  }
+
+  /* Adjust popup close button to hide it */
+  .mapboxgl-popup-close-button {
+    display: none;
+  }
+  .popup-controls {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 10px;
+    margin: 8px 0;
+    position: relative;
+  }
+
+  .nav-arrow {
+    background: transparent;
+    color: #333;
+    border: 1px solid #ccc;
+    border-radius: 3px;
+    padding: 8px 12px;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: bold;
+    transition: all 0.2s;
+    min-width: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .nav-arrow:hover {
+    background: #f0f0f0;
+    color: #000;
+  }
+
+  .nav-arrow:disabled {
+    background: transparent;
+    color: #ccc;
+    border-color: #eee;
+    cursor: not-allowed;
+  }
+
+  .audio-container {
+    flex: 1;
+    margin: 0 10px;
+  }
 
   /* Cluster Playlist */
   .cluster-playlist {
     position: absolute;
-    background-color: rgba(255, 255, 255, 0.95);
+    background: rgba(255, 255, 255, 0.85);
     border: 1px solid #ccc;
     border-radius: 4px;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
-    max-height: 300px;
+    padding: 4px;
+    font-size: 11px;
+    max-width: 250px;
+    max-height: 200px;
     overflow-y: auto;
-    z-index: 10;
-    pointer-events: auto;
-    min-width: 200px;
+    z-index: 1000;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
   }
 
   .cluster-item {
-    padding: 8px 12px;
-    font-size: 12px;
+    padding: 4px 8px;
     cursor: pointer;
     border-bottom: 1px solid #eee;
     display: flex;
     align-items: center;
-    gap: 6px;
+    gap: 4px;
     transition: background-color 0.2s;
+    border-radius: 2px;
+    margin: 1px 0;
   }
 
   .cluster-item:hover {
-    background-color: rgba(240, 240, 240, 0.95);
+    background-color: rgba(240, 240, 240, 0.9);
   }
 
   .cluster-item:last-child {
@@ -327,86 +419,127 @@
   }
 
   .cluster-item-title {
-    font-weight: 500;
     flex: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
 
-  /* Notification System */
+  .cluster-item .play-icon {
+    width: 0;
+    height: 0;
+    border-left: 5px solid #5c3a2e;
+    border-top: 3px solid transparent;
+    border-bottom: 3px solid transparent;
+    flex-shrink: 0;
+  }
+
+  .cluster-item:hover .play-icon {
+    border-left-color: #4a2e24;
+  }
+
+  /* Map Controls */
+  .mapboxgl-canvas {
+    cursor: grab;
+  }
+
+  .mapboxgl-popup {
+    z-index: 10 !important;
+  }
+
+  .mapboxgl-popup-content {
+    opacity: 0.8;
+    transition: opacity 0.3s ease;
+    min-width: 320px;
+    max-width: 90vw;
+    box-sizing: border-box;
+  }
+
+  .mapboxgl-popup-close-button:focus {
+    outline: none;
+    box-shadow: none;
+  }
+
+  .loading-placeholder {
+    text-align: center;
+    color: #555;
+    padding: 8px;
+  }
+
+  /* Notification Messages */
   .notification {
     position: fixed;
     top: 50%;
     left: 50%;
     transform: translate(-50%, -50%);
-    background-color: rgba(0, 0, 0, 0.75);
+    background: rgba(0, 0, 0, 0.7);
     color: white;
-    padding: 16px 24px;
+    padding: 12px 20px;
     border-radius: 6px;
-    font-size: 15px;
+    font-size: 14px;
     z-index: 10000;
+    pointer-events: none;
     opacity: 0;
     transition: opacity 0.3s ease;
-    pointer-events: none;
-    max-width: 80vw;
-    text-align: center;
   }
 
   .notification.show {
     opacity: 1;
   }
 
-  /* Hamburger Menu for Mobile */
+  /* Mobile controls - hidden on desktop */
+  .mobile-controls {
+    display: none;
+  }
+
+  /* Hamburger menu button */
   .hamburger-menu {
     display: none;
     position: fixed;
     top: 15px;
     right: 15px;
     left: auto;
-    z-index: 1001;
     width: 40px;
     height: 40px;
     padding: 0;
     background: rgba(255, 255, 255, 0.5);
     backdrop-filter: blur(10px);
-    border: none;
-    border-radius: 4px;
+    border: 1px solid #ccc;
+    border-radius: 5px;
     cursor: pointer;
-    flex-direction: column;
-    justify-content: center;
+    z-index: 1001;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+    transition: background-color 0.2s;
     align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .hamburger-menu:hover {
+    background-color: rgba(255, 255, 255, 0.7);
   }
 
   .hamburger-menu span {
     display: block;
-    width: 24px;
-    height: 3px;
+    width: 22px;
+    height: 2px;
     background-color: #333;
-    transition: all 0.3s ease;
+    transition: all 0.3s;
   }
 
-  .hamburger-menu.open span:nth-child(1) {
-    transform: rotate(45deg) translate(5px, 5px);
-  }
-
-  .hamburger-menu.open span:nth-child(2) {
-    opacity: 0;
-  }
-
-  .hamburger-menu.open span:nth-child(3) {
-    transform: rotate(-45deg) translate(7px, -6px);
-  }
-
-  /* Mobile Menu Close Button (X) */
+  /* Mobile close button */
   .mobile-menu-close {
     display: none;
     position: absolute;
-    top: 10px;
-    right: 10px;
+    top: 15px;
+    right: 15px;
     width: 30px;
     height: 30px;
+    padding: 0;
     background: transparent;
     border: none;
     cursor: pointer;
-    padding: 0;
     z-index: 1002;
   }
 
@@ -414,11 +547,12 @@
   .mobile-menu-close::after {
     content: '';
     position: absolute;
+    left: 50%;
+    top: 50%;
     width: 20px;
     height: 2px;
-    background-color: #333;
-    top: 50%;
-    left: 50%;
+    background-color: #666;
+    transform-origin: center;
   }
 
   .mobile-menu-close::before {
@@ -429,90 +563,256 @@
     transform: translate(-50%, -50%) rotate(-45deg);
   }
 
-  @media (max-width: 768px) {
-    .hamburger-menu {
-      display: flex;
-    }
+  .mobile-menu-close:hover::before,
+  .mobile-menu-close:hover::after {
+    background-color: #333;
+  }
 
+  .mobile-playlist-toggle {
+    display: none;
+  }
+
+  .mobile-playlist-collapse {
+    display: none;
+  }
+
+  /* Mobile Layout */
+  @media (max-width: 768px) {
+    /* Hide desktop control panel on mobile */
     .control-panel {
       display: none;
     }
 
+    /* Show hamburger menu on mobile */
+    .hamburger-menu {
+      display: flex;
+    }
+    
+    /* Hide hamburger when menu is expanded */
+    body.mobile-menu-open .hamburger-menu {
+      display: none;
+    }
+
+    /* Hamburger transforms to X when menu is open */
+    .hamburger-menu.open span:nth-child(1) {
+      transform: rotate(45deg) translate(5px, 5px);
+    }
+    
+    .hamburger-menu.open span:nth-child(2) {
+      opacity: 0;
+    }
+    
+    .hamburger-menu.open span:nth-child(3) {
+      transform: rotate(-45deg) translate(5px, -5px);
+    }
+
+    /* Mobile playlist wrapper - slides in from left with high z-index */
     .playlist-wrapper {
+      position: fixed;
       top: 0;
-      left: 0;
-      width: 100%;
-      max-width: 100%;
+      right: 0;
+      left: auto;
+      transform: translateX(100%);
+      width: calc(100vw - 50px);
+      max-width: 350px;
       height: 100vh;
-      max-height: 100vh;
+      background-color: rgba(255, 255, 255, 0.6);
+      backdrop-filter: blur(10px);
+      z-index: 10000; /* High z-index to be above ko-fi widget */
       border-radius: 0;
-      transform: translateX(-100%);
+      box-shadow: 4px 0 20px rgba(0, 0, 0, 0.3);
       transition: transform 0.3s ease;
-      background-color: rgba(255, 255, 255, 0.97);
+      display: flex;
+      flex-direction: column;
+      opacity: 1;
+      pointer-events: auto;
     }
 
     .playlist-wrapper.mobile-expanded {
       transform: translateX(0);
     }
 
+    /* Show close button when menu is expanded */
     .playlist-wrapper.mobile-expanded .mobile-menu-close {
       display: block;
     }
 
-    .playlist-wrapper.mobile-expanded .mobile-controls {
-      display: flex !important;
-      flex-direction: column;
-      gap: 8px;
-      padding: 10px;
+    /* Mobile controls integrated into playlist wrapper */
+    .mobile-controls {
+      display: block;
+      padding: 15px; /* Uniform padding since close button is absolute positioned */
       border-bottom: 1px solid #ddd;
+      background: rgba(255, 255, 255, 0.6);
+      border-radius: 0;
+    }
+    
+    .mobile-controls .control-row {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 10px;
+    }
+    
+    .mobile-controls .sort-controls {
+      display: flex;
+      gap: 4px;
+      align-items: center;
+      flex-wrap: wrap;
     }
 
-    .playlist-toggle {
+    /* Mobile playlist toggle - hide since we use hamburger */
+    .playlist-wrapper .playlist-toggle {
       display: none;
     }
 
-    body.mobile-menu-open {
-      overflow: hidden;
+    /* Remove mobile-specific show/hide buttons */
+    .mobile-playlist-toggle {
+      display: none !important;
     }
 
-    .playlist {
-      max-height: calc(100vh - 150px);
+    .mobile-playlist-collapse {
+      display: none !important;
     }
 
-    /* ADDED: Mobile audio player positioning */
-    #persistent-audio {
-      bottom: 10px;
-      left: 10px;
-      right: 10px;
-      width: auto;
-      max-width: none;
+    /* Show mobile controls inside playlist when on mobile */
+    .playlist-wrapper .mobile-controls {
+      display: block !important;
+    }
+
+    /* Mobile playlist content */
+    .playlist-wrapper .playlist {
+      max-height: none;
+      flex: 1;
+      overflow-y: auto;
+      margin-top: 0;
+    }
+
+    /* Hide desktop scroll arrows on mobile */
+    .playlist-wrapper .scroll-arrow {
+      display: none !important;
+    }
+  
+    /* Ko-fi widget - force position on mobile */
+    .floatingchat-container-wrap-mobi,
+    .floatingchat-container-wrap-mobi[style] {
+      position: fixed !important;
+      left: auto;
+      right: 99% !important;
+      transform: translateX(-50%) !important;
+      margin-left: 0 !important;
+      bottom: 5px !important;
+      width: auto !important;
+      z-index: 9999 !important;
+    }
+    
+    .floating-chat-kofi-popup-iframe-mobi,
+    .floating-chat-kofi-popup-iframe-mobi[style] {
+      left: 50% !important;
+      right: unset !important;
+      transform: translateX(-50%) !important;
+      bottom: 80px !important;
+      z-index: 9999 !important;
+    }
+    
+    .floating-chat-kofi-popup-iframe-closer-mobi,
+    .floating-chat-kofi-popup-iframe-closer-mobi[style] {
+      left: 50% !important;
+      right: unset !important;
+      transform: translateX(-50%) !important;
     }
   }
+    
+    /* Mobile popup specific elements */
+    @media (max-width: 768px) {
+      .mapboxgl-popup-content h3 {
+        font-size: 17px !important;
+      }
+      
+      .mapboxgl-popup-content button {
+        font-size: 14px !important;
+        padding: 8px 12px !important;
+      }
 
-  /* Playing badge styles */
-  #playing-badge {
-    position: absolute;
-    background-color: rgba(255, 235, 220, 0.95);
-    padding: 8px 12px;
-    border-radius: 4px;
-    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    transition: background-color 0.2s;
+      /* Mobile mini info boxes */
+      .mini-infobox {
+        max-width: 140px;
+        font-size: 12px;
+        padding: 4px 7px;
+      }
+  
+      /* Mobile popup adjustments */
+      .mapboxgl-popup-content {
+        min-width: 280px;
+        max-width: calc(100vw - 40px);
+        font-size: px;
+      }
+    }
+    
+    /* Mobile notification text */
+    .notification {
+      font-size: 16px;
+    }
+
+    /* Mobile track items - larger text for readability */
+    .track {
+      padding: 8px 8px;
+      font-size: px;
+    }
+    
+    .track-mile {
+      font-size: 13px;
+    }
+    
+    /* Mobile control buttons - larger text */
+    .control-btn {
+      padding: 8px 10px;
+      font-size: 13px;
+    }
+    
+    .sort-btn {
+      padding: 6px 8px;
+      font-size: 12px;
+    }
+
+  /* Fullscreen styles */
+  .fullscreen-active {
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    width: 100vw !important;
+    height: 100vh !important;
+    z-index: 9999 !important;
   }
 
-  #playing-badge:hover {
-    background-color: rgba(255, 180, 140, 0.98);
+  /* Hide audio focus outline */
+  audio:focus {
+    outline: none;
   }
 
-  .badge-title {
-    font-weight: 500;
+  /* Play/Pause button styling */
+  .play-pause-btn {
+    font-family: helvetica, sans-serif !important;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    appearance: none;
   }
 
-  /* Ko-fi widget positioning */
+/* Mobile - make symbols less emoji-like */
   @media (max-width: 768px) {
-    /* ADDED: Account for audio player on mobile */
+    .play-pause-btn {
+      font-family: Arial, sans-serif !important;
+      font-weight: normal !important;
+    }
+  }
+
+/* Desktop - ensure right positioning is restored */
+  @media (min-width: 769px) {
+    .floatingchat-container-wrap,
+    .floatingchat-container-wrap[style] {
+      left: auto !important;
+      right: 20px !important;
+      transform: none !important;
+      bottom: 25px !important;
+    }
     .floating-chat-kofi-popup-iframe,
     .floating-chat-kofi-popup-iframe[style] {
       left: auto !important;
@@ -527,12 +827,13 @@
 <body>
   <div id="map"></div>
   
-  <!-- ADDED: Persistent audio element for iOS background playback support -->
+  <!-- ADDED: Persistent audio element for iOS background playback support (hidden) -->
   <audio id="persistent-audio" 
          preload="auto" 
          controls
          controlsList="nodownload"
-         oncontextmenu="return false;">
+         oncontextmenu="return false;"
+         style="display: none;">
   </audio>
   
   <!-- Hamburger menu button for mobile -->
@@ -673,6 +974,8 @@
         // REMOVED: Hamburger menu handler - uiController already handles this via toggleMobileMenu()
         // The uiController properly toggles open/close, so we don't need duplicate logic here
         
+        const hamburgerMenu = document.getElementById('hamburgerMenu');
+        const playlistWrapper = document.getElementById('playlistWrapper');
         const mobileMenuClose = document.getElementById('mobileMenuClose');
         
         // Mobile close button
@@ -683,8 +986,6 @@
         }
         
         // Close menu when clicking outside on mobile
-        const hamburgerMenu = document.getElementById('hamburgerMenu');
-        const playlistWrapper = document.getElementById('playlistWrapper');
         document.addEventListener('click', (e) => {
           if (window.innerWidth <= 768 && 
               hamburgerMenu && 
