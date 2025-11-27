@@ -1041,10 +1041,6 @@ class MapController {
           showPopup(coords, track, audio, index) {
             // Don't create popups if audio has been stopped (reset in progress)
             if (audioController.currentIndex === -1) return;
-            
-            // Hide badge immediately when showing popup
-            const badge = document.getElementById('playing-badge');
-            if (badge) badge.style.display = 'none';
               
           // Remove old popup before creating new one
             if (this.currentPopup) {
