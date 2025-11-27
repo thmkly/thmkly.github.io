@@ -1293,6 +1293,9 @@ class MapController {
             .addTo(map);
         
           this.currentPopup = popup;
+          
+          // Update badge visibility since popup is now showing
+          this.updateBadgeVisibility();
         }
 
       refreshPopupMileage(track) {
