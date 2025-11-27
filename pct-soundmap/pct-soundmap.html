@@ -300,34 +300,10 @@
     padding: 8px 12px;
     border-radius: 4px;
     box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
-    position: relative; /* For tooltip positioning */
   }
 
   #playing-badge:hover {
-  text-decoration: underline;
-  background-color: rgba(255, 180, 140, 0.75); /* Slightly more visible on hover */
-}
-
-  /* Tooltip for badge */
-  #playing-badge::after {
-    content: attr(title);
-    position: absolute;
-    bottom: calc(100% + 8px);
-    left: 50%;
-    transform: translateX(-50%);
-    padding: 6px 10px;
-    background: rgba(0, 0, 0, 0.85);
-    color: white;
-    font-size: 13px;
-    white-space: nowrap;
-    border-radius: 4px;
-    opacity: 0;
-    pointer-events: none;
-    transition: opacity 0.2s ease;
-  }
-
-  #playing-badge:hover::after {
-    opacity: 1;
+    background-color: rgba(255, 180, 140, 0.75); /* Slightly more visible on hover */
   }
   
   /* Popup minimize button */
