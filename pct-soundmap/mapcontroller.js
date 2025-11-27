@@ -1370,11 +1370,6 @@ class MapController {
             this.minimizedPopup.remove();
             this.minimizedPopup = null;
           }
-          
-          // Reset atmosphere to default/neutral
-          if (typeof atmosphereController !== 'undefined') {
-            atmosphereController.resetToDefault();
-          }
         
         // Disable 3D mode if it's enabled
         if (uiController.is3DEnabled) {
@@ -1401,6 +1396,11 @@ class MapController {
           bearing: 0,
           duration: 2000
         });
+        
+        // Reset atmosphere to default/neutral AFTER everything else is cleared
+        if (typeof atmosphereController !== 'undefined') {
+          atmosphereController.resetToDefault();
+        }
         
           // Clear active track highlighting and reset styling
           document.querySelectorAll('.track').forEach(el => {
