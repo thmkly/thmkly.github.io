@@ -1447,12 +1447,26 @@ class MapController {
           !uiController.mobilePlaylistExpanded : 
           !uiController.playlistExpanded;
         
-        // Check if there's a popup/minibox AND if it's actually visible on screen
+        // Check if popup/minibox is actually visible in the viewport
         let popupVisible = false;
         
-        if (this.currentPopup || this.minimizedPopup) {
-          // Check if the currently playing point is visible (popup is anchored to it)
-          popupVisible = this.isCurrentPointVisible();
+        if (this.currentPopup) {
+          // Check if the popup element is in the viewport
+          const popupElement = this.currentPopup._container;
+          if (popupElement) {
+            const rect = popupElement.getBoundingClientRect();
+            popupVisible = rect.top < window.innerHeight && 
+                          rect.bottom > 0 &&
+                          rect.left < window.innerWidth && 
+                          rect.right > 0;
+          }
+        } else if (this.minimizedPopup) {
+          // Check if mini box is in viewport
+          const rect = this.minimizedPopup.getBoundingClientRect();
+          popupVisible = rect.top < window.innerHeight && 
+                        rect.bottom > 0 &&
+                        rect.left < window.innerWidth && 
+                        rect.right > 0;
         }
         
         // Show badge when: playlist collapsed AND popup not visible on screen
