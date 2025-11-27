@@ -1443,17 +1443,14 @@ class MapController {
         const playlistCollapsed = uiController.isMobile ? 
           !uiController.mobilePlaylistExpanded : 
           !uiController.playlistExpanded;
+        
+        // Only check if the currently playing point is visible on screen
+        // If point is visible, assume its popup/minibox is also visible (they're anchored together)
         const pointVisible = this.isCurrentPointVisible();
         
-        // Check if there's any visible popup or mini infobox on screen
-        const hasVisiblePopup = document.querySelector('.mapboxgl-popup') !== null;
-        const hasVisibleMiniBox = document.querySelector('.mini-infobox.minimized-popup') !== null;
-        
-        // Show badge when: playlist collapsed AND point not visible AND no popup/minibox visible
+        // Show badge when: playlist collapsed AND point not visible
         const shouldShow = playlistCollapsed && 
                           !pointVisible && 
-                          !hasVisiblePopup && 
-                          !hasVisibleMiniBox && 
                           audioController.currentIndex >= 0;
         
         badge.style.display = shouldShow ? 'block' : 'none';
