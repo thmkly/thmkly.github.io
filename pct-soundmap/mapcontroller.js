@@ -804,7 +804,7 @@ class MapController {
                playTriangle.style.borderBottom = '5px solid transparent';
                playTriangle.style.verticalAlign = 'baseline';
                playTriangle.style.position = 'relative';
-               playTriangle.style.top = '2px'; // Fine-tune vertical position
+               playTriangle.style.top = '3px'; // Increased offset to lower it more
                
                const titleSpan = document.createElement('span');
                titleSpan.className = 'badge-title';
