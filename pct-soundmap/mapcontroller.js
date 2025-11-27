@@ -1041,6 +1041,10 @@ class MapController {
           showPopup(coords, track, audio, index) {
             // Don't create popups if audio has been stopped (reset in progress)
             if (audioController.currentIndex === -1) return;
+            
+            // Hide badge immediately when showing popup
+            const badge = document.getElementById('playing-badge');
+            if (badge) badge.style.display = 'none';
               
           // Remove old popup before creating new one
             if (this.currentPopup) {
@@ -1447,13 +1451,13 @@ class MapController {
           !uiController.mobilePlaylistExpanded : 
           !uiController.playlistExpanded;
         
-        // Only check if the currently playing point is visible on screen
-        // If point is visible, assume its popup/minibox is also visible (they're anchored together)
-        const pointVisible = this.isCurrentPointVisible();
+        // Check if there's a visible popup for the currently playing track
+        // This accounts for popup extending beyond the point marker
+        const hasVisiblePopup = this.currentPopup !== null || this.minimizedPopup !== null;
         
-        // Show badge when: playlist collapsed AND point not visible
+        // Show badge when: playlist collapsed AND no popup visible
         const shouldShow = playlistCollapsed && 
-                          !pointVisible && 
+                          !hasVisiblePopup && 
                           audioController.currentIndex >= 0;
         
         badge.style.display = shouldShow ? 'block' : 'none';
