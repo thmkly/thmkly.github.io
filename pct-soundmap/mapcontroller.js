@@ -691,18 +691,8 @@ class MapController {
           
           // Show popup and mini boxes after flyto completes
           setTimeout(() => {
-            // If was minimized, show minimized; otherwise show full popup
-            if (wasMinimized) {
-              // Show full popup first (needed for audio element)
-              this.showPopup([parseFloat(track.lng), parseFloat(track.lat)], track, audio, index);
-              // Then immediately minimize it
-              setTimeout(() => {
-                this.minimizePopup(track, index);
-              }, 50);
-            } else {
-              // Show full popup
-              this.showPopup([parseFloat(track.lng), parseFloat(track.lat)], track, audio, index);
-            }
+            // Pass wasMinimized flag to showPopup so it can minimize without flash
+            this.showPopup([parseFloat(track.lng), parseFloat(track.lat)], track, audio, index, wasMinimized);
             uiController.showMiniInfoBoxes(null, this.audioData);
           }, duration + 200); // 200ms additional delay after flyto completes
         }, 100);
@@ -1053,7 +1043,7 @@ class MapController {
         return 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a)) * R;
       }
 
-          showPopup(coords, track, audio, index) {
+          showPopup(coords, track, audio, index, shouldMinimize = false) {
             // Don't create popups if audio has been stopped (reset in progress)
             if (audioController.currentIndex === -1) return;
               
@@ -1314,6 +1304,11 @@ class MapController {
             .addTo(map);
         
           this.currentPopup = popup;
+          
+          // If should minimize, do it immediately (no flash)
+          if (shouldMinimize) {
+            this.minimizePopup(track, index);
+          }
         }
 
       refreshPopupMileage(track) {
