@@ -1455,5 +1455,4 @@ class MapController {
         
         badge.style.display = shouldShow ? 'block' : 'none';
       }
-      }
     }
