@@ -802,9 +802,7 @@ class MapController {
                playTriangle.style.borderLeft = '8px solid #333';
                playTriangle.style.borderTop = '5px solid transparent';
                playTriangle.style.borderBottom = '5px solid transparent';
-               playTriangle.style.verticalAlign = 'text-bottom';
-               playTriangle.style.position = 'relative';
-               playTriangle.style.top = '-1px'; // Slight lift from text-bottom
+               playTriangle.style.verticalAlign = 'middle';
                
                const titleSpan = document.createElement('span');
                titleSpan.className = 'badge-title';
@@ -1446,7 +1444,7 @@ class MapController {
         const pointVisible = this.isCurrentPointVisible();
         
         if (playlistCollapsed && !pointVisible && audioController.currentIndex >= 0) {
-          badge.style.display = 'flex';
+          badge.style.display = 'block';
         } else {
           badge.style.display = 'none';
         }
