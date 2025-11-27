@@ -1451,13 +1451,17 @@ class MapController {
           !uiController.mobilePlaylistExpanded : 
           !uiController.playlistExpanded;
         
-        // Check if there's a visible popup for the currently playing track
-        // This accounts for popup extending beyond the point marker
-        const hasVisiblePopup = this.currentPopup !== null || this.minimizedPopup !== null;
+        // Check if there's a popup/minibox AND if it's actually visible on screen
+        let popupVisible = false;
         
-        // Show badge when: playlist collapsed AND no popup visible
+        if (this.currentPopup || this.minimizedPopup) {
+          // Check if the currently playing point is visible (popup is anchored to it)
+          popupVisible = this.isCurrentPointVisible();
+        }
+        
+        // Show badge when: playlist collapsed AND popup not visible on screen
         const shouldShow = playlistCollapsed && 
-                          !hasVisiblePopup && 
+                          !popupVisible && 
                           audioController.currentIndex >= 0;
         
         badge.style.display = shouldShow ? 'block' : 'none';
