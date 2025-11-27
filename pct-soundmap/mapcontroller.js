@@ -687,6 +687,10 @@ class MapController {
           // Get the flyto duration and delay popup creation until after it completes
           const duration = this.getMovementDuration(track);
           
+          // Set popup state to mini for new track (unless we're maintaining state during auto-advance)
+          // For now, always reset to mini when explicitly playing a track
+          this.popupState = 'mini';
+          
           // Show popup and mini boxes after flyto completes
           setTimeout(() => {
             this.showPopup([parseFloat(track.lng), parseFloat(track.lat)], track, audio, index);
@@ -1038,6 +1042,32 @@ class MapController {
         return 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a)) * R;
       }
 
+      // Create State 1: Mini popup (just title, clickable to expand)
+      createMiniPopupContent(track, index) {
+        const container = document.createElement('div');
+        container.style.fontFamily = 'helvetica, sans-serif';
+        container.style.padding = '8px 12px';
+        container.style.cursor = 'pointer';
+        container.style.minWidth = '150px';
+        container.style.backgroundColor = 'rgba(255, 235, 220, 0.95)'; // Orange tint for currently playing
+        
+        // Title only
+        const title = document.createElement('div');
+        title.textContent = track.name;
+        title.style.fontSize = '14px';
+        title.style.fontWeight = '600';
+        title.style.color = '#333';
+        container.appendChild(title);
+        
+        // Click to expand to State 2
+        container.addEventListener('click', () => {
+          this.popupState = 'controls';
+          this.showPopup([parseFloat(track.lng), parseFloat(track.lat)], track, audioController.currentAudio, index);
+        });
+        
+        return container;
+      }
+
           showPopup(coords, track, audio, index) {
             // Don't create popups if audio has been stopped (reset in progress)
             if (audioController.currentIndex === -1) return;
@@ -1048,17 +1078,46 @@ class MapController {
               this.currentPopup = null;
             }
         
+          // Delegate to appropriate state handler
+          let container;
+          if (this.popupState === 'mini') {
+            container = this.createMiniPopupContent(track, index);
+          } else {
+            // For 'controls' and 'full' states, use existing full popup (for now)
+            // We'll add State 2 and 3 next
+            container = this.createFullPopupContent(track, audio, index);
+          }
+        
+          // Create and add popup to map
+          const popup = new mapboxgl.Popup({
+            closeButton: false,
+            closeOnClick: false,
+            maxWidth: 'none',
+            className: 'custom-popup'
+          })
+            .setLngLat(coords)
+            .setDOMContent(container)
+            .addTo(map);
+        
+          this.currentPopup = popup;
+          
+          // Update badge visibility since popup is now showing
+          this.updateBadgeVisibility();
+        }
+
+      // Create full popup content (State 2 & 3 - temporary, will split later)
+      createFullPopupContent(track, audio, index) {
           const container = document.createElement('div');
           container.style.fontFamily = 'helvetica, sans-serif';
           container.style.padding = '12px';
           container.style.position = 'relative';
           container.style.minWidth = '280px';
         
-          // Add minimize button (top-right, subtle)
+          // Add close button to collapse to mini (×)
           const minimizeBtn = document.createElement('button');
           minimizeBtn.className = 'popup-minimize';
-          minimizeBtn.innerHTML = '−';
-          minimizeBtn.title = 'Minimize';
+          minimizeBtn.innerHTML = '×';
+          minimizeBtn.title = 'Collapse';
           minimizeBtn.type = 'button';
           minimizeBtn.tabIndex = -1;
           minimizeBtn.style.position = 'absolute';
@@ -1076,7 +1135,8 @@ class MapController {
           minimizeBtn.addEventListener('click', (e) => {
             e.preventDefault();
             e.stopPropagation();
-            this.minimizePopup(track, index);
+            this.popupState = 'mini';
+            this.showPopup([parseFloat(track.lng), parseFloat(track.lat)], track, audioController.currentAudio, index);
           });
           container.appendChild(minimizeBtn);
         
@@ -1089,7 +1149,7 @@ class MapController {
           title.style.paddingRight = '30px'; // Space for minimize button
           container.appendChild(title);
         
-          // Timestamp and Mile on same line
+          // Timestamp, Mile, Elevation, Section on same line
           const metaLine = document.createElement('div');
           metaLine.style.fontSize = '13px';
           metaLine.style.color = '#666';
@@ -1102,13 +1162,19 @@ class MapController {
               metaText += ` • mi.${displayMile}`;
             }
           }
+          if (track.elevation) {
+            metaText += ` • ${track.elevation} ft`;
+          }
+          if (track.section) {
+            metaText += ` • ${track.section}`;
+          }
           metaLine.textContent = metaText;
           container.appendChild(metaLine);
         
           // Notes section (collapsible)
           if (track.notes?.trim()) {
             const notesToggle = document.createElement('button');
-            notesToggle.textContent = 'Show Notes';
+            notesToggle.textContent = 'Field notes ▼';
             notesToggle.style.fontSize = '12px';
             notesToggle.style.color = '#5c3a2e';
             notesToggle.style.background = 'none';
@@ -1130,7 +1196,7 @@ class MapController {
             notesToggle.addEventListener('click', () => {
               notesExpanded = !notesExpanded;
               notesContent.style.display = notesExpanded ? 'block' : 'none';
-              notesToggle.textContent = notesExpanded ? 'Hide Notes' : 'Show Notes';
+              notesToggle.textContent = notesExpanded ? 'Collapse field notes ▲' : 'Field notes ▼';
             });
             
             container.appendChild(notesToggle);
@@ -1281,21 +1347,7 @@ class MapController {
           
           container.appendChild(controls);
         
-          const popup = new mapboxgl.Popup({ 
-            offset: 25,
-            closeButton: false,
-            closeOnClick: false,
-            closeOnMove: false,
-            maxWidth: '400px'
-          })
-            .setLngLat(coords)
-            .setDOMContent(container)
-            .addTo(map);
-        
-          this.currentPopup = popup;
-          
-          // Update badge visibility since popup is now showing
-          this.updateBadgeVisibility();
+          return container;
         }
 
       refreshPopupMileage(track) {
