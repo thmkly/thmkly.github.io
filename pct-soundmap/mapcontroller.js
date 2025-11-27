@@ -1445,14 +1445,18 @@ class MapController {
           !uiController.playlistExpanded;
         const pointVisible = this.isCurrentPointVisible();
         
-        // Check if there's a visible Mapbox popup on screen
-        const hasVisibleMapboxPopup = document.querySelector('.mapboxgl-popup') !== null;
+        // Check if there's any visible popup or mini infobox on screen
+        const hasVisiblePopup = document.querySelector('.mapboxgl-popup') !== null;
+        const hasVisibleMiniBox = document.querySelector('.mini-infobox.minimized-popup') !== null;
         
-        // Show badge only when: playlist collapsed AND point not visible AND no visible popup
-        if (playlistCollapsed && !pointVisible && !hasVisibleMapboxPopup && audioController.currentIndex >= 0) {
-          badge.style.display = 'block';
-        } else {
-          badge.style.display = 'none';
-        }
+        // Show badge when: playlist collapsed AND point not visible AND no popup/minibox visible
+        const shouldShow = playlistCollapsed && 
+                          !pointVisible && 
+                          !hasVisiblePopup && 
+                          !hasVisibleMiniBox && 
+                          audioController.currentIndex >= 0;
+        
+        badge.style.display = shouldShow ? 'block' : 'none';
+      }
       }
     }
