@@ -123,6 +123,11 @@ class UIController {
               }
             }
           }
+          
+          // Update badge visibility after playlist state changes
+          if (window.mapController) {
+            mapController.updateBadgeVisibility();
+          }
         }
 
         toggleMobileMenu() {
@@ -141,6 +146,11 @@ class UIController {
             document.body.classList.remove('mobile-menu-open');
             if (hamburger) hamburger.classList.remove('open');
           }
+          
+          // Update badge visibility after mobile menu state changes
+          if (window.mapController) {
+            mapController.updateBadgeVisibility();
+          }
         }
 
         collapseMobileMenu() {
@@ -152,6 +162,11 @@ class UIController {
           wrapper.classList.remove('mobile-expanded');
           document.body.classList.remove('mobile-menu-open');
           if (hamburger) hamburger.classList.remove('open');
+          
+          // Update badge visibility after collapsing mobile menu
+          if (window.mapController) {
+            mapController.updateBadgeVisibility();
+          }
         }
 
       setupResizeListener() {
