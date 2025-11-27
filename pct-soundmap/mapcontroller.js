@@ -803,6 +803,8 @@ class MapController {
                playTriangle.style.borderTop = '5px solid transparent';
                playTriangle.style.borderBottom = '5px solid transparent';
                playTriangle.style.verticalAlign = 'middle';
+               playTriangle.style.position = 'relative';
+               playTriangle.style.top = '-1px'; // Lift slightly for better centering
                
                const titleSpan = document.createElement('span');
                titleSpan.className = 'badge-title';
@@ -1443,7 +1445,11 @@ class MapController {
           !uiController.playlistExpanded;
         const pointVisible = this.isCurrentPointVisible();
         
-        if (playlistCollapsed && !pointVisible && audioController.currentIndex >= 0) {
+        // Also check if there's a visible popup (full popup or mini box)
+        const hasVisiblePopup = this.currentPopup !== null || this.minimizedPopup !== null;
+        
+        // Show badge only if: playlist collapsed AND point not visible AND no popup showing
+        if (playlistCollapsed && !pointVisible && !hasVisiblePopup && audioController.currentIndex >= 0) {
           badge.style.display = 'block';
         } else {
           badge.style.display = 'none';
