@@ -612,6 +612,9 @@ class MapController {
           clearTimeout(this.animationTimeout);
         }
 
+        // Save current popup state (minimized vs full) to preserve it
+        const wasMinimized = this.minimizedPopup !== null;
+
         // Clean up any minimized popup
         if (this.minimizedPopup) {
           this.minimizedPopup.remove();
@@ -688,7 +691,18 @@ class MapController {
           
           // Show popup and mini boxes after flyto completes
           setTimeout(() => {
-            this.showPopup([parseFloat(track.lng), parseFloat(track.lat)], track, audio, index);
+            // If was minimized, show minimized; otherwise show full popup
+            if (wasMinimized) {
+              // Show full popup first (needed for audio element)
+              this.showPopup([parseFloat(track.lng), parseFloat(track.lat)], track, audio, index);
+              // Then immediately minimize it
+              setTimeout(() => {
+                this.minimizePopup(track, index);
+              }, 50);
+            } else {
+              // Show full popup
+              this.showPopup([parseFloat(track.lng), parseFloat(track.lat)], track, audio, index);
+            }
             uiController.showMiniInfoBoxes(null, this.audioData);
           }, duration + 200); // 200ms additional delay after flyto completes
         }, 100);
