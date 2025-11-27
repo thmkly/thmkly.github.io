@@ -4,6 +4,7 @@ class MapController {
        this.audioData = [];
        this.originalAudioData = [];
        this.currentPopup = null;
+       this.popupState = 'mini'; // Track popup state: 'mini' | 'controls' | 'full'
        this.isPositioning = false;
        this.animationTimeout = null;
        this.moveTimeout = null;
@@ -235,6 +236,9 @@ class MapController {
               }
             }
           }
+          
+          // Update badge visibility after map movement
+          this.updateBadgeVisibility();
         });
 
         document.addEventListener('fullscreenchange', () => {
@@ -783,13 +787,13 @@ class MapController {
           existingBadge.remove();
         }
           
-          // Only show badge if playlist is collapsed AND track is provided
-          const isPlaylistCollapsed = uiController.isMobile ? !uiController.mobilePlaylistExpanded : !uiController.playlistExpanded;
-          if (isPlaylistCollapsed && track) {
+          // Create badge if track is provided (visibility controlled by updateBadgeVisibility)
+          if (track) {
             const badge = document.createElement('div');
             badge.id = 'playing-badge';
+            badge.title = 'Return to sound'; // Tooltip text
             const trackName = track.name.replace(/^[^\s]+\s+-\s+/, '');
-            badge.innerHTM
+            
           const playTriangle = document.createElement('span');
                playTriangle.style.display = 'inline-block';
                playTriangle.style.marginRight = '6px';
@@ -832,14 +836,14 @@ class MapController {
                badge.style.right = 'auto';
                badge.style.textAlign = 'left';
             
-            // Click to fly to track location (keep minimized state)
+            // Click to fly to track location (maintain current state)
             badge.addEventListener('click', () => {
               const coords = [parseFloat(track.lng), parseFloat(track.lat)];
               
               // Clear stale mini boxes before flying
               uiController.clearMiniInfoBoxes();
               
-              // Just fly to the location, don't restore popup
+              // Just fly to the location, don't change popup state
               this.positionMapForTrack(track, audioController.currentIndex);
               
               // Ensure mini box exists after flying completes
@@ -883,6 +887,9 @@ class MapController {
               badge._updateTimeHandler = updateBadgeTime;
               badge._audioElement = audio;
             }
+            
+            // Update visibility based on current state
+            this.updateBadgeVisibility();
           }
         }
 
@@ -1410,5 +1417,36 @@ class MapController {
           duration = Math.min(5000, 4000 + ((distanceKm - 50) / 100) * 1000);
         }
         return duration;
+      }
+
+      // Check if currently playing point is visible on screen
+      isCurrentPointVisible() {
+        if (audioController.currentIndex === -1) return false;
+        
+        const track = this.audioData[audioController.currentIndex];
+        if (!track) return false;
+        
+        const coords = [parseFloat(track.lng), parseFloat(track.lat)];
+        const bounds = map.getBounds();
+        const lngLat = new mapboxgl.LngLat(coords[0], coords[1]);
+        
+        return bounds.contains(lngLat);
+      }
+
+      // Update badge visibility based on playlist state and point visibility
+      updateBadgeVisibility() {
+        const badge = document.getElementById('playing-badge');
+        if (!badge) return;
+        
+        const playlistCollapsed = uiController.isMobile ? 
+          !uiController.mobilePlaylistExpanded : 
+          !uiController.playlistExpanded;
+        const pointVisible = this.isCurrentPointVisible();
+        
+        if (playlistCollapsed && !pointVisible && audioController.currentIndex >= 0) {
+          badge.style.display = 'flex';
+        } else {
+          badge.style.display = 'none';
+        }
       }
     }
