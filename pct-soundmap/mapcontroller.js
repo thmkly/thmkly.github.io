@@ -1435,7 +1435,7 @@ class MapController {
         return bounds.contains(lngLat);
       }
 
-      // Update badge visibility based on playlist state and point visibility
+      // Update badge visibility based on playlist state and point visibility  
       updateBadgeVisibility() {
         const badge = document.getElementById('playing-badge');
         if (!badge) return;
@@ -1445,11 +1445,11 @@ class MapController {
           !uiController.playlistExpanded;
         const pointVisible = this.isCurrentPointVisible();
         
-        // Also check if there's a visible popup (full popup or mini box)
-        const hasVisiblePopup = this.currentPopup !== null || this.minimizedPopup !== null;
+        // Check if there's a visible Mapbox popup on screen
+        const hasVisibleMapboxPopup = document.querySelector('.mapboxgl-popup') !== null;
         
-        // Show badge only if: playlist collapsed AND point not visible AND no popup showing
-        if (playlistCollapsed && !pointVisible && !hasVisiblePopup && audioController.currentIndex >= 0) {
+        // Show badge only when: playlist collapsed AND point not visible AND no visible popup
+        if (playlistCollapsed && !pointVisible && !hasVisibleMapboxPopup && audioController.currentIndex >= 0) {
           badge.style.display = 'block';
         } else {
           badge.style.display = 'none';
