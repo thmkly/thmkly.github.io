@@ -490,26 +490,9 @@ class AtmosphereController {
       eveningGoldenHour: 'brightness(1.03) contrast(1.08) saturate(1.18) sepia(0.06)',
       blueHourDusk: 'brightness(0.75) contrast(1.05) saturate(0.95)'
     };
-    
-    // Counter-filters for popups to maintain visibility
-    const popupFilters = {
-      night: 'brightness(2.5)',  // Counteract 0.4 brightness (1/0.4 = 2.5)
-      blueHourDawn: 'brightness(1.43)',  // Counteract 0.7 (1/0.7 ≈ 1.43)
-      morningGoldenHour: 'brightness(1.0)',
-      day: 'brightness(1.0)',
-      eveningGoldenHour: 'brightness(1.0)',
-      blueHourDusk: 'brightness(1.33)'  // Counteract 0.75 (1/0.75 ≈ 1.33)
-    };
   
     mapContainer.style.filter = filters[conditions.period] || filters.day;
     mapContainer.style.transition = 'filter 2s ease-in-out';
-    
-    // Apply counter-filter to popups to keep them visible
-    const popups = document.querySelectorAll('.mapboxgl-popup-content');
-    popups.forEach(popup => {
-      popup.style.filter = popupFilters[conditions.period] || popupFilters.day;
-      popup.style.transition = 'filter 2s ease-in-out';
-    });
   }
 
   // Reset atmosphere to neutral default
