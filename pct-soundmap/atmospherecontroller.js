@@ -451,6 +451,24 @@ class AtmosphereController {
       
       map.setFog(fogConfig);
     }
+    
+    // Keep popups bright and visible during dark atmospheres
+    // Apply counter-brightness based on time period
+    const popupBrightness = {
+      'night': 2.5,           // Very bright to counteract darkness
+      'blueHourDawn': 1.4,    // Moderately bright
+      'blueHourDusk': 1.4,    // Moderately bright
+      'morningGoldenHour': 1.0,
+      'eveningGoldenHour': 1.0,
+      'day': 1.0
+    };
+    
+    const brightness = popupBrightness[conditions.period] || 1.0;
+    const popups = document.querySelectorAll('.mapboxgl-popup-content');
+    popups.forEach(popup => {
+      popup.style.filter = `brightness(${brightness})`;
+      popup.style.transition = 'filter 2s ease-in-out';
+    });
   }
 
   applyEnhanced3DEffects(conditions) {
@@ -558,6 +576,13 @@ class AtmosphereController {
         mapContainer.style.transition = 'filter 2s ease-in-out'; // Match atmosphere transition
         mapContainer.style.filter = 'brightness(1.0) contrast(1.0)';
       }
+      
+      // Reset popup brightness to normal
+      const popups = document.querySelectorAll('.mapboxgl-popup-content');
+      popups.forEach(popup => {
+        popup.style.filter = 'brightness(1.0)';
+        popup.style.transition = 'filter 2s ease-in-out';
+      });
       
       // Remove any atmosphere overlay
       const existingOverlay = document.getElementById('atmosphere-overlay');
