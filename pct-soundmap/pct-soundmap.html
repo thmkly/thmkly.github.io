@@ -448,15 +448,15 @@
   }
 
   .mapboxgl-popup-content {
-    background-color: rgba(255, 255, 255, 0.98) !important;
-    color: #1a1a1a !important;
-    opacity: 1.0 !important;
+    background-color: rgb(255, 255, 255) !important; /* Solid white like playlist */
+    color: #000000 !important;
+    opacity: 0.95 !important; /* Slightly transparent like playlist */
     transition: opacity 0.3s ease;
     min-width: 320px;
     max-width: 90vw;
     box-sizing: border-box;
-    /* Ensure popup stands out even during dark atmospheres */
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5) !important;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3) !important; /* Subtle shadow like playlist */
+    font-weight: normal !important;
   }
 
   .mapboxgl-popup-close-button:focus {
