@@ -1324,22 +1324,28 @@ class MapController {
           this.currentPopup = popup;
           
           // Apply brightness to popup based on current atmosphere
-          if (typeof atmosphereController !== 'undefined' && atmosphereController.currentConditions) {
-            const popupBrightness = {
-              'night': 3.0,
-              'blueHourDawn': 1.5,
-              'blueHourDusk': 1.5,
-              'morningGoldenHour': 1.0,
-              'eveningGoldenHour': 1.0,
-              'day': 1.0
-            };
-            const brightness = popupBrightness[atmosphereController.currentConditions.period] || 1.0;
-            const popupContent = popup._container.querySelector('.mapboxgl-popup-content');
-            if (popupContent) {
-              popupContent.style.setProperty('filter', `brightness(${brightness})`, 'important');
-              // No transition - apply instantly
+          // Use setTimeout to ensure popup DOM is ready
+          setTimeout(() => {
+            if (typeof atmosphereController !== 'undefined' && atmosphereController.currentConditions) {
+              const popupBrightness = {
+                'night': 3.0,
+                'blueHourDawn': 1.5,
+                'blueHourDusk': 1.5,
+                'morningGoldenHour': 1.0,
+                'eveningGoldenHour': 1.0,
+                'day': 1.0
+              };
+              const brightness = popupBrightness[atmosphereController.currentConditions.period] || 1.0;
+              // Apply to the entire popup container
+              const popupContainer = popup._container;
+              if (popupContainer) {
+                console.log(`Setting popup brightness to ${brightness} for period ${atmosphereController.currentConditions.period}`);
+                popupContainer.style.setProperty('filter', `brightness(${brightness})`, 'important');
+              } else {
+                console.log('Popup container not found!');
+              }
             }
-          }
+          }, 50);
           
           // If should minimize, do it immediately (no flash)
           if (shouldMinimize) {
