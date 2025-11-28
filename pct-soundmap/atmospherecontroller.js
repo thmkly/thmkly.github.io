@@ -465,6 +465,7 @@ class AtmosphereController {
     
     const brightness = popupBrightness[conditions.period] || 1.0;
     const popups = document.querySelectorAll('.mapboxgl-popup-content');
+    console.log(`Applying popup brightness ${brightness} for period ${conditions.period}, found ${popups.length} popups`);
     popups.forEach(popup => {
       popup.style.setProperty('filter', `brightness(${brightness})`, 'important');
       popup.style.transition = 'filter 2s ease-in-out';
