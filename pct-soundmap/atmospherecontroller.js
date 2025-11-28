@@ -455,9 +455,9 @@ class AtmosphereController {
     // Keep popups bright and visible during dark atmospheres
     // Apply counter-brightness based on time period
     const popupBrightness = {
-      'night': 2.5,           // Very bright to counteract darkness
-      'blueHourDawn': 1.4,    // Moderately bright
-      'blueHourDusk': 1.4,    // Moderately bright
+      'night': 3.0,           // Extra bright to ensure visibility
+      'blueHourDawn': 1.5,    // Moderately bright
+      'blueHourDusk': 1.5,    // Moderately bright
       'morningGoldenHour': 1.0,
       'eveningGoldenHour': 1.0,
       'day': 1.0
@@ -466,7 +466,7 @@ class AtmosphereController {
     const brightness = popupBrightness[conditions.period] || 1.0;
     const popups = document.querySelectorAll('.mapboxgl-popup-content');
     popups.forEach(popup => {
-      popup.style.filter = `brightness(${brightness})`;
+      popup.style.setProperty('filter', `brightness(${brightness})`, 'important');
       popup.style.transition = 'filter 2s ease-in-out';
     });
   }
@@ -580,7 +580,7 @@ class AtmosphereController {
       // Reset popup brightness to normal
       const popups = document.querySelectorAll('.mapboxgl-popup-content');
       popups.forEach(popup => {
-        popup.style.filter = 'brightness(1.0)';
+        popup.style.setProperty('filter', 'brightness(1.0)', 'important');
         popup.style.transition = 'filter 2s ease-in-out';
       });
       
