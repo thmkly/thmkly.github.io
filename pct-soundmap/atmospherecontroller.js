@@ -464,7 +464,7 @@ class AtmosphereController {
     };
     
     const brightness = popupBrightness[conditions.period] || 1.0;
-    const popups = document.querySelectorAll('.mapboxgl-popup-content');
+    const popups = document.querySelectorAll('.mapboxgl-popup');
     console.log(`Applying popup brightness ${brightness} for period ${conditions.period}, found ${popups.length} popups`);
     popups.forEach(popup => {
       popup.style.setProperty('filter', `brightness(${brightness})`, 'important');
@@ -579,7 +579,7 @@ class AtmosphereController {
       }
       
       // Reset popup brightness to normal
-      const popups = document.querySelectorAll('.mapboxgl-popup-content');
+      const popups = document.querySelectorAll('.mapboxgl-popup');
       popups.forEach(popup => {
         popup.style.setProperty('filter', 'brightness(1.0)', 'important');
         // No transition - reset instantly
