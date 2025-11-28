@@ -215,6 +215,17 @@ class MapController {
             });
           }
         });
+        
+        // Re-apply atmosphere when page becomes visible (fixes atmosphere reset on tab switch)
+        document.addEventListener('visibilitychange', () => {
+          if (!document.hidden && typeof atmosphereController !== 'undefined' && atmosphereController.currentConditions) {
+            // Re-apply the current atmosphere conditions
+            atmosphereController.applyEnhancedSky(atmosphereController.currentConditions);
+            atmosphereController.applyEnhancedFog(atmosphereController.currentConditions);
+            atmosphereController.applyEnhanced3DEffects(atmosphereController.currentConditions);
+            atmosphereController.applyFallbackAtmosphere(atmosphereController.currentConditions);
+          }
+        });
 
         map.on('moveend', () => {
           // Refresh mini boxes when movement is completely finished
