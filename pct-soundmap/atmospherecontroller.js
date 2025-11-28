@@ -451,25 +451,6 @@ class AtmosphereController {
       
       map.setFog(fogConfig);
     }
-    
-    // Apply counter-filter to popups to cancel out map container's brightness filter
-    // This keeps popups readable during dark atmospheres
-    const mapBrightness = {
-      'night': 0.4,
-      'blueHourDawn': 0.7,
-      'blueHourDusk': 0.75,
-      'morningGoldenHour': 1.05,
-      'eveningGoldenHour': 1.03,
-      'day': 1.0
-    };
-    
-    const mapFilter = mapBrightness[conditions.period] || 1.0;
-    const counterBrightness = 1.0 / mapFilter; // Inverse to cancel out
-    
-    const popups = document.querySelectorAll('.mapboxgl-popup-content');
-    popups.forEach(popup => {
-      popup.style.setProperty('filter', `brightness(${counterBrightness})`, 'important');
-    });
   }
 
   applyEnhanced3DEffects(conditions) {
@@ -577,12 +558,6 @@ class AtmosphereController {
         mapContainer.style.transition = 'filter 2s ease-in-out';
         mapContainer.style.filter = 'brightness(1.0) contrast(1.0)';
       }
-      
-      // Reset popup filters
-      const popups = document.querySelectorAll('.mapboxgl-popup-content');
-      popups.forEach(popup => {
-        popup.style.setProperty('filter', 'brightness(1.0)', 'important');
-      });
       
       // Remove any atmosphere overlay
       const existingOverlay = document.getElementById('atmosphere-overlay');
