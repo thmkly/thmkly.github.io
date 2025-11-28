@@ -500,12 +500,13 @@ class AtmosphereController {
     try {
       if (typeof map === 'undefined') return;
       
-      // Reset sky
+      // Reset sky - remove ALL custom properties
       if (typeof map.setSky === 'function') {
         map.setSky({
           'sky-type': 'atmosphere',
           'sky-atmosphere-sun': [0, 90],
-          'sky-atmosphere-sun-intensity': 15
+          'sky-atmosphere-sun-intensity': 15,
+          'sky-atmosphere-color': 'rgba(135, 206, 250, 1)' // Reset to default sky blue
         });
       }
       
@@ -529,6 +530,19 @@ class AtmosphereController {
           'intensity': 0.5,
           'position': [1.15, 210, 30]
         });
+      }
+      
+      // Reset CSS filters (fallback atmosphere)
+      const mapContainer = document.getElementById('map');
+      if (mapContainer) {
+        mapContainer.style.filter = 'brightness(1.0) contrast(1.0)';
+        mapContainer.style.transition = '';
+      }
+      
+      // Remove any atmosphere overlay
+      const existingOverlay = document.getElementById('atmosphere-overlay');
+      if (existingOverlay) {
+        existingOverlay.remove();
       }
       
       // Clear cached conditions
