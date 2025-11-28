@@ -4,6 +4,7 @@ class MapController {
        this.audioData = [];
        this.originalAudioData = [];
        this.currentPopup = null;
+       this.userPreferredPopupState = 'full'; // Default to full popup (State 3), user can minimize to set to 'mini'
        this.isPositioning = false;
        this.animationTimeout = null;
        this.moveTimeout = null;
@@ -612,8 +613,8 @@ class MapController {
           clearTimeout(this.animationTimeout);
         }
 
-        // Save current popup state (minimized vs full) to preserve it
-        const wasMinimized = this.minimizedPopup !== null;
+        // Use user's preferred popup state (defaults to 'full' on first play)
+        const shouldMinimize = this.userPreferredPopupState === 'mini';
 
         // Clean up any minimized popup
         if (this.minimizedPopup) {
@@ -691,8 +692,8 @@ class MapController {
           
           // Show popup and mini boxes after flyto completes
           setTimeout(() => {
-            // Pass wasMinimized flag to showPopup so it can minimize without flash
-            this.showPopup([parseFloat(track.lng), parseFloat(track.lat)], track, audio, index, wasMinimized);
+            // Pass shouldMinimize flag to showPopup based on user preference
+            this.showPopup([parseFloat(track.lng), parseFloat(track.lat)], track, audio, index, shouldMinimize);
             uiController.showMiniInfoBoxes(null, this.audioData);
           }, duration + 200); // 200ms additional delay after flyto completes
         }, 100);
@@ -712,6 +713,9 @@ class MapController {
       }
 
         minimizePopup(track, index) {
+          // User explicitly minimized - save this preference
+          this.userPreferredPopupState = 'mini';
+          
           // Just remove the popup - audio lives in document.body and keeps playing
           if (this.currentPopup) {
             this.currentPopup.remove();
@@ -744,6 +748,9 @@ class MapController {
               e.stopPropagation();
               miniBox.remove();
               this.minimizedPopup = null;
+              
+              // User explicitly expanded - save this preference
+              this.userPreferredPopupState = 'full';
               
               // Restore popup with the audio from audioController
               this.showPopup(coords, track, audioController.currentAudio, index);
