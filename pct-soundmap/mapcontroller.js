@@ -1337,7 +1337,7 @@ class MapController {
             const popupContent = popup._container.querySelector('.mapboxgl-popup-content');
             if (popupContent) {
               popupContent.style.setProperty('filter', `brightness(${brightness})`, 'important');
-              popupContent.style.transition = 'filter 2s ease-in-out';
+              // No transition - apply instantly
             }
           }
           
