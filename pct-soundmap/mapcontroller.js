@@ -1388,6 +1388,18 @@ class MapController {
           }
         }
         
+        // Reset atmosphere to default/neutral BEFORE flyTo starts (matches track transitions)
+        if (typeof atmosphereController !== 'undefined') {
+          console.log('Resetting atmosphere to default');
+          // Force clear cache first
+          atmosphereController.currentConditions = null;
+          if (atmosphereController.atmosphereCache) {
+            atmosphereController.atmosphereCache.clear();
+          }
+          atmosphereController.resetToDefault();
+          console.log('Atmosphere reset complete');
+        }
+        
         // Reset to default position - use flyTo like 3D mode does
         map.flyTo({
           center: uiController.isMobile ? CONFIG.DEFAULT_CENTER_MOBILE : CONFIG.DEFAULT_CENTER,
@@ -1396,20 +1408,6 @@ class MapController {
           bearing: 0,
           duration: 2000
         });
-        
-        // Reset atmosphere to default/neutral AFTER flyTo completes
-        setTimeout(() => {
-          if (typeof atmosphereController !== 'undefined') {
-            console.log('Resetting atmosphere to default');
-            // Force clear cache first
-            atmosphereController.currentConditions = null;
-            if (atmosphereController.atmosphereCache) {
-              atmosphereController.atmosphereCache.clear();
-            }
-            atmosphereController.resetToDefault();
-            console.log('Atmosphere reset complete');
-          }
-        }, 2100); // After flyTo duration + small buffer
         
           // Clear active track highlighting and reset styling
           document.querySelectorAll('.track').forEach(el => {
