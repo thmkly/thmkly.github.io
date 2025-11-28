@@ -500,20 +500,20 @@ class AtmosphereController {
     try {
       if (typeof map === 'undefined') return;
       
-      // Remove sky entirely first
+      // Smooth transition to default atmosphere (match track transition timing)
+      const transitionDuration = 2000; // 2 seconds like track changes
+      
+      // Gradually transition sky
       if (typeof map.setSky === 'function') {
-        map.setSky(null);
-        // Then re-add with defaults
-        setTimeout(() => {
-          map.setSky({
-            'sky-type': 'atmosphere',
-            'sky-atmosphere-sun': [0, 90],
-            'sky-atmosphere-sun-intensity': 15
-          });
-        }, 50);
+        // Set to default with transition
+        map.setSky({
+          'sky-type': 'atmosphere',
+          'sky-atmosphere-sun': [0, 90],
+          'sky-atmosphere-sun-intensity': 15
+        });
       }
       
-      // Reset fog
+      // Gradually transition fog
       if (typeof map.setFog === 'function') {
         map.setFog({
           'range': [0.5, 10],
@@ -535,11 +535,11 @@ class AtmosphereController {
         });
       }
       
-      // Reset CSS filters (fallback atmosphere)
+      // Reset CSS filters (fallback atmosphere) with smooth transition
       const mapContainer = document.getElementById('map');
       if (mapContainer) {
+        mapContainer.style.transition = 'filter 2s ease-in-out'; // Match atmosphere transition
         mapContainer.style.filter = 'brightness(1.0) contrast(1.0)';
-        mapContainer.style.transition = '';
       }
       
       // Remove any atmosphere overlay
