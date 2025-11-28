@@ -1323,6 +1323,24 @@ class MapController {
         
           this.currentPopup = popup;
           
+          // Apply brightness to popup based on current atmosphere
+          if (typeof atmosphereController !== 'undefined' && atmosphereController.currentConditions) {
+            const popupBrightness = {
+              'night': 3.0,
+              'blueHourDawn': 1.5,
+              'blueHourDusk': 1.5,
+              'morningGoldenHour': 1.0,
+              'eveningGoldenHour': 1.0,
+              'day': 1.0
+            };
+            const brightness = popupBrightness[atmosphereController.currentConditions.period] || 1.0;
+            const popupContent = popup._container.querySelector('.mapboxgl-popup-content');
+            if (popupContent) {
+              popupContent.style.setProperty('filter', `brightness(${brightness})`, 'important');
+              popupContent.style.transition = 'filter 2s ease-in-out';
+            }
+          }
+          
           // If should minimize, do it immediately (no flash)
           if (shouldMinimize) {
             this.minimizePopup(track, index);
