@@ -468,7 +468,7 @@ class AtmosphereController {
     console.log(`Applying popup brightness ${brightness} for period ${conditions.period}, found ${popups.length} popups`);
     popups.forEach(popup => {
       popup.style.setProperty('filter', `brightness(${brightness})`, 'important');
-      popup.style.transition = 'filter 2s ease-in-out';
+      // No transition - apply instantly
     });
   }
 
@@ -582,7 +582,7 @@ class AtmosphereController {
       const popups = document.querySelectorAll('.mapboxgl-popup-content');
       popups.forEach(popup => {
         popup.style.setProperty('filter', 'brightness(1.0)', 'important');
-        popup.style.transition = 'filter 2s ease-in-out';
+        // No transition - reset instantly
       });
       
       // Remove any atmosphere overlay
