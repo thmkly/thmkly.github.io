@@ -452,23 +452,23 @@ class AtmosphereController {
       map.setFog(fogConfig);
     }
     
-    // Keep popups bright and visible during dark atmospheres
-    // Apply counter-brightness based on time period
-    const popupBrightness = {
-      'night': 3.0,           // Extra bright to ensure visibility
-      'blueHourDawn': 1.5,    // Moderately bright
-      'blueHourDusk': 1.5,    // Moderately bright
-      'morningGoldenHour': 1.0,
-      'eveningGoldenHour': 1.0,
+    // Apply counter-filter to popups to cancel out map container's brightness filter
+    // This keeps popups readable during dark atmospheres
+    const mapBrightness = {
+      'night': 0.4,
+      'blueHourDawn': 0.7,
+      'blueHourDusk': 0.75,
+      'morningGoldenHour': 1.05,
+      'eveningGoldenHour': 1.03,
       'day': 1.0
     };
     
-    const brightness = popupBrightness[conditions.period] || 1.0;
-    const popups = document.querySelectorAll('.mapboxgl-popup');
-    console.log(`Applying popup brightness ${brightness} for period ${conditions.period}, found ${popups.length} popups`);
+    const mapFilter = mapBrightness[conditions.period] || 1.0;
+    const counterBrightness = 1.0 / mapFilter; // Inverse to cancel out
+    
+    const popups = document.querySelectorAll('.mapboxgl-popup-content');
     popups.forEach(popup => {
-      popup.style.setProperty('filter', `brightness(${brightness})`, 'important');
-      // No transition - apply instantly
+      popup.style.setProperty('filter', `brightness(${counterBrightness})`, 'important');
     });
   }
 
@@ -574,15 +574,14 @@ class AtmosphereController {
       // Reset CSS filters (fallback atmosphere) with smooth transition
       const mapContainer = document.getElementById('map');
       if (mapContainer) {
-        mapContainer.style.transition = 'filter 2s ease-in-out'; // Match atmosphere transition
+        mapContainer.style.transition = 'filter 2s ease-in-out';
         mapContainer.style.filter = 'brightness(1.0) contrast(1.0)';
       }
       
-      // Reset popup brightness to normal
-      const popups = document.querySelectorAll('.mapboxgl-popup');
+      // Reset popup filters
+      const popups = document.querySelectorAll('.mapboxgl-popup-content');
       popups.forEach(popup => {
         popup.style.setProperty('filter', 'brightness(1.0)', 'important');
-        // No transition - reset instantly
       });
       
       // Remove any atmosphere overlay
