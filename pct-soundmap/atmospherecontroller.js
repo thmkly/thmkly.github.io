@@ -500,14 +500,17 @@ class AtmosphereController {
     try {
       if (typeof map === 'undefined') return;
       
-      // Reset sky - remove ALL custom properties
+      // Remove sky entirely first
       if (typeof map.setSky === 'function') {
-        map.setSky({
-          'sky-type': 'atmosphere',
-          'sky-atmosphere-sun': [0, 90],
-          'sky-atmosphere-sun-intensity': 15,
-          'sky-atmosphere-color': 'rgba(135, 206, 250, 1)' // Reset to default sky blue
-        });
+        map.setSky(null);
+        // Then re-add with defaults
+        setTimeout(() => {
+          map.setSky({
+            'sky-type': 'atmosphere',
+            'sky-atmosphere-sun': [0, 90],
+            'sky-atmosphere-sun-intensity': 15
+          });
+        }, 50);
       }
       
       // Reset fog
