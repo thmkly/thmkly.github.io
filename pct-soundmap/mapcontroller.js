@@ -1181,8 +1181,8 @@ class MapController {
               }, 0);
             });
             
-            container.appendChild(notesToggle);
             container.appendChild(notesContent);
+            container.appendChild(notesToggle);
           }
         
           // Player controls
