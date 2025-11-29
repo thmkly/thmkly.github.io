@@ -1094,7 +1094,7 @@ class MapController {
           minimizeBtn.type = 'button';
           minimizeBtn.tabIndex = -1;
           minimizeBtn.style.position = 'absolute';
-          minimizeBtn.style.top = '8px';
+          minimizeBtn.style.top = '6px';
           minimizeBtn.style.right = '8px';
           minimizeBtn.style.border = 'none';
           minimizeBtn.style.background = 'transparent';
