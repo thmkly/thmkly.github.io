@@ -1319,13 +1319,15 @@ class MapController {
           
           container.appendChild(controls);
         
-          // Position the popup using map coordinates
-          const pixelCoords = map.project(coords);
-          container.style.left = `${pixelCoords.x - 160}px`; // Center horizontally (320px wide / 2)
-          container.style.top = `${pixelCoords.y - container.offsetHeight - 30}px`; // Above the point
-          
-          // Add to document.body (NOT map container - avoids filter inheritance)
+          // Add to document.body first to get proper width measurement
           document.body.appendChild(container);
+          
+          // Position the popup using map coordinates
+          // Position so the arrow (at 50% of popup width) points to the exact coordinate
+          const pixelCoords = map.project(coords);
+          const popupWidth = container.offsetWidth || 320; // Get actual width or default
+          container.style.left = `${pixelCoords.x - (popupWidth / 2)}px`; // Center popup on point
+          container.style.top = `${pixelCoords.y - container.offsetHeight - 20}px`; // Above the point
           
           // Store reference
           this.currentPopup = {
@@ -1338,10 +1340,11 @@ class MapController {
             },
             updatePosition: () => {
               const px = map.project(coords);
-              container.style.left = `${px.x - 160}px`;
+              const width = container.offsetWidth || 320;
+              container.style.left = `${px.x - (width / 2)}px`; // Center on point
               // Recalculate top based on actual height after content loads
               const height = container.offsetHeight;
-              container.style.top = `${px.y - height - 30}px`;
+              container.style.top = `${px.y - height - 20}px`;
             }
           };
           
