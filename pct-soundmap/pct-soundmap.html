@@ -262,12 +262,12 @@
   }
 
     .mini-infobox:hover {
-      background-color: rgba(200, 200, 200, 0.80);
+      background-color: rgba(220, 220, 220, 0.80);
     }
     
     /* Orange mini box base style */
     .mini-infobox.minimized-popup {
-      background-color: rgba(255, 200, 150, 0.70); /* Match playlist */
+      background-color: rgba(255, 200, 150, 0.75); /* Match playlist */
     }
     
     /* Orange mini box hover - needs to be after base style */
@@ -306,7 +306,7 @@
   }
 
   #playing-badge:hover {
-    background-color: rgba(255, 180, 140, 0.80); /* Slightly more visible on hover */
+    background-color: rgba(255, 180, 140, 0.75); /* Slightly more visible on hover */
   }
   
   /* Popup minimize button */
@@ -340,10 +340,6 @@
   }
 
   /* Adjust popup close button to hide it */
-  .mapboxgl-popup-close-button {
-    display: none;
-  }
-  
   .popup-controls {
     display: flex;
     justify-content: space-between;
@@ -445,24 +441,8 @@
   .mapboxgl-canvas {
     cursor: grab;
   }
-
-  .mapboxgl-popup {
-    z-index: 10 !important;
-  }
-
-  .mapboxgl-popup-content {
-    background-color: rgba(255, 255, 255, 0.75) !important; /* Match playlist */
-    color: #000000 !important;
-    opacity: 1.0 !important;
-    transition: opacity 0.3s ease;
-    min-width: 320px;
-    max-width: 90vw;
-    box-sizing: border-box;
-    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3) !important;
-    font-weight: normal !important;
-  }
   
-  /* Custom popup (outside map container) */
+  /* Custom popup (outside map container) - State 3 full popup */
   .custom-popup {
     background-color: rgba(255, 255, 255, 0.75);
     color: #000000;
@@ -486,10 +466,6 @@
     border-top: 10px solid rgba(255, 255, 255, 0.75);
   }
 
-  .mapboxgl-popup-close-button:focus {
-    outline: none;
-    box-shadow: none;
-  }
 
   .loading-placeholder {
     text-align: center;
