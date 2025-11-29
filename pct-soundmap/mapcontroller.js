@@ -783,7 +783,7 @@ class MapController {
           miniBox.style.left = `${pixelCoords.x + 10}px`;
           miniBox.style.top = `${pixelCoords.y - 20}px`;
           
-          map.getContainer().appendChild(miniBox);
+          document.body.appendChild(miniBox); // Append to body, not map container
           
           this.minimizedPopup = miniBox;
           
