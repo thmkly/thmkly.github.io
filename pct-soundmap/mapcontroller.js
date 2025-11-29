@@ -211,6 +211,10 @@ class MapController {
             miniBoxUpdateScheduled = true;
             requestAnimationFrame(() => {
               uiController.updateMiniInfoBoxPositions();
+              // Also update custom popup position if it exists
+              if (this.currentPopup && this.currentPopup.updatePosition) {
+                this.currentPopup.updatePosition();
+              }
               miniBoxUpdateScheduled = false;
             });
           }
@@ -1072,10 +1076,15 @@ class MapController {
             }
         
           const container = document.createElement('div');
+          container.className = 'custom-popup'; // Use class for styling
           container.style.fontFamily = 'helvetica, sans-serif';
           container.style.padding = '12px';
-          container.style.position = 'relative';
+          container.style.position = 'absolute'; // Position relative to document
           container.style.minWidth = '280px';
+          container.style.zIndex = '10'; // Above map but below modals
+          
+          // Store coordinates on the popup for repositioning
+          container._coords = coords;
         
           // Add minimize button (top-right, subtle)
           const minimizeBtn = document.createElement('button');
@@ -1310,42 +1319,38 @@ class MapController {
           
           container.appendChild(controls);
         
-          const popup = new mapboxgl.Popup({ 
-            offset: 25,
-            closeButton: false,
-            closeOnClick: false,
-            closeOnMove: false,
-            maxWidth: '400px'
-          })
-            .setLngLat(coords)
-            .setDOMContent(container)
-            .addTo(map);
-        
-          this.currentPopup = popup;
+          // Position the popup using map coordinates
+          const pixelCoords = map.project(coords);
+          container.style.left = `${pixelCoords.x - 160}px`; // Center horizontally (320px wide / 2)
+          container.style.top = `${pixelCoords.y - container.offsetHeight - 30}px`; // Above the point
           
-          // Apply brightness to popup based on current atmosphere
-          // Use setTimeout to ensure popup DOM is ready
-          setTimeout(() => {
-            if (typeof atmosphereController !== 'undefined' && atmosphereController.currentConditions) {
-              const popupBrightness = {
-                'night': 3.0,
-                'blueHourDawn': 1.5,
-                'blueHourDusk': 1.5,
-                'morningGoldenHour': 1.0,
-                'eveningGoldenHour': 1.0,
-                'day': 1.0
-              };
-              const brightness = popupBrightness[atmosphereController.currentConditions.period] || 1.0;
-              // Apply to the entire popup container
-              const popupContainer = popup._container;
-              if (popupContainer) {
-                console.log(`Setting popup brightness to ${brightness} for period ${atmosphereController.currentConditions.period}`);
-                popupContainer.style.setProperty('filter', `brightness(${brightness})`, 'important');
-              } else {
-                console.log('Popup container not found!');
+          // Add to document.body (NOT map container - avoids filter inheritance)
+          document.body.appendChild(container);
+          
+          // Store reference
+          this.currentPopup = {
+            _container: container,
+            _coords: coords,
+            remove: () => {
+              if (container.parentNode) {
+                container.parentNode.removeChild(container);
               }
+            },
+            updatePosition: () => {
+              const px = map.project(coords);
+              container.style.left = `${px.x - 160}px`;
+              // Recalculate top based on actual height after content loads
+              const height = container.offsetHeight;
+              container.style.top = `${px.y - height - 30}px`;
             }
-          }, 50);
+          };
+          
+          // Update position immediately after DOM settles (for correct height calculation)
+          setTimeout(() => {
+            this.currentPopup.updatePosition();
+          }, 10);
+          
+          // Popup visibility is now handled by CSS (white background in pct-soundmap.html)
           
           // If should minimize, do it immediately (no flash)
           if (shouldMinimize) {
@@ -1356,7 +1361,7 @@ class MapController {
       refreshPopupMileage(track) {
         if (!this.currentPopup) return;
         
-        const popupContent = this.currentPopup._content;
+        const popupContent = this.currentPopup._container; // Use _container instead of _content
         const mileElement = popupContent.querySelector('.popup-mile');
         if (mileElement && track.mile && track.mile.toString().trim().toLowerCase() !== 'n/a') {
           const displayMile = this.getDisplayMile(track);
