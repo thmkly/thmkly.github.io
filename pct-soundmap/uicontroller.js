@@ -507,12 +507,12 @@ class UIController {
           document.body.appendChild(infoBox);
           const textWidth = title.scrollWidth;
           infoBox.style.maxWidth = Math.min(Math.max(textWidth + 50, 120), 250) + 'px';
-          document.body.removeChild(infoBox);
+          // Keep in document.body instead of removing and re-adding to map
           
           infoBox.style.left = `${pixelCoords.x + 10}px`;
           infoBox.style.top = `${pixelCoords.y - 20}px`;
           
-          map.getContainer().appendChild(infoBox);
+          // Already appended to document.body above - don't move to map container
           this.miniInfoBoxes.push(infoBox);
         });
       }
