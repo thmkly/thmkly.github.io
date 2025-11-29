@@ -1146,7 +1146,7 @@ class MapController {
           // Notes section (collapsible)
           if (track.notes?.trim()) {
             const notesToggle = document.createElement('button');
-            notesToggle.textContent = 'Field notes ▼';
+            notesToggle.textContent = 'Field notes';
             notesToggle.style.fontSize = '12px';
             notesToggle.style.color = '#5c3a2e';
             notesToggle.style.background = 'none';
@@ -1167,8 +1167,18 @@ class MapController {
             let notesExpanded = false;
             notesToggle.addEventListener('click', () => {
               notesExpanded = !notesExpanded;
+              
+              // Store current bottom position before height changes
+              const currentBottom = parseInt(container.style.top) + container.offsetHeight;
+              
               notesContent.style.display = notesExpanded ? 'block' : 'none';
-              notesToggle.textContent = notesExpanded ? 'Collapse field notes ▲' : 'Field notes ▼';
+              notesToggle.textContent = notesExpanded ? 'Collapse field notes' : 'Field notes';
+              
+              // After display change, reposition to keep arrow/bottom anchored
+              setTimeout(() => {
+                const newHeight = container.offsetHeight;
+                container.style.top = `${currentBottom - newHeight}px`;
+              }, 0);
             });
             
             container.appendChild(notesToggle);
