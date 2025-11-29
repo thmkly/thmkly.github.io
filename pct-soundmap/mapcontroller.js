@@ -1100,7 +1100,7 @@ class MapController {
           minimizeBtn.style.background = 'transparent';
           minimizeBtn.style.fontSize = '20px';
           minimizeBtn.style.cursor = 'pointer';
-          minimizeBtn.style.color = '#999';
+          minimizeBtn.style.color = '#000';
           minimizeBtn.style.padding = '0';
           minimizeBtn.style.width = '24px';
           minimizeBtn.style.height = '24px';
