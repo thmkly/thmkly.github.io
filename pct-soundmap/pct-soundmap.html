@@ -382,61 +382,6 @@
     margin: 0 10px;
   }
 
-  /* Cluster Playlist */
-  .cluster-playlist {
-    position: absolute;
-    background: rgba(255, 255, 255, 0.85);
-    border: 1px solid #ccc;
-    border-radius: 4px;
-    padding: 4px;
-    font-size: 11px;
-    max-width: 250px;
-    max-height: 200px;
-    overflow-y: auto;
-    z-index: 1000;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
-  }
-
-  .cluster-item {
-    padding: 4px 8px;
-    cursor: pointer;
-    border-bottom: 1px solid #eee;
-    display: flex;
-    align-items: center;
-    gap: 4px;
-    transition: background-color 0.2s;
-    border-radius: 2px;
-    margin: 1px 0;
-  }
-
-  .cluster-item:hover {
-    background-color: rgba(240, 240, 240, 0.9);
-  }
-
-  .cluster-item:last-child {
-    border-bottom: none;
-  }
-
-  .cluster-item-title {
-    flex: 1;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-  }
-
-  .cluster-item .play-icon {
-    width: 0;
-    height: 0;
-    border-left: 5px solid #5c3a2e;
-    border-top: 3px solid transparent;
-    border-bottom: 3px solid transparent;
-    flex-shrink: 0;
-  }
-
-  .cluster-item:hover .play-icon {
-    border-left-color: #4a2e24;
-  }
-
   /* Map Controls */
   .mapboxgl-canvas {
     cursor: grab;
