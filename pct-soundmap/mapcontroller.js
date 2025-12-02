@@ -1549,10 +1549,11 @@ class MapController {
                         rect.right > 0;
         }
         
-        // Show badge when: playlist collapsed AND popup not visible on screen
+        // Show badge when: playlist collapsed AND popup not visible on screen AND NOT during flyTo
         const shouldShow = playlistCollapsed && 
                           !popupVisible && 
-                          audioController.currentIndex >= 0;
+                          audioController.currentIndex >= 0 &&
+                          !this.isPositioning; // Hide during flyTo animation
         
         badge.style.display = shouldShow ? 'block' : 'none';
       }
