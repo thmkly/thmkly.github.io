@@ -1080,7 +1080,7 @@ class MapController {
           container.style.fontFamily = 'helvetica, sans-serif';
           container.style.padding = '12px';
           container.style.position = 'absolute'; // Position relative to document
-          container.style.minWidth = '280px';
+          container.style.width = '320px'; // Fixed width, don't allow resizing
           container.style.zIndex = '10'; // Above map but below modals
           
           // Store coordinates on the popup for repositioning
