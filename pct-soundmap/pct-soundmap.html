@@ -396,6 +396,14 @@
     box-sizing: border-box;
   }
   
+  /* Mobile popup size constraint */
+  @media (max-width: 768px) {
+    .custom-popup {
+      max-width: calc(100vw - 40px);
+      min-width: 280px;
+    }
+  }
+  
   /* Add popup arrow pointing down */
   .custom-popup::after {
     content: '';
