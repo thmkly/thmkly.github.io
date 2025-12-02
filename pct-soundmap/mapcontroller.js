@@ -161,29 +161,65 @@ class MapController {
           if (!features.length) return;
           
           const clusterId = features[0].properties.cluster_id;
-          map.getSource('audio').getClusterExpansionZoom(clusterId, (err, zoom) => {
-            if (err) return;
-            
-            // Get all points in the cluster to calculate bounds
-            map.getSource('audio').getClusterLeaves(clusterId, 100, 0, (err, leaves) => {
+          const pointCount = features[0].properties.point_count;
+          
+          // For "2" clusters, check if points are very close together
+          if (pointCount === 2) {
+            map.getSource('audio').getClusterLeaves(clusterId, 2, 0, (err, leaves) => {
               if (err) return;
               
-              const bounds = new mapboxgl.LngLatBounds();
-              leaves.forEach(leaf => {
-                bounds.extend(leaf.geometry.coordinates);
-              });
+              // Calculate distance between the two points
+              const [lon1, lat1] = leaves[0].geometry.coordinates;
+              const [lon2, lat2] = leaves[1].geometry.coordinates;
+              const distance = this.calculateDistance(lat1, lon1, lat2, lon2);
               
-              // Enhanced padding to account for mini info boxes
-              const padding = uiController.isMobile ? 
-                { top: 100, bottom: 120, left: 80, right: 80 } :  // Mobile: extra padding for ko-fi widget bottom
-                { top: 80, bottom: 80, left: this.getLeftPadding() + 50, right: 100 }; // Desktop: extra padding for mini boxes
+              // If points are very close (<50m), show picker instead of breaking cluster
+              if (distance < 50) {
+                this.showClusterPicker(e.point, leaves);
+                return;
+              }
               
-              map.fitBounds(bounds, { 
-                padding: padding,
-                maxZoom: 14  // Prevent zooming in too far
+              // Otherwise, break cluster normally
+              map.getSource('audio').getClusterExpansionZoom(clusterId, (err, zoom) => {
+                if (err) return;
+                
+                const bounds = new mapboxgl.LngLatBounds();
+                leaves.forEach(leaf => bounds.extend(leaf.geometry.coordinates));
+                
+                const padding = uiController.isMobile ? 
+                  { top: 100, bottom: 120, left: 80, right: 80 } :
+                  { top: 80, bottom: 80, left: this.getLeftPadding() + 50, right: 100 };
+                
+                map.fitBounds(bounds, { 
+                  padding: padding,
+                  maxZoom: 17  // Higher zoom for close "2" clusters
+                });
               });
             });
-          });
+          } else {
+            // For larger clusters, expand normally
+            map.getSource('audio').getClusterExpansionZoom(clusterId, (err, zoom) => {
+              if (err) return;
+              
+              map.getSource('audio').getClusterLeaves(clusterId, 100, 0, (err, leaves) => {
+                if (err) return;
+                
+                const bounds = new mapboxgl.LngLatBounds();
+                leaves.forEach(leaf => {
+                  bounds.extend(leaf.geometry.coordinates);
+                });
+                
+                const padding = uiController.isMobile ? 
+                  { top: 100, bottom: 120, left: 80, right: 80 } :
+                  { top: 80, bottom: 80, left: this.getLeftPadding() + 50, right: 100 };
+                
+                map.fitBounds(bounds, { 
+                  padding: padding,
+                  maxZoom: 14
+                });
+              });
+            });
+          }
         });
 
           map.on('click', 'unclustered-point', (e) => {
@@ -1038,10 +1074,15 @@ class MapController {
         // Check if we're in 3D mode
         const is3D = uiController.is3DEnabled;
         const targetZoom = is3D ? CONFIG.ZOOM_3D : CONFIG.ZOOM_2D;
+        const currentZoom = map.getZoom();
+        
+        // Only apply target zoom if we're currently zoomed OUT
+        // If already zoomed in closer, just pan (don't zoom out)
+        const useZoom = currentZoom < targetZoom ? targetZoom : currentZoom;
 
         const flyToOptions = {
           center: coords,
-          zoom: targetZoom,
+          zoom: useZoom,
           duration,
           easing: smoothLandingEasing
         };
@@ -1066,6 +1107,103 @@ class MapController {
         const a = Math.sin(dLat / 2) ** 2 +
                   Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLng / 2) ** 2;
         return 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a)) * R;
+      }
+
+      showClusterPicker(clickPoint, leaves) {
+        // Remove any existing picker
+        const existingPicker = document.getElementById('cluster-picker');
+        if (existingPicker) {
+          existingPicker.remove();
+        }
+        
+        // Create picker popup
+        const picker = document.createElement('div');
+        picker.id = 'cluster-picker';
+        picker.style.position = 'absolute';
+        picker.style.backgroundColor = 'rgba(255, 255, 255, 0.95)';
+        picker.style.border = '1px solid #ccc';
+        picker.style.borderRadius = '4px';
+        picker.style.padding = '8px';
+        picker.style.fontSize = '13px';
+        picker.style.boxShadow = '0 2px 10px rgba(0, 0, 0, 0.3)';
+        picker.style.zIndex = '1000';
+        picker.style.maxWidth = '250px';
+        
+        // Position near click point
+        picker.style.left = `${clickPoint.x + 10}px`;
+        picker.style.top = `${clickPoint.y - 10}px`;
+        
+        // Add title
+        const title = document.createElement('div');
+        title.textContent = '2 recordings here:';
+        title.style.fontWeight = 'bold';
+        title.style.marginBottom = '6px';
+        title.style.color = '#333';
+        picker.appendChild(title);
+        
+        // Add track options
+        leaves.forEach(leaf => {
+          const originalIndex = parseInt(leaf.properties.originalIndex);
+          const track = this.audioData.find(t => t.originalIndex === originalIndex);
+          if (!track) return;
+          
+          const option = document.createElement('div');
+          option.style.padding = '4px 6px';
+          option.style.cursor = 'pointer';
+          option.style.borderRadius = '3px';
+          option.style.transition = 'background-color 0.2s';
+          option.style.display = 'flex';
+          option.style.alignItems = 'center';
+          option.style.gap = '6px';
+          
+          // Play icon
+          const playIcon = document.createElement('div');
+          playIcon.style.width = '0';
+          playIcon.style.height = '0';
+          playIcon.style.borderLeft = '6px solid #5c3a2e';
+          playIcon.style.borderTop = '4px solid transparent';
+          playIcon.style.borderBottom = '4px solid transparent';
+          playIcon.style.flexShrink = '0';
+          option.appendChild(playIcon);
+          
+          // Track name
+          const trackName = document.createElement('span');
+          trackName.textContent = track.name.replace(/^[^\s]+\s+-\s+/, '');
+          trackName.style.flex = '1';
+          option.appendChild(trackName);
+          
+          // Hover effect
+          option.addEventListener('mouseenter', () => {
+            option.style.backgroundColor = 'rgba(240, 240, 240, 0.9)';
+          });
+          option.addEventListener('mouseleave', () => {
+            option.style.backgroundColor = 'transparent';
+          });
+          
+          // Click to play
+          option.addEventListener('click', () => {
+            picker.remove();
+            const currentIndex = this.audioData.findIndex(t => t.originalIndex === originalIndex);
+            if (currentIndex >= 0) {
+              this.playAudio(currentIndex, false, true);
+            }
+          });
+          
+          picker.appendChild(option);
+        });
+        
+        // Close picker when clicking elsewhere
+        const closeHandler = (e) => {
+          if (!picker.contains(e.target)) {
+            picker.remove();
+            document.removeEventListener('click', closeHandler);
+          }
+        };
+        setTimeout(() => {
+          document.addEventListener('click', closeHandler);
+        }, 100);
+        
+        document.body.appendChild(picker);
       }
 
           showPopup(coords, track, audio, index, shouldMinimize = false) {
