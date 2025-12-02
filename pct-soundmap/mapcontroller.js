@@ -872,24 +872,27 @@ class MapController {
               // Clear stale mini boxes before flying
               uiController.clearMiniInfoBoxes();
               
-              // Just fly to the location, don't restore popup
+              // Fly to the location
               this.positionMapForTrack(track, audioController.currentIndex);
               
-              // Ensure mini box exists after flying completes
+              // Show popup after flyTo completes (respecting user preference)
+              const movementDuration = this.getMovementDuration(track);
               setTimeout(() => {
-                if (this.minimizedPopup) {
-                  // Update mini box position after map movement
-                  const pixelCoords = map.project(coords);
-                  this.minimizedPopup.style.left = `${pixelCoords.x + 10}px`;
-                  this.minimizedPopup.style.top = `${pixelCoords.y - 20}px`;
-                }
+                // Get the audio element
+                const audio = audioController.currentAudio;
+                
+                // Determine popup state based on user preference
+                const shouldMinimize = this.userPreferredPopupState === 'mini';
+                
+                // Show popup with current audio
+                this.showPopup(coords, track, audio, audioController.currentIndex, shouldMinimize);
                 
                 // Redraw other mini boxes
                 const visiblePoints = map.queryRenderedFeatures({ layers: ['unclustered-point'] });
                 if (visiblePoints.length > 0 && visiblePoints.length < 50) {
                   uiController.showMiniInfoBoxes(null, this.audioData);
                 }
-              }, this.getMovementDuration(track) + 300);
+              }, movementDuration + 100);
             });
             
             document.body.appendChild(badge);
