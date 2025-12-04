@@ -4,7 +4,7 @@ class MapController {
        this.audioData = [];
        this.originalAudioData = [];
        this.currentPopup = null;
-       this.userPreferredPopupState = 'full'; // Default to full popup (State 3), user can minimize to set to 'mini'
+       this.userPreferredPopupState = 'full'; // States: 'mini' (State 2), 'full' (State 3), 'full-with-notes' (State 4)
        this.isPositioning = false;
        this.animationTimeout = null;
        this.moveTimeout = null;
@@ -175,7 +175,7 @@ class MapController {
               
               // If points are very close (<50m), show picker instead of breaking cluster
               if (distance < 50) {
-                this.showClusterPicker(e.point, leaves);
+                this.showClusterPicker(e.point, leaves, audioController.currentIndex);
                 return;
               }
               
@@ -241,18 +241,15 @@ class MapController {
           });
 
         // Throttle mini box updates during map movement
-        let miniBoxUpdateScheduled = false;
+        
         map.on('move', () => {
-          if (!miniBoxUpdateScheduled && !this.isPositioning) {
-            miniBoxUpdateScheduled = true;
-            requestAnimationFrame(() => {
-              uiController.updateMiniInfoBoxPositions();
-              // Also update custom popup position if it exists
-              if (this.currentPopup && this.currentPopup.updatePosition) {
-                this.currentPopup.updatePosition();
-              }
-              miniBoxUpdateScheduled = false;
-            });
+          // Update mini boxes and popup on every move event for smooth tracking
+          if (!this.isPositioning) {
+            uiController.updateMiniInfoBoxPositions();
+            // Also update custom popup position if it exists
+            if (this.currentPopup && this.currentPopup.updatePosition) {
+              this.currentPopup.updatePosition();
+            }
           }
         });
         
@@ -736,16 +733,38 @@ class MapController {
         
           // Add delay before positioning to prevent conflicts
         this.animationTimeout = setTimeout(() => {
-          this.positionMapForTrack(track, index);
+          this.positionMapForTrack(track, index, fromAutoPlay);
           
           // Get the flyto duration and delay popup creation until after it completes
           const duration = this.getMovementDuration(track);
           
           // Show popup and mini boxes after flyto completes
           setTimeout(() => {
-            // Pass shouldMinimize flag to showPopup based on user preference
-            this.showPopup([parseFloat(track.lng), parseFloat(track.lat)], track, audio, index, shouldMinimize);
-            uiController.showMiniInfoBoxes(null, this.audioData);
+            const coords = [parseFloat(track.lng), parseFloat(track.lat)];
+            
+            // Check if in tight "2" cluster
+            const nearbyTrackIndex = this.isInTightCluster(index);
+            
+            if (nearbyTrackIndex !== null && shouldMinimize) {
+              // State 2: Show picker with playing track highlighted
+              const nearbyTrack = this.audioData[nearbyTrackIndex];
+              const leaves = [
+                { 
+                  geometry: { coordinates: coords },
+                  properties: { originalIndex: track.originalIndex }
+                },
+                { 
+                  geometry: { coordinates: [parseFloat(nearbyTrack.lng), parseFloat(nearbyTrack.lat)] },
+                  properties: { originalIndex: nearbyTrack.originalIndex }
+                }
+              ];
+              this.showClusterPicker({ x: 0, y: 0 }, leaves, index); // Picker will position itself
+              uiController.showMiniInfoBoxes(null, this.audioData);
+            } else {
+              // State 3/4 or no tight cluster: Show normal popup
+              this.showPopup(coords, track, audio, index, shouldMinimize);
+              uiController.showMiniInfoBoxes(null, this.audioData);
+            }
           }, duration + 200); // 200ms additional delay after flyto completes
         }, 100);
       }
@@ -1021,7 +1040,7 @@ class MapController {
            });
          }
 
-      positionMapForTrack(track, index) {
+      positionMapForTrack(track, index, fromAutoPlay = false) {
         console.log('positionMapForTrack called for:', track.name);
         
         // Prevent multiple simultaneous map movements
@@ -1076,9 +1095,10 @@ class MapController {
         const targetZoom = is3D ? CONFIG.ZOOM_3D : CONFIG.ZOOM_2D;
         const currentZoom = map.getZoom();
         
-        // Only apply target zoom if we're currently zoomed OUT
-        // If already zoomed in closer, just pan (don't zoom out)
-        const useZoom = currentZoom < targetZoom ? targetZoom : currentZoom;
+        // Zoom logic:
+        // - For autoplay: ALWAYS use target zoom to break clusters
+        // - For manual clicks: Only zoom if currently zoomed out (don't zoom out if already close)
+        const useZoom = fromAutoPlay ? targetZoom : (currentZoom < targetZoom ? targetZoom : currentZoom);
 
         const flyToOptions = {
           center: coords,
@@ -1108,13 +1128,44 @@ class MapController {
                   Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLng / 2) ** 2;
         return 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a)) * R;
       }
+      
+      // Check if track is in a tight "2" cluster (<50m from another track)
+      isInTightCluster(trackIndex) {
+        const track = this.audioData[trackIndex];
+        if (!track) return null;
+        
+        const trackLat = parseFloat(track.lat);
+        const trackLng = parseFloat(track.lng);
+        
+        // Find nearest track
+        let nearestTrack = null;
+        let minDistance = Infinity;
+        
+        this.audioData.forEach((otherTrack, otherIndex) => {
+          if (otherIndex === trackIndex) return;
+          
+          const otherLat = parseFloat(otherTrack.lat);
+          const otherLng = parseFloat(otherTrack.lng);
+          const distance = this.calculateDistance(trackLat, trackLng, otherLat, otherLng);
+          
+          if (distance < minDistance && distance < 50) {
+            minDistance = distance;
+            nearestTrack = otherIndex;
+          }
+        });
+        
+        return nearestTrack !== null ? nearestTrack : null;
+      }
 
-      showClusterPicker(clickPoint, leaves) {
+      showClusterPicker(clickPoint, leaves, playingTrackIndex = null) {
         // Remove any existing picker
         const existingPicker = document.getElementById('cluster-picker');
         if (existingPicker) {
           existingPicker.remove();
         }
+        
+        // Get cluster center for anchoring
+        const coords = leaves[0].geometry.coordinates;
         
         // Create picker popup
         const picker = document.createElement('div');
@@ -1129,23 +1180,25 @@ class MapController {
         picker.style.zIndex = '1000';
         picker.style.maxWidth = '250px';
         
-        // Position near click point
-        picker.style.left = `${clickPoint.x + 10}px`;
-        picker.style.top = `${clickPoint.y - 10}px`;
+        // Position using map coordinates (will update on map move)
+        const updatePickerPosition = () => {
+          const px = map.project(coords);
+          picker.style.left = `${px.x + 10}px`;
+          picker.style.top = `${px.y - 10}px`;
+        };
+        updatePickerPosition();
         
-        // Add title
-        const title = document.createElement('div');
-        title.textContent = '2 recordings here:';
-        title.style.fontWeight = 'bold';
-        title.style.marginBottom = '6px';
-        title.style.color = '#333';
-        picker.appendChild(title);
+        // Store update function for map move handler
+        picker._updatePosition = updatePickerPosition;
         
-        // Add track options
+        // Add track options (no title)
         leaves.forEach(leaf => {
           const originalIndex = parseInt(leaf.properties.originalIndex);
           const track = this.audioData.find(t => t.originalIndex === originalIndex);
           if (!track) return;
+          
+          const currentIndex = this.audioData.findIndex(t => t.originalIndex === originalIndex);
+          const isPlaying = playingTrackIndex !== null && currentIndex === playingTrackIndex;
           
           const option = document.createElement('div');
           option.style.padding = '4px 6px';
@@ -1155,6 +1208,11 @@ class MapController {
           option.style.display = 'flex';
           option.style.alignItems = 'center';
           option.style.gap = '6px';
+          
+          // Orange background for playing track in State 2
+          if (isPlaying && this.userPreferredPopupState === 'mini') {
+            option.style.backgroundColor = 'rgba(255, 200, 150, 0.75)';
+          }
           
           // Play icon
           const playIcon = document.createElement('div');
@@ -1172,18 +1230,23 @@ class MapController {
           trackName.style.flex = '1';
           option.appendChild(trackName);
           
-          // Hover effect
+          // Hover effect (but not for already-playing orange item)
           option.addEventListener('mouseenter', () => {
-            option.style.backgroundColor = 'rgba(240, 240, 240, 0.9)';
+            if (!isPlaying || this.userPreferredPopupState !== 'mini') {
+              option.style.backgroundColor = 'rgba(240, 240, 240, 0.9)';
+            }
           });
           option.addEventListener('mouseleave', () => {
-            option.style.backgroundColor = 'transparent';
+            if (isPlaying && this.userPreferredPopupState === 'mini') {
+              option.style.backgroundColor = 'rgba(255, 200, 150, 0.75)';
+            } else {
+              option.style.backgroundColor = 'transparent';
+            }
           });
           
           // Click to play
           option.addEventListener('click', () => {
             picker.remove();
-            const currentIndex = this.audioData.findIndex(t => t.originalIndex === originalIndex);
             if (currentIndex >= 0) {
               this.playAudio(currentIndex, false, true);
             }
@@ -1192,10 +1255,19 @@ class MapController {
           picker.appendChild(option);
         });
         
+        // Update position on map move
+        const moveHandler = () => {
+          if (picker.parentNode) {
+            updatePickerPosition();
+          }
+        };
+        map.on('move', moveHandler);
+        
         // Close picker when clicking elsewhere
         const closeHandler = (e) => {
           if (!picker.contains(e.target)) {
             picker.remove();
+            map.off('move', moveHandler);
             document.removeEventListener('click', closeHandler);
           }
         };
@@ -1305,9 +1377,18 @@ class MapController {
             notesContent.style.marginBottom = '8px';
             notesContent.textContent = track.notes;
             
-            let notesExpanded = false;
+            // Check if we should auto-expand notes (State 4)
+            let notesExpanded = this.userPreferredPopupState === 'full-with-notes';
+            if (notesExpanded) {
+              notesContent.style.display = 'block';
+              notesToggle.textContent = 'Collapse field notes';
+            }
+            
             notesToggle.addEventListener('click', () => {
               notesExpanded = !notesExpanded;
+              
+              // Update state: State 3 <-> State 4
+              this.userPreferredPopupState = notesExpanded ? 'full-with-notes' : 'full';
               
               // Store current bottom position before height changes
               const currentBottom = parseInt(container.style.top) + container.offsetHeight;
