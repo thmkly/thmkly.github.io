@@ -1148,9 +1148,14 @@ class MapController {
         const currentZoom = map.getZoom();
         
         // Zoom logic:
-        // - For autoplay: ALWAYS use target zoom to break clusters
+        // - For autoplay: Use at least zoom 15 to ensure clusters break (clusterMaxZoom is 14)
         // - For manual clicks: Only zoom if currently zoomed out (don't zoom out if already close)
-        const useZoom = fromAutoPlay ? targetZoom : (currentZoom < targetZoom ? targetZoom : currentZoom);
+        let useZoom;
+        if (fromAutoPlay) {
+          useZoom = Math.max(targetZoom, 15); // Ensure clusters break
+        } else {
+          useZoom = currentZoom < targetZoom ? targetZoom : currentZoom;
+        }
 
         const flyToOptions = {
           center: coords,
