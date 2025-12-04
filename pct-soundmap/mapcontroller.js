@@ -1882,22 +1882,8 @@ class MapController {
         return duration;
       }
 
-      // Check if currently playing point is visible on screen
-      isCurrentPointVisible() {
-        if (audioController.currentIndex === -1) return false;
-        
-        const track = this.audioData[audioController.currentIndex];
-        if (!track) return false;
-        
-        const coords = [parseFloat(track.lng), parseFloat(track.lat)];
-        const bounds = map.getBounds();
-        const lngLat = new mapboxgl.LngLat(coords[0], coords[1]);
-        
-        return bounds.contains(lngLat);
-      }
-
       // Update badge visibility based on playlist state and popup visibility  
-      // Check if currently playing point is visible on screen
+      // Check if currently playing point is visible on screen (accounting for playlist)
       isCurrentPointVisible() {
         if (audioController.currentIndex === -1) return false;
         
@@ -1905,10 +1891,40 @@ class MapController {
         if (!track) return false;
         
         const coords = [parseFloat(track.lng), parseFloat(track.lat)];
+        
+        // Check if point is in viewport bounds
         const bounds = map.getBounds();
         const lngLat = new mapboxgl.LngLat(coords[0], coords[1]);
+        if (!bounds.contains(lngLat)) return false;
         
-        return bounds.contains(lngLat);
+        // Point is in bounds, now check if it's actually visible (not behind playlist)
+        const point = map.project(coords);
+        
+        // Get playlist width to check if point is behind it
+        const playlist = document.getElementById('playlistWrapper');
+        let playlistWidth = 0;
+        
+        if (playlist) {
+          const playlistCollapsed = uiController.isMobile ? 
+            !uiController.mobilePlaylistExpanded : 
+            !uiController.playlistExpanded;
+          
+          if (!playlistCollapsed) {
+            // Playlist is expanded - check if point is behind it
+            const playlistRect = playlist.getBoundingClientRect();
+            playlistWidth = playlistRect.width;
+          }
+        }
+        
+        // Check if point is in visible viewport area (not behind playlist)
+        // Account for some padding/margin
+        const minX = playlistWidth + 50; // 50px buffer
+        const maxX = window.innerWidth - 50;
+        const minY = 50;
+        const maxY = window.innerHeight - 50;
+        
+        return point.x >= minX && point.x <= maxX && 
+               point.y >= minY && point.y <= maxY;
       }
 
       // Update badge visibility based on playlist state and point visibility  
