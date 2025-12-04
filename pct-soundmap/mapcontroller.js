@@ -265,25 +265,31 @@ class MapController {
         });
 
         map.on('moveend', () => {
-          // Refresh mini boxes when movement is completely finished
-          if (!this.isPositioning) {
-            const visiblePoints = map.queryRenderedFeatures({ layers: ['unclustered-point'] });
+          // Small delay to ensure points are fully rendered after cluster breaks
+          setTimeout(() => {
+            if (this.isPositioning) return; // Skip during playback positioning
             
-            // Only update if cluster state changed or boxes are missing
+            const visiblePoints = map.queryRenderedFeatures({ layers: ['unclustered-point'] });
             const currentPointCount = visiblePoints.length;
             const existingBoxCount = uiController.miniInfoBoxes.length;
             
-            // Check if we need to update (clustering changed or boxes don't match)
-            const shouldUpdate = currentPointCount !== existingBoxCount || 
-                                 (currentPointCount > 0 && currentPointCount < 50 && existingBoxCount === 0);
+            console.log('moveend: visiblePoints:', currentPointCount, 'existingBoxes:', existingBoxCount);
             
-            if (shouldUpdate) {
-              uiController.clearMiniInfoBoxes();
-              if (currentPointCount > 0 && currentPointCount < 50) {
+            // Show mini boxes if we have 1-50 visible points and boxes are missing or mismatched
+            if (currentPointCount > 0 && currentPointCount < 50) {
+              // Only update if box count doesn't match point count
+              if (currentPointCount !== existingBoxCount) {
+                console.log('Updating mini boxes after cluster break');
+                uiController.clearMiniInfoBoxes();
                 uiController.showMiniInfoBoxes(null, this.audioData);
               }
+            } else if (currentPointCount === 0 && existingBoxCount > 0) {
+              // Clear boxes if no points visible (zoomed out to clusters)
+              console.log('Clearing mini boxes - no points visible');
+              uiController.clearMiniInfoBoxes();
             }
-          }
+          }, 150); // Increased delay for rendering
+        });
           
           // Update badge visibility after map movement
           this.updateBadgeVisibility();
@@ -1167,31 +1173,27 @@ class MapController {
         // Get cluster center for anchoring
         const coords = leaves[0].geometry.coordinates;
         
-        // Create picker popup
+        // Create picker container (no visible styling, just positioning)
         const picker = document.createElement('div');
         picker.id = 'cluster-picker';
         picker.style.position = 'absolute';
-        picker.style.backgroundColor = 'rgba(255, 255, 255, 0.95)';
-        picker.style.border = '1px solid #ccc';
-        picker.style.borderRadius = '4px';
-        picker.style.padding = '8px';
-        picker.style.fontSize = '13px';
-        picker.style.boxShadow = '0 2px 10px rgba(0, 0, 0, 0.3)';
         picker.style.zIndex = '1000';
-        picker.style.maxWidth = '250px';
+        picker.style.display = 'flex';
+        picker.style.flexDirection = 'column';
+        picker.style.gap = '4px'; // Space between stacked boxes
         
         // Position using map coordinates (will update on map move)
         const updatePickerPosition = () => {
           const px = map.project(coords);
           picker.style.left = `${px.x + 10}px`;
-          picker.style.top = `${px.y - 10}px`;
+          picker.style.top = `${px.y - 20}px`;
         };
         updatePickerPosition();
         
         // Store update function for map move handler
         picker._updatePosition = updatePickerPosition;
         
-        // Add track options (no title)
+        // Add track options (styled like mini infoboxes)
         leaves.forEach(leaf => {
           const originalIndex = parseInt(leaf.properties.originalIndex);
           const track = this.audioData.find(t => t.originalIndex === originalIndex);
@@ -1200,21 +1202,31 @@ class MapController {
           const currentIndex = this.audioData.findIndex(t => t.originalIndex === originalIndex);
           const isPlaying = playingTrackIndex !== null && currentIndex === playingTrackIndex;
           
-          const option = document.createElement('div');
-          option.style.padding = '4px 6px';
-          option.style.cursor = 'pointer';
-          option.style.borderRadius = '3px';
-          option.style.transition = 'background-color 0.2s';
-          option.style.display = 'flex';
-          option.style.alignItems = 'center';
-          option.style.gap = '6px';
+          // Create box that looks exactly like mini-infobox
+          const box = document.createElement('div');
+          box.style.position = 'relative'; // Not absolute, stacked in flex container
+          box.style.border = '1px solid #ccc';
+          box.style.borderRadius = '4px';
+          box.style.padding = '4px 8px';
+          box.style.fontSize = '11px';
+          box.style.color = '#000';
+          box.style.cursor = 'pointer';
+          box.style.boxShadow = '0 2px 5px rgba(0, 0, 0, 0.2)';
+          box.style.display = 'flex';
+          box.style.alignItems = 'center';
+          box.style.gap = '4px';
+          box.style.maxWidth = '200px';
+          box.style.whiteSpace = 'nowrap';
+          box.style.transition = 'background-color 0.2s';
           
-          // Orange background for playing track in State 2
-          if (isPlaying && this.userPreferredPopupState === 'mini') {
-            option.style.backgroundColor = 'rgba(255, 200, 150, 0.75)';
+          // Background color: orange for playing, blue for non-playing
+          if (isPlaying) {
+            box.style.backgroundColor = 'rgba(255, 200, 150, 0.75)'; // Orange like State 2
+          } else {
+            box.style.backgroundColor = 'rgba(255, 255, 255, 0.70)'; // Blue like State 1
           }
           
-          // Play icon
+          // Play icon (triangle)
           const playIcon = document.createElement('div');
           playIcon.style.width = '0';
           playIcon.style.height = '0';
@@ -1222,37 +1234,53 @@ class MapController {
           playIcon.style.borderTop = '4px solid transparent';
           playIcon.style.borderBottom = '4px solid transparent';
           playIcon.style.flexShrink = '0';
-          option.appendChild(playIcon);
+          box.appendChild(playIcon);
           
           // Track name
           const trackName = document.createElement('span');
           trackName.textContent = track.name.replace(/^[^\s]+\s+-\s+/, '');
           trackName.style.flex = '1';
-          option.appendChild(trackName);
+          trackName.style.overflow = 'hidden';
+          trackName.style.textOverflow = 'ellipsis';
+          trackName.style.whiteSpace = 'nowrap';
+          box.appendChild(trackName);
           
-          // Hover effect (but not for already-playing orange item)
-          option.addEventListener('mouseenter', () => {
-            if (!isPlaying || this.userPreferredPopupState !== 'mini') {
-              option.style.backgroundColor = 'rgba(240, 240, 240, 0.9)';
-            }
-          });
-          option.addEventListener('mouseleave', () => {
-            if (isPlaying && this.userPreferredPopupState === 'mini') {
-              option.style.backgroundColor = 'rgba(255, 200, 150, 0.75)';
+          // Hover effect - darker for both playing and non-playing
+          box.addEventListener('mouseenter', () => {
+            if (isPlaying) {
+              box.style.backgroundColor = 'rgba(255, 150, 100, 0.80)'; // Darker orange on hover
             } else {
-              option.style.backgroundColor = 'transparent';
+              box.style.backgroundColor = 'rgba(220, 220, 220, 0.80)'; // Gray on hover
+            }
+          });
+          box.addEventListener('mouseleave', () => {
+            if (isPlaying) {
+              box.style.backgroundColor = 'rgba(255, 200, 150, 0.75)'; // Back to orange
+            } else {
+              box.style.backgroundColor = 'rgba(255, 255, 255, 0.70)'; // Back to blue
             }
           });
           
-          // Click to play
-          option.addEventListener('click', () => {
+          // Click handler
+          box.addEventListener('click', () => {
             picker.remove();
+            map.off('move', moveHandler);
+            
             if (currentIndex >= 0) {
-              this.playAudio(currentIndex, false, true);
+              if (isPlaying) {
+                // Clicking playing track: close picker and show full popup based on preference
+                const shouldMinimize = this.userPreferredPopupState === 'mini';
+                const coords = [parseFloat(track.lng), parseFloat(track.lat)];
+                const audio = audioController.currentAudio;
+                this.showPopup(coords, track, audio, currentIndex, shouldMinimize);
+              } else {
+                // Clicking non-playing track: play it
+                this.playAudio(currentIndex, false, true);
+              }
             }
           });
           
-          picker.appendChild(option);
+          picker.appendChild(box);
         });
         
         // Update position on map move
