@@ -273,9 +273,8 @@ class MapController {
             
             const visiblePoints = map.queryRenderedFeatures({ layers: ['unclustered-point'] });
             const currentPointCount = visiblePoints.length;
-            const existingBoxCount = uiController.miniInfoBoxes.length;
             
-            console.log('moveend: visiblePoints:', currentPointCount, 'existingBoxes:', existingBoxCount);
+            console.log('moveend: visiblePoints:', currentPointCount);
             
             // Clear picker if it exists and its points are no longer visible (zoomed out to cluster)
             if (this.clusterPicker && this.clusterPickerTracks) {
@@ -294,17 +293,18 @@ class MapController {
               }
             }
             
-            // Show mini boxes if we have 1-50 visible points and boxes are missing or mismatched
+            // Always refresh mini boxes to ensure they match visible points
             if (currentPointCount > 0 && currentPointCount < 50) {
-              // Only update if box count doesn't match point count
-              if (currentPointCount !== existingBoxCount) {
-                console.log('Updating mini boxes after cluster break');
-                uiController.clearMiniInfoBoxes();
-                uiController.showMiniInfoBoxes(null, this.audioData);
-              }
-            } else if (currentPointCount === 0 && existingBoxCount > 0) {
+              console.log('Refreshing mini boxes for', currentPointCount, 'visible points');
+              uiController.clearMiniInfoBoxes();
+              uiController.showMiniInfoBoxes(null, this.audioData);
+            } else if (currentPointCount === 0) {
               // Clear boxes if no points visible (zoomed out to clusters)
               console.log('Clearing mini boxes - no points visible');
+              uiController.clearMiniInfoBoxes();
+            } else if (currentPointCount >= 50) {
+              // Too many points, clear boxes
+              console.log('Clearing mini boxes - too many points:', currentPointCount);
               uiController.clearMiniInfoBoxes();
             }
           }, 150); // Increased delay for rendering
