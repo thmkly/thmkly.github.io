@@ -4,6 +4,7 @@ class MapController {
        this.audioData = [];
        this.originalAudioData = [];
        this.currentPopup = null;
+       this.minimizedPopup = null; // Store minimized orange mini box (State 2 for non-tight clusters)
        this.userPreferredPopupState = 'full'; // States: 'mini' (State 2), 'full' (State 3), 'full-with-notes' (State 4) - default State 3
        this.isPositioning = false;
        this.waitingForPopup = false; // Track if we're waiting for popup to appear after flyTo
@@ -718,12 +719,8 @@ class MapController {
           // Always update badge when audio plays (visibility is controlled inside updateHeaderBadge)
           this.updateHeaderBadge(track);
         
-        // Clear old popup and mini boxes immediately before positioning
-        if (this.currentPopup) {
-          this.currentPopup.remove();
-          this.currentPopup = null;
-        }
-        uiController.clearMiniInfoBoxes();
+        // DON'T clear UI here - let it persist during flyTo
+        // UI will be cleared when new popup/picker is shown
         
         // Apply atmospheric lighting for this track (removed notification)
         if (typeof atmosphereController !== 'undefined' && atmosphereController.transitionToTrack) {
@@ -754,9 +751,27 @@ class MapController {
             if (isInPicker) {
               // Track is in picker - just update highlight, don't create new UI
               this.updateClusterPickerHighlight(index);
-              uiController.showMiniInfoBoxes(null, this.audioData);
+              // Don't clear mini boxes - they should stay visible
               this.waitingForPopup = false; // Popup/picker is now showing
+              this.updateBadgeVisibility(); // Update badge after picker highlight changes
             } else {
+              // Track NOT in picker - clear picker if it exists
+              if (this.clusterPicker) {
+                this.clusterPicker.remove();
+                if (this.clusterPicker._moveHandler) {
+                  map.off('move', this.clusterPicker._moveHandler);
+                }
+                this.clusterPicker = null;
+                this.clusterPickerTracks = null;
+              }
+              
+              // Clear old popup and mini boxes before showing new UI
+              if (this.currentPopup) {
+                this.currentPopup.remove();
+                this.currentPopup = null;
+              }
+              uiController.clearMiniInfoBoxes();
+              
               // Check if in tight cluster (any size)
               const nearbyTrackIndices = this.getTracksInTightCluster(index);
               
@@ -778,11 +793,13 @@ class MapController {
                 this.showClusterPicker({ x: 0, y: 0 }, leaves, index);
                 uiController.showMiniInfoBoxes(null, this.audioData);
                 this.waitingForPopup = false; // Picker is now showing
+                this.updateBadgeVisibility(); // Update badge after showing picker
               } else {
                 // State 3/4 or no tight cluster: Show normal popup
                 this.showPopup(coords, track, audio, index, shouldMinimize);
                 uiController.showMiniInfoBoxes(null, this.audioData);
                 this.waitingForPopup = false; // Popup is now showing
+                this.updateBadgeVisibility(); // Update badge after showing popup
               }
             }
           }, duration + 200); // 200ms additional delay after flyto completes
@@ -967,24 +984,43 @@ class MapController {
             // Click to fly to track location (keep minimized state)
             badge.addEventListener('click', () => {
               const coords = [parseFloat(track.lng), parseFloat(track.lat)];
+              const trackIndex = audioController.currentIndex;
               
               // Clear stale mini boxes before flying
               uiController.clearMiniInfoBoxes();
               
               // Fly to the location
-              this.positionMapForTrack(track, audioController.currentIndex);
+              this.positionMapForTrack(track, trackIndex);
               
-              // Show popup after flyTo completes (respecting user preference)
+              // Show popup/picker after flyTo completes (respecting user preference)
               const movementDuration = this.getMovementDuration(track);
               setTimeout(() => {
-                // Get the audio element
                 const audio = audioController.currentAudio;
-                
-                // Determine popup state based on user preference
                 const shouldMinimize = this.userPreferredPopupState === 'mini';
                 
-                // Show popup with current audio
-                this.showPopup(coords, track, audio, audioController.currentIndex, shouldMinimize);
+                // Check if in tight cluster
+                const nearbyTrackIndices = this.getTracksInTightCluster(trackIndex);
+                
+                if (nearbyTrackIndices.length > 0 && shouldMinimize) {
+                  // Show picker for tight cluster
+                  const leaves = [
+                    { 
+                      geometry: { coordinates: coords },
+                      properties: { originalIndex: track.originalIndex }
+                    },
+                    ...nearbyTrackIndices.map(nearbyIndex => {
+                      const nearbyTrack = this.audioData[nearbyIndex];
+                      return {
+                        geometry: { coordinates: [parseFloat(nearbyTrack.lng), parseFloat(nearbyTrack.lat)] },
+                        properties: { originalIndex: nearbyTrack.originalIndex }
+                      };
+                    })
+                  ];
+                  this.showClusterPicker({ x: 0, y: 0 }, leaves, trackIndex);
+                } else {
+                  // Show normal popup
+                  this.showPopup(coords, track, audio, trackIndex, shouldMinimize);
+                }
                 
                 // Redraw other mini boxes
                 const visiblePoints = map.queryRenderedFeatures({ layers: ['unclustered-point'] });
@@ -1344,7 +1380,10 @@ class MapController {
           // Click handler
           box.addEventListener('click', () => {
             if (currentIndex >= 0) {
-              if (isPlaying) {
+              // Read current playing state from dataset (updated dynamically)
+              const isCurrentlyPlaying = box.dataset.isPlaying === 'true';
+              
+              if (isCurrentlyPlaying) {
                 // Clicking playing track: remove picker and show State 3/4 popup (don't restart audio)
                 this.clusterPicker.remove();
                 if (this.clusterPicker._moveHandler) {
@@ -1358,6 +1397,7 @@ class MapController {
                 const coords = [parseFloat(track.lng), parseFloat(track.lat)];
                 const audio = audioController.currentAudio;
                 this.showPopup(coords, track, audio, currentIndex, shouldMinimize);
+                this.updateBadgeVisibility(); // Update badge after showing popup
                 
                 // Update state preference to full (user explicitly expanded)
                 if (this.userPreferredPopupState === 'mini') {
