@@ -206,30 +206,6 @@ class MapController {
               });
             });
           });
-          } else {
-            // For larger clusters, expand normally
-            map.getSource('audio').getClusterExpansionZoom(clusterId, (err, zoom) => {
-              if (err) return;
-              
-              map.getSource('audio').getClusterLeaves(clusterId, 100, 0, (err, leaves) => {
-                if (err) return;
-                
-                const bounds = new mapboxgl.LngLatBounds();
-                leaves.forEach(leaf => {
-                  bounds.extend(leaf.geometry.coordinates);
-                });
-                
-                const padding = uiController.isMobile ? 
-                  { top: 100, bottom: 120, left: 80, right: 80 } :
-                  { top: 80, bottom: 80, left: this.getLeftPadding() + 50, right: 100 };
-                
-                map.fitBounds(bounds, { 
-                  padding: padding,
-                  maxZoom: 14
-                });
-              });
-            });
-          }
         });
 
           map.on('click', 'unclustered-point', (e) => {
