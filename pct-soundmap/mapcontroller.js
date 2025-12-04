@@ -762,7 +762,7 @@ class MapController {
               this.updateClusterPickerHighlight(index);
               // Don't clear mini boxes - they should stay visible
               this.waitingForPopup = false; // Popup/picker is now showing
-              this.updateBadgeVisibility(); // Update badge after picker highlight changes
+              setTimeout(() => this.updateBadgeVisibility(), 50); // Small delay to ensure state settled
             } else {
               // Track NOT in picker - clear picker if it exists
               if (this.clusterPicker) {
@@ -802,13 +802,13 @@ class MapController {
                 this.showClusterPicker({ x: 0, y: 0 }, leaves, index);
                 uiController.showMiniInfoBoxes(null, this.audioData);
                 this.waitingForPopup = false; // Picker is now showing
-                this.updateBadgeVisibility(); // Update badge after showing picker
+                setTimeout(() => this.updateBadgeVisibility(), 50); // Small delay to ensure state settled
               } else {
                 // State 3/4 or no tight cluster: Show normal popup
                 this.showPopup(coords, track, audio, index, shouldMinimize);
                 uiController.showMiniInfoBoxes(null, this.audioData);
                 this.waitingForPopup = false; // Popup is now showing
-                this.updateBadgeVisibility(); // Update badge after showing popup
+                setTimeout(() => this.updateBadgeVisibility(), 50); // Small delay to ensure state settled
               }
             }
           }, duration + 200); // 200ms additional delay after flyto completes
@@ -1064,8 +1064,8 @@ class MapController {
               badge._audioElement = audio;
             }
             
-            // Update visibility based on current state
-            this.updateBadgeVisibility();
+            // Don't call updateBadgeVisibility here - it will be called after popup/picker is shown
+            // Calling it here is premature because flyTo hasn't started yet
           }
         }
 
@@ -1406,7 +1406,7 @@ class MapController {
                 const coords = [parseFloat(track.lng), parseFloat(track.lat)];
                 const audio = audioController.currentAudio;
                 this.showPopup(coords, track, audio, currentIndex, shouldMinimize);
-                this.updateBadgeVisibility(); // Update badge after showing popup
+                setTimeout(() => this.updateBadgeVisibility(), 50); // Small delay to ensure state settled
                 
                 // Update state preference to full (user explicitly expanded)
                 if (this.userPreferredPopupState === 'mini') {
