@@ -1060,8 +1060,8 @@ class MapController {
               badge._audioElement = audio;
             }
             
-            // Call updateBadgeVisibility to show badge only when appropriate
-            this.updateBadgeVisibility();
+            // Don't call updateBadgeVisibility here - popup hasn't been created yet
+            // It will be called after popup/picker is shown
           }
         }
 
