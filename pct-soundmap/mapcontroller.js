@@ -7,7 +7,6 @@ class MapController {
        this.minimizedPopup = null; // Store minimized orange mini box (State 2 for non-tight clusters)
        this.userPreferredPopupState = 'full'; // States: 'mini' (State 2), 'full' (State 3), 'full-with-notes' (State 4) - default State 3
        this.isPositioning = false;
-       this.waitingForPopup = false; // Track if we're waiting for popup to appear after flyTo
        this.animationTimeout = null;
        this.moveTimeout = null;
        this.hasInitiallyLoaded = false;
@@ -744,7 +743,6 @@ class MapController {
         
           // Add delay before positioning to prevent conflicts
         this.animationTimeout = setTimeout(() => {
-          this.waitingForPopup = true; // Badge should hide while waiting for popup
           this.positionMapForTrack(track, index, fromAutoPlay);
           
           // Get the flyto duration and delay popup creation until after it completes
@@ -761,8 +759,7 @@ class MapController {
               // Track is in picker - just update highlight, don't create new UI
               this.updateClusterPickerHighlight(index);
               // Don't clear mini boxes - they should stay visible
-              this.waitingForPopup = false; // Popup/picker is now showing
-              setTimeout(() => this.updateBadgeVisibility(), 50); // Small delay to ensure state settled
+              this.updateBadgeVisibility();
             } else {
               // Track NOT in picker - clear picker if it exists
               if (this.clusterPicker) {
@@ -801,14 +798,12 @@ class MapController {
                 ];
                 this.showClusterPicker({ x: 0, y: 0 }, leaves, index);
                 uiController.showMiniInfoBoxes(null, this.audioData);
-                this.waitingForPopup = false; // Picker is now showing
-                setTimeout(() => this.updateBadgeVisibility(), 50); // Small delay to ensure state settled
+                this.updateBadgeVisibility();
               } else {
                 // State 3/4 or no tight cluster: Show normal popup
                 this.showPopup(coords, track, audio, index, shouldMinimize);
                 uiController.showMiniInfoBoxes(null, this.audioData);
-                this.waitingForPopup = false; // Popup is now showing
-                setTimeout(() => this.updateBadgeVisibility(), 50); // Small delay to ensure state settled
+                this.updateBadgeVisibility();
               }
             }
           }, duration + 200); // 200ms additional delay after flyto completes
@@ -1406,7 +1401,7 @@ class MapController {
                 const coords = [parseFloat(track.lng), parseFloat(track.lat)];
                 const audio = audioController.currentAudio;
                 this.showPopup(coords, track, audio, currentIndex, shouldMinimize);
-                setTimeout(() => this.updateBadgeVisibility(), 50); // Small delay to ensure state settled
+                this.updateBadgeVisibility();
                 
                 // Update state preference to full (user explicitly expanded)
                 if (this.userPreferredPopupState === 'mini') {
@@ -1903,47 +1898,35 @@ class MapController {
         const badge = document.getElementById('playing-badge');
         if (!badge) return;
         
+        // Rule 1: Hide if playlist is expanded
         const playlistCollapsed = uiController.isMobile ? 
           !uiController.mobilePlaylistExpanded : 
           !uiController.playlistExpanded;
         
-        // Check if popup/minibox/picker is actually visible AND in viewport
-        let popupVisible = false;
-        
-        if (this.currentPopup) {
-          const popupElement = this.currentPopup._container;
-          if (popupElement) {
-            const rect = popupElement.getBoundingClientRect();
-            // Only consider visible if exists AND in viewport
-            popupVisible = rect.top < window.innerHeight && 
-                          rect.bottom > 0 &&
-                          rect.left < window.innerWidth && 
-                          rect.right > 0;
-          }
-        } else if (this.minimizedPopup) {
-          const rect = this.minimizedPopup.getBoundingClientRect();
-          // Only consider visible if exists AND in viewport
-          popupVisible = rect.top < window.innerHeight && 
-                        rect.bottom > 0 &&
-                        rect.left < window.innerWidth && 
-                        rect.right > 0;
-        } else if (this.clusterPicker) {
-          const rect = this.clusterPicker.getBoundingClientRect();
-          // Only consider visible if exists AND in viewport
-          popupVisible = rect.top < window.innerHeight && 
-                        rect.bottom > 0 &&
-                        rect.left < window.innerWidth && 
-                        rect.right > 0;
+        if (!playlistCollapsed) {
+          badge.style.display = 'none';
+          return;
         }
-        // If none exist, popupVisible stays false (correct - should show badge)
         
-        // Show badge when: playlist collapsed AND popup not visible in viewport AND NOT during flyTo AND NOT waiting for popup
-        const shouldShow = playlistCollapsed && 
-                          !popupVisible && 
-                          audioController.currentIndex >= 0 &&
-                          !this.isPositioning && 
-                          !this.waitingForPopup;
+        // Rule 2: Hide if currently in flyTo animation
+        if (this.isPositioning) {
+          badge.style.display = 'none';
+          return;
+        }
         
-        badge.style.display = shouldShow ? 'block' : 'none';
+        // Rule 3: Hide if any popup/picker/minibox exists (regardless of viewport position)
+        if (this.currentPopup || this.minimizedPopup || this.clusterPicker) {
+          badge.style.display = 'none';
+          return;
+        }
+        
+        // Rule 4: Only show if audio is playing
+        if (audioController.currentIndex < 0) {
+          badge.style.display = 'none';
+          return;
+        }
+        
+        // All conditions met - show badge
+        badge.style.display = 'block';
       }
     }
