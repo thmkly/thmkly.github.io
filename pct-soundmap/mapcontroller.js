@@ -246,6 +246,9 @@ class MapController {
           if (this.clusterPicker && this.clusterPicker._updatePosition) {
             this.clusterPicker._updatePosition();
           }
+          
+          // Update badge visibility as map moves (popup may move off-screen)
+          this.updateBadgeVisibility();
         });
         
         // Re-apply atmosphere when page becomes visible (fixes atmosphere reset on tab switch)
@@ -978,7 +981,6 @@ class MapController {
             badge.style.overflow = 'visible';
             badge.style.whiteSpace = 'normal';
             badge.style.lineHeight = '1.3';
-            badge.style.display = 'none'; // Start hidden, updateBadgeVisibility will show when appropriate
             
                // Position badge in upper left for both mobile and desktop
                badge.style.top = '20px';
@@ -1060,8 +1062,8 @@ class MapController {
               badge._audioElement = audio;
             }
             
-            // Don't call updateBadgeVisibility here - popup hasn't been created yet
-            // It will be called after popup/picker is shown
+            // Update visibility immediately after creation
+            this.updateBadgeVisibility();
           }
         }
 
@@ -1895,39 +1897,34 @@ class MapController {
       }
 
       // Update badge visibility based on playlist state and popup visibility  
+      // Check if currently playing point is visible on screen
+      isCurrentPointVisible() {
+        if (audioController.currentIndex === -1) return false;
+        
+        const track = this.audioData[audioController.currentIndex];
+        if (!track) return false;
+        
+        const coords = [parseFloat(track.lng), parseFloat(track.lat)];
+        const bounds = map.getBounds();
+        const lngLat = new mapboxgl.LngLat(coords[0], coords[1]);
+        
+        return bounds.contains(lngLat);
+      }
+
+      // Update badge visibility based on playlist state and point visibility  
       updateBadgeVisibility() {
         const badge = document.getElementById('playing-badge');
         if (!badge) return;
         
-        // Rule 1: Hide if playlist is expanded
         const playlistCollapsed = uiController.isMobile ? 
           !uiController.mobilePlaylistExpanded : 
           !uiController.playlistExpanded;
+        const pointVisible = this.isCurrentPointVisible();
         
-        if (!playlistCollapsed) {
+        if (playlistCollapsed && !pointVisible && audioController.currentIndex >= 0) {
+          badge.style.display = 'flex';
+        } else {
           badge.style.display = 'none';
-          return;
         }
-        
-        // Rule 2: Hide if currently in flyTo animation
-        if (this.isPositioning) {
-          badge.style.display = 'none';
-          return;
-        }
-        
-        // Rule 3: Hide if any popup/picker/minibox exists (regardless of viewport position)
-        if (this.currentPopup || this.minimizedPopup || this.clusterPicker) {
-          badge.style.display = 'none';
-          return;
-        }
-        
-        // Rule 4: Only show if audio is playing
-        if (audioController.currentIndex < 0) {
-          badge.style.display = 'none';
-          return;
-        }
-        
-        // All conditions met - show badge
-        badge.style.display = 'block';
       }
     }
