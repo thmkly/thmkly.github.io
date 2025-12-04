@@ -4,13 +4,14 @@ class MapController {
        this.audioData = [];
        this.originalAudioData = [];
        this.currentPopup = null;
-       this.userPreferredPopupState = 'mini'; // States: 'mini' (State 2), 'full' (State 3), 'full-with-notes' (State 4)
+       this.userPreferredPopupState = 'full'; // States: 'mini' (State 2), 'full' (State 3), 'full-with-notes' (State 4) - default State 3
        this.isPositioning = false;
+       this.waitingForPopup = false; // Track if we're waiting for popup to appear after flyTo
        this.animationTimeout = null;
        this.moveTimeout = null;
        this.hasInitiallyLoaded = false;
        this.clusterPicker = null; // Store active cluster picker
-       this.clusterPickerTracks = null; // Store track indices in current picker [index1, index2]
+       this.clusterPickerTracks = null; // Store track indices in current picker [index1, index2, ...]
        this.setupMap();
      }
 
@@ -165,39 +166,46 @@ class MapController {
           const clusterId = features[0].properties.cluster_id;
           const pointCount = features[0].properties.point_count;
           
-          // For "2" clusters, check if points are very close together
-          if (pointCount === 2) {
-            map.getSource('audio').getClusterLeaves(clusterId, 2, 0, (err, leaves) => {
+          // For any cluster, check if all points are very close together (tight cluster)
+          map.getSource('audio').getClusterLeaves(clusterId, pointCount, 0, (err, leaves) => {
+            if (err) return;
+            
+            // Check if this is a tight cluster (all points within 50m of each other)
+            let isTightCluster = true;
+            const firstCoords = leaves[0].geometry.coordinates;
+            
+            for (let i = 1; i < leaves.length; i++) {
+              const coords = leaves[i].geometry.coordinates;
+              const distance = this.calculateDistance(firstCoords[1], firstCoords[0], coords[1], coords[0]);
+              if (distance >= 50) {
+                isTightCluster = false;
+                break;
+              }
+            }
+            
+            // If tight cluster, show picker instead of breaking
+            if (isTightCluster) {
+              this.showClusterPicker(e.point, leaves, audioController.currentIndex);
+              return;
+            }
+            
+            // Otherwise, break cluster normally
+            map.getSource('audio').getClusterExpansionZoom(clusterId, (err, zoom) => {
               if (err) return;
               
-              // Calculate distance between the two points
-              const [lon1, lat1] = leaves[0].geometry.coordinates;
-              const [lon2, lat2] = leaves[1].geometry.coordinates;
-              const distance = this.calculateDistance(lat1, lon1, lat2, lon2);
+              const bounds = new mapboxgl.LngLatBounds();
+              leaves.forEach(leaf => bounds.extend(leaf.geometry.coordinates));
               
-              // If points are very close (<50m), show picker instead of breaking cluster
-              if (distance < 50) {
-                this.showClusterPicker(e.point, leaves, audioController.currentIndex);
-                return;
-              }
+              const padding = uiController.isMobile ? 
+                { top: 100, bottom: 120, left: 80, right: 80 } :
+                { top: 80, bottom: 80, left: this.getLeftPadding() + 50, right: 100 };
               
-              // Otherwise, break cluster normally
-              map.getSource('audio').getClusterExpansionZoom(clusterId, (err, zoom) => {
-                if (err) return;
-                
-                const bounds = new mapboxgl.LngLatBounds();
-                leaves.forEach(leaf => bounds.extend(leaf.geometry.coordinates));
-                
-                const padding = uiController.isMobile ? 
-                  { top: 100, bottom: 120, left: 80, right: 80 } :
-                  { top: 80, bottom: 80, left: this.getLeftPadding() + 50, right: 100 };
-                
-                map.fitBounds(bounds, { 
-                  padding: padding,
-                  maxZoom: 17  // Higher zoom for close "2" clusters
-                });
+              map.fitBounds(bounds, { 
+                padding: padding,
+                maxZoom: 17  // Higher zoom for tight clusters
               });
             });
+          });
           } else {
             // For larger clusters, expand normally
             map.getSource('audio').getClusterExpansionZoom(clusterId, (err, zoom) => {
@@ -754,6 +762,7 @@ class MapController {
         
           // Add delay before positioning to prevent conflicts
         this.animationTimeout = setTimeout(() => {
+          this.waitingForPopup = true; // Badge should hide while waiting for popup
           this.positionMapForTrack(track, index, fromAutoPlay);
           
           // Get the flyto duration and delay popup creation until after it completes
@@ -770,29 +779,34 @@ class MapController {
               // Track is in picker - just update highlight, don't create new UI
               this.updateClusterPickerHighlight(index);
               uiController.showMiniInfoBoxes(null, this.audioData);
+              this.waitingForPopup = false; // Popup/picker is now showing
             } else {
-              // Check if in tight "2" cluster
-              const nearbyTrackIndex = this.isInTightCluster(index);
+              // Check if in tight cluster (any size)
+              const nearbyTrackIndices = this.getTracksInTightCluster(index);
               
-              if (nearbyTrackIndex !== null && shouldMinimize) {
-                // State 2: Show picker with playing track highlighted
-                const nearbyTrack = this.audioData[nearbyTrackIndex];
+              if (nearbyTrackIndices.length > 0 && shouldMinimize) {
+                // State 2: Show picker with all tracks in tight cluster
                 const leaves = [
                   { 
                     geometry: { coordinates: coords },
                     properties: { originalIndex: track.originalIndex }
                   },
-                  { 
-                    geometry: { coordinates: [parseFloat(nearbyTrack.lng), parseFloat(nearbyTrack.lat)] },
-                    properties: { originalIndex: nearbyTrack.originalIndex }
-                  }
+                  ...nearbyTrackIndices.map(nearbyIndex => {
+                    const nearbyTrack = this.audioData[nearbyIndex];
+                    return {
+                      geometry: { coordinates: [parseFloat(nearbyTrack.lng), parseFloat(nearbyTrack.lat)] },
+                      properties: { originalIndex: nearbyTrack.originalIndex }
+                    };
+                  })
                 ];
-                this.showClusterPicker({ x: 0, y: 0 }, leaves, index); // Picker will position itself
+                this.showClusterPicker({ x: 0, y: 0 }, leaves, index);
                 uiController.showMiniInfoBoxes(null, this.audioData);
+                this.waitingForPopup = false; // Picker is now showing
               } else {
                 // State 3/4 or no tight cluster: Show normal popup
                 this.showPopup(coords, track, audio, index, shouldMinimize);
                 uiController.showMiniInfoBoxes(null, this.audioData);
+                this.waitingForPopup = false; // Popup is now showing
               }
             }
           }, duration + 200); // 200ms additional delay after flyto completes
@@ -829,21 +843,23 @@ class MapController {
           
           const coords = [parseFloat(track.lng), parseFloat(track.lat)];
           
-          // Check if in tight "2" cluster - if so, show picker instead of mini box
-          const nearbyTrackIndex = this.isInTightCluster(index);
+          // Check if in tight cluster - if so, show picker instead of mini box
+          const nearbyTrackIndices = this.getTracksInTightCluster(index);
           
-          if (nearbyTrackIndex !== null) {
-            // Show picker for tight cluster
-            const nearbyTrack = this.audioData[nearbyTrackIndex];
+          if (nearbyTrackIndices.length > 0) {
+            // Show picker for tight cluster with all nearby tracks
             const leaves = [
               { 
                 geometry: { coordinates: coords },
                 properties: { originalIndex: track.originalIndex }
               },
-              { 
-                geometry: { coordinates: [parseFloat(nearbyTrack.lng), parseFloat(nearbyTrack.lat)] },
-                properties: { originalIndex: nearbyTrack.originalIndex }
-              }
+              ...nearbyTrackIndices.map(nearbyIndex => {
+                const nearbyTrack = this.audioData[nearbyIndex];
+                return {
+                  geometry: { coordinates: [parseFloat(nearbyTrack.lng), parseFloat(nearbyTrack.lat)] },
+                  properties: { originalIndex: nearbyTrack.originalIndex }
+                };
+              })
             ];
             this.showClusterPicker({ x: 0, y: 0 }, leaves, index);
             uiController.showMiniInfoBoxes(null, this.audioData);
@@ -1186,17 +1202,16 @@ class MapController {
         return 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a)) * R;
       }
       
-      // Check if track is in a tight "2" cluster (<50m from another track)
-      isInTightCluster(trackIndex) {
+      // Check if track is in a tight cluster - returns array of nearby track indices (or empty array)
+      getTracksInTightCluster(trackIndex) {
         const track = this.audioData[trackIndex];
-        if (!track) return null;
+        if (!track) return [];
         
         const trackLat = parseFloat(track.lat);
         const trackLng = parseFloat(track.lng);
         
-        // Find nearest track
-        let nearestTrack = null;
-        let minDistance = Infinity;
+        // Find all tracks within 50m
+        const nearbyTracks = [];
         
         this.audioData.forEach((otherTrack, otherIndex) => {
           if (otherIndex === trackIndex) return;
@@ -1205,13 +1220,12 @@ class MapController {
           const otherLng = parseFloat(otherTrack.lng);
           const distance = this.calculateDistance(trackLat, trackLng, otherLat, otherLng);
           
-          if (distance < minDistance && distance < 50) {
-            minDistance = distance;
-            nearestTrack = otherIndex;
+          if (distance < 50) {
+            nearbyTracks.push(otherIndex);
           }
         });
         
-        return nearestTrack !== null ? nearestTrack : null;
+        return nearbyTracks;
       }
 
       updateClusterPickerHighlight(playingIndex) {
@@ -1355,17 +1369,24 @@ class MapController {
           box.addEventListener('click', () => {
             if (currentIndex >= 0) {
               if (isPlaying) {
-                // Clicking playing track: remove picker and show full popup
+                // Clicking playing track: remove picker and show State 3/4 popup (don't restart audio)
                 this.clusterPicker.remove();
                 if (this.clusterPicker._moveHandler) {
                   map.off('move', this.clusterPicker._moveHandler);
                 }
                 this.clusterPicker = null;
+                this.clusterPickerTracks = null;
                 
-                const shouldMinimize = this.userPreferredPopupState === 'mini';
+                // Always expand to full popup (State 3/4), respecting notes state
+                const shouldMinimize = false; // Always show full when expanding from picker
                 const coords = [parseFloat(track.lng), parseFloat(track.lat)];
                 const audio = audioController.currentAudio;
                 this.showPopup(coords, track, audio, currentIndex, shouldMinimize);
+                
+                // Update state preference to full (user explicitly expanded)
+                if (this.userPreferredPopupState === 'mini') {
+                  this.userPreferredPopupState = 'full';
+                }
               } else {
                 // Clicking non-playing track: play it (picker stays open, will update highlight)
                 this.playAudio(currentIndex, false, true);
@@ -1861,7 +1882,7 @@ class MapController {
           !uiController.mobilePlaylistExpanded : 
           !uiController.playlistExpanded;
         
-        // Check if popup/minibox is actually visible in the viewport
+        // Check if popup/minibox/picker is actually visible in the viewport
         let popupVisible = false;
         
         if (this.currentPopup) {
@@ -1881,13 +1902,21 @@ class MapController {
                         rect.bottom > 0 &&
                         rect.left < window.innerWidth && 
                         rect.right > 0;
+        } else if (this.clusterPicker) {
+          // Check if picker is in viewport
+          const rect = this.clusterPicker.getBoundingClientRect();
+          popupVisible = rect.top < window.innerHeight && 
+                        rect.bottom > 0 &&
+                        rect.left < window.innerWidth && 
+                        rect.right > 0;
         }
         
-        // Show badge when: playlist collapsed AND popup not visible on screen AND NOT during flyTo
+        // Show badge when: playlist collapsed AND popup not visible AND NOT during flyTo AND NOT waiting for popup
         const shouldShow = playlistCollapsed && 
                           !popupVisible && 
                           audioController.currentIndex >= 0 &&
-                          !this.isPositioning; // Hide during flyTo animation
+                          !this.isPositioning && // Hide during flyTo animation
+                          !this.waitingForPopup; // Hide while waiting for popup to appear
         
         badge.style.display = shouldShow ? 'block' : 'none';
       }
