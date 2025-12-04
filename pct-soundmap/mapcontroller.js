@@ -978,6 +978,7 @@ class MapController {
             badge.style.overflow = 'visible';
             badge.style.whiteSpace = 'normal';
             badge.style.lineHeight = '1.3';
+            badge.style.display = 'none'; // Start hidden, updateBadgeVisibility will show when appropriate
             
                // Position badge in upper left for both mobile and desktop
                badge.style.top = '20px';
@@ -1059,8 +1060,8 @@ class MapController {
               badge._audioElement = audio;
             }
             
-            // Don't call updateBadgeVisibility here - it will be called after popup/picker is shown
-            // Calling it here is premature because flyTo hasn't started yet
+            // Call updateBadgeVisibility to show badge only when appropriate
+            this.updateBadgeVisibility();
           }
         }
 
