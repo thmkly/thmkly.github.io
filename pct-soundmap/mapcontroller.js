@@ -230,13 +230,22 @@ class MapController {
         // Throttle mini box updates during map movement
         
         map.on('move', () => {
-          // Update mini boxes and popup on every move event for smooth tracking
-          if (!this.isPositioning) {
-            uiController.updateMiniInfoBoxPositions();
-            // Also update custom popup position if it exists
-            if (this.currentPopup && this.currentPopup.updatePosition) {
-              this.currentPopup.updatePosition();
-            }
+          // ALWAYS update positions during map move (including during flyTo) for smooth tracking
+          uiController.updateMiniInfoBoxPositions();
+          
+          // Update custom popup position if it exists
+          if (this.currentPopup && this.currentPopup.updatePosition) {
+            this.currentPopup.updatePosition();
+          }
+          
+          // Update minimized popup position if it exists
+          if (this.minimizedPopup && this.minimizedPopup._updatePosition) {
+            this.minimizedPopup._updatePosition();
+          }
+          
+          // Update cluster picker position if it exists
+          if (this.clusterPicker && this.clusterPicker._updatePosition) {
+            this.clusterPicker._updatePosition();
           }
         });
         
@@ -1898,41 +1907,42 @@ class MapController {
           !uiController.mobilePlaylistExpanded : 
           !uiController.playlistExpanded;
         
-        // Check if popup/minibox/picker is actually visible in the viewport
+        // Check if popup/minibox/picker is actually visible AND in viewport
         let popupVisible = false;
         
         if (this.currentPopup) {
-          // Check if the popup element is in the viewport
           const popupElement = this.currentPopup._container;
           if (popupElement) {
             const rect = popupElement.getBoundingClientRect();
+            // Only consider visible if exists AND in viewport
             popupVisible = rect.top < window.innerHeight && 
                           rect.bottom > 0 &&
                           rect.left < window.innerWidth && 
                           rect.right > 0;
           }
         } else if (this.minimizedPopup) {
-          // Check if mini box is in viewport
           const rect = this.minimizedPopup.getBoundingClientRect();
+          // Only consider visible if exists AND in viewport
           popupVisible = rect.top < window.innerHeight && 
                         rect.bottom > 0 &&
                         rect.left < window.innerWidth && 
                         rect.right > 0;
         } else if (this.clusterPicker) {
-          // Check if picker is in viewport
           const rect = this.clusterPicker.getBoundingClientRect();
+          // Only consider visible if exists AND in viewport
           popupVisible = rect.top < window.innerHeight && 
                         rect.bottom > 0 &&
                         rect.left < window.innerWidth && 
                         rect.right > 0;
         }
+        // If none exist, popupVisible stays false (correct - should show badge)
         
-        // Show badge when: playlist collapsed AND popup not visible AND NOT during flyTo AND NOT waiting for popup
+        // Show badge when: playlist collapsed AND popup not visible in viewport AND NOT during flyTo AND NOT waiting for popup
         const shouldShow = playlistCollapsed && 
                           !popupVisible && 
                           audioController.currentIndex >= 0 &&
-                          !this.isPositioning && // Hide during flyTo animation
-                          !this.waitingForPopup; // Hide while waiting for popup to appear
+                          !this.isPositioning && 
+                          !this.waitingForPopup;
         
         badge.style.display = shouldShow ? 'block' : 'none';
       }
