@@ -4,11 +4,13 @@ class MapController {
        this.audioData = [];
        this.originalAudioData = [];
        this.currentPopup = null;
-       this.userPreferredPopupState = 'full'; // States: 'mini' (State 2), 'full' (State 3), 'full-with-notes' (State 4)
+       this.userPreferredPopupState = 'mini'; // States: 'mini' (State 2), 'full' (State 3), 'full-with-notes' (State 4)
        this.isPositioning = false;
        this.animationTimeout = null;
        this.moveTimeout = null;
        this.hasInitiallyLoaded = false;
+       this.clusterPicker = null; // Store active cluster picker
+       this.clusterPickerTracks = null; // Store track indices in current picker [index1, index2]
        this.setupMap();
      }
 
@@ -274,6 +276,23 @@ class MapController {
             const existingBoxCount = uiController.miniInfoBoxes.length;
             
             console.log('moveend: visiblePoints:', currentPointCount, 'existingBoxes:', existingBoxCount);
+            
+            // Clear picker if it exists and its points are no longer visible (zoomed out to cluster)
+            if (this.clusterPicker && this.clusterPickerTracks) {
+              const pickerPointsVisible = this.clusterPickerTracks.some(trackIndex => {
+                return visiblePoints.some(p => parseInt(p.properties.originalIndex) === this.audioData[trackIndex].originalIndex);
+              });
+              
+              if (!pickerPointsVisible) {
+                console.log('Clearing picker - points clustered');
+                if (this.clusterPicker._moveHandler) {
+                  map.off('move', this.clusterPicker._moveHandler);
+                }
+                this.clusterPicker.remove();
+                this.clusterPicker = null;
+                this.clusterPickerTracks = null;
+              }
+            }
             
             // Show mini boxes if we have 1-50 visible points and boxes are missing or mismatched
             if (currentPointCount > 0 && currentPointCount < 50) {
@@ -744,28 +763,37 @@ class MapController {
           setTimeout(() => {
             const coords = [parseFloat(track.lng), parseFloat(track.lat)];
             
-            // Check if in tight "2" cluster
-            const nearbyTrackIndex = this.isInTightCluster(index);
+            // Check if track is in existing picker
+            const isInPicker = this.clusterPickerTracks && this.clusterPickerTracks.includes(index);
             
-            if (nearbyTrackIndex !== null && shouldMinimize) {
-              // State 2: Show picker with playing track highlighted
-              const nearbyTrack = this.audioData[nearbyTrackIndex];
-              const leaves = [
-                { 
-                  geometry: { coordinates: coords },
-                  properties: { originalIndex: track.originalIndex }
-                },
-                { 
-                  geometry: { coordinates: [parseFloat(nearbyTrack.lng), parseFloat(nearbyTrack.lat)] },
-                  properties: { originalIndex: nearbyTrack.originalIndex }
-                }
-              ];
-              this.showClusterPicker({ x: 0, y: 0 }, leaves, index); // Picker will position itself
+            if (isInPicker) {
+              // Track is in picker - just update highlight, don't create new UI
+              this.updateClusterPickerHighlight(index);
               uiController.showMiniInfoBoxes(null, this.audioData);
             } else {
-              // State 3/4 or no tight cluster: Show normal popup
-              this.showPopup(coords, track, audio, index, shouldMinimize);
-              uiController.showMiniInfoBoxes(null, this.audioData);
+              // Check if in tight "2" cluster
+              const nearbyTrackIndex = this.isInTightCluster(index);
+              
+              if (nearbyTrackIndex !== null && shouldMinimize) {
+                // State 2: Show picker with playing track highlighted
+                const nearbyTrack = this.audioData[nearbyTrackIndex];
+                const leaves = [
+                  { 
+                    geometry: { coordinates: coords },
+                    properties: { originalIndex: track.originalIndex }
+                  },
+                  { 
+                    geometry: { coordinates: [parseFloat(nearbyTrack.lng), parseFloat(nearbyTrack.lat)] },
+                    properties: { originalIndex: nearbyTrack.originalIndex }
+                  }
+                ];
+                this.showClusterPicker({ x: 0, y: 0 }, leaves, index); // Picker will position itself
+                uiController.showMiniInfoBoxes(null, this.audioData);
+              } else {
+                // State 3/4 or no tight cluster: Show normal popup
+                this.showPopup(coords, track, audio, index, shouldMinimize);
+                uiController.showMiniInfoBoxes(null, this.audioData);
+              }
             }
           }, duration + 200); // 200ms additional delay after flyto completes
         }, 100);
@@ -799,8 +827,30 @@ class MapController {
             audioController.currentAudio.style.display = 'none';
           }
           
-          // Create a mini infobox for the minimized popup
           const coords = [parseFloat(track.lng), parseFloat(track.lat)];
+          
+          // Check if in tight "2" cluster - if so, show picker instead of mini box
+          const nearbyTrackIndex = this.isInTightCluster(index);
+          
+          if (nearbyTrackIndex !== null) {
+            // Show picker for tight cluster
+            const nearbyTrack = this.audioData[nearbyTrackIndex];
+            const leaves = [
+              { 
+                geometry: { coordinates: coords },
+                properties: { originalIndex: track.originalIndex }
+              },
+              { 
+                geometry: { coordinates: [parseFloat(nearbyTrack.lng), parseFloat(nearbyTrack.lat)] },
+                properties: { originalIndex: nearbyTrack.originalIndex }
+              }
+            ];
+            this.showClusterPicker({ x: 0, y: 0 }, leaves, index);
+            uiController.showMiniInfoBoxes(null, this.audioData);
+            return; // Don't create regular mini box
+          }
+          
+          // Not in tight cluster - create regular mini box
           const pixelCoords = map.project(coords);
           
           const miniBox = document.createElement('div');
@@ -1159,15 +1209,43 @@ class MapController {
         return nearestTrack !== null ? nearestTrack : null;
       }
 
+      updateClusterPickerHighlight(playingIndex) {
+        if (!this.clusterPicker) return;
+        
+        // Update each box's highlight based on whether it's playing
+        const boxes = this.clusterPicker.querySelectorAll('[data-track-index]');
+        boxes.forEach(box => {
+          const trackIndex = parseInt(box.dataset.trackIndex);
+          const isPlaying = trackIndex === playingIndex;
+          
+          box.dataset.isPlaying = isPlaying ? 'true' : 'false';
+          
+          if (isPlaying) {
+            box.style.backgroundColor = 'rgba(255, 200, 150, 0.75)';
+          } else {
+            box.style.backgroundColor = 'rgba(255, 255, 255, 0.70)';
+          }
+        });
+      }
+
       showClusterPicker(clickPoint, leaves, playingTrackIndex = null) {
         // Remove any existing picker
-        const existingPicker = document.getElementById('cluster-picker');
-        if (existingPicker) {
-          existingPicker.remove();
+        if (this.clusterPicker) {
+          if (this.clusterPicker._moveHandler) {
+            map.off('move', this.clusterPicker._moveHandler);
+          }
+          this.clusterPicker.remove();
+          this.clusterPicker = null;
         }
         
         // Get cluster center for anchoring
         const coords = leaves[0].geometry.coordinates;
+        
+        // Store track indices for this picker
+        this.clusterPickerTracks = leaves.map(leaf => {
+          const originalIndex = parseInt(leaf.properties.originalIndex);
+          return this.audioData.findIndex(t => t.originalIndex === originalIndex);
+        });
         
         // Create picker container (no visible styling, just positioning)
         const picker = document.createElement('div');
@@ -1176,7 +1254,7 @@ class MapController {
         picker.style.zIndex = '1000';
         picker.style.display = 'flex';
         picker.style.flexDirection = 'column';
-        picker.style.gap = '4px'; // Space between stacked boxes
+        picker.style.gap = '0px'; // Connected boxes, no gap
         
         // Position using map coordinates (will update on map move)
         const updatePickerPosition = () => {
@@ -1186,11 +1264,12 @@ class MapController {
         };
         updatePickerPosition();
         
-        // Store update function for map move handler
+        // Store update function and coords
         picker._updatePosition = updatePickerPosition;
+        picker._coords = coords;
         
         // Add track options (styled like mini infoboxes)
-        leaves.forEach(leaf => {
+        leaves.forEach((leaf, boxIndex) => {
           const originalIndex = parseInt(leaf.properties.originalIndex);
           const track = this.audioData.find(t => t.originalIndex === originalIndex);
           if (!track) return;
@@ -1200,9 +1279,9 @@ class MapController {
           
           // Create box that looks exactly like mini-infobox
           const box = document.createElement('div');
-          box.style.position = 'relative'; // Not absolute, stacked in flex container
+          box.dataset.trackIndex = currentIndex;
+          box.style.position = 'relative';
           box.style.border = '1px solid #ccc';
-          box.style.borderRadius = '4px';
           box.style.padding = '4px 8px';
           box.style.fontSize = '11px';
           box.style.color = '#000';
@@ -1215,11 +1294,21 @@ class MapController {
           box.style.whiteSpace = 'nowrap';
           box.style.transition = 'background-color 0.2s';
           
+          // Round corners: top box gets top corners, bottom box gets bottom corners
+          if (boxIndex === 0) {
+            box.style.borderRadius = '4px 4px 0 0';
+            box.style.borderBottom = 'none'; // Remove border between boxes
+          } else {
+            box.style.borderRadius = '0 0 4px 4px';
+          }
+          
           // Background color: orange for playing, blue for non-playing
           if (isPlaying) {
-            box.style.backgroundColor = 'rgba(255, 200, 150, 0.75)'; // Orange like State 2
+            box.style.backgroundColor = 'rgba(255, 200, 150, 0.75)';
+            box.dataset.isPlaying = 'true';
           } else {
-            box.style.backgroundColor = 'rgba(255, 255, 255, 0.70)'; // Blue like State 1
+            box.style.backgroundColor = 'rgba(255, 255, 255, 0.70)';
+            box.dataset.isPlaying = 'false';
           }
           
           // Play icon (triangle)
@@ -1243,34 +1332,37 @@ class MapController {
           
           // Hover effect - darker for both playing and non-playing
           box.addEventListener('mouseenter', () => {
-            if (isPlaying) {
-              box.style.backgroundColor = 'rgba(255, 150, 100, 0.80)'; // Darker orange on hover
+            if (box.dataset.isPlaying === 'true') {
+              box.style.backgroundColor = 'rgba(255, 150, 100, 0.80)';
             } else {
-              box.style.backgroundColor = 'rgba(220, 220, 220, 0.80)'; // Gray on hover
+              box.style.backgroundColor = 'rgba(220, 220, 220, 0.80)';
             }
           });
           box.addEventListener('mouseleave', () => {
-            if (isPlaying) {
-              box.style.backgroundColor = 'rgba(255, 200, 150, 0.75)'; // Back to orange
+            if (box.dataset.isPlaying === 'true') {
+              box.style.backgroundColor = 'rgba(255, 200, 150, 0.75)';
             } else {
-              box.style.backgroundColor = 'rgba(255, 255, 255, 0.70)'; // Back to blue
+              box.style.backgroundColor = 'rgba(255, 255, 255, 0.70)';
             }
           });
           
           // Click handler
           box.addEventListener('click', () => {
-            picker.remove();
-            map.off('move', moveHandler);
-            
             if (currentIndex >= 0) {
               if (isPlaying) {
-                // Clicking playing track: close picker and show full popup based on preference
+                // Clicking playing track: remove picker and show full popup
+                this.clusterPicker.remove();
+                if (this.clusterPicker._moveHandler) {
+                  map.off('move', this.clusterPicker._moveHandler);
+                }
+                this.clusterPicker = null;
+                
                 const shouldMinimize = this.userPreferredPopupState === 'mini';
                 const coords = [parseFloat(track.lng), parseFloat(track.lat)];
                 const audio = audioController.currentAudio;
                 this.showPopup(coords, track, audio, currentIndex, shouldMinimize);
               } else {
-                // Clicking non-playing track: play it
+                // Clicking non-playing track: play it (picker stays open, will update highlight)
                 this.playAudio(currentIndex, false, true);
               }
             }
@@ -1286,19 +1378,10 @@ class MapController {
           }
         };
         map.on('move', moveHandler);
+        picker._moveHandler = moveHandler;
         
-        // Close picker when clicking elsewhere
-        const closeHandler = (e) => {
-          if (!picker.contains(e.target)) {
-            picker.remove();
-            map.off('move', moveHandler);
-            document.removeEventListener('click', closeHandler);
-          }
-        };
-        setTimeout(() => {
-          document.addEventListener('click', closeHandler);
-        }, 100);
-        
+        // Store picker reference
+        this.clusterPicker = picker;
         document.body.appendChild(picker);
       }
 
