@@ -290,10 +290,6 @@ class MapController {
             }
           }, 150); // Increased delay for rendering
         });
-          
-          // Update badge visibility after map movement
-          this.updateBadgeVisibility();
-        });
 
         document.addEventListener('fullscreenchange', () => {
           uiController.isFullscreen = !!document.fullscreenElement;
