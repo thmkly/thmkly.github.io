@@ -474,8 +474,13 @@ class UIController {
           const currentIndex = audioData.findIndex(track => track.originalIndex === originalIndex);
           if (currentIndex === -1) return;
           
-          // Skip the currently playing track - it has the main popup
-          if (currentIndex === audioController.currentIndex) return;
+          // Skip tracks that are in the cluster picker
+          if (mapController.clusterPickerTracks && mapController.clusterPickerTracks.includes(currentIndex)) {
+            return; // This track is in the picker, don't create mini box
+          }
+          
+          // Skip the currently playing track if it has a popup (but not if it's in picker)
+          if (currentIndex === audioController.currentIndex && mapController.currentPopup) return;
           
           const track = audioData[currentIndex];
           if (!track) return;
