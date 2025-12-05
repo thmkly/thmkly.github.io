@@ -290,10 +290,16 @@ class MapController {
             }
             
             // Always refresh mini boxes to ensure they match visible points
+            // BUT don't regenerate cluster picker if one already exists
             if (currentPointCount > 0 && currentPointCount < 50) {
               console.log('Refreshing mini boxes for', currentPointCount, 'visible points');
               uiController.clearMiniInfoBoxes();
-              uiController.showMiniInfoBoxes(null, this.audioData);
+              
+              // Only refresh mini boxes if no cluster picker is open
+              // (preserves picker during map pan/zoom)
+              if (!this.clusterPicker) {
+                uiController.showMiniInfoBoxes(null, this.audioData);
+              }
             } else if (currentPointCount === 0) {
               // Clear boxes if no points visible (zoomed out to clusters)
               console.log('Clearing mini boxes - no points visible');
