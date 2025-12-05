@@ -272,14 +272,18 @@ class MapController {
             
             console.log('moveend: visiblePoints:', currentPointCount);
             
-            // Clear picker if it exists and its points are no longer visible (zoomed out to cluster)
+            // Close picker only if zoomed out so far that its points are now clustered
+            // Check if ALL picker tracks are no longer visible as individual points
             if (this.clusterPicker && this.clusterPickerTracks) {
-              const pickerPointsVisible = this.clusterPickerTracks.some(trackIndex => {
-                return visiblePoints.some(p => parseInt(p.properties.originalIndex) === this.audioData[trackIndex].originalIndex);
+              const allPickerPointsHidden = this.clusterPickerTracks.every(trackIndex => {
+                const track = this.audioData[trackIndex];
+                if (!track) return true; // Track not found, consider hidden
+                // Check if this track's point is visible as an unclustered point
+                return !visiblePoints.some(p => parseInt(p.properties.originalIndex) === track.originalIndex);
               });
               
-              if (!pickerPointsVisible) {
-                console.log('Clearing picker - points clustered');
+              if (allPickerPointsHidden) {
+                console.log('Closing picker - all points are now clustered');
                 if (this.clusterPicker._moveHandler) {
                   map.off('move', this.clusterPicker._moveHandler);
                 }
@@ -298,6 +302,9 @@ class MapController {
               // Only refresh mini boxes if no cluster picker is open
               // (preserves picker during map pan/zoom)
               if (!this.clusterPicker) {
+                uiController.showMiniInfoBoxes(null, this.audioData);
+              } else {
+                // Picker is open - show mini boxes for tracks NOT in picker
                 uiController.showMiniInfoBoxes(null, this.audioData);
               }
             } else if (currentPointCount === 0) {
@@ -1314,8 +1321,29 @@ class MapController {
         picker._updatePosition = updatePickerPosition;
         picker._coords = coords;
         
+        // Sort leaves by track name numerically (e.g., "tunnel falls 1", "tunnel falls 2", "tunnel falls 3")
+        const sortedLeaves = [...leaves].sort((a, b) => {
+          const aIndex = parseInt(a.properties.originalIndex);
+          const bIndex = parseInt(b.properties.originalIndex);
+          const trackA = this.audioData.find(t => t.originalIndex === aIndex);
+          const trackB = this.audioData.find(t => t.originalIndex === bIndex);
+          
+          if (!trackA || !trackB) return 0;
+          
+          // Extract numbers from track names for natural sorting
+          const getNumber = (name) => {
+            const match = name.match(/(\d+)$/); // Match number at end of name
+            return match ? parseInt(match[1]) : 0;
+          };
+          
+          const numA = getNumber(trackA.name);
+          const numB = getNumber(trackB.name);
+          
+          return numA - numB;
+        });
+        
         // Add track options (styled like mini infoboxes)
-        leaves.forEach((leaf, boxIndex) => {
+        sortedLeaves.forEach((leaf, boxIndex) => {
           const originalIndex = parseInt(leaf.properties.originalIndex);
           const track = this.audioData.find(t => t.originalIndex === originalIndex);
           if (!track) return;
@@ -1340,12 +1368,24 @@ class MapController {
           box.style.whiteSpace = 'nowrap';
           box.style.transition = 'background-color 0.2s';
           
-          // Round corners: top box gets top corners, bottom box gets bottom corners
-          if (boxIndex === 0) {
+          // Round corners based on position in list
+          const totalBoxes = sortedLeaves.length;
+          if (totalBoxes === 1) {
+            box.style.borderRadius = '4px';
+          } else if (boxIndex === 0) {
+            // First box: round top corners
             box.style.borderRadius = '4px 4px 0 0';
-            box.style.borderBottom = 'none'; // Remove border between boxes
-          } else {
+          } else if (boxIndex === totalBoxes - 1) {
+            // Last box: round bottom corners
             box.style.borderRadius = '0 0 4px 4px';
+          } else {
+            // Middle boxes: no rounding
+            box.style.borderRadius = '0';
+          }
+          
+          // Remove bottom border for all except last box
+          if (boxIndex < totalBoxes - 1) {
+            box.style.borderBottom = 'none';
           }
           
           // Background color: orange for playing, blue for non-playing
