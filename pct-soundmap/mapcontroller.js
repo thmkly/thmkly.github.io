@@ -1434,6 +1434,9 @@ class MapController {
         // Store picker reference
         this.clusterPicker = picker;
         document.body.appendChild(picker);
+        
+        // Update badge visibility after picker is shown
+        this.updateBadgeVisibility();
       }
 
           showPopup(coords, track, audio, index, shouldMinimize = false) {
@@ -1749,6 +1752,9 @@ class MapController {
           if (shouldMinimize) {
             this.minimizePopup(track, index);
           }
+          
+          // Update badge visibility after popup is shown
+          this.updateBadgeVisibility();
         }
 
       refreshPopupMileage(track) {
@@ -1884,13 +1890,9 @@ class MapController {
         return duration;
       }
 
-      // Update badge visibility based on playlist state and popup visibility  
-      // Check if currently playing point is visible on screen (accounting for playlist)
+      // Check if popup/picker is actually visible in browser viewport (ignores map padding)
       isCurrentPointVisible() {
         if (audioController.currentIndex === -1) return false;
-        
-        const track = this.audioData[audioController.currentIndex];
-        if (!track) return false;
         
         // Check if popup DOM element is actually visible in viewport
         if (this.currentPopup && this.currentPopup._container) {
@@ -1913,11 +1915,18 @@ class MapController {
           return isVisible;
         }
         
-        // No popup exists, check point coordinates
-        const coords = [parseFloat(track.lng), parseFloat(track.lat)];
-        const bounds = map.getBounds();
-        const lngLat = new mapboxgl.LngLat(coords[0], coords[1]);
-        return bounds.contains(lngLat);
+        // Check if cluster picker is visible
+        if (this.clusterPicker) {
+          const rect = this.clusterPicker.getBoundingClientRect();
+          const isVisible = rect.top < window.innerHeight && 
+                           rect.bottom > 0 &&
+                           rect.left < window.innerWidth && 
+                           rect.right > 0;
+          return isVisible;
+        }
+        
+        // No UI elements exist - badge should show (point is off-screen)
+        return false;
       }
 
       // Update badge visibility based on playlist state and point visibility  
