@@ -952,7 +952,9 @@ class MapController {
                playTriangle.style.borderLeft = '8px solid #333';
                playTriangle.style.borderTop = '5px solid transparent';
                playTriangle.style.borderBottom = '5px solid transparent';
-               playTriangle.style.verticalAlign = 'middle';
+               playTriangle.style.verticalAlign = 'baseline';
+               playTriangle.style.position = 'relative';
+               playTriangle.style.top = '-1px';
                playTriangle.style.position = 'relative';
                playTriangle.style.top = '-1px'; // Lift slightly for better centering
                
@@ -1890,41 +1892,32 @@ class MapController {
         const track = this.audioData[audioController.currentIndex];
         if (!track) return false;
         
-        const coords = [parseFloat(track.lng), parseFloat(track.lat)];
-        
-        // Check if point is in viewport bounds
-        const bounds = map.getBounds();
-        const lngLat = new mapboxgl.LngLat(coords[0], coords[1]);
-        if (!bounds.contains(lngLat)) return false;
-        
-        // Point is in bounds, now check if it's actually visible (not behind playlist)
-        const point = map.project(coords);
-        
-        // Get playlist width to check if point is behind it
-        const playlist = document.getElementById('playlistWrapper');
-        let playlistWidth = 0;
-        
-        if (playlist) {
-          const playlistCollapsed = uiController.isMobile ? 
-            !uiController.mobilePlaylistExpanded : 
-            !uiController.playlistExpanded;
-          
-          if (!playlistCollapsed) {
-            // Playlist is expanded - check if point is behind it
-            const playlistRect = playlist.getBoundingClientRect();
-            playlistWidth = playlistRect.width;
-          }
+        // Check if popup DOM element is actually visible in viewport
+        if (this.currentPopup && this.currentPopup._container) {
+          const rect = this.currentPopup._container.getBoundingClientRect();
+          // Check if any part of popup is visible in viewport
+          const isVisible = rect.top < window.innerHeight && 
+                           rect.bottom > 0 &&
+                           rect.left < window.innerWidth && 
+                           rect.right > 0;
+          return isVisible;
         }
         
-        // Check if point is in visible viewport area (not behind playlist)
-        // Account for some padding/margin
-        const minX = playlistWidth + 50; // 50px buffer
-        const maxX = window.innerWidth - 50;
-        const minY = 50;
-        const maxY = window.innerHeight - 50;
+        // Check if minimized popup is visible
+        if (this.minimizedPopup) {
+          const rect = this.minimizedPopup.getBoundingClientRect();
+          const isVisible = rect.top < window.innerHeight && 
+                           rect.bottom > 0 &&
+                           rect.left < window.innerWidth && 
+                           rect.right > 0;
+          return isVisible;
+        }
         
-        return point.x >= minX && point.x <= maxX && 
-               point.y >= minY && point.y <= maxY;
+        // No popup exists, check point coordinates
+        const coords = [parseFloat(track.lng), parseFloat(track.lat)];
+        const bounds = map.getBounds();
+        const lngLat = new mapboxgl.LngLat(coords[0], coords[1]);
+        return bounds.contains(lngLat);
       }
 
       // Update badge visibility based on playlist state and point visibility  
@@ -1938,7 +1931,7 @@ class MapController {
         const pointVisible = this.isCurrentPointVisible();
         
         if (playlistCollapsed && !pointVisible && audioController.currentIndex >= 0) {
-          badge.style.display = 'flex';
+          badge.style.display = 'block';
         } else {
           badge.style.display = 'none';
         }
