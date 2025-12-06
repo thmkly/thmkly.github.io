@@ -741,12 +741,46 @@ class MapController {
           // Always update badge when audio plays (visibility is controlled inside updateHeaderBadge)
           this.updateHeaderBadge(track);
         
-        // IMMEDIATELY clear all UI (collapse State 3/4 → State 1) before flyTo starts
-        // This prevents duplicate mini boxes and provides clean transition
-        if (this.currentPopup) {
-          this.currentPopup.remove();
-          this.currentPopup = null;
+        // If currently in State 3/4 (popup showing), collapse to State 1 (mini box) before flyTo
+        // This gives clean visual transition without clearing OTHER mini boxes
+        if (this.currentPopup && audioController.currentIndex >= 0) {
+          const currentTrack = this.audioData[audioController.currentIndex];
+          if (currentTrack) {
+            // Collapse current popup to mini box
+            this.currentPopup.remove();
+            this.currentPopup = null;
+            
+            // Create mini box for the track we're leaving
+            const coords = [parseFloat(currentTrack.lng), parseFloat(currentTrack.lat)];
+            const pixelCoords = map.project(coords);
+            
+            const miniBox = document.createElement('div');
+            miniBox.className = 'mini-infobox';
+            miniBox.dataset.trackIndex = audioController.currentIndex;
+            
+            const playIcon = document.createElement('div');
+            playIcon.className = 'play-icon';
+            playIcon.style.borderLeftColor = '#ff6b35'; // Orange for currently playing
+            
+            const title = document.createElement('span');
+            title.className = 'mini-infobox-title';
+            title.textContent = currentTrack.name.replace(/^[^\s]+\s+-\s+/, '');
+            
+            miniBox.appendChild(playIcon);
+            miniBox.appendChild(title);
+            
+            miniBox.style.position = 'absolute';
+            miniBox.style.left = `${pixelCoords.x + 10}px`;
+            miniBox.style.top = `${pixelCoords.y - 20}px`;
+            
+            map.getContainer().appendChild(miniBox);
+            
+            // Add to mini boxes array so it gets updated during map movement
+            uiController.miniInfoBoxes.push(miniBox);
+          }
         }
+        
+        // Clean up picker and minimized popup if they exist
         if (this.minimizedPopup) {
           this.minimizedPopup.remove();
           this.minimizedPopup = null;
@@ -759,17 +793,6 @@ class MapController {
           this.clusterPicker = null;
           this.clusterPickerTracks = null;
         }
-        uiController.clearMiniInfoBoxes();
-        
-        // Apply atmospheric lighting ONLY in 3D mode
-        if (uiController.is3DEnabled && typeof atmosphereController !== 'undefined' && atmosphereController.transitionToTrack) {
-          const conditions = atmosphereController.getAtmosphericConditions(track);
-          atmosphereController.currentConditions = conditions;
-          atmosphereController.applyEnhancedSky(conditions);
-          atmosphereController.applyEnhancedFog(conditions);
-          atmosphereController.applyEnhanced3DEffects(conditions);
-          atmosphereController.applyFallbackAtmosphere(conditions);
-        }
         
           // Add delay before positioning to prevent conflicts
         this.animationTimeout = setTimeout(() => {
@@ -777,6 +800,19 @@ class MapController {
           
           // Get the flyto duration and delay popup creation until after it completes
           const duration = this.getMovementDuration(track);
+          
+          // Apply atmospheric lighting AFTER flyTo completes (ONLY in 3D mode)
+          // This prevents race conditions and makes transitions smooth
+          setTimeout(() => {
+            if (uiController.is3DEnabled && typeof atmosphereController !== 'undefined') {
+              const conditions = atmosphereController.getAtmosphericConditions(track);
+              atmosphereController.currentConditions = conditions;
+              atmosphereController.applyEnhancedSky(conditions);
+              atmosphereController.applyEnhancedFog(conditions);
+              atmosphereController.applyEnhanced3DEffects(conditions);
+              atmosphereController.applyFallbackAtmosphere(conditions);
+            }
+          }, duration);
           
           // Show popup and mini boxes after flyto completes
           setTimeout(() => {
@@ -791,7 +827,14 @@ class MapController {
               // Don't clear mini boxes - they should stay visible
               this.updateBadgeVisibility();
             } else {
-              // UI already cleared before flyTo - just create new UI
+              // Remove the mini box for THIS track before creating popup (prevents duplicates)
+              const existingMiniBox = uiController.miniInfoBoxes.find(box => 
+                parseInt(box.dataset.trackIndex) === index
+              );
+              if (existingMiniBox) {
+                existingMiniBox.remove();
+                uiController.miniInfoBoxes = uiController.miniInfoBoxes.filter(box => box !== existingMiniBox);
+              }
               
               // Check if in tight cluster (any size)
               const nearbyTrackIndices = this.getTracksInTightCluster(index);
