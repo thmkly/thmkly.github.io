@@ -340,6 +340,15 @@ class UIController {
             map.dragRotate.disable();
           }
           
+          // Reset atmosphere to default when exiting 3D mode
+          if (typeof atmosphereController !== 'undefined') {
+            atmosphereController.currentConditions = null;
+            if (atmosphereController.atmosphereCache) {
+              atmosphereController.atmosphereCache.clear();
+            }
+            atmosphereController.resetToDefault();
+          }
+          
           map.setTerrain(null);
           if (typeof map.setLight === 'function') {
             map.setLight(null); // Reset lighting
