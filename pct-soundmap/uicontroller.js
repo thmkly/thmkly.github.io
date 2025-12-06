@@ -123,11 +123,6 @@ class UIController {
               }
             }
           }
-          
-          // Update badge visibility after playlist state changes
-          if (window.mapController) {
-            mapController.updateBadgeVisibility();
-          }
         }
 
         toggleMobileMenu() {
@@ -146,11 +141,6 @@ class UIController {
             document.body.classList.remove('mobile-menu-open');
             if (hamburger) hamburger.classList.remove('open');
           }
-          
-          // Update badge visibility after mobile menu state changes
-          if (window.mapController) {
-            mapController.updateBadgeVisibility();
-          }
         }
 
         collapseMobileMenu() {
@@ -162,11 +152,6 @@ class UIController {
           wrapper.classList.remove('mobile-expanded');
           document.body.classList.remove('mobile-menu-open');
           if (hamburger) hamburger.classList.remove('open');
-          
-          // Update badge visibility after collapsing mobile menu
-          if (window.mapController) {
-            mapController.updateBadgeVisibility();
-          }
         }
 
       setupResizeListener() {
@@ -476,11 +461,13 @@ class UIController {
           
           // Skip tracks that are in the cluster picker
           if (mapController.clusterPickerTracks && mapController.clusterPickerTracks.includes(currentIndex)) {
-            return; // This track is in the picker, don't create mini box
+            return;
           }
           
-          // Skip the currently playing track if it has a popup (but not if it's in picker)
-          if (currentIndex === audioController.currentIndex && mapController.currentPopup) return;
+          // Skip the currently playing track ONLY if it has a popup (not in picker)
+          if (currentIndex === audioController.currentIndex && mapController.currentPopup) {
+            return;
+          }
           
           const track = audioData[currentIndex];
           if (!track) return;
@@ -512,12 +499,12 @@ class UIController {
           document.body.appendChild(infoBox);
           const textWidth = title.scrollWidth;
           infoBox.style.maxWidth = Math.min(Math.max(textWidth + 50, 120), 250) + 'px';
-          // Keep in document.body instead of removing and re-adding to map
+          document.body.removeChild(infoBox);
           
           infoBox.style.left = `${pixelCoords.x + 10}px`;
           infoBox.style.top = `${pixelCoords.y - 20}px`;
           
-          // Already appended to document.body above - don't move to map container
+          map.getContainer().appendChild(infoBox);
           this.miniInfoBoxes.push(infoBox);
         });
       }
