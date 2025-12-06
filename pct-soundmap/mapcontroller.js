@@ -293,21 +293,11 @@ class MapController {
               }
             }
             
-            // Always refresh mini boxes to ensure they match visible points
-            // BUT don't regenerate cluster picker if one already exists
-            if (currentPointCount > 0 && currentPointCount < 50) {
-              console.log('Refreshing mini boxes for', currentPointCount, 'visible points');
-              uiController.clearMiniInfoBoxes();
-              
-              // Only refresh mini boxes if no cluster picker is open
-              // (preserves picker during map pan/zoom)
-              if (!this.clusterPicker) {
-                uiController.showMiniInfoBoxes(null, this.audioData);
-              } else {
-                // Picker is open - show mini boxes for tracks NOT in picker
-                uiController.showMiniInfoBoxes(null, this.audioData);
-              }
-            } else if (currentPointCount === 0) {
+            // Only recreate mini boxes if cluster state changed (point count changed)
+            // Otherwise just update positions to preserve state
+            const existingBoxCount = uiController.miniInfoBoxes.length;
+            
+            if (currentPointCount === 0) {
               // Clear boxes if no points visible (zoomed out to clusters)
               console.log('Clearing mini boxes - no points visible');
               uiController.clearMiniInfoBoxes();
@@ -315,6 +305,14 @@ class MapController {
               // Too many points, clear boxes
               console.log('Clearing mini boxes - too many points:', currentPointCount);
               uiController.clearMiniInfoBoxes();
+            } else if (currentPointCount !== existingBoxCount) {
+              // Cluster state changed - recreate mini boxes
+              console.log('Cluster state changed:', existingBoxCount, '→', currentPointCount, 'points');
+              uiController.clearMiniInfoBoxes();
+              uiController.showMiniInfoBoxes(null, this.audioData);
+            } else {
+              // Just panning - update positions to preserve state
+              uiController.updateMiniInfoBoxPositions();
             }
           }, 150); // Increased delay for rendering
         });
