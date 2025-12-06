@@ -736,6 +736,9 @@ class MapController {
           }
         }, 50);  // 50ms delay - just enough for DOM to settle
 
+        // Save old track index BEFORE audioController.play changes it
+        const oldTrackIndex = audioController.currentIndex;
+
         const audio = audioController.play(index, this.audioData);
 
           // Always update badge when audio plays (visibility is controlled inside updateHeaderBadge)
@@ -743,24 +746,24 @@ class MapController {
         
         // If currently in State 3/4 (popup showing), collapse to State 1 (mini box) before flyTo
         // This gives clean visual transition without clearing OTHER mini boxes
-        if (this.currentPopup && audioController.currentIndex >= 0) {
-          const currentTrack = this.audioData[audioController.currentIndex];
+        if (this.currentPopup && oldTrackIndex >= 0) {
+          const currentTrack = this.audioData[oldTrackIndex];
           if (currentTrack) {
             // Collapse current popup to mini box
             this.currentPopup.remove();
             this.currentPopup = null;
             
-            // Create mini box for the track we're leaving
+            // Create mini box for the track we're leaving (OLD track)
             const coords = [parseFloat(currentTrack.lng), parseFloat(currentTrack.lat)];
             const pixelCoords = map.project(coords);
             
             const miniBox = document.createElement('div');
             miniBox.className = 'mini-infobox';
-            miniBox.dataset.trackIndex = audioController.currentIndex;
+            miniBox.dataset.trackIndex = oldTrackIndex; // Use OLD index
             
             const playIcon = document.createElement('div');
             playIcon.className = 'play-icon';
-            playIcon.style.borderLeftColor = '#ff6b35'; // Orange for currently playing
+            // NOT orange - this is no longer the playing track
             
             const title = document.createElement('span');
             title.className = 'mini-infobox-title';
@@ -801,18 +804,20 @@ class MapController {
           // Get the flyto duration and delay popup creation until after it completes
           const duration = this.getMovementDuration(track);
           
-          // Apply atmospheric lighting AFTER flyTo completes (ONLY in 3D mode)
-          // This prevents race conditions and makes transitions smooth
+          // Apply atmospheric lighting DURING flyTo (ONLY in 3D mode)
+          // Start halfway through flyTo for smooth, gradual transition
           setTimeout(() => {
             if (uiController.is3DEnabled && typeof atmosphereController !== 'undefined') {
               const conditions = atmosphereController.getAtmosphericConditions(track);
               atmosphereController.currentConditions = conditions;
+              
+              // Apply sky and fog changes gradually
               atmosphereController.applyEnhancedSky(conditions);
               atmosphereController.applyEnhancedFog(conditions);
               atmosphereController.applyEnhanced3DEffects(conditions);
               atmosphereController.applyFallbackAtmosphere(conditions);
             }
-          }, duration);
+          }, duration / 2); // Start halfway through flyTo
           
           // Show popup and mini boxes after flyto completes
           setTimeout(() => {
