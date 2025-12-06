@@ -251,9 +251,9 @@ class MapController {
           this.updateBadgeVisibility();
         });
         
-        // Re-apply atmosphere when page becomes visible (fixes atmosphere reset on tab switch)
+        // Re-apply atmosphere when page becomes visible (ONLY in 3D mode)
         document.addEventListener('visibilitychange', () => {
-          if (!document.hidden && typeof atmosphereController !== 'undefined' && atmosphereController.currentConditions) {
+          if (!document.hidden && uiController.is3DEnabled && typeof atmosphereController !== 'undefined' && atmosphereController.currentConditions) {
             // Re-apply the current atmosphere conditions
             atmosphereController.applyEnhancedSky(atmosphereController.currentConditions);
             atmosphereController.applyEnhancedFog(atmosphereController.currentConditions);
@@ -741,12 +741,28 @@ class MapController {
           // Always update badge when audio plays (visibility is controlled inside updateHeaderBadge)
           this.updateHeaderBadge(track);
         
-        // DON'T clear UI here - let it persist during flyTo
-        // UI will be cleared when new popup/picker is shown
+        // IMMEDIATELY clear all UI (collapse State 3/4 → State 1) before flyTo starts
+        // This prevents duplicate mini boxes and provides clean transition
+        if (this.currentPopup) {
+          this.currentPopup.remove();
+          this.currentPopup = null;
+        }
+        if (this.minimizedPopup) {
+          this.minimizedPopup.remove();
+          this.minimizedPopup = null;
+        }
+        if (this.clusterPicker) {
+          if (this.clusterPicker._moveHandler) {
+            map.off('move', this.clusterPicker._moveHandler);
+          }
+          this.clusterPicker.remove();
+          this.clusterPicker = null;
+          this.clusterPickerTracks = null;
+        }
+        uiController.clearMiniInfoBoxes();
         
-        // Apply atmospheric lighting for this track (removed notification)
-        if (typeof atmosphereController !== 'undefined' && atmosphereController.transitionToTrack) {
-          // Apply without notification
+        // Apply atmospheric lighting ONLY in 3D mode
+        if (uiController.is3DEnabled && typeof atmosphereController !== 'undefined' && atmosphereController.transitionToTrack) {
           const conditions = atmosphereController.getAtmosphericConditions(track);
           atmosphereController.currentConditions = conditions;
           atmosphereController.applyEnhancedSky(conditions);
@@ -775,22 +791,7 @@ class MapController {
               // Don't clear mini boxes - they should stay visible
               this.updateBadgeVisibility();
             } else {
-              // Track NOT in picker - clear picker if it exists
-              if (this.clusterPicker) {
-                this.clusterPicker.remove();
-                if (this.clusterPicker._moveHandler) {
-                  map.off('move', this.clusterPicker._moveHandler);
-                }
-                this.clusterPicker = null;
-                this.clusterPickerTracks = null;
-              }
-              
-              // Clear old popup and mini boxes before showing new UI
-              if (this.currentPopup) {
-                this.currentPopup.remove();
-                this.currentPopup = null;
-              }
-              uiController.clearMiniInfoBoxes();
+              // UI already cleared before flyTo - just create new UI
               
               // Check if in tight cluster (any size)
               const nearbyTrackIndices = this.getTracksInTightCluster(index);
