@@ -6,8 +6,8 @@ class UIController {
       this.is3DEnabled = false;
       this.miniInfoBoxes = [];
       this.clusterPlaylist = null;
-      this.isMobile = window.innerWidth <= 768;
-      this.mobilePlaylistExpanded = false;
+      this.isMobile = this._detectMobile();
+      document.body.classList.toggle('is-mobile', this.isMobile);
       
       // Cache DOM references
       this.playlist = document.getElementById('playlist');
@@ -154,59 +154,15 @@ class UIController {
           if (hamburger) hamburger.classList.remove('open');
         }
 
+      _detectMobile() {
+        return /iphone|ipad|ipod|android|mobile|blackberry|iemobile|wpdesktop/i.test(navigator.userAgent);
+      }
+
       setupResizeListener() {
+        // isMobile is device-based, not window-width-based — no layout switching on resize.
+        // Only update scroll arrows if needed.
         window.addEventListener('resize', () => {
-          const wasMobile = this.isMobile;
-          this.isMobile = window.innerWidth <= 768;
-          
-          // Only handle if we're actually switching between mobile/desktop
-          if (wasMobile !== this.isMobile) {
-            const wrapper = document.getElementById('playlistWrapper');
-            const hamburger = document.getElementById('hamburgerMenu');
-            
-            if (this.isMobile) {
-              // Switching from desktop to mobile
-              const wasExpanded = this.playlistExpanded;
-              
-              // Clear desktop state
-              wrapper.classList.remove('collapsed');
-              
-              // Apply mobile state based on previous desktop state
-              if (wasExpanded) {
-                wrapper.classList.add('mobile-expanded');
-                document.body.classList.add('mobile-menu-open');
-                this.mobilePlaylistExpanded = true;
-              } else {
-              wrapper.classList.remove('mobile-expanded');
-                document.body.classList.remove('mobile-menu-open');
-                this.mobilePlaylistExpanded = false;
-              }
-              
-            } else {
-              // Switching from mobile to desktop
-              // Save mobile state
-              const wasMobileExpanded = wrapper.classList.contains('mobile-expanded');
-              
-              // Clear mobile classes
-              wrapper.classList.remove('mobile-expanded');
-              document.body.classList.remove('mobile-menu-open');
-              
-              // Apply desktop state based on previous mobile state
-              if (wasMobileExpanded) {
-                wrapper.classList.remove('collapsed');
-                this.playlistExpanded = true;
-              } else {
-                wrapper.classList.add('collapsed');
-                this.playlistExpanded = false;
-              }
-            }
-            
-            // Always ensure wrapper is visible
-            wrapper.style.display = 'flex';
-            
-            // Update scroll arrows after resize
-            setTimeout(() => this.updateScrollArrows(), 100);
-          }
+          setTimeout(() => this.updateScrollArrows(), 100);
         });
       }
 
