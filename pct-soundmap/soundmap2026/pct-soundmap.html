@@ -664,9 +664,11 @@
     max-width: calc(100vw - 100px);
   }
 
-  /* Ko-fi — small circle icon on mobile */
-  body.is-mobile .floatingchat-container-wrap-mobi,
-  body.is-mobile .floatingchat-container-wrap-mobi[style] {
+  /* Ko-fi widget — pinned bottom-right always, both mobi and non-mobi variants */
+  .floatingchat-container-wrap,
+  .floatingchat-container-wrap[style],
+  .floatingchat-container-wrap-mobi,
+  .floatingchat-container-wrap-mobi[style] {
     position: fixed !important;
     bottom: 24px !important;
     right: 12px !important;
@@ -677,11 +679,26 @@
     z-index: 9999 !important;
   }
 
-  body.is-mobile .floatingchat-container-wrap-mobi .floating-chat-kofi-button-text {
+  /* Ko-fi popup iframe — same for both variants */
+  .floating-chat-kofi-popup-iframe,
+  .floating-chat-kofi-popup-iframe[style],
+  .floating-chat-kofi-popup-iframe-mobi,
+  .floating-chat-kofi-popup-iframe-mobi[style] {
+    right: 12px !important;
+    left: auto !important;
+    bottom: 80px !important;
+    transform: none !important;
+    z-index: 9999 !important;
+  }
+
+  /* On actual mobile devices — shrink to icon only */
+  body.is-mobile .floatingchat-container-wrap-mobi .floating-chat-kofi-button-text,
+  body.is-mobile .floatingchat-container-wrap .floating-chat-kofi-button-text {
     display: none !important;
   }
 
-  body.is-mobile .floatingchat-container-wrap-mobi .floatingchat-container-mobi {
+  body.is-mobile .floatingchat-container-mobi,
+  body.is-mobile .floatingchat-container {
     min-width: 44px !important;
     width: 44px !important;
     height: 44px !important;
@@ -941,23 +958,7 @@
     appearance: none;
   }
 
-/* Desktop - ensure right positioning is restored */
-  @media (min-width: 769px) {
-    .floatingchat-container-wrap,
-    .floatingchat-container-wrap[style] {
-      left: auto !important;
-      right: 20px !important;
-      transform: none !important;
-      bottom: 25px !important;
-    }
-    .floating-chat-kofi-popup-iframe,
-    .floating-chat-kofi-popup-iframe[style] {
-      left: auto !important;
-      right: 20px !important;
-      transform: none !important;
-      bottom: 80px !important;
-    }
-  }
+
   
 </style>
 </head>
