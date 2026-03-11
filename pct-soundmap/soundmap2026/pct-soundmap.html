@@ -598,26 +598,68 @@
       display: block;
     }
 
-    /* Mobile controls integrated into playlist wrapper */
+    /* Mobile controls - compact sort footer at bottom of panel */
     .mobile-controls {
       display: block;
-      padding: 15px; /* Uniform padding since close button is absolute positioned */
-      border-bottom: 1px solid #ddd;
-      background: rgba(255, 255, 255, 0.6);
-      border-radius: 0;
-    }
-    
-    .mobile-controls .control-row {
-      display: flex;
-      gap: 8px;
-      margin-bottom: 10px;
+      padding: 10px 12px;
+      border-top: 1px solid rgba(0,0,0,0.08);
+      background: rgba(255, 255, 255, 0.7);
+      flex-shrink: 0;
     }
     
     .mobile-controls .sort-controls {
       display: flex;
       gap: 4px;
       align-items: center;
-      flex-wrap: wrap;
+      justify-content: flex-start;
+    }
+
+    /* Mobile map action buttons - bottom-left of map */
+    .mobile-map-actions {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      position: fixed;
+      bottom: 24px;
+      left: 12px;
+      z-index: 100;
+    }
+
+    .mobile-map-btn {
+      width: 44px;
+      height: 44px;
+      background: rgba(255, 255, 255, 0.85);
+      backdrop-filter: blur(6px);
+      border: 1px solid rgba(0,0,0,0.15);
+      border-radius: 6px;
+      font-size: 11px;
+      font-weight: 600;
+      color: #333;
+      cursor: pointer;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.2);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      letter-spacing: 0.02em;
+    }
+
+    .mobile-map-btn.active {
+      background-color: #5c3a2e;
+      color: white;
+      border-color: #5c3a2e;
+    }
+
+    /* Dark scrim behind open panel */
+    .playlist-wrapper.mobile-expanded::before {
+      content: '';
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      background: rgba(0, 0, 0, 0.35);
+      z-index: -1;
+      pointer-events: none;
     }
 
     /* Mobile playlist toggle - hide since we use hamburger */
@@ -652,33 +694,33 @@
       display: none !important;
     }
   
-    /* Ko-fi widget - force position on mobile */
+    /* Ko-fi widget - small icon button on mobile */
     .floatingchat-container-wrap-mobi,
     .floatingchat-container-wrap-mobi[style] {
       position: fixed !important;
-      left: auto;
-      right: 99% !important;
-      transform: translateX(-50%) !important;
-      margin-left: 0 !important;
-      bottom: 5px !important;
+      bottom: 24px !important;
+      right: 12px !important;
+      left: auto !important;
+      transform: none !important;
+      margin: 0 !important;
       width: auto !important;
       z-index: 9999 !important;
     }
-    
-    .floating-chat-kofi-popup-iframe-mobi,
-    .floating-chat-kofi-popup-iframe-mobi[style] {
-      left: 50% !important;
-      right: unset !important;
-      transform: translateX(-50%) !important;
-      bottom: 80px !important;
-      z-index: 9999 !important;
+
+    /* Hide the text label, keep just the icon button */
+    .floatingchat-container-wrap-mobi .floating-chat-kofi-button-text {
+      display: none !important;
     }
-    
-    .floating-chat-kofi-popup-iframe-closer-mobi,
-    .floating-chat-kofi-popup-iframe-closer-mobi[style] {
-      left: 50% !important;
-      right: unset !important;
-      transform: translateX(-50%) !important;
+
+    .floatingchat-container-wrap-mobi .floatingchat-container-mobi {
+      min-width: 44px !important;
+      width: 44px !important;
+      height: 44px !important;
+      border-radius: 50% !important;
+      padding: 0 !important;
+      display: flex !important;
+      align-items: center !important;
+      justify-content: center !important;
     }
   }
     
@@ -934,6 +976,11 @@
     position: absolute;
   }
 
+  /* Mobile map action buttons - hidden on desktop */
+  .mobile-map-actions {
+    display: none;
+  }
+
   /* Fullscreen styles */
   .fullscreen-active {
     position: fixed !important;
@@ -1008,13 +1055,14 @@
     <button class="playlist-toggle" id="playlistToggle" title="Collapse playlist">◀</button>
     <!-- Mobile close button (X) -->
     <button class="mobile-menu-close" id="mobileMenuClose" aria-label="Close menu"></button>
-    <!-- Mobile controls - hidden on desktop, shown on mobile inside playlist -->
+    <!-- Track list - primary content, comes first -->
+    <div class="scroll-arrow up" id="scrollUp" title="Scroll up">▲</div>
+    <div class="playlist" id="playlist">
+      <div class="loading-placeholder">loading recordings...</div>
+    </div>
+    <div class="scroll-arrow down" id="scrollDown" title="Scroll down">▼</div>
+    <!-- Mobile sort footer - compact, at bottom -->
     <div class="mobile-controls" style="display: none;">
-      <div class="control-row">
-        <button class="control-btn" id="resetMapBtnMobile" title="Reset view and stop playback">Reset Map</button>
-        <button class="control-btn" id="fullscreenBtnMobile" title="Fullscreen on/off" style="display: none;">Fullscreen</button>
-        <button class="control-btn" id="terrain3dBtnMobile" title="3D terrain on/off">3D Terrain</button>
-      </div>
       <div class="sort-controls">
         <button class="control-btn sort-btn active" id="sortNoboMobile" title="Northbound playlist">NOBO</button>
         <button class="control-btn sort-btn" id="sortSoboMobile" title="Southbound playlist">SOBO</button>
@@ -1027,11 +1075,13 @@
         </div>
       </div>
     </div>
-    <div class="scroll-arrow up" id="scrollUp" title="Scroll up">▲</div>
-    <div class="playlist" id="playlist">
-      <div class="loading-placeholder">loading recordings...</div>
-    </div>
-    <div class="scroll-arrow down" id="scrollDown" title="Scroll down">▼</div>
+  </div>
+
+  <!-- Mobile map action buttons - float on map, hidden on desktop -->
+  <div class="mobile-map-actions" id="mobileMapActions">
+    <button class="mobile-map-btn" id="resetMapBtnMobile" title="Reset view and stop playback">Reset</button>
+    <button class="mobile-map-btn" id="terrain3dBtnMobile" title="3D terrain on/off">3D</button>
+    <button class="mobile-map-btn" id="fullscreenBtnMobile" title="Fullscreen on/off" style="display: none;">⛶</button>
   </div>
 
   <!-- Desktop control panel - hidden on mobile -->
