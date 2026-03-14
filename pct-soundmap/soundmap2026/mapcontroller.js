@@ -932,13 +932,15 @@ class MapController {
             miniBox = document.createElement('div');
             miniBox.className = 'mini-infobox minimized-popup';
             miniBox.dataset.trackIndex = index;
+            const playIcon = document.createElement('div');
+            playIcon.className = 'play-icon';
             const title = document.createElement('span');
             title.className = 'mini-infobox-title';
             title.textContent = track.name.replace(/^[^\s]+\s+-\s+/, '');
-            const playIcon = document.createElement('div');
-            playIcon.className = 'play-icon';
             miniBox.appendChild(playIcon);
             miniBox.appendChild(title);
+            // Apply same auto-sizing as white boxes
+            miniBox.style.maxWidth = uiController._miniBoxWidth(title);
           }
 
           miniBox.style.position = 'absolute';
@@ -960,12 +962,7 @@ class MapController {
           });
 
           // Chevron — floats outside right border, expands to full popup
-          const chevron = document.createElement('div');
-          chevron.className = 'minimized-popup-chevron';
-          chevron.textContent = '›';
-          chevron.title = 'Expand';
-          chevron.addEventListener('click', (e) => {
-            e.stopPropagation();
+          const chevron = uiController._createMiniBoxChevron(() => {
             if (cleanupIcon) cleanupIcon();
             chevron.remove();
             miniBox.remove();

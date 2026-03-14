@@ -315,16 +315,13 @@ class UIController {
         visiblePoints.forEach(point => {
           const originalIndex = parseInt(point.properties.originalIndex);
           
-          // Find this track in current sorted data
           const currentIndex = audioData.findIndex(track => track.originalIndex === originalIndex);
           if (currentIndex === -1) return;
           
-          // Skip tracks that are in the cluster picker
           if (mapController.clusterPickerTracks && mapController.clusterPickerTracks.includes(currentIndex)) {
             return;
           }
           
-          // Skip the currently playing track if it has a popup or is minimized (orange box)
           if (currentIndex === audioController.currentIndex && 
               (mapController.currentPopup || mapController.minimizedPopup)) {
             return;
@@ -338,7 +335,7 @@ class UIController {
           
           const infoBox = document.createElement('div');
           infoBox.className = 'mini-infobox';
-          infoBox.dataset.trackIndex = currentIndex; // Store current playlist index
+          infoBox.dataset.trackIndex = currentIndex;
           
           const playIcon = document.createElement('div');
           playIcon.className = 'play-icon';
@@ -347,27 +344,67 @@ class UIController {
           title.className = 'mini-infobox-title';
           title.textContent = track.name.replace(/^[^\s]+\s+-\s+/, '');
           
-           // Make entire mini box clickable to play audio and show popup
+          // Tap box → play track
           infoBox.addEventListener('click', (e) => {
-           e.stopPropagation();
-           mapController.playAudio(currentIndex, false, true);
+            e.stopPropagation();
+            mapController.playAudio(currentIndex, false, true);
           });
           
           infoBox.appendChild(playIcon);
           infoBox.appendChild(title);
           
           // Auto-size based on content
-          document.body.appendChild(infoBox);
-          const textWidth = title.scrollWidth;
-          infoBox.style.maxWidth = Math.min(Math.max(textWidth + 50, 120), 250) + 'px';
-          document.body.removeChild(infoBox);
+          infoBox.style.maxWidth = this._miniBoxWidth(title);
           
           infoBox.style.left = `${pixelCoords.x + 10}px`;
           infoBox.style.top = `${pixelCoords.y - 20}px`;
           
           map.getContainer().appendChild(infoBox);
+
+          // Chevron — preview metadata without changing playback
+          const chevron = this._createMiniBoxChevron(() => {
+            chevron.remove();
+            infoBox._chevron = null;
+            // Open popup for this track without starting audio
+            const trackCoords = [parseFloat(track.lng), parseFloat(track.lat)];
+            mapController.showPopup(trackCoords, track, audioController.currentAudio, currentIndex, false);
+          });
+
+          // Position chevron after box is in DOM
+          setTimeout(() => {
+            const rect = infoBox.getBoundingClientRect();
+            chevron.style.left = `${rect.right + 8}px`;
+            chevron.style.top  = `${rect.top + (rect.height / 2)}px`;
+            document.body.appendChild(chevron);
+          }, 0);
+
+          infoBox._chevron = chevron;
           this.miniInfoBoxes.push(infoBox);
         });
+      }
+
+      // Returns a calculated max-width string for a mini infobox title
+      _miniBoxWidth(titleEl) {
+        // Temporarily append to measure
+        document.body.appendChild(titleEl.parentNode || titleEl);
+        const textWidth = titleEl.scrollWidth;
+        if (titleEl.parentNode && titleEl.parentNode !== document.body) {
+          // already parented, don't remove
+        }
+        return Math.min(Math.max(textWidth + 50, 120), 250) + 'px';
+      }
+
+      // Creates a chevron element with a click handler
+      _createMiniBoxChevron(onClick) {
+        const chevron = document.createElement('div');
+        chevron.className = 'minimized-popup-chevron';
+        chevron.textContent = '›';
+        chevron.title = 'View details';
+        chevron.addEventListener('click', (e) => {
+          e.stopPropagation();
+          onClick();
+        });
+        return chevron;
       }
 
       updateMiniInfoBoxPositions() {
@@ -386,9 +423,8 @@ class UIController {
 
       clearMiniInfoBoxes() {
         this.miniInfoBoxes.forEach(box => {
-          if (box.parentNode) {
-            box.parentNode.removeChild(box);
-          }
+          if (box._chevron && box._chevron.parentNode) box._chevron.parentNode.removeChild(box._chevron);
+          if (box.parentNode) box.parentNode.removeChild(box);
         });
         this.miniInfoBoxes = [];
       }
