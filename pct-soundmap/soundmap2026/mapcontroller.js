@@ -47,6 +47,42 @@ class MapController {
         return parseFloat(mileStr);
       }
 
+      // Attaches real-time play/pause icon swapping to an icon element.
+      // iconEl: the container div that holds the icon (triangle or bars)
+      // audio: the HTMLAudioElement to listen to
+      // isOrange: true for orange play icon color (minimized popup), false for #333
+      // Returns a cleanup function to remove listeners.
+      _attachPlayPauseIcon(iconEl, audio, isOrange = false) {
+        const color = isOrange ? '#ff6b35' : '#333';
+
+        const renderIcon = () => {
+          iconEl.innerHTML = '';
+          if (audio.paused) {
+            // Play triangle
+            iconEl.style.cssText = `width:0;height:0;border-left:8px solid ${color};border-top:5px solid transparent;border-bottom:5px solid transparent;flex-shrink:0;cursor:pointer;`;
+          } else {
+            // Pause bars
+            iconEl.style.cssText = 'display:inline-flex;align-items:center;gap:3px;flex-shrink:0;cursor:pointer;';
+            const b1 = document.createElement('div');
+            b1.style.cssText = `width:3px;height:12px;background:${color};`;
+            const b2 = document.createElement('div');
+            b2.style.cssText = `width:3px;height:12px;background:${color};`;
+            iconEl.appendChild(b1);
+            iconEl.appendChild(b2);
+          }
+        };
+
+        renderIcon();
+        audio.addEventListener('play', renderIcon);
+        audio.addEventListener('pause', renderIcon);
+
+        // Return cleanup
+        return () => {
+          audio.removeEventListener('play', renderIcon);
+          audio.removeEventListener('pause', renderIcon);
+        };
+      }
+
       setupMap() {
         mapboxgl.accessToken = CONFIG.MAPBOX_TOKEN;
         
@@ -655,6 +691,8 @@ class MapController {
 
         // Clean up any minimized popup
         if (this.minimizedPopup) {
+          if (this.minimizedPopup._cleanupIcon) this.minimizedPopup._cleanupIcon();
+          if (this.minimizedPopup._updatePosition) map.off('move', this.minimizedPopup._updatePosition);
           this.minimizedPopup.remove();
           this.minimizedPopup = null;
         }
@@ -873,60 +911,96 @@ class MapController {
             return; // Don't create regular mini box
           }
           
-          // Not in tight cluster - create regular mini box
+          // Not in tight cluster - mutate existing white box if available, else create fresh
           const pixelCoords = map.project(coords);
-          
-          const miniBox = document.createElement('div');
-          miniBox.className = 'mini-infobox minimized-popup';
-          miniBox.dataset.trackIndex = index;
+
+          // Look for existing white mini box for this track
+          const existingBox = uiController.miniInfoBoxes.find(b => parseInt(b.dataset.trackIndex) === index);
+          let miniBox;
+
+          if (existingBox) {
+            // Mutate: pull out of map container, re-parent to body, apply orange state
+            if (existingBox.parentNode) existingBox.parentNode.removeChild(existingBox);
+            uiController.miniInfoBoxes = uiController.miniInfoBoxes.filter(b => b !== existingBox);
+            miniBox = existingBox;
+            miniBox.classList.add('minimized-popup');
+          } else {
+            // Create fresh
+            miniBox = document.createElement('div');
+            miniBox.className = 'mini-infobox minimized-popup';
+            miniBox.dataset.trackIndex = index;
+            const title = document.createElement('span');
+            title.className = 'mini-infobox-title';
+            title.textContent = track.name.replace(/^[^\s]+\s+-\s+/, '');
+            const playIcon = document.createElement('div');
+            playIcon.className = 'play-icon';
+            miniBox.appendChild(playIcon);
+            miniBox.appendChild(title);
+          }
+
           miniBox.style.position = 'absolute';
-          
-          const playIcon = document.createElement('div');
-          playIcon.className = 'play-icon';
-          playIcon.style.borderLeftColor = '#ff6b35';
-          
-          const title = document.createElement('span');
-          title.className = 'mini-infobox-title';
-          title.textContent = track.name.replace(/^[^\s]+\s+-\s+/, '');
-          
-            miniBox.addEventListener('click', (e) => {
+
+          // Wire up play icon for play/pause toggling
+          const playIcon = miniBox.querySelector('.play-icon');
+          const audio = audioController.currentAudio;
+          let cleanupIcon = null;
+          if (playIcon && audio) {
+            cleanupIcon = this._attachPlayPauseIcon(playIcon, audio, true);
+            playIcon.addEventListener('click', (e) => {
               e.stopPropagation();
+              audio.paused ? audio.play() : audio.pause();
+            });
+          }
+
+          // Title tap expands to full popup
+          const titleEl = miniBox.querySelector('.mini-infobox-title');
+          if (titleEl) {
+            titleEl.style.cursor = 'pointer';
+            titleEl.addEventListener('click', (e) => {
+              e.stopPropagation();
+              if (cleanupIcon) cleanupIcon();
               miniBox.remove();
               this.minimizedPopup = null;
-              
-              // User explicitly expanded - save this preference
               this.userPreferredPopupState = 'full';
-              
-              // Restore popup with the audio from audioController
               this.showPopup(coords, track, audioController.currentAudio, index);
-              
-              // Update badge AFTER popup is shown
               setTimeout(() => {
                 this.updateHeaderBadge(audioController.currentIndex >= 0 ? this.audioData[audioController.currentIndex] : null);
               }, 50);
             });
-          
-          miniBox.appendChild(playIcon);
-          miniBox.appendChild(title);
-          
-          // Position the mini box
+          }
+
+          // Box background click (not on icon or title) also expands
+          miniBox.addEventListener('click', (e) => {
+            e.stopPropagation();
+            if (cleanupIcon) cleanupIcon();
+            miniBox.remove();
+            this.minimizedPopup = null;
+            this.userPreferredPopupState = 'full';
+            this.showPopup(coords, track, audioController.currentAudio, index);
+            setTimeout(() => {
+              this.updateHeaderBadge(audioController.currentIndex >= 0 ? this.audioData[audioController.currentIndex] : null);
+            }, 50);
+          });
+
+          // Position
           miniBox.style.left = `${pixelCoords.x + 10}px`;
-          miniBox.style.top = `${pixelCoords.y - 20}px`;
-          
-          document.body.appendChild(miniBox); // Append to body, not map container
-          
+          miniBox.style.top  = `${pixelCoords.y - 20}px`;
+
+          document.body.appendChild(miniBox);
           this.minimizedPopup = miniBox;
-          
+
+          // Store cleanup on element for removal later
+          miniBox._cleanupIcon = cleanupIcon;
+
           // Update position when map moves
           const updatePosition = () => {
             const newCoords = map.project(coords);
             miniBox.style.left = `${newCoords.x + 10}px`;
-            miniBox.style.top = `${newCoords.y - 20}px`;
+            miniBox.style.top  = `${newCoords.y - 20}px`;
           };
           map.on('move', updatePosition);
-          
           miniBox._updatePosition = updatePosition;
-            
+
         // Add header badge only if playlist is collapsed
           this.updateHeaderBadge(track);
         }
@@ -936,6 +1010,7 @@ class MapController {
         // Remove existing badge and clean up listeners
         const existingBadge = document.getElementById('playing-badge');
         if (existingBadge) {
+          if (existingBadge._cleanupBadgeIcon) existingBadge._cleanupBadgeIcon();
           if (existingBadge._updateTimeHandler && existingBadge._audioElement) {
             existingBadge._audioElement.removeEventListener('timeupdate', existingBadge._updateTimeHandler);
             existingBadge._audioElement.removeEventListener('play', existingBadge._updateTimeHandler);
@@ -962,6 +1037,12 @@ class MapController {
           badge.appendChild(triangle);
           badge.appendChild(titleSpan);
           badge.appendChild(timeSpan);
+
+          // Wire play/pause to the triangle
+          if (audioController.currentAudio) {
+            const cleanupBadgeIcon = this._attachPlayPauseIcon(triangle, audioController.currentAudio, false);
+            badge._cleanupBadgeIcon = cleanupBadgeIcon;
+          }
             
           badge.addEventListener('click', () => {
             const coords = [parseFloat(track.lng), parseFloat(track.lat)];
@@ -1023,20 +1104,19 @@ class MapController {
             activeTrack.style.backgroundColor = 'rgba(255, 235, 220, 0.5)'; // Warm beige
             activeTrack.style.fontWeight = '600'; // Bold
             
-          // Add play indicator if not already there
+          // Add play/pause indicator if not already there
           const trackInfo = activeTrack.querySelector('.track-info');
           if (trackInfo && !trackInfo.querySelector('.play-indicator')) {
             const indicator = document.createElement('span');
             indicator.className = 'play-indicator';
-            indicator.style.display = 'inline-block';
-            indicator.style.marginRight = '6px';
-            indicator.style.width = '0';
-            indicator.style.height = '0';
-            indicator.style.borderLeft = '8px solid #333';
-            indicator.style.borderTop = '5px solid transparent';
-            indicator.style.borderBottom = '5px solid transparent';
-            indicator.style.verticalAlign = 'middle';
+            indicator.style.cssText = 'display:inline-block;margin-right:6px;vertical-align:middle;flex-shrink:0;';
             trackInfo.insertBefore(indicator, trackInfo.firstChild);
+
+            // Wire real-time play/pause
+            if (audioController.currentAudio) {
+              const cleanup = this._attachPlayPauseIcon(indicator, audioController.currentAudio, false);
+              indicator._cleanupIcon = cleanup;
+            }
           }
             
             // Only scroll if explicitly requested (for auto-play next)
@@ -1061,16 +1141,16 @@ class MapController {
             }
           }
           
-          // Remove play triangle from inactive tracks and reset styling
           document.querySelectorAll('.track:not(.active-track)').forEach(el => {
             el.style.backgroundColor = '';
             el.style.fontWeight = '';
-           const trackInfo = el.querySelector('.track-info');
-           const indicator = trackInfo?.querySelector('.play-indicator');
-           if (indicator) {
-             indicator.remove();
-           }
-           });
+            const trackInfo = el.querySelector('.track-info');
+            const indicator = trackInfo?.querySelector('.play-indicator');
+            if (indicator) {
+              if (indicator._cleanupIcon) indicator._cleanupIcon();
+              indicator.remove();
+            }
+          });
          }
 
       positionMapForTrack(track, index, fromAutoPlay = false) {
@@ -1560,9 +1640,8 @@ class MapController {
           
           // Clean up minimized popup if it exists
           if (this.minimizedPopup) {
-            if (this.minimizedPopup._updatePosition) {
-              map.off('move', this.minimizedPopup._updatePosition);
-            }
+            if (this.minimizedPopup._cleanupIcon) this.minimizedPopup._cleanupIcon();
+            if (this.minimizedPopup._updatePosition) map.off('move', this.minimizedPopup._updatePosition);
             this.minimizedPopup.remove();
             this.minimizedPopup = null;
           }
