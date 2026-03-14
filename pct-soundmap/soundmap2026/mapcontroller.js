@@ -695,6 +695,7 @@ class MapController {
         if (this.minimizedPopup) {
           if (this.minimizedPopup._cleanupIcon) this.minimizedPopup._cleanupIcon();
           if (this.minimizedPopup._updatePosition) map.off('move', this.minimizedPopup._updatePosition);
+          if (this.minimizedPopup._chevron) this.minimizedPopup._chevron.remove();
           this.minimizedPopup.remove();
           this.minimizedPopup = null;
         }
@@ -942,42 +943,31 @@ class MapController {
 
           miniBox.style.position = 'absolute';
 
-          // Wire up play icon for play/pause toggling
+          // Whole box toggles play/pause
           const playIcon = miniBox.querySelector('.play-icon');
           const audioEl = audioController.currentAudio;
           let cleanupIcon = null;
           if (playIcon && audioEl) {
-            // Clear any existing triangle from the white box mutation
             playIcon.innerHTML = '';
             playIcon.style.cssText = '';
             cleanupIcon = this._attachPlayPauseIcon(playIcon, audioEl, true);
-            playIcon.addEventListener('click', (e) => {
-              e.stopPropagation();
-              audioEl.paused ? audioEl.play() : audioEl.pause();
-            });
           }
 
-          // Title tap expands to full popup
-          const titleEl = miniBox.querySelector('.mini-infobox-title');
-          if (titleEl) {
-            titleEl.style.cursor = 'pointer';
-            titleEl.addEventListener('click', (e) => {
-              e.stopPropagation();
-              if (cleanupIcon) cleanupIcon();
-              miniBox.remove();
-              this.minimizedPopup = null;
-              this.userPreferredPopupState = 'full';
-              this.showPopup(coords, track, audioController.currentAudio, index);
-              setTimeout(() => {
-                this.updateHeaderBadge(audioController.currentIndex >= 0 ? this.audioData[audioController.currentIndex] : null);
-              }, 50);
-            });
-          }
-
-          // Box background click (not on icon or title) also expands
+          miniBox.style.cursor = 'pointer';
           miniBox.addEventListener('click', (e) => {
             e.stopPropagation();
+            if (audioEl) audioEl.paused ? audioEl.play() : audioEl.pause();
+          });
+
+          // Chevron — floats outside right border, expands to full popup
+          const chevron = document.createElement('div');
+          chevron.className = 'minimized-popup-chevron';
+          chevron.textContent = '›';
+          chevron.title = 'Expand';
+          chevron.addEventListener('click', (e) => {
+            e.stopPropagation();
             if (cleanupIcon) cleanupIcon();
+            chevron.remove();
             miniBox.remove();
             this.minimizedPopup = null;
             this.userPreferredPopupState = 'full';
@@ -992,19 +982,32 @@ class MapController {
           miniBox.style.top  = `${pixelCoords.y - 20}px`;
 
           document.body.appendChild(miniBox);
+          document.body.appendChild(chevron);
           this.minimizedPopup = miniBox;
+          this.minimizedPopup._chevron = chevron;
 
           // Store cleanup on element for removal later
           miniBox._cleanupIcon = cleanupIcon;
+
+          // Position chevron relative to mini box
+          const positionChevron = () => {
+            const rect = miniBox.getBoundingClientRect();
+            chevron.style.left = `${rect.right + 2}px`;
+            chevron.style.top  = `${rect.top + (rect.height / 2)}px`;
+          };
 
           // Update position when map moves
           const updatePosition = () => {
             const newCoords = map.project(coords);
             miniBox.style.left = `${newCoords.x + 10}px`;
             miniBox.style.top  = `${newCoords.y - 20}px`;
+            positionChevron();
           };
           map.on('move', updatePosition);
           miniBox._updatePosition = updatePosition;
+
+          // Initial chevron position after DOM settles
+          setTimeout(positionChevron, 0);
 
         // Add header badge only if playlist is collapsed
           this.updateHeaderBadge(track);
@@ -1649,6 +1652,7 @@ class MapController {
           if (this.minimizedPopup) {
             if (this.minimizedPopup._cleanupIcon) this.minimizedPopup._cleanupIcon();
             if (this.minimizedPopup._updatePosition) map.off('move', this.minimizedPopup._updatePosition);
+            if (this.minimizedPopup._chevron) this.minimizedPopup._chevron.remove();
             this.minimizedPopup.remove();
             this.minimizedPopup = null;
           }
