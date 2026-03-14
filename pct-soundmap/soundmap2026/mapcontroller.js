@@ -58,15 +58,13 @@ class MapController {
         const renderIcon = () => {
           iconEl.innerHTML = '';
           if (audio.paused) {
-            // Play triangle
-            iconEl.style.cssText = `width:0;height:0;border-left:8px solid ${color};border-top:5px solid transparent;border-bottom:5px solid transparent;flex-shrink:0;cursor:pointer;`;
+            iconEl.style.cssText = `display:inline-block;width:0;height:0;border-left:8px solid ${color};border-top:5px solid transparent;border-bottom:5px solid transparent;vertical-align:middle;position:relative;top:-1px;margin-right:6px;flex-shrink:0;cursor:pointer;`;
           } else {
-            // Pause bars
-            iconEl.style.cssText = 'display:inline-flex;align-items:center;gap:3px;flex-shrink:0;cursor:pointer;';
+            iconEl.style.cssText = 'display:inline-flex;align-items:center;gap:2px;vertical-align:middle;position:relative;top:-1px;margin-right:6px;flex-shrink:0;cursor:pointer;';
             const b1 = document.createElement('div');
-            b1.style.cssText = `width:3px;height:12px;background:${color};`;
+            b1.style.cssText = `width:3px;height:10px;background:${color};border-radius:1px;`;
             const b2 = document.createElement('div');
-            b2.style.cssText = `width:3px;height:12px;background:${color};`;
+            b2.style.cssText = `width:3px;height:10px;background:${color};border-radius:1px;`;
             iconEl.appendChild(b1);
             iconEl.appendChild(b2);
           }
@@ -76,7 +74,6 @@ class MapController {
         audio.addEventListener('play', renderIcon);
         audio.addEventListener('pause', renderIcon);
 
-        // Return cleanup
         return () => {
           audio.removeEventListener('play', renderIcon);
           audio.removeEventListener('pause', renderIcon);
@@ -708,9 +705,9 @@ class MapController {
               const trackRect = trackElement.getBoundingClientRect();
               const playlistRect = playlist.getBoundingClientRect();
               const isVisible = trackRect.top >= playlistRect.top && trackRect.bottom <= playlistRect.bottom;
-              this.updateActiveTrack(index, !isVisible); // Only scroll if not visible
+              this.updateActiveTrack(index, !isVisible, audio); // Only scroll if not visible
             } else {
-              this.updateActiveTrack(index, true); // Scroll if can't determine visibility
+              this.updateActiveTrack(index, true, audio); // Scroll if can't determine visibility
             }
           } else {
             // For manual clicks: scroll if from map click AND track not visible
@@ -727,7 +724,7 @@ class MapController {
                 shouldScroll = true;
               }
             }
-            this.updateActiveTrack(index, shouldScroll);
+            this.updateActiveTrack(index, shouldScroll, audio);
           }
         }, 50);  // 50ms delay - just enough for DOM to settle
 
@@ -737,7 +734,7 @@ class MapController {
         const audio = audioController.play(index, this.audioData);
 
           // Always update badge when audio plays (visibility is controlled inside updateHeaderBadge)
-          this.updateHeaderBadge(track);
+          this.updateHeaderBadge(track, audio);
         
         // If currently in State 3/4 (popup showing), collapse to State 1 (mini box) before flyTo
         // This gives clean visual transition without clearing OTHER mini boxes
@@ -942,13 +939,13 @@ class MapController {
 
           // Wire up play icon for play/pause toggling
           const playIcon = miniBox.querySelector('.play-icon');
-          const audio = audioController.currentAudio;
+          const audioEl = audioController.currentAudio;
           let cleanupIcon = null;
-          if (playIcon && audio) {
-            cleanupIcon = this._attachPlayPauseIcon(playIcon, audio, true);
+          if (playIcon && audioEl) {
+            cleanupIcon = this._attachPlayPauseIcon(playIcon, audioEl, true);
             playIcon.addEventListener('click', (e) => {
               e.stopPropagation();
-              audio.paused ? audio.play() : audio.pause();
+              audioEl.paused ? audioEl.play() : audioEl.pause();
             });
           }
 
@@ -1006,7 +1003,7 @@ class MapController {
         }
         
         // New helper method - add this RIGHT AFTER minimizePopup() closes
-              updateHeaderBadge(track) {
+              updateHeaderBadge(track, audio = null) {
         // Remove existing badge and clean up listeners
         const existingBadge = document.getElementById('playing-badge');
         if (existingBadge) {
@@ -1039,8 +1036,9 @@ class MapController {
           badge.appendChild(timeSpan);
 
           // Wire play/pause to the triangle
-          if (audioController.currentAudio) {
-            const cleanupBadgeIcon = this._attachPlayPauseIcon(triangle, audioController.currentAudio, false);
+          const audioEl = audio || audioController.currentAudio;
+          if (audioEl) {
+            const cleanupBadgeIcon = this._attachPlayPauseIcon(triangle, audioEl, false);
             badge._cleanupBadgeIcon = cleanupBadgeIcon;
           }
             
@@ -1075,26 +1073,26 @@ class MapController {
             
           document.body.appendChild(badge);
             
-          if (audioController.currentAudio) {
-            const audio = audioController.currentAudio;
+          const audioForTime = audio || audioController.currentAudio;
+          if (audioForTime) {
             const updateBadgeTime = () => {
-              if (!audio.paused) {
-                const s = Math.floor(audio.currentTime);
+              if (!audioForTime.paused) {
+                const s = Math.floor(audioForTime.currentTime);
                 timeSpan.textContent = `${Math.floor(s/60)}:${String(s%60).padStart(2,'0')}`;
               }
             };
-            audio.addEventListener('timeupdate', updateBadgeTime);
-            audio.addEventListener('play', updateBadgeTime);
+            audioForTime.addEventListener('timeupdate', updateBadgeTime);
+            audioForTime.addEventListener('play', updateBadgeTime);
             updateBadgeTime();
             badge._updateTimeHandler = updateBadgeTime;
-            badge._audioElement = audio;
+            badge._audioElement = audioForTime;
           }
             
           this.updateBadgeVisibility();
         }
       }
 
-      updateActiveTrack(index, shouldScrollPlaylist = false) {
+      updateActiveTrack(index, shouldScrollPlaylist = false, audio = null) {
           document.querySelectorAll('.track').forEach(el => el.classList.remove('active-track'));
           const activeTrack = document.querySelector(`.track[data-id="${index}"]`);
           if (activeTrack) {
@@ -1113,8 +1111,9 @@ class MapController {
             trackInfo.insertBefore(indicator, trackInfo.firstChild);
 
             // Wire real-time play/pause
-            if (audioController.currentAudio) {
-              const cleanup = this._attachPlayPauseIcon(indicator, audioController.currentAudio, false);
+            const audioEl = audio || audioController.currentAudio;
+            if (audioEl) {
+              const cleanup = this._attachPlayPauseIcon(indicator, audioEl, false);
               indicator._cleanupIcon = cleanup;
             }
           }
