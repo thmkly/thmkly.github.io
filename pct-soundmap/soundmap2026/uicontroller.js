@@ -324,8 +324,9 @@ class UIController {
             return;
           }
           
-          // Skip the currently playing track ONLY if it has a popup (not in picker)
-          if (currentIndex === audioController.currentIndex && mapController.currentPopup) {
+          // Skip the currently playing track if it has a popup or is minimized (orange box)
+          if (currentIndex === audioController.currentIndex && 
+              (mapController.currentPopup || mapController.minimizedPopup)) {
             return;
           }
           
