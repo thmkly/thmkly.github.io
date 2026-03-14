@@ -60,7 +60,8 @@ class MapController {
           if (audio.paused) {
             iconEl.style.cssText = `display:inline-block;width:0;height:0;border-left:8px solid ${color};border-top:5px solid transparent;border-bottom:5px solid transparent;vertical-align:middle;position:relative;top:-1px;margin-right:6px;flex-shrink:0;cursor:pointer;`;
           } else {
-            iconEl.style.cssText = 'display:inline-flex;align-items:center;gap:2px;vertical-align:middle;position:relative;top:-1px;margin-right:6px;flex-shrink:0;cursor:pointer;';
+            // Zero out all borders so .play-icon CSS class triangle doesn't bleed through
+            iconEl.style.cssText = 'display:inline-flex;align-items:center;gap:2px;vertical-align:middle;position:relative;top:-1px;margin-right:6px;flex-shrink:0;cursor:pointer;width:auto;height:auto;border:none;';
             const b1 = document.createElement('div');
             b1.style.cssText = `width:3px;height:10px;background:${color};border-radius:1px;`;
             const b2 = document.createElement('div');
@@ -70,9 +71,13 @@ class MapController {
           }
         };
 
-        renderIcon();
         audio.addEventListener('play', renderIcon);
         audio.addEventListener('pause', renderIcon);
+
+        // Render immediately based on current state.
+        // Use a short defer so the element is in the DOM and any
+        // in-flight play() promise has had a chance to resolve.
+        setTimeout(renderIcon, 50);
 
         return () => {
           audio.removeEventListener('play', renderIcon);
@@ -942,6 +947,9 @@ class MapController {
           const audioEl = audioController.currentAudio;
           let cleanupIcon = null;
           if (playIcon && audioEl) {
+            // Clear any existing triangle from the white box mutation
+            playIcon.innerHTML = '';
+            playIcon.style.cssText = '';
             cleanupIcon = this._attachPlayPauseIcon(playIcon, audioEl, true);
             playIcon.addEventListener('click', (e) => {
               e.stopPropagation();
