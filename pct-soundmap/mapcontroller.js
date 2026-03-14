@@ -209,14 +209,12 @@ class MapController {
         });
 
           map.on('click', 'unclustered-point', (e) => {
-            console.log('MAP MARKER CLICKED - unclustered-point handler');
             const feature = e.features[0];
             if (!feature) return;
             const originalIndex = parseInt(feature.properties.originalIndex);
             
             // Find this track in the current sorted playlist
             const currentIndex = this.audioData.findIndex(track => track.originalIndex === originalIndex);
-            console.log('About to call playAudio with currentIndex:', currentIndex, 'fromMap: true');
             if (currentIndex !== -1) {
               // Close mobile menu if open
               if (uiController.isMobile && uiController.mobilePlaylistExpanded) {
@@ -270,20 +268,15 @@ class MapController {
             const visiblePoints = map.queryRenderedFeatures({ layers: ['unclustered-point'] });
             const currentPointCount = visiblePoints.length;
             
-            console.log('moveend: visiblePoints:', currentPointCount);
-            
             // Close picker only if zoomed out so far that its points are now clustered
-            // Check if ALL picker tracks are no longer visible as individual points
             if (this.clusterPicker && this.clusterPickerTracks) {
               const allPickerPointsHidden = this.clusterPickerTracks.every(trackIndex => {
                 const track = this.audioData[trackIndex];
-                if (!track) return true; // Track not found, consider hidden
-                // Check if this track's point is visible as an unclustered point
+                if (!track) return true;
                 return !visiblePoints.some(p => parseInt(p.properties.originalIndex) === track.originalIndex);
               });
               
               if (allPickerPointsHidden) {
-                console.log('Closing picker - all points are now clustered');
                 if (this.clusterPicker._moveHandler) {
                   map.off('move', this.clusterPicker._moveHandler);
                 }
@@ -293,25 +286,16 @@ class MapController {
               }
             }
             
-            // Only recreate mini boxes if cluster state changed (point count changed)
-            // Otherwise just update positions to preserve state
             const existingBoxCount = uiController.miniInfoBoxes.length;
             
             if (currentPointCount === 0) {
-              // Clear boxes if no points visible (zoomed out to clusters)
-              console.log('Clearing mini boxes - no points visible');
               uiController.clearMiniInfoBoxes();
             } else if (currentPointCount >= 50) {
-              // Too many points, clear boxes
-              console.log('Clearing mini boxes - too many points:', currentPointCount);
               uiController.clearMiniInfoBoxes();
             } else if (currentPointCount !== existingBoxCount) {
-              // Cluster state changed - recreate mini boxes
-              console.log('Cluster state changed:', existingBoxCount, '→', currentPointCount, 'points');
               uiController.clearMiniInfoBoxes();
               uiController.showMiniInfoBoxes(null, this.audioData);
             } else {
-              // Just panning - update positions to preserve state
               uiController.updateMiniInfoBoxPositions();
             }
           }, 150); // Increased delay for rendering
@@ -493,21 +477,6 @@ class MapController {
         }
       }
 
-      // Helper to detect if playlist is currently in chronological order
-      isCurrentlyChronological() {
-        if (this.audioData.length < 2) return false;
-        
-        // Check if first few items are in chronological order (indicating STEREO mode was used)
-        for (let i = 0; i < Math.min(5, this.audioData.length - 1); i++) {
-          const currentTime = new Date(this.audioData[i].timestamp);
-          const nextTime = new Date(this.audioData[i + 1].timestamp);
-          if (currentTime > nextTime) {
-            return false; // Not chronological
-          }
-        }
-        return true; // Appears to be chronological
-      }
-
       sortByMileAndDate(data, mode = 'nobo') {
         if (mode === 'date') {
           // STEREO mode: sort everything by timestamp (earliest to latest)
@@ -658,14 +627,11 @@ class MapController {
         }
 
      playAudio(index, fromAutoPlay = false, fromMap = false) {
-       console.log('playAudio called - index:', index, 'fromAutoPlay:', fromAutoPlay, 'fromMap:', fromMap);
        const track = this.audioData[index];
        if (!track) {
          console.error('No track found at index:', index);
          return;
        }
-     
-       console.log('Playing track:', track.name);
 
       // FORCE CANCEL ALL IN-PROGRESS OPERATIONS
       // Clear any pending timeouts
@@ -683,11 +649,6 @@ class MapController {
       
       // Stop any in-progress map animation
       map.stop();
-
-        // Stop any runaway animations
-        if (this.animationTimeout) {
-          clearTimeout(this.animationTimeout);
-        }
 
         // Use user's preferred popup state (defaults to 'full' on first play)
         const shouldMinimize = this.userPreferredPopupState === 'mini';
@@ -719,18 +680,14 @@ class MapController {
             if (fromMap) {
               const trackElement = document.querySelector(`.track[data-id="${index}"]`);
               const playlist = document.getElementById('playlist');
-              console.log('Map click - trackElement:', trackElement, 'playlist:', playlist);
-               if (trackElement && playlist) {
-                 const trackRect = trackElement.getBoundingClientRect();
-                 const playlistRect = playlist.getBoundingClientRect();
-                 const isVisible = trackRect.top >= playlistRect.top && trackRect.bottom <= playlistRect.bottom;
-                 shouldScroll = !isVisible;
-                 console.log('isVisible:', isVisible, 'shouldScroll:', shouldScroll);
-                 console.log('trackRect.top:', trackRect.top, 'trackRect.bottom:', trackRect.bottom);
-                 console.log('playlistRect.top:', playlistRect.top, 'playlistRect.bottom:', playlistRect.bottom);
-               } else {
-                 shouldScroll = true;
-               }
+              if (trackElement && playlist) {
+                const trackRect = trackElement.getBoundingClientRect();
+                const playlistRect = playlist.getBoundingClientRect();
+                const isVisible = trackRect.top >= playlistRect.top && trackRect.bottom <= playlistRect.bottom;
+                shouldScroll = !isVisible;
+              } else {
+                shouldScroll = true;
+              }
             }
             this.updateActiveTrack(index, shouldScroll);
           }
@@ -778,16 +735,19 @@ class MapController {
             
             map.getContainer().appendChild(miniBox);
             
+            // Remove any existing mini box for this track before adding new one
+            const stale = uiController.miniInfoBoxes.find(b => parseInt(b.dataset.trackIndex) === oldTrackIndex);
+            if (stale) {
+              stale.remove();
+              uiController.miniInfoBoxes = uiController.miniInfoBoxes.filter(b => b !== stale);
+            }
+
             // Add to mini boxes array so it gets updated during map movement
             uiController.miniInfoBoxes.push(miniBox);
           }
         }
         
-        // Clean up picker and minimized popup if they exist
-        if (this.minimizedPopup) {
-          this.minimizedPopup.remove();
-          this.minimizedPopup = null;
-        }
+        // Clean up picker if it exists
         if (this.clusterPicker) {
           if (this.clusterPicker._moveHandler) {
             map.off('move', this.clusterPicker._moveHandler);
@@ -871,19 +831,6 @@ class MapController {
             }
           }, duration + 200); // 200ms additional delay after flyto completes
         }, 100);
-      }
-
-      showTrackPopup(index, autoPlay = true) {
-        const track = this.audioData[index];
-        if (!track) return;
-        const coords = [parseFloat(track.lng), parseFloat(track.lat)];
-        
-        if (autoPlay) {
-          this.playAudio(index);
-        } else {
-          this.positionMapForTrack(track, index);
-          this.showPopup(coords, track, null, index);
-        }
       }
 
         minimizePopup(track, index) {
@@ -986,10 +933,9 @@ class MapController {
         
         // New helper method - add this RIGHT AFTER minimizePopup() closes
               updateHeaderBadge(track) {
-        // Remove existing badge if any and clean up listeners
+        // Remove existing badge and clean up listeners
         const existingBadge = document.getElementById('playing-badge');
         if (existingBadge) {
-          // Clean up old event listeners
           if (existingBadge._updateTimeHandler && existingBadge._audioElement) {
             existingBadge._audioElement.removeEventListener('timeupdate', existingBadge._updateTimeHandler);
             existingBadge._audioElement.removeEventListener('play', existingBadge._updateTimeHandler);
@@ -997,139 +943,77 @@ class MapController {
           existingBadge.remove();
         }
           
-          // Create badge if track is provided (visibility controlled by updateBadgeVisibility)
-          if (track) {
-            const badge = document.createElement('div');
-            badge.id = 'playing-badge';
-            badge.title = 'Return to sound'; // Tooltip text
-            const trackName = track.name.replace(/^[^\s]+\s+-\s+/, '');
-            
-          const playTriangle = document.createElement('span');
-               playTriangle.style.display = 'inline-block';
-               playTriangle.style.marginRight = '6px';
-               playTriangle.style.width = '0';
-               playTriangle.style.height = '0';
-               playTriangle.style.borderLeft = '8px solid #333';
-               playTriangle.style.borderTop = '5px solid transparent';
-               playTriangle.style.borderBottom = '5px solid transparent';
-               playTriangle.style.verticalAlign = 'baseline';
-               playTriangle.style.position = 'relative';
-               playTriangle.style.top = '-1px';
-               playTriangle.style.position = 'relative';
-               playTriangle.style.top = '-1px'; // Lift slightly for better centering
-               
-               const titleSpan = document.createElement('span');
-               titleSpan.className = 'badge-title';
-               titleSpan.textContent = trackName;
-               
-               const timeSpan = document.createElement('span');
-               timeSpan.className = 'badge-time';
-               timeSpan.style.marginLeft = '8px';
-               timeSpan.style.fontFamily = 'monospace';
-               timeSpan.style.color = '#333';
-               timeSpan.textContent = '0:00';
-               
-               badge.appendChild(playTriangle);
-               badge.appendChild(titleSpan);
-               badge.appendChild(timeSpan);
-            badge.style.position = 'absolute';
-            badge.style.fontSize = '16px';
-            badge.style.color = '#333';
-            badge.style.fontWeight = '500';
-            badge.style.zIndex = '1';
-            badge.style.pointerEvents = 'auto';
-            badge.style.cursor = 'pointer';
-            badge.style.maxWidth = uiController.isMobile ? 'calc(100vw - 100px)' : '500px';
-            badge.style.overflow = 'visible';
-            badge.style.whiteSpace = 'normal';
-            badge.style.lineHeight = '1.3';
-            
-               // Position badge in upper left for both mobile and desktop
-               badge.style.top = '20px';
-               badge.style.left = '20px';
-               badge.style.right = 'auto';
-               badge.style.textAlign = 'left';
-            
-            // Click to fly to track location (keep minimized state)
-            badge.addEventListener('click', () => {
-              const coords = [parseFloat(track.lng), parseFloat(track.lat)];
-              const trackIndex = audioController.currentIndex;
-              
-              // Clear stale mini boxes before flying
-              uiController.clearMiniInfoBoxes();
-              
-              // Fly to the location
-              this.positionMapForTrack(track, trackIndex);
-              
-              // Show popup/picker after flyTo completes (respecting user preference)
-              const movementDuration = this.getMovementDuration(track);
-              setTimeout(() => {
-                const audio = audioController.currentAudio;
-                const shouldMinimize = this.userPreferredPopupState === 'mini';
-                
-                // Check if in tight cluster
-                const nearbyTrackIndices = this.getTracksInTightCluster(trackIndex);
-                
-                if (nearbyTrackIndices.length > 0 && shouldMinimize) {
-                  // Show picker for tight cluster
-                  const leaves = [
-                    { 
-                      geometry: { coordinates: coords },
-                      properties: { originalIndex: track.originalIndex }
-                    },
-                    ...nearbyTrackIndices.map(nearbyIndex => {
-                      const nearbyTrack = this.audioData[nearbyIndex];
-                      return {
-                        geometry: { coordinates: [parseFloat(nearbyTrack.lng), parseFloat(nearbyTrack.lat)] },
-                        properties: { originalIndex: nearbyTrack.originalIndex }
-                      };
-                    })
-                  ];
-                  this.showClusterPicker({ x: 0, y: 0 }, leaves, trackIndex);
-                } else {
-                  // Show normal popup
-                  this.showPopup(coords, track, audio, trackIndex, shouldMinimize);
-                }
-                
-                // Redraw other mini boxes
-                const visiblePoints = map.queryRenderedFeatures({ layers: ['unclustered-point'] });
-                if (visiblePoints.length > 0 && visiblePoints.length < 50) {
-                  uiController.showMiniInfoBoxes(null, this.audioData);
-                }
-              }, movementDuration + 100);
-            });
-            
-            document.body.appendChild(badge);
-            
-            // Update time display
-            if (audioController.currentAudio) {
-              const audio = audioController.currentAudio;
-              const timeSpan = badge.querySelector('.badge-time');
-              
-              const updateBadgeTime = () => {
-                if (timeSpan && audio && !audio.paused) {
-                  const current = Math.floor(audio.currentTime);
-                  const mins = Math.floor(current / 60);
-                  const secs = current % 60;
-                  timeSpan.textContent = `${mins}:${secs.toString().padStart(2, '0')}`;
-                }
-              };
-              
-              audio.addEventListener('timeupdate', updateBadgeTime);
-              audio.addEventListener('play', updateBadgeTime);
-              updateBadgeTime(); // Initial update
-              
-              // Store reference for cleanup
-              badge._updateTimeHandler = updateBadgeTime;
-              badge._audioElement = audio;
-            }
-            
-            // Update visibility immediately after creation
-            this.updateBadgeVisibility();
-          }
-        }
+        if (track) {
+          const badge = document.createElement('div');
+          badge.id = 'playing-badge';
+          badge.title = 'Return to sound';
 
-        updateActiveTrack(index, shouldScrollPlaylist = false) {
+          const triangle = document.createElement('span');
+          triangle.className = 'badge-triangle';
+
+          const titleSpan = document.createElement('span');
+          titleSpan.className = 'badge-title';
+          titleSpan.textContent = track.name.replace(/^[^\s]+\s+-\s+/, '');
+
+          const timeSpan = document.createElement('span');
+          timeSpan.className = 'badge-time';
+          timeSpan.textContent = '0:00';
+
+          badge.appendChild(triangle);
+          badge.appendChild(titleSpan);
+          badge.appendChild(timeSpan);
+            
+          badge.addEventListener('click', () => {
+            const coords = [parseFloat(track.lng), parseFloat(track.lat)];
+            const trackIndex = audioController.currentIndex;
+            uiController.clearMiniInfoBoxes();
+            this.positionMapForTrack(track, trackIndex);
+            const movementDuration = this.getMovementDuration(track);
+            setTimeout(() => {
+              const audio = audioController.currentAudio;
+              const shouldMinimize = this.userPreferredPopupState === 'mini';
+              const nearbyTrackIndices = this.getTracksInTightCluster(trackIndex);
+              if (nearbyTrackIndices.length > 0 && shouldMinimize) {
+                const leaves = [
+                  { geometry: { coordinates: coords }, properties: { originalIndex: track.originalIndex } },
+                  ...nearbyTrackIndices.map(nearbyIndex => {
+                    const t = this.audioData[nearbyIndex];
+                    return { geometry: { coordinates: [parseFloat(t.lng), parseFloat(t.lat)] }, properties: { originalIndex: t.originalIndex } };
+                  })
+                ];
+                this.showClusterPicker({ x: 0, y: 0 }, leaves, trackIndex);
+              } else {
+                this.showPopup(coords, track, audio, trackIndex, shouldMinimize);
+              }
+              const visiblePoints = map.queryRenderedFeatures({ layers: ['unclustered-point'] });
+              if (visiblePoints.length > 0 && visiblePoints.length < 50) {
+                uiController.showMiniInfoBoxes(null, this.audioData);
+              }
+            }, movementDuration + 100);
+          });
+            
+          document.body.appendChild(badge);
+            
+          if (audioController.currentAudio) {
+            const audio = audioController.currentAudio;
+            const updateBadgeTime = () => {
+              if (!audio.paused) {
+                const s = Math.floor(audio.currentTime);
+                timeSpan.textContent = `${Math.floor(s/60)}:${String(s%60).padStart(2,'0')}`;
+              }
+            };
+            audio.addEventListener('timeupdate', updateBadgeTime);
+            audio.addEventListener('play', updateBadgeTime);
+            updateBadgeTime();
+            badge._updateTimeHandler = updateBadgeTime;
+            badge._audioElement = audio;
+          }
+            
+          this.updateBadgeVisibility();
+        }
+      }
+
+      updateActiveTrack(index, shouldScrollPlaylist = false) {
           document.querySelectorAll('.track').forEach(el => el.classList.remove('active-track'));
           const activeTrack = document.querySelector(`.track[data-id="${index}"]`);
           if (activeTrack) {
@@ -1190,13 +1074,7 @@ class MapController {
          }
 
       positionMapForTrack(track, index, fromAutoPlay = false) {
-        console.log('positionMapForTrack called for:', track.name);
-        
-        // Prevent multiple simultaneous map movements
-        if (this.isPositioning) {
-          console.log('Already positioning, skipping...');
-          return;
-        }
+        if (this.isPositioning) return;
         this.isPositioning = true;
 
         const coords = [parseFloat(track.lng), parseFloat(track.lat)];
@@ -1205,23 +1083,7 @@ class MapController {
           this.isPositioning = false;
         };
 
-        // Calculate distance for duration scaling
-        const currentCenter = map.getCenter();
-        const distance = this.calculateDistance(
-          currentCenter.lat, currentCenter.lng,
-          coords[1], coords[0]
-        );
-        
-        // Distance-based duration: longer for farther points
-        const distanceKm = distance / 1000;
-        let duration;
-        if (distanceKm < 5) {
-          duration = 2200; // Close points: normal speed
-        } else if (distanceKm < 50) {
-          duration = 2200 + ((distanceKm - 5) / 45) * 1800; // Medium: 2.2-4s
-        } else {
-          duration = Math.min(5000, 4000 + ((distanceKm - 50) / 100) * 1000); // Far: 4-5s max
-        }
+        const duration = this.getMovementDuration(track);
 
         // Smooth easing with pronounced landing deceleration
         const smoothLandingEasing = (t) => {
@@ -1311,86 +1173,51 @@ class MapController {
 
       updateClusterPickerHighlight(playingIndex) {
         if (!this.clusterPicker) return;
-        
-        // Update each box's highlight based on whether it's playing
-        const boxes = this.clusterPicker.querySelectorAll('[data-track-index]');
-        boxes.forEach(box => {
-          const trackIndex = parseInt(box.dataset.trackIndex);
-          const isPlaying = trackIndex === playingIndex;
-          
+        this.clusterPicker.querySelectorAll('[data-track-index]').forEach(box => {
+          const isPlaying = parseInt(box.dataset.trackIndex) === playingIndex;
           box.dataset.isPlaying = isPlaying ? 'true' : 'false';
-          
-          if (isPlaying) {
-            box.style.backgroundColor = 'rgba(255, 200, 150, 0.75)';
-          } else {
-            box.style.backgroundColor = 'rgba(255, 255, 255, 0.70)';
-          }
+          box.classList.toggle('playing', isPlaying);
         });
       }
 
       showClusterPicker(clickPoint, leaves, playingTrackIndex = null) {
-        // Remove any existing picker
         if (this.clusterPicker) {
-          if (this.clusterPicker._moveHandler) {
-            map.off('move', this.clusterPicker._moveHandler);
-          }
+          if (this.clusterPicker._moveHandler) map.off('move', this.clusterPicker._moveHandler);
           this.clusterPicker.remove();
           this.clusterPicker = null;
         }
         
-        // Get cluster center for anchoring
         const coords = leaves[0].geometry.coordinates;
         
-        // Store track indices for this picker
         this.clusterPickerTracks = leaves.map(leaf => {
           const originalIndex = parseInt(leaf.properties.originalIndex);
           return this.audioData.findIndex(t => t.originalIndex === originalIndex);
         });
         
-        // Create picker container (no visible styling, just positioning)
         const picker = document.createElement('div');
         picker.id = 'cluster-picker';
-        picker.style.position = 'absolute';
-        picker.style.zIndex = '1000';
-        picker.style.display = 'flex';
-        picker.style.flexDirection = 'column';
-        picker.style.gap = '0px'; // Connected boxes, no gap
+        picker.style.cssText = 'position:absolute;z-index:1000;display:flex;flex-direction:column;';
         
-        // Position using map coordinates (will update on map move)
         const updatePickerPosition = () => {
           const px = map.project(coords);
           picker.style.left = `${px.x + 10}px`;
-          picker.style.top = `${px.y - 20}px`;
+          picker.style.top  = `${px.y - 20}px`;
         };
         updatePickerPosition();
-        
-        // Store update function and coords
         picker._updatePosition = updatePickerPosition;
         picker._coords = coords;
         
-        // Sort leaves by track name numerically (e.g., "tunnel falls 1", "tunnel falls 2", "tunnel falls 3")
+        // Sort leaves numerically by trailing number in track name
         const sortedLeaves = [...leaves].sort((a, b) => {
-          const aIndex = parseInt(a.properties.originalIndex);
-          const bIndex = parseInt(b.properties.originalIndex);
-          const trackA = this.audioData.find(t => t.originalIndex === aIndex);
-          const trackB = this.audioData.find(t => t.originalIndex === bIndex);
-          
-          if (!trackA || !trackB) return 0;
-          
-          // Extract numbers from track names for natural sorting
-          const getNumber = (name) => {
-            const match = name.match(/(\d+)$/); // Match number at end of name
-            return match ? parseInt(match[1]) : 0;
+          const getNum = (leaf) => {
+            const t = this.audioData.find(t => t.originalIndex === parseInt(leaf.properties.originalIndex));
+            const m = t?.name.match(/(\d+)$/);
+            return m ? parseInt(m[1]) : 0;
           };
-          
-          const numA = getNumber(trackA.name);
-          const numB = getNumber(trackB.name);
-          
-          return numA - numB;
+          return getNum(a) - getNum(b);
         });
         
-        // Add track options (styled like mini infoboxes)
-        sortedLeaves.forEach((leaf, boxIndex) => {
+        sortedLeaves.forEach((leaf) => {
           const originalIndex = parseInt(leaf.properties.originalIndex);
           const track = this.audioData.find(t => t.originalIndex === originalIndex);
           if (!track) return;
@@ -1398,450 +1225,222 @@ class MapController {
           const currentIndex = this.audioData.findIndex(t => t.originalIndex === originalIndex);
           const isPlaying = playingTrackIndex !== null && currentIndex === playingTrackIndex;
           
-          // Create box that looks exactly like mini-infobox
           const box = document.createElement('div');
+          box.className = 'cluster-box' + (isPlaying ? ' playing' : '');
           box.dataset.trackIndex = currentIndex;
-          box.style.position = 'relative';
-          box.style.border = '1px solid #ccc';
-          box.style.padding = '4px 8px';
-          box.style.fontSize = '11px';
-          box.style.color = '#000';
-          box.style.cursor = 'pointer';
-          box.style.boxShadow = '0 2px 5px rgba(0, 0, 0, 0.2)';
-          box.style.display = 'flex';
-          box.style.alignItems = 'center';
-          box.style.gap = '4px';
-          box.style.maxWidth = '200px';
-          box.style.whiteSpace = 'nowrap';
-          box.style.transition = 'background-color 0.2s';
-          
-          // Round corners based on position in list
-          const totalBoxes = sortedLeaves.length;
-          if (totalBoxes === 1) {
-            box.style.borderRadius = '4px';
-          } else if (boxIndex === 0) {
-            // First box: round top corners
-            box.style.borderRadius = '4px 4px 0 0';
-          } else if (boxIndex === totalBoxes - 1) {
-            // Last box: round bottom corners
-            box.style.borderRadius = '0 0 4px 4px';
-          } else {
-            // Middle boxes: no rounding
-            box.style.borderRadius = '0';
-          }
-          
-          // Remove bottom border for all except last box
-          if (boxIndex < totalBoxes - 1) {
-            box.style.borderBottom = 'none';
-          }
-          
-          // Background color: orange for playing, blue for non-playing
-          if (isPlaying) {
-            box.style.backgroundColor = 'rgba(255, 200, 150, 0.75)';
-            box.dataset.isPlaying = 'true';
-          } else {
-            box.style.backgroundColor = 'rgba(255, 255, 255, 0.70)';
-            box.dataset.isPlaying = 'false';
-          }
-          
-          // Play icon (triangle)
+          box.dataset.isPlaying = isPlaying ? 'true' : 'false';
+
           const playIcon = document.createElement('div');
-          playIcon.style.width = '0';
-          playIcon.style.height = '0';
-          playIcon.style.borderLeft = '6px solid #5c3a2e';
-          playIcon.style.borderTop = '4px solid transparent';
-          playIcon.style.borderBottom = '4px solid transparent';
-          playIcon.style.flexShrink = '0';
+          playIcon.className = 'cluster-play-icon';
           box.appendChild(playIcon);
           
-          // Track name
           const trackName = document.createElement('span');
+          trackName.className = 'cluster-box-name';
           trackName.textContent = track.name.replace(/^[^\s]+\s+-\s+/, '');
-          trackName.style.flex = '1';
-          trackName.style.overflow = 'hidden';
-          trackName.style.textOverflow = 'ellipsis';
-          trackName.style.whiteSpace = 'nowrap';
           box.appendChild(trackName);
           
-          // Hover effect - darker for both playing and non-playing
-          box.addEventListener('mouseenter', () => {
-            if (box.dataset.isPlaying === 'true') {
-              box.style.backgroundColor = 'rgba(255, 150, 100, 0.80)';
-            } else {
-              box.style.backgroundColor = 'rgba(220, 220, 220, 0.80)';
-            }
-          });
-          box.addEventListener('mouseleave', () => {
-            if (box.dataset.isPlaying === 'true') {
-              box.style.backgroundColor = 'rgba(255, 200, 150, 0.75)';
-            } else {
-              box.style.backgroundColor = 'rgba(255, 255, 255, 0.70)';
-            }
-          });
-          
-          // Click handler
           box.addEventListener('click', () => {
-            if (currentIndex >= 0) {
-              // Read current playing state from dataset (updated dynamically)
-              const isCurrentlyPlaying = box.dataset.isPlaying === 'true';
-              
-              if (isCurrentlyPlaying) {
-                // Clicking playing track: remove picker and show State 3/4 popup (don't restart audio)
-                this.clusterPicker.remove();
-                if (this.clusterPicker._moveHandler) {
-                  map.off('move', this.clusterPicker._moveHandler);
-                }
-                this.clusterPicker = null;
-                this.clusterPickerTracks = null;
-                
-                // Always expand to full popup (State 3/4), respecting notes state
-                const shouldMinimize = false; // Always show full when expanding from picker
-                const coords = [parseFloat(track.lng), parseFloat(track.lat)];
-                const audio = audioController.currentAudio;
-                this.showPopup(coords, track, audio, currentIndex, shouldMinimize);
-                this.updateBadgeVisibility();
-                
-                // Update state preference to full (user explicitly expanded)
-                if (this.userPreferredPopupState === 'mini') {
-                  this.userPreferredPopupState = 'full';
-                }
-              } else {
-                // Clicking non-playing track: play it (picker stays open, will update highlight)
-                this.playAudio(currentIndex, false, true);
-              }
+            if (currentIndex < 0) return;
+            if (box.dataset.isPlaying === 'true') {
+              if (this.clusterPicker._moveHandler) map.off('move', this.clusterPicker._moveHandler);
+              this.clusterPicker.remove();
+              this.clusterPicker = null;
+              this.clusterPickerTracks = null;
+              const trackCoords = [parseFloat(track.lng), parseFloat(track.lat)];
+              this.showPopup(trackCoords, track, audioController.currentAudio, currentIndex, false);
+              if (this.userPreferredPopupState === 'mini') this.userPreferredPopupState = 'full';
+              this.updateBadgeVisibility();
+            } else {
+              this.playAudio(currentIndex, false, true);
             }
           });
           
           picker.appendChild(box);
         });
         
-        // Update position on map move
-        const moveHandler = () => {
-          if (picker.parentNode) {
-            updatePickerPosition();
-          }
-        };
+        const moveHandler = () => { if (picker.parentNode) updatePickerPosition(); };
         map.on('move', moveHandler);
         picker._moveHandler = moveHandler;
         
-        // Store picker reference
         this.clusterPicker = picker;
         document.body.appendChild(picker);
-        
-        // Update badge visibility after picker is shown
         this.updateBadgeVisibility();
       }
 
           showPopup(coords, track, audio, index, shouldMinimize = false) {
-            // Don't create popups if audio has been stopped (reset in progress)
             if (audioController.currentIndex === -1) return;
               
-          // Remove old popup before creating new one
             if (this.currentPopup) {
               this.currentPopup.remove();
               this.currentPopup = null;
             }
         
-          const container = document.createElement('div');
-          container.className = 'custom-popup'; // Use class for styling
-          container.style.fontFamily = 'helvetica, sans-serif';
-          container.style.padding = '12px';
-          container.style.position = 'absolute'; // Position relative to document
-          container.style.width = '320px'; // Fixed width, don't allow resizing
-          container.style.zIndex = '10'; // Above map but below modals
-          
-          // Store coordinates on the popup for repositioning
-          container._coords = coords;
+            const container = document.createElement('div');
+            container.className = 'custom-popup';
+            container.style.position = 'absolute';
+            container.style.width = '320px';
+            container.style.zIndex = '10';
+            container._coords = coords;
         
-          // Add minimize button (top-right, subtle)
-          const minimizeBtn = document.createElement('button');
-          minimizeBtn.className = 'popup-minimize';
-          minimizeBtn.innerHTML = '−';
-          minimizeBtn.title = 'Minimize';
-          minimizeBtn.type = 'button';
-          minimizeBtn.tabIndex = -1;
-          minimizeBtn.style.position = 'absolute';
-          minimizeBtn.style.top = '6px';
-          minimizeBtn.style.right = '8px';
-          minimizeBtn.style.border = 'none';
-          minimizeBtn.style.background = 'transparent';
-          minimizeBtn.style.fontSize = '20px';
-          minimizeBtn.style.cursor = 'pointer';
-          minimizeBtn.style.color = '#000';
-          minimizeBtn.style.padding = '0';
-          minimizeBtn.style.width = '24px';
-          minimizeBtn.style.height = '24px';
-          minimizeBtn.style.lineHeight = '24px';
-          minimizeBtn.addEventListener('click', (e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            this.minimizePopup(track, index);
-          });
-          container.appendChild(minimizeBtn);
-        
-          // Title
-          const title = document.createElement('h3');
-          title.textContent = track.name;
-          title.style.margin = '0 0 8px 0';
-          title.style.fontSize = '15px';
-          title.style.fontWeight = '600';
-          title.style.paddingRight = '30px'; // Space for minimize button
-          container.appendChild(title);
-        
-          // Timestamp, Mile, Elevation, Section on same line
-          const metaLine = document.createElement('div');
-          metaLine.style.fontSize = '13px';
-          metaLine.style.color = '#666';
-          metaLine.style.marginBottom = '8px';
-          
-          let metaText = this.formatTimestamp(track.timestamp);
-          if (track.mile && track.mile.toString().trim().toLowerCase() !== 'n/a') {
-            const displayMile = this.getDisplayMile(track);
-            if (displayMile !== null) {
-              metaText += ` • mi.${displayMile}`;
-            }
-          }
-          if (track.elevation) {
-            metaText += ` • ${track.elevation} ft`;
-          }
-          if (track.section) {
-            metaText += ` • ${track.section}`;
-          }
-          metaLine.textContent = metaText;
-          container.appendChild(metaLine);
-        
-          // Notes section (collapsible)
-          if (track.notes?.trim()) {
-            const notesToggle = document.createElement('button');
-            notesToggle.textContent = 'Field notes';
-            notesToggle.style.fontSize = '12px';
-            notesToggle.style.color = '#5c3a2e';
-            notesToggle.style.background = 'none';
-            notesToggle.style.border = 'none';
-            notesToggle.style.padding = '0';
-            notesToggle.style.cursor = 'pointer';
-            notesToggle.style.textDecoration = 'underline';
-            notesToggle.style.marginBottom = '8px';
-            
-            const notesContent = document.createElement('div');
-            notesContent.style.display = 'none';
-            notesContent.style.fontSize = '13px';
-            notesContent.style.color = '#555';
-            notesContent.style.marginTop = '4px';
-            notesContent.style.marginBottom = '8px';
-            notesContent.textContent = track.notes;
-            
-            // Check if we should auto-expand notes (State 4)
-            let notesExpanded = this.userPreferredPopupState === 'full-with-notes';
-            if (notesExpanded) {
-              notesContent.style.display = 'block';
-              notesToggle.textContent = 'Collapse field notes';
-            }
-            
-            notesToggle.addEventListener('click', () => {
-              notesExpanded = !notesExpanded;
-              
-              // Update state: State 3 <-> State 4
-              this.userPreferredPopupState = notesExpanded ? 'full-with-notes' : 'full';
-              
-              // Store current bottom position before height changes
-              const currentBottom = parseInt(container.style.top) + container.offsetHeight;
-              
-              notesContent.style.display = notesExpanded ? 'block' : 'none';
-              notesToggle.textContent = notesExpanded ? 'Collapse field notes' : 'Field notes';
-              
-              // After display change, reposition to keep arrow/bottom anchored
-              setTimeout(() => {
-                const newHeight = container.offsetHeight;
-                container.style.top = `${currentBottom - newHeight}px`;
-              }, 0);
+            // Minimize button — styled via .popup-minimize CSS class
+            const minimizeBtn = document.createElement('button');
+            minimizeBtn.className = 'popup-minimize';
+            minimizeBtn.innerHTML = '−';
+            minimizeBtn.title = 'Minimize';
+            minimizeBtn.type = 'button';
+            minimizeBtn.tabIndex = -1;
+            minimizeBtn.addEventListener('click', (e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              this.minimizePopup(track, index);
             });
-            
-            container.appendChild(notesContent);
-            container.appendChild(notesToggle);
-          }
+            container.appendChild(minimizeBtn);
         
-          // Player controls
-          const controls = document.createElement('div');
-          controls.style.display = 'flex';
-          controls.style.alignItems = 'center';
-          controls.style.gap = '12px';
-          controls.style.marginTop = '12px';
-          controls.style.paddingTop = '12px';
-          controls.style.borderTop = '1px solid #eee';
-          
-          // Previous button
-          const prevBtn = document.createElement('button');
-          prevBtn.textContent = '‹ prev';
-          prevBtn.style.fontSize = '13px';
-          prevBtn.style.padding = '6px 10px';
-          prevBtn.style.cursor = 'pointer';
-          prevBtn.style.border = '1px solid #ccc';
-          prevBtn.style.borderRadius = '4px';
-          prevBtn.style.background = 'white';
-          prevBtn.style.color = '#333';
-          
-          if (audioController.playMode === 'random') {
-            prevBtn.disabled = audioController.playHistory.length === 0;
-          } else {
-            prevBtn.disabled = index === 0;
-          }
-          
-          if (prevBtn.disabled) {
-            prevBtn.style.opacity = '0.4';
-            prevBtn.style.cursor = 'not-allowed';
-          }
-          
-          prevBtn.addEventListener('click', () => {
-            audioController.playPrevious(this.audioData);
-          });
-          
-          // Play/Pause button (centered, prominent)
-          if (audio) {
-            const playPauseBtn = document.createElement('button');
-            playPauseBtn.className = 'play-pause-btn';
-            playPauseBtn.style.padding = '8px 14px';
-            playPauseBtn.style.cursor = 'pointer';
-            playPauseBtn.style.border = '1px solid #ccc';
-            playPauseBtn.style.borderRadius = '4px';
-            playPauseBtn.style.background = 'white';
-            playPauseBtn.style.display = 'flex';
-            playPauseBtn.style.alignItems = 'center';
-            playPauseBtn.style.justifyContent = 'center';
-            playPauseBtn.style.minWidth = '50px';
-            
-            // Create CSS triangle or pause bars
-            const updateButton = () => {
-              playPauseBtn.innerHTML = '';
-              if (audio.paused) {
-                // Play triangle
-                const triangle = document.createElement('div');
-                triangle.style.width = '0';
-                triangle.style.height = '0';
-                triangle.style.borderLeft = '10px solid #333';
-                triangle.style.borderTop = '7px solid transparent';
-                triangle.style.borderBottom = '7px solid transparent';
-                playPauseBtn.appendChild(triangle);
+            // Title
+            const title = document.createElement('h3');
+            title.className = 'popup-title';
+            title.textContent = track.name;
+            container.appendChild(title);
+        
+            // Meta line: timestamp · mile · elevation · section
+            const metaLine = document.createElement('div');
+            metaLine.className = 'popup-meta';
+            let metaText = this.formatTimestamp(track.timestamp);
+            if (track.mile && track.mile.toString().trim().toLowerCase() !== 'n/a') {
+              const displayMile = this.getDisplayMile(track);
+              if (displayMile !== null) metaText += ` • mi.${displayMile}`;
+            }
+            if (track.elevation) metaText += ` • ${track.elevation} ft`;
+            if (track.section)   metaText += ` • ${track.section}`;
+            metaLine.textContent = metaText;
+            container.appendChild(metaLine);
+        
+            // Notes (collapsible)
+            if (track.notes?.trim()) {
+              const notesContent = document.createElement('div');
+              notesContent.className = 'popup-notes-content';
+              notesContent.textContent = track.notes;
+
+              const notesToggle = document.createElement('button');
+              notesToggle.className = 'popup-notes-toggle';
+
+              let notesExpanded = this.userPreferredPopupState === 'full-with-notes';
+              if (notesExpanded) {
+                notesContent.classList.add('expanded');
+                notesToggle.textContent = 'Collapse field notes';
               } else {
-                // Pause bars
-                const bar1 = document.createElement('div');
-                bar1.style.width = '4px';
-                bar1.style.height = '14px';
-                bar1.style.backgroundColor = '#333';
-                const bar2 = document.createElement('div');
-                bar2.style.width = '4px';
-                bar2.style.height = '14px';
-                bar2.style.backgroundColor = '#333';
-                bar2.style.marginLeft = '4px';
-                playPauseBtn.appendChild(bar1);
-                playPauseBtn.appendChild(bar2);
+                notesToggle.textContent = 'Field notes';
               }
-            };
-            updateButton(); // Initial state
-               
-            audio.addEventListener('play', updateButton);
-            audio.addEventListener('pause', updateButton);
             
-            playPauseBtn.addEventListener('click', () => {
-              if (audio.paused) {
-                audio.play();
-              } else {
-                audio.pause();
-              }
-            });
+              notesToggle.addEventListener('click', () => {
+                notesExpanded = !notesExpanded;
+                this.userPreferredPopupState = notesExpanded ? 'full-with-notes' : 'full';
+                const currentBottom = parseInt(container.style.top) + container.offsetHeight;
+                notesContent.classList.toggle('expanded', notesExpanded);
+                notesToggle.textContent = notesExpanded ? 'Collapse field notes' : 'Field notes';
+                setTimeout(() => {
+                  container.style.top = `${currentBottom - container.offsetHeight}px`;
+                }, 0);
+              });
             
+              container.appendChild(notesContent);
+              container.appendChild(notesToggle);
+            }
+        
+            // Controls row
+            const controls = document.createElement('div');
+            controls.className = 'popup-controls';
+        
+            // Prev button
+            const prevBtn = document.createElement('button');
+            prevBtn.className = 'popup-nav-btn';
+            prevBtn.textContent = '‹ prev';
+            prevBtn.disabled = audioController.playMode === 'random'
+              ? audioController.playHistory.length === 0
+              : index === 0;
+            prevBtn.addEventListener('click', () => audioController.playPrevious(this.audioData));
             controls.appendChild(prevBtn);
-            controls.appendChild(playPauseBtn);
-          }
-          
-          // Next button
-          const nextBtn = document.createElement('button');
-          nextBtn.textContent = 'next ›';
-          nextBtn.style.fontSize = '13px';
-          nextBtn.style.padding = '6px 10px';
-          nextBtn.style.cursor = 'pointer';
-          nextBtn.style.border = '1px solid #ccc';
-          nextBtn.style.borderRadius = '4px';
-          nextBtn.style.background = 'white';
-          nextBtn.style.color = '#333';
-          nextBtn.disabled = index === this.audioData.length - 1;
-          
-          if (nextBtn.disabled) {
-            nextBtn.style.opacity = '0.4';
-            nextBtn.style.cursor = 'not-allowed';
-          }
-          
-          nextBtn.addEventListener('click', () => {
-            audioController.playNext(this.audioData);
-          });
-          
-          controls.appendChild(nextBtn);
-          
-          // Time display (right side)
-          if (audio) {
-            const timeDisplay = document.createElement('div');
-            timeDisplay.style.fontSize = '12px';
-            timeDisplay.style.color = '#666';
-            timeDisplay.style.marginLeft = 'auto';
-            timeDisplay.style.fontFamily = 'monospace';
-            
-            const updateTime = () => {
-              const current = Math.floor(audio.currentTime);
-              const duration = Math.floor(audio.duration) || 0;
-              const formatTime = (secs) => {
-                const mins = Math.floor(secs / 60);
-                const remainingSecs = secs % 60;
-                return `${mins}:${remainingSecs.toString().padStart(2, '0')}`;
-              };
-              timeDisplay.textContent = `${formatTime(current)} / ${formatTime(duration)}`;
-            };
-            
-            audio.addEventListener('timeupdate', updateTime);
-            audio.addEventListener('loadedmetadata', updateTime);
-            updateTime();
-            
-            controls.appendChild(timeDisplay);
-          }
-          
-          container.appendChild(controls);
         
-          // Add to document.body first to get proper width measurement
-          document.body.appendChild(container);
-          
-          // Position the popup using map coordinates
-          // Position so the arrow (at 50% of popup width) points to the exact coordinate
-          const pixelCoords = map.project(coords);
-          const popupWidth = container.offsetWidth || 320; // Get actual width or default
-          container.style.left = `${pixelCoords.x - (popupWidth / 2)}px`; // Center popup on point
-          container.style.top = `${pixelCoords.y - container.offsetHeight - 20}px`; // Above the point
-          
-          // Store reference
-          this.currentPopup = {
-            _container: container,
-            _coords: coords,
-            remove: () => {
-              if (container.parentNode) {
-                container.parentNode.removeChild(container);
-              }
-            },
-            updatePosition: () => {
-              const px = map.project(coords);
-              const width = container.offsetWidth || 320;
-              container.style.left = `${px.x - (width / 2)}px`; // Center on point
-              // Recalculate top based on actual height after content loads
-              const height = container.offsetHeight;
-              container.style.top = `${px.y - height - 20}px`;
+            // Play/Pause button
+            if (audio) {
+              const playPauseBtn = document.createElement('button');
+              playPauseBtn.className = 'popup-playpause-btn';
+        
+              const updateButton = () => {
+                playPauseBtn.innerHTML = '';
+                if (audio.paused) {
+                  const t = document.createElement('div');
+                  t.className = 'play-triangle-lg';
+                  playPauseBtn.appendChild(t);
+                } else {
+                  const b1 = document.createElement('div');
+                  b1.className = 'pause-bar';
+                  const b2 = document.createElement('div');
+                  b2.className = 'pause-bar';
+                  playPauseBtn.appendChild(b1);
+                  playPauseBtn.appendChild(b2);
+                }
+              };
+              updateButton();
+              audio.addEventListener('play', updateButton);
+              audio.addEventListener('pause', updateButton);
+              playPauseBtn.addEventListener('click', () => {
+                audio.paused ? audio.play() : audio.pause();
+              });
+              controls.appendChild(playPauseBtn);
             }
-          };
-          
-          // Update position immediately after DOM settles (for correct height calculation)
-          setTimeout(() => {
-            this.currentPopup.updatePosition();
-          }, 10);
-          
-          // Popup visibility is now handled by CSS (white background in pct-soundmap.html)
-          
-          // If should minimize, do it immediately (no flash)
+        
+            // Next button
+            const nextBtn = document.createElement('button');
+            nextBtn.className = 'popup-nav-btn';
+            nextBtn.textContent = 'next ›';
+            nextBtn.disabled = index === this.audioData.length - 1;
+            nextBtn.addEventListener('click', () => audioController.playNext(this.audioData));
+            controls.appendChild(nextBtn);
+        
+            // Time display
+            if (audio) {
+              const timeDisplay = document.createElement('div');
+              timeDisplay.className = 'popup-time-display';
+              const formatTime = (secs) => {
+                const m = Math.floor(secs / 60);
+                const s = secs % 60;
+                return `${m}:${String(s).padStart(2, '0')}`;
+              };
+              const updateTime = () => {
+                const cur = Math.floor(audio.currentTime);
+                const dur = Math.floor(audio.duration) || 0;
+                timeDisplay.textContent = `${formatTime(cur)} / ${formatTime(dur)}`;
+              };
+              audio.addEventListener('timeupdate', updateTime);
+              audio.addEventListener('loadedmetadata', updateTime);
+              updateTime();
+              controls.appendChild(timeDisplay);
+            }
+        
+            container.appendChild(controls);
+        
+            // Append and position
+            document.body.appendChild(container);
+            const pixelCoords = map.project(coords);
+            const popupWidth = container.offsetWidth || 320;
+            container.style.left = `${pixelCoords.x - (popupWidth / 2)}px`;
+            container.style.top  = `${pixelCoords.y - container.offsetHeight - 20}px`;
+        
+            this.currentPopup = {
+              _container: container,
+              _coords: coords,
+              remove: () => { if (container.parentNode) container.parentNode.removeChild(container); },
+              updatePosition: () => {
+                const px = map.project(coords);
+                const w = container.offsetWidth || 320;
+                container.style.left = `${px.x - (w / 2)}px`;
+                container.style.top  = `${px.y - container.offsetHeight - 20}px`;
+              }
+            };
+        
+            setTimeout(() => this.currentPopup.updatePosition(), 10);
+        
           if (shouldMinimize) {
             this.minimizePopup(track, index);
           }
@@ -1868,6 +1467,64 @@ class MapController {
         // Use the enhanced atmosphere controller's Pacific Time formatting
         const pacificTime = atmosphereController.convertToPacificTime(timestamp);
         return atmosphereController.formatPacificTime(pacificTime);
+      }
+
+      enable3D() {
+        if (!uiController.isMobile) {
+          map.dragRotate.enable();
+          map.keyboard.enable();
+        }
+
+        if (!map.getSource('mapbox-dem')) {
+          map.addSource('mapbox-dem', {
+            type: 'raster-dem',
+            url: 'mapbox://mapbox.mapbox-terrain-dem-v1',
+            tileSize: 512,
+            maxzoom: 14
+          });
+        }
+
+        map.setTerrain({ source: 'mapbox-dem', exaggeration: 1.5 });
+
+        if (typeof map.setLight === 'function') {
+          map.setLight({ anchor: 'viewport', color: 'white', intensity: 0.5, position: [1.15, 210, 30] });
+        }
+
+        setTimeout(() => {
+          const currentTrack = audioController.currentIndex >= 0
+            ? this.audioData[audioController.currentIndex]
+            : null;
+
+          if (currentTrack) {
+            map.flyTo({
+              center: [parseFloat(currentTrack.lng), parseFloat(currentTrack.lat)],
+              zoom: CONFIG.ZOOM_3D,
+              pitch: 82,
+              bearing: 0,
+              duration: 2500,
+              easing: t => 1 - Math.pow(1 - t, 3)
+            });
+            atmosphereController.applyAtmosphere(currentTrack);
+          } else {
+            map.flyTo({ pitch: 82, zoom: Math.max(map.getZoom(), CONFIG.ZOOM_3D), duration: 2000 });
+          }
+        }, 300);
+      }
+
+      disable3D() {
+        if (!uiController.isMobile) map.dragRotate.disable();
+
+        atmosphereController.currentConditions = null;
+        if (atmosphereController.atmosphereCache) atmosphereController.atmosphereCache.clear();
+        atmosphereController.resetToDefault();
+
+        map.setTerrain(null);
+        if (typeof map.setLight === 'function') map.setLight(null);
+        map.flyTo({ pitch: 0, bearing: 0, duration: 1500 });
+
+        setTimeout(() => {
+          if (map.getSource('mapbox-dem')) map.removeSource('mapbox-dem');
+        }, 1600);
       }
 
           resetMap() {
@@ -1910,33 +1567,19 @@ class MapController {
             this.minimizedPopup = null;
           }
         
-        // Disable 3D mode if it's enabled
+        // Disable 3D mode if enabled
         if (uiController.is3DEnabled) {
           uiController.is3DEnabled = false;
           const btn = document.getElementById('terrain3dBtn');
           const btnMobile = document.getElementById('terrain3dBtnMobile');
           if (btn) btn.classList.remove('active');
           if (btnMobile) btnMobile.classList.remove('active');
-          
-          // Disable drag rotation
-          if (map.dragRotate) map.dragRotate.disable();
-          
-          map.setTerrain(null);
-          if (map.getSource('mapbox-dem')) {
-            map.removeSource('mapbox-dem');
-          }
-        }
-        
-        // Reset atmosphere to default/neutral BEFORE flyTo starts (matches track transitions)
-        if (typeof atmosphereController !== 'undefined') {
-          console.log('Resetting atmosphere to default');
-          // Force clear cache first
+          this.disable3D();
+        } else {
+          // Always reset atmosphere even if not in 3D
           atmosphereController.currentConditions = null;
-          if (atmosphereController.atmosphereCache) {
-            atmosphereController.atmosphereCache.clear();
-          }
+          if (atmosphereController.atmosphereCache) atmosphereController.atmosphereCache.clear();
           atmosphereController.resetToDefault();
-          console.log('Atmosphere reset complete');
         }
         
         // Reset to default position - use flyTo like 3D mode does
