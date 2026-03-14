@@ -1354,12 +1354,21 @@ class MapController {
         this.updateBadgeVisibility();
       }
 
-          showPopup(coords, track, audio, index, shouldMinimize = false) {
-            if (audioController.currentIndex === -1) return;
+          showPopup(coords, track, audio, index, shouldMinimize = false, preview = false) {
+            // Block if no audio playing, UNLESS it's a preview (chevron click on white box)
+            if (audioController.currentIndex === -1 && !preview) return;
               
             if (this.currentPopup) {
               this.currentPopup.remove();
               this.currentPopup = null;
+            }
+
+            // Clean up any existing mini box for this track
+            const existingBox = uiController.miniInfoBoxes.find(b => parseInt(b.dataset.trackIndex) === index);
+            if (existingBox) {
+              if (existingBox._chevron && existingBox._chevron.parentNode) existingBox._chevron.parentNode.removeChild(existingBox._chevron);
+              if (existingBox.parentNode) existingBox.parentNode.removeChild(existingBox);
+              uiController.miniInfoBoxes = uiController.miniInfoBoxes.filter(b => b !== existingBox);
             }
         
             const container = document.createElement('div');
@@ -1528,7 +1537,7 @@ class MapController {
         
             setTimeout(() => this.currentPopup.updatePosition(), 10);
         
-          if (shouldMinimize) {
+          if (shouldMinimize && !preview) {
             this.minimizePopup(track, index);
           }
           

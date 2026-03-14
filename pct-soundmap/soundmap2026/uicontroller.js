@@ -361,22 +361,23 @@ class UIController {
           
           map.getContainer().appendChild(infoBox);
 
-          // Chevron — preview metadata without changing playback
+          // Chevron — opens popup without changing playback
           const chevron = this._createMiniBoxChevron(() => {
-            chevron.remove();
-            infoBox._chevron = null;
-            // Open popup for this track without starting audio
+            // Remove box and chevron for this track
+            if (infoBox.parentNode) infoBox.parentNode.removeChild(infoBox);
+            if (chevron.parentNode) chevron.parentNode.removeChild(chevron);
+            this.miniInfoBoxes = this.miniInfoBoxes.filter(b => b !== infoBox);
+            // Open popup — current audio unaffected, preview=true allows no-audio state
             const trackCoords = [parseFloat(track.lng), parseFloat(track.lat)];
-            mapController.showPopup(trackCoords, track, audioController.currentAudio, currentIndex, false);
+            mapController.showPopup(trackCoords, track, audioController.currentAudio, currentIndex, false, true);
           });
 
-          // Position chevron after box is in DOM
-          setTimeout(() => {
-            const rect = infoBox.getBoundingClientRect();
-            chevron.style.left = `${rect.right + 8}px`;
-            chevron.style.top  = `${rect.top + (rect.height / 2)}px`;
-            document.body.appendChild(chevron);
-          }, 0);
+          // Position chevron synchronously — box is already in DOM
+          infoBox._chevron = chevron;
+          const rect = infoBox.getBoundingClientRect();
+          chevron.style.left = `${rect.right + 8}px`;
+          chevron.style.top  = `${rect.top + (rect.height / 2)}px`;
+          document.body.appendChild(chevron);
 
           infoBox._chevron = chevron;
           this.miniInfoBoxes.push(infoBox);
