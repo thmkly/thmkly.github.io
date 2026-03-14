@@ -735,6 +735,13 @@ class MapController {
             
             map.getContainer().appendChild(miniBox);
             
+            // Remove any existing mini box for this track before adding new one
+            const stale = uiController.miniInfoBoxes.find(b => parseInt(b.dataset.trackIndex) === oldTrackIndex);
+            if (stale) {
+              stale.remove();
+              uiController.miniInfoBoxes = uiController.miniInfoBoxes.filter(b => b !== stale);
+            }
+
             // Add to mini boxes array so it gets updated during map movement
             uiController.miniInfoBoxes.push(miniBox);
           }
