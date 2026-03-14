@@ -395,9 +395,10 @@ class UIController {
       }
 
       // Creates a chevron element with a click handler
-      _createMiniBoxChevron(onClick) {
+      // isPlaying: true adds the orange hover variant class
+      _createMiniBoxChevron(onClick, isPlaying = false) {
         const chevron = document.createElement('div');
-        chevron.className = 'minimized-popup-chevron';
+        chevron.className = 'minimized-popup-chevron' + (isPlaying ? ' minimized-popup-chevron--playing' : '');
         chevron.textContent = '›';
         chevron.title = 'View details';
         chevron.addEventListener('click', (e) => {
@@ -408,7 +409,6 @@ class UIController {
       }
 
       updateMiniInfoBoxPositions() {
-        // Update positions of existing mini info boxes to follow their geographic points
         this.miniInfoBoxes.forEach(infoBox => {
           const trackIndex = parseInt(infoBox.dataset.trackIndex);
           const track = mapController.audioData[trackIndex];
@@ -416,7 +416,13 @@ class UIController {
             const coords = [parseFloat(track.lng), parseFloat(track.lat)];
             const pixelCoords = map.project(coords);
             infoBox.style.left = `${pixelCoords.x + 10}px`;
-            infoBox.style.top = `${pixelCoords.y - 20}px`;
+            infoBox.style.top  = `${pixelCoords.y - 20}px`;
+            // Keep chevron pegged to box
+            if (infoBox._chevron) {
+              const rect = infoBox.getBoundingClientRect();
+              infoBox._chevron.style.left = `${rect.right + 8}px`;
+              infoBox._chevron.style.top  = `${rect.top + (rect.height / 2)}px`;
+            }
           }
         });
       }

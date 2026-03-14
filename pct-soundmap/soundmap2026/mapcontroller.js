@@ -972,7 +972,7 @@ class MapController {
             setTimeout(() => {
               this.updateHeaderBadge(audioController.currentIndex >= 0 ? this.audioData[audioController.currentIndex] : null);
             }, 50);
-          });
+          }, true); // true = playing, use orange hover
 
           // Position
           miniBox.style.left = `${pixelCoords.x + 10}px`;
