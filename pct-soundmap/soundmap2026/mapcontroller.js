@@ -950,7 +950,7 @@ class MapController {
           if (playIcon && audioEl) {
             playIcon.innerHTML = '';
             playIcon.style.cssText = '';
-            cleanupIcon = this._attachPlayPauseIcon(playIcon, audioEl, true);
+            cleanupIcon = this._attachPlayPauseIcon(playIcon, audioEl, false);
           }
 
           miniBox.style.cursor = 'pointer';
@@ -992,7 +992,7 @@ class MapController {
           // Position chevron relative to mini box
           const positionChevron = () => {
             const rect = miniBox.getBoundingClientRect();
-            chevron.style.left = `${rect.right + 2}px`;
+            chevron.style.left = `${rect.right + 8}px`;
             chevron.style.top  = `${rect.top + (rect.height / 2)}px`;
           };
 
