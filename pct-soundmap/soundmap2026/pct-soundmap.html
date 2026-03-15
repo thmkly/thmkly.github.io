@@ -344,15 +344,62 @@
   }
 
 /* Currently Playing Sound Badge */
+  /* ── Header badge ── */
+
+  /* Badge container — flex row, no background of its own */
   #playing-badge {
-    background-color: rgba(255, 235, 220, 0.7); /* ADDED: Subtle background for visibility */
-    padding: 8px 12px;
+    display: inline-flex;
+    align-items: stretch;
     border-radius: 4px;
-    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.15);
+    font-size: 14px;
+    color: #333;
   }
 
-  #playing-badge:hover {
-    background-color: rgba(255, 180, 140, 0.75); /* Slightly more visible on hover */
+  /* Pill — play/pause, orange tint matching active mini infobox */
+  .badge-pill {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 30px;
+    min-width: 30px;
+    background-color: rgba(255, 190, 130, 0.90);
+    border: 1px solid rgba(180, 110, 60, 0.5);
+    border-right: 1px solid rgba(200, 140, 80, 0.4);
+    border-radius: 4px 0 0 4px;
+    cursor: pointer;
+    transition: background-color 0.15s;
+    flex-shrink: 0;
+  }
+
+  .badge-pill:hover {
+    background-color: rgba(255, 150, 90, 0.95);
+  }
+
+  /* Body — title + time, click flies to track */
+  .badge-body {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 10px;
+    background-color: rgba(255, 235, 220, 0.80);
+    border: 1px solid rgba(180, 110, 60, 0.5);
+    border-left: none;
+    border-radius: 0 4px 4px 0;
+    cursor: pointer;
+    transition: background-color 0.15s;
+  }
+
+  .badge-body:hover {
+    background-color: rgba(255, 180, 140, 0.85);
+  }
+
+  .badge-title {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 300px;
+    font-weight: 500;
   }
   
   /* Popup minimize button */
@@ -713,8 +760,8 @@
   }
 
   /* Badge max-width on mobile */
-  body.is-mobile #playing-badge {
-    max-width: calc(100vw - 100px);
+  body.is-mobile #playing-badge .badge-title {
+    max-width: calc(100vw - 150px);
   }
 
   /* Ko-fi widget — pinned bottom-right always, both mobi and non-mobi variants */
@@ -908,22 +955,13 @@
     color: #333;
   }
 
-  /* Static badge layout — left/top set dynamically */
+  /* Badge position — left/top set dynamically */
   #playing-badge {
     position: absolute;
-    font-size: 16px;
-    color: #333;
-    font-weight: 500;
     z-index: 1;
     pointer-events: auto;
-    cursor: pointer;
-    max-width: 500px;
-    overflow: visible;
-    white-space: normal;
-    line-height: 1.3;
     top: 20px;
     left: 20px;
-    text-align: left;
   }
 
   /* ── Cluster picker box ── */

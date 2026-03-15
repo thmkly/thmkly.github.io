@@ -996,8 +996,29 @@ class MapController {
           badge.id = 'playing-badge';
           badge.title = 'Return to sound';
 
+          // Pill — play/pause
+          const pill = document.createElement('div');
+          pill.className = 'badge-pill';
+
           const triangle = document.createElement('span');
           triangle.className = 'badge-triangle';
+          pill.appendChild(triangle);
+
+          const audioEl = audio || audioController.currentAudio;
+          if (audioEl) {
+            const cleanupBadgeIcon = this._attachPlayPauseIcon(triangle, audioEl, false);
+            badge._cleanupBadgeIcon = cleanupBadgeIcon;
+          }
+
+          pill.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const a = audioController.currentAudio;
+            if (a) a.paused ? a.play() : a.pause();
+          });
+
+          // Body — title + time, click flies to track
+          const body = document.createElement('div');
+          body.className = 'badge-body';
 
           const titleSpan = document.createElement('span');
           titleSpan.className = 'badge-title';
@@ -1007,25 +1028,17 @@ class MapController {
           timeSpan.className = 'badge-time';
           timeSpan.textContent = '0:00';
 
-          badge.appendChild(triangle);
-          badge.appendChild(titleSpan);
-          badge.appendChild(timeSpan);
+          body.appendChild(titleSpan);
+          body.appendChild(timeSpan);
 
-          // Wire play/pause to the triangle
-          const audioEl = audio || audioController.currentAudio;
-          if (audioEl) {
-            const cleanupBadgeIcon = this._attachPlayPauseIcon(triangle, audioEl, false);
-            badge._cleanupBadgeIcon = cleanupBadgeIcon;
-          }
-            
-          badge.addEventListener('click', () => {
+          body.addEventListener('click', () => {
             const coords = [parseFloat(track.lng), parseFloat(track.lat)];
             const trackIndex = audioController.currentIndex;
             uiController.clearMiniInfoBoxes();
             this.positionMapForTrack(track, trackIndex);
             const movementDuration = this.getMovementDuration(track);
             setTimeout(() => {
-              const audio = audioController.currentAudio;
+              const a = audioController.currentAudio;
               const shouldMinimize = this.userPreferredPopupState === 'mini';
               const nearbyTrackIndices = this.getTracksInTightCluster(trackIndex);
               if (nearbyTrackIndices.length > 0 && shouldMinimize) {
@@ -1038,7 +1051,7 @@ class MapController {
                 ];
                 this.showClusterPicker({ x: 0, y: 0 }, leaves, trackIndex);
               } else {
-                this.showPopup(coords, track, audio, trackIndex, shouldMinimize);
+                this.showPopup(coords, track, a, trackIndex, shouldMinimize);
               }
               const visiblePoints = map.queryRenderedFeatures({ layers: ['unclustered-point'] });
               if (visiblePoints.length > 0 && visiblePoints.length < 50) {
@@ -1046,19 +1059,23 @@ class MapController {
               }
             }, movementDuration + 100);
           });
-            
+
+          badge.appendChild(pill);
+          badge.appendChild(body);
+
           document.body.appendChild(badge);
-            
+
           const audioForTime = audio || audioController.currentAudio;
           if (audioForTime) {
             const updateBadgeTime = () => {
-              if (!audioForTime.paused) {
-                const s = Math.floor(audioForTime.currentTime);
-                timeSpan.textContent = `${Math.floor(s/60)}:${String(s%60).padStart(2,'0')}`;
-              }
+              const cur = Math.floor(audioForTime.currentTime);
+              const dur = Math.floor(audioForTime.duration) || 0;
+              const fmt = (s) => `${Math.floor(s/60)}:${String(s%60).padStart(2,'0')}`;
+              timeSpan.textContent = `${fmt(cur)} / ${fmt(dur)}`;
             };
             audioForTime.addEventListener('timeupdate', updateBadgeTime);
             audioForTime.addEventListener('play', updateBadgeTime);
+            audioForTime.addEventListener('loadedmetadata', updateBadgeTime);
             updateBadgeTime();
             badge._updateTimeHandler = updateBadgeTime;
             badge._audioElement = audioForTime;
