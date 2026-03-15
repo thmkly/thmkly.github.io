@@ -324,8 +324,11 @@ class UIController {
           const hasPopup = mapController.currentPopup && 
             mapController.currentPopup._container &&
             parseInt(mapController.currentPopup._container.dataset?.trackIndex) === currentIndex;
-
           if (hasPopup) return;
+
+          // Skip if this track is currently in the minimized popup
+          if (mapController.minimizedPopup && 
+              parseInt(mapController.minimizedPopup.dataset?.trackIndex) === currentIndex) return;
 
           // Skip playing track if it has a popup or minimized box
           if (currentIndex === audioController.currentIndex && 
