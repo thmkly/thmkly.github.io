@@ -60,9 +60,9 @@ class MapController {
           if (!iconEl.isConnected) return;
           iconEl.innerHTML = '';
           if (audio.paused) {
-            iconEl.style.cssText = `display:inline-block;width:0;height:0;border-left:8px solid ${color};border-top:5px solid transparent;border-bottom:5px solid transparent;vertical-align:middle;position:relative;top:-1px;margin-right:6px;flex-shrink:0;cursor:pointer;`;
+            iconEl.style.cssText = `display:block;width:0;height:0;border-left:8px solid ${color};border-top:5px solid transparent;border-bottom:5px solid transparent;flex-shrink:0;cursor:pointer;`;
           } else {
-            iconEl.style.cssText = 'display:inline-flex;align-items:center;gap:2px;vertical-align:middle;position:relative;top:-1px;margin-right:6px;flex-shrink:0;cursor:pointer;width:auto;height:auto;border:none;';
+            iconEl.style.cssText = 'display:inline-flex;align-items:center;gap:2px;flex-shrink:0;cursor:pointer;width:auto;height:auto;border:none;';
             const b1 = document.createElement('div');
             b1.style.cssText = `width:3px;height:10px;background:${color};border-radius:1px;`;
             const b2 = document.createElement('div');

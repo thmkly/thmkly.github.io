@@ -351,7 +351,7 @@
 
   #playing-badge {
     display: inline-flex;
-    align-items: center;
+    align-items: stretch;
     border-radius: 4px;
     box-shadow: 0 2px 5px rgba(0, 0, 0, 0.15);
     font-size: 13px;
@@ -370,7 +370,6 @@
     justify-content: center;
     width: 28px;
     min-width: 28px;
-    height: 28px;
     background-color: rgba(255, 190, 130, 0.90);
     border: 1px solid rgba(180, 110, 60, 0.5);
     border-right: 1px solid rgba(200, 140, 80, 0.4);
@@ -395,8 +394,6 @@
     border-radius: 0 4px 4px 0;
     cursor: pointer;
     transition: background-color 0.15s;
-    height: 28px;
-    box-sizing: border-box;
   }
 
   .badge-body:hover {
@@ -419,8 +416,18 @@
     white-space: nowrap;
   }
 
-  /* badge-triangle margin removed - pill centers icon itself */
-  .badge-pill .badge-triangle {
+  /* Triangle inside badge pill — no margin, no vertical offset, centered by flex */
+  .badge-triangle {
+    display: block;
+    width: 0;
+    height: 0;
+    border-left: 7px solid #333;
+    border-top: 5px solid transparent;
+    border-bottom: 5px solid transparent;
+  }
+
+  /* badge pill .play-icon margin override */
+  .badge-pill .play-icon {
     margin-right: 0;
   }
   
