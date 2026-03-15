@@ -347,22 +347,30 @@
   /* ── Header badge ── */
 
   /* Badge container — flex row, no background of its own */
+  /* ── Header badge ── */
+
   #playing-badge {
     display: inline-flex;
-    align-items: stretch;
+    align-items: center;
     border-radius: 4px;
     box-shadow: 0 2px 5px rgba(0, 0, 0, 0.15);
-    font-size: 14px;
+    font-size: 13px;
     color: #333;
+    font-family: helvetica, sans-serif;
+    position: absolute;
+    z-index: 1;
+    pointer-events: auto;
+    top: 20px;
+    left: 20px;
   }
 
-  /* Pill — play/pause, orange tint matching active mini infobox */
   .badge-pill {
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 30px;
-    min-width: 30px;
+    width: 28px;
+    min-width: 28px;
+    height: 28px;
     background-color: rgba(255, 190, 130, 0.90);
     border: 1px solid rgba(180, 110, 60, 0.5);
     border-right: 1px solid rgba(200, 140, 80, 0.4);
@@ -376,22 +384,23 @@
     background-color: rgba(255, 150, 90, 0.95);
   }
 
-  /* Body — title + time, click flies to track */
   .badge-body {
     display: flex;
     align-items: center;
     gap: 8px;
-    padding: 6px 10px;
-    background-color: rgba(255, 235, 220, 0.80);
+    padding: 5px 10px;
+    background-color: rgba(255, 235, 220, 0.85);
     border: 1px solid rgba(180, 110, 60, 0.5);
     border-left: none;
     border-radius: 0 4px 4px 0;
     cursor: pointer;
     transition: background-color 0.15s;
+    height: 28px;
+    box-sizing: border-box;
   }
 
   .badge-body:hover {
-    background-color: rgba(255, 180, 140, 0.85);
+    background-color: rgba(255, 180, 140, 0.90);
   }
 
   .badge-title {
@@ -400,6 +409,19 @@
     text-overflow: ellipsis;
     max-width: 300px;
     font-weight: 500;
+  }
+
+  .badge-time {
+    font-family: monospace;
+    color: #666;
+    font-size: 11px;
+    flex-shrink: 0;
+    white-space: nowrap;
+  }
+
+  /* badge-triangle margin removed - pill centers icon itself */
+  .badge-pill .badge-triangle {
+    margin-right: 0;
   }
   
   /* Popup minimize button */
@@ -936,34 +958,6 @@
   }
 
   /* ── Header badge ── */
-  .badge-triangle {
-    display: inline-block;
-    width: 0;
-    height: 0;
-    border-left: 8px solid #333;
-    border-top: 5px solid transparent;
-    border-bottom: 5px solid transparent;
-    vertical-align: baseline;
-    position: relative;
-    top: -1px;
-    margin-right: 6px;
-  }
-
-  .badge-time {
-    margin-left: 8px;
-    font-family: monospace;
-    color: #333;
-  }
-
-  /* Badge position — left/top set dynamically */
-  #playing-badge {
-    position: absolute;
-    z-index: 1;
-    pointer-events: auto;
-    top: 20px;
-    left: 20px;
-  }
-
   /* ── Cluster picker box ── */
   .cluster-box {
     position: relative;

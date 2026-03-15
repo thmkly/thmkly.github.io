@@ -1447,28 +1447,39 @@ class MapController {
             if (audio) {
               const playPauseBtn = document.createElement('button');
               playPauseBtn.className = 'popup-playpause-btn';
-        
-              const updateButton = () => {
-                playPauseBtn.innerHTML = '';
-                if (audio.paused) {
-                  const t = document.createElement('div');
-                  t.className = 'play-triangle-lg';
-                  playPauseBtn.appendChild(t);
-                } else {
-                  const b1 = document.createElement('div');
-                  b1.className = 'pause-bar';
-                  const b2 = document.createElement('div');
-                  b2.className = 'pause-bar';
-                  playPauseBtn.appendChild(b1);
-                  playPauseBtn.appendChild(b2);
-                }
-              };
-              updateButton();
-              audio.addEventListener('play', updateButton);
-              audio.addEventListener('pause', updateButton);
-              playPauseBtn.addEventListener('click', () => {
-                audio.paused ? audio.play() : audio.pause();
-              });
+
+              if (preview) {
+                // Preview mode: button always shows play, clicking starts this track
+                const t = document.createElement('div');
+                t.className = 'play-triangle-lg';
+                playPauseBtn.appendChild(t);
+                playPauseBtn.addEventListener('click', () => {
+                  this.playAudio(index, false, true);
+                });
+              } else {
+                // Normal mode: toggle current audio
+                const updateButton = () => {
+                  playPauseBtn.innerHTML = '';
+                  if (audio.paused) {
+                    const t = document.createElement('div');
+                    t.className = 'play-triangle-lg';
+                    playPauseBtn.appendChild(t);
+                  } else {
+                    const b1 = document.createElement('div');
+                    b1.className = 'pause-bar';
+                    const b2 = document.createElement('div');
+                    b2.className = 'pause-bar';
+                    playPauseBtn.appendChild(b1);
+                    playPauseBtn.appendChild(b2);
+                  }
+                };
+                updateButton();
+                audio.addEventListener('play', updateButton);
+                audio.addEventListener('pause', updateButton);
+                playPauseBtn.addEventListener('click', () => {
+                  audio.paused ? audio.play() : audio.pause();
+                });
+              }
               controls.appendChild(playPauseBtn);
             }
         
@@ -1480,8 +1491,8 @@ class MapController {
             nextBtn.addEventListener('click', () => audioController.playNext(this.audioData));
             controls.appendChild(nextBtn);
         
-            // Time display
-            if (audio) {
+            // Time display — only in non-preview mode
+            if (audio && !preview) {
               const timeDisplay = document.createElement('div');
               timeDisplay.className = 'popup-time-display';
               const formatTime = (secs) => {
