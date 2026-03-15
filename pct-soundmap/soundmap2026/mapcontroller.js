@@ -760,31 +760,27 @@ class MapController {
             this.currentPopup.remove();
             this.currentPopup = null;
             
-            // Create mini box for the track we're leaving (OLD track)
+            // Create mini box for the track we're leaving (OLD track) using shared structure
             const coords = [parseFloat(currentTrack.lng), parseFloat(currentTrack.lat)];
             const pixelCoords = map.project(coords);
-            
-            const miniBox = document.createElement('div');
-            miniBox.className = 'mini-infobox';
-            miniBox.dataset.trackIndex = oldTrackIndex; // Use OLD index
-            
-            const playIcon = document.createElement('div');
-            playIcon.className = 'play-icon';
-            // NOT orange - this is no longer the playing track
-            
-            const title = document.createElement('span');
-            title.className = 'mini-infobox-title';
-            title.textContent = currentTrack.name.replace(/^[^\s]+\s+-\s+/, '');
-            
-            miniBox.appendChild(playIcon);
-            miniBox.appendChild(title);
-            
-            miniBox.style.position = 'absolute';
+
+            const miniBox = uiController._createMiniInfoBox(currentTrack, oldTrackIndex, {
+              onPillClick: () => mapController.playAudio(oldTrackIndex, false, true),
+              onBodyClick: () => {
+                if (miniBox.parentNode) miniBox.parentNode.removeChild(miniBox);
+                uiController.miniInfoBoxes = uiController.miniInfoBoxes.filter(b => b !== miniBox);
+                const trackCoords = [parseFloat(currentTrack.lng), parseFloat(currentTrack.lat)];
+                mapController.showPopup(trackCoords, currentTrack, audioController.currentAudio, oldTrackIndex, false, true);
+              },
+              isPlaying: false,
+              audio: null
+            });
+
             miniBox.style.left = `${pixelCoords.x + 10}px`;
-            miniBox.style.top = `${pixelCoords.y - 20}px`;
-            
+            miniBox.style.top  = `${pixelCoords.y - 20}px`;
+
             map.getContainer().appendChild(miniBox);
-            
+
             // Remove any existing mini box for this track before adding new one
             const stale = uiController.miniInfoBoxes.find(b => parseInt(b.dataset.trackIndex) === oldTrackIndex);
             if (stale) {
@@ -946,7 +942,7 @@ class MapController {
               miniBox.remove();
               this.minimizedPopup = null;
               this.userPreferredPopupState = 'full';
-              this.showPopup(coords, track, audioController.currentAudio, index, false, true);
+              this.showPopup(coords, track, audioController.currentAudio, index);
               setTimeout(() => {
                 this.updateHeaderBadge(audioController.currentIndex >= 0 ? this.audioData[audioController.currentIndex] : null);
               }, 50);
