@@ -1100,7 +1100,7 @@ class MapController {
           if (trackInfo && !trackInfo.querySelector('.play-indicator')) {
             const indicator = document.createElement('span');
             indicator.className = 'play-indicator';
-            indicator.style.cssText = 'display:inline-block;margin-right:6px;vertical-align:middle;flex-shrink:0;';
+            indicator.style.cssText = 'display:inline-flex;align-items:center;margin-right:6px;flex-shrink:0;';
             trackInfo.insertBefore(indicator, trackInfo.firstChild);
 
             // Wire real-time play/pause
