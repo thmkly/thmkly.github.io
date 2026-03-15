@@ -886,16 +886,24 @@ class MapController {
         minimizePopup(track, index) {
           // User explicitly minimized - save this preference
           this.userPreferredPopupState = 'mini';
-          
-          // Just remove the popup - audio lives in document.body and keeps playing
+
+          const wasPreview = this.currentPopup?._preview === true;
+
+          // Remove the popup
           if (this.currentPopup) {
             this.currentPopup.remove();
             this.currentPopup = null;
           }
-          
-          // Hide the audio element (it's still playing in the background)
+
+          // Hide the audio element
           if (audioController.currentAudio) {
             audioController.currentAudio.style.display = 'none';
+          }
+
+          // Preview popup: just redraw mini boxes naturally, no minimized state needed
+          if (wasPreview) {
+            uiController.showMiniInfoBoxes(null, this.audioData);
+            return;
           }
           
           const coords = [parseFloat(track.lng), parseFloat(track.lat)];
@@ -1489,6 +1497,7 @@ class MapController {
             this.currentPopup = {
               _container: container,
               _coords: coords,
+              _preview: preview,
               remove: () => { if (container.parentNode) container.parentNode.removeChild(container); },
               updatePosition: () => {
                 const px = map.project(coords);
