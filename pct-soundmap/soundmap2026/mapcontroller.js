@@ -1773,7 +1773,7 @@ class MapController {
         const pointVisible = this.isCurrentPointVisible();
         
         if (playlistCollapsed && !pointVisible && audioController.currentIndex >= 0) {
-          badge.style.display = 'block';
+          badge.style.display = 'flex';
         } else {
           badge.style.display = 'none';
         }
