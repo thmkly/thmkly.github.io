@@ -1506,6 +1506,7 @@ class MapController {
               const updateTime = () => {
                 const cur = Math.floor(audioForDisplay.currentTime);
                 const dur = isFinite(audioForDisplay.duration) ? Math.floor(audioForDisplay.duration) : 0;
+                if (dur > 0 && !track._cachedDuration) track._cachedDuration = dur;
                 timeDisplay.textContent = `${formatTime(cur)} / ${formatTime(dur)}`;
               };
               audioForDisplay.addEventListener('timeupdate', updateTime);
@@ -1515,23 +1516,29 @@ class MapController {
               setTimeout(updateTime, 200);
               controls.appendChild(timeDisplay);
             } else if (preview && track.audioUrl) {
-              // Preview mode — fetch duration only via temporary Audio object
+              // Preview mode — use cached duration if available, else fetch metadata only
               const timeDisplay = document.createElement('div');
               timeDisplay.className = 'popup-time-display';
-              timeDisplay.textContent = '0:00 / --:--';
               const formatTime = (secs) => {
                 const m = Math.floor(secs / 60);
                 const s = secs % 60;
                 return `${m}:${String(s).padStart(2, '0')}`;
               };
-              const tempAudio = new Audio();
-              tempAudio.preload = 'metadata';
-              tempAudio.addEventListener('loadedmetadata', () => {
-                const dur = isFinite(tempAudio.duration) ? Math.floor(tempAudio.duration) : 0;
-                timeDisplay.textContent = `0:00 / ${formatTime(dur)}`;
-                tempAudio.src = ''; // release
-              });
-              tempAudio.src = track.audioUrl;
+              if (track._cachedDuration) {
+                timeDisplay.textContent = `0:00 / ${formatTime(track._cachedDuration)}`;
+              } else {
+                timeDisplay.textContent = '0:00 / --:--';
+                const tempAudio = new Audio();
+                tempAudio.preload = 'metadata';
+                tempAudio.addEventListener('loadedmetadata', () => {
+                  if (isFinite(tempAudio.duration)) {
+                    track._cachedDuration = Math.floor(tempAudio.duration);
+                    timeDisplay.textContent = `0:00 / ${formatTime(track._cachedDuration)}`;
+                  }
+                  tempAudio.src = '';
+                });
+                tempAudio.src = track.audioUrl;
+              }
               controls.appendChild(timeDisplay);
             }
         
