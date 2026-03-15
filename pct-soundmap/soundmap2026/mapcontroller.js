@@ -1492,9 +1492,10 @@ class MapController {
             nextBtn.addEventListener('click', () => audioController.playNext(this.audioData));
             controls.appendChild(nextBtn);
         
-            // Time display — only in non-preview mode
+            // Time display
             const audioForDisplay = audio || audioController.currentAudio;
             if (audioForDisplay && !preview) {
+              // Normal mode — wire to current audio element
               const timeDisplay = document.createElement('div');
               timeDisplay.className = 'popup-time-display';
               const formatTime = (secs) => {
@@ -1512,6 +1513,25 @@ class MapController {
               audioForDisplay.addEventListener('durationchange', updateTime);
               updateTime();
               setTimeout(updateTime, 200);
+              controls.appendChild(timeDisplay);
+            } else if (preview && track.audioUrl) {
+              // Preview mode — fetch duration only via temporary Audio object
+              const timeDisplay = document.createElement('div');
+              timeDisplay.className = 'popup-time-display';
+              timeDisplay.textContent = '0:00 / --:--';
+              const formatTime = (secs) => {
+                const m = Math.floor(secs / 60);
+                const s = secs % 60;
+                return `${m}:${String(s).padStart(2, '0')}`;
+              };
+              const tempAudio = new Audio();
+              tempAudio.preload = 'metadata';
+              tempAudio.addEventListener('loadedmetadata', () => {
+                const dur = isFinite(tempAudio.duration) ? Math.floor(tempAudio.duration) : 0;
+                timeDisplay.textContent = `0:00 / ${formatTime(dur)}`;
+                tempAudio.src = ''; // release
+              });
+              tempAudio.src = track.audioUrl;
               controls.appendChild(timeDisplay);
             }
         
