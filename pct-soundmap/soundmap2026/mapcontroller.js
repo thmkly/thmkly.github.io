@@ -695,7 +695,6 @@ class MapController {
         if (this.minimizedPopup) {
           if (this.minimizedPopup._cleanupIcon) this.minimizedPopup._cleanupIcon();
           if (this.minimizedPopup._updatePosition) map.off('move', this.minimizedPopup._updatePosition);
-          if (this.minimizedPopup._chevron) this.minimizedPopup._chevron.remove();
           this.minimizedPopup.remove();
           this.minimizedPopup = null;
         }
@@ -914,97 +913,45 @@ class MapController {
             return; // Don't create regular mini box
           }
           
-          // Not in tight cluster - mutate existing white box if available, else create fresh
+          // Not in tight cluster - use _createMiniInfoBox for consistent structure
           const pixelCoords = map.project(coords);
+          const audio = audioController.currentAudio;
 
-          // Look for existing white mini box for this track
-          const existingBox = uiController.miniInfoBoxes.find(b => parseInt(b.dataset.trackIndex) === index);
-          let miniBox;
-
-          if (existingBox) {
-            // Mutate: pull out of map container, re-parent to body, apply orange state
-            if (existingBox.parentNode) existingBox.parentNode.removeChild(existingBox);
-            uiController.miniInfoBoxes = uiController.miniInfoBoxes.filter(b => b !== existingBox);
-            miniBox = existingBox;
-            miniBox.classList.add('minimized-popup');
-          } else {
-            // Create fresh
-            miniBox = document.createElement('div');
-            miniBox.className = 'mini-infobox minimized-popup';
-            miniBox.dataset.trackIndex = index;
-            const playIcon = document.createElement('div');
-            playIcon.className = 'play-icon';
-            const title = document.createElement('span');
-            title.className = 'mini-infobox-title';
-            title.textContent = track.name.replace(/^[^\s]+\s+-\s+/, '');
-            miniBox.appendChild(playIcon);
-            miniBox.appendChild(title);
-            // Apply same auto-sizing as white boxes
-            miniBox.style.maxWidth = uiController._miniBoxWidth(title);
-          }
-
-          miniBox.style.position = 'absolute';
-
-          // Whole box toggles play/pause
-          const playIcon = miniBox.querySelector('.play-icon');
-          const audioEl = audioController.currentAudio;
-          let cleanupIcon = null;
-          if (playIcon && audioEl) {
-            playIcon.innerHTML = '';
-            playIcon.style.cssText = '';
-            cleanupIcon = this._attachPlayPauseIcon(playIcon, audioEl, false);
-          }
-
-          miniBox.style.cursor = 'pointer';
-          miniBox.addEventListener('click', (e) => {
-            e.stopPropagation();
-            if (audioEl) audioEl.paused ? audioEl.play() : audioEl.pause();
+          const miniBox = uiController._createMiniInfoBox(track, index, {
+            onPillClick: () => {
+              if (audio) audio.paused ? audio.play() : audio.pause();
+            },
+            onBodyClick: () => {
+              if (miniBox._cleanupIcon) miniBox._cleanupIcon();
+              if (miniBox._updatePosition) map.off('move', miniBox._updatePosition);
+              miniBox.remove();
+              this.minimizedPopup = null;
+              this.userPreferredPopupState = 'full';
+              this.showPopup(coords, track, audioController.currentAudio, index);
+              setTimeout(() => {
+                this.updateHeaderBadge(audioController.currentIndex >= 0 ? this.audioData[audioController.currentIndex] : null);
+              }, 50);
+            },
+            isPlaying: true,
+            audio: audio
           });
 
-          // Chevron — floats outside right border, expands to full popup
-          const chevron = uiController._createMiniBoxChevron(() => {
-            if (cleanupIcon) cleanupIcon();
-            chevron.remove();
-            miniBox.remove();
-            this.minimizedPopup = null;
-            this.userPreferredPopupState = 'full';
-            this.showPopup(coords, track, audioController.currentAudio, index);
-            setTimeout(() => {
-              this.updateHeaderBadge(audioController.currentIndex >= 0 ? this.audioData[audioController.currentIndex] : null);
-            }, 50);
-          }, true); // true = playing, use orange hover
-
-          // Position
+          miniBox.classList.add('minimized-popup');
+          miniBox.style.position = 'absolute';
           miniBox.style.left = `${pixelCoords.x + 10}px`;
           miniBox.style.top  = `${pixelCoords.y - 20}px`;
 
           document.body.appendChild(miniBox);
-          document.body.appendChild(chevron);
           this.minimizedPopup = miniBox;
-          this.minimizedPopup._chevron = chevron;
-
-          // Store cleanup on element for removal later
-          miniBox._cleanupIcon = cleanupIcon;
-
-          // Position chevron relative to mini box
-          const positionChevron = () => {
-            const rect = miniBox.getBoundingClientRect();
-            chevron.style.left = `${rect.right + 8}px`;
-            chevron.style.top  = `${rect.top + (rect.height / 2)}px`;
-          };
 
           // Update position when map moves
           const updatePosition = () => {
             const newCoords = map.project(coords);
             miniBox.style.left = `${newCoords.x + 10}px`;
             miniBox.style.top  = `${newCoords.y - 20}px`;
-            positionChevron();
           };
           map.on('move', updatePosition);
           miniBox._updatePosition = updatePosition;
-
-          // Initial chevron position after DOM settles
-          setTimeout(positionChevron, 0);
 
         // Add header badge only if playlist is collapsed
           this.updateHeaderBadge(track);
@@ -1658,7 +1605,6 @@ class MapController {
           if (this.minimizedPopup) {
             if (this.minimizedPopup._cleanupIcon) this.minimizedPopup._cleanupIcon();
             if (this.minimizedPopup._updatePosition) map.off('move', this.minimizedPopup._updatePosition);
-            if (this.minimizedPopup._chevron) this.minimizedPopup._chevron.remove();
             this.minimizedPopup.remove();
             this.minimizedPopup = null;
           }

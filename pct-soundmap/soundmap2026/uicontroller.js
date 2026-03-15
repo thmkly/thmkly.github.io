@@ -318,96 +318,91 @@ class UIController {
           const currentIndex = audioData.findIndex(track => track.originalIndex === originalIndex);
           if (currentIndex === -1) return;
           
-          if (mapController.clusterPickerTracks && mapController.clusterPickerTracks.includes(currentIndex)) {
-            return;
-          }
+          if (mapController.clusterPickerTracks && mapController.clusterPickerTracks.includes(currentIndex)) return;
           
           if (currentIndex === audioController.currentIndex && 
-              (mapController.currentPopup || mapController.minimizedPopup)) {
-            return;
-          }
+              (mapController.currentPopup || mapController.minimizedPopup)) return;
           
           const track = audioData[currentIndex];
           if (!track) return;
 
           const coords = point.geometry.coordinates;
           const pixelCoords = map.project(coords);
-          
-          const infoBox = document.createElement('div');
-          infoBox.className = 'mini-infobox';
-          infoBox.dataset.trackIndex = currentIndex;
-          
-          const playIcon = document.createElement('div');
-          playIcon.className = 'play-icon';
-          
-          const title = document.createElement('span');
-          title.className = 'mini-infobox-title';
-          title.textContent = track.name.replace(/^[^\s]+\s+-\s+/, '');
-          
-          // Tap box → play track
-          infoBox.addEventListener('click', (e) => {
-            e.stopPropagation();
-            mapController.playAudio(currentIndex, false, true);
+
+          const infoBox = this._createMiniInfoBox(track, currentIndex, {
+            onPillClick: () => mapController.playAudio(currentIndex, false, true),
+            onBodyClick: () => {
+              if (infoBox.parentNode) infoBox.parentNode.removeChild(infoBox);
+              this.miniInfoBoxes = this.miniInfoBoxes.filter(b => b !== infoBox);
+              const trackCoords = [parseFloat(track.lng), parseFloat(track.lat)];
+              mapController.showPopup(trackCoords, track, audioController.currentAudio, currentIndex, false, true);
+            },
+            isPlaying: false,
+            audio: null
           });
-          
-          infoBox.appendChild(playIcon);
-          infoBox.appendChild(title);
-          
-          // Auto-size based on content
-          infoBox.style.maxWidth = this._miniBoxWidth(title);
-          
+
           infoBox.style.left = `${pixelCoords.x + 10}px`;
-          infoBox.style.top = `${pixelCoords.y - 20}px`;
-          
+          infoBox.style.top  = `${pixelCoords.y - 20}px`;
+
           map.getContainer().appendChild(infoBox);
-
-          // Chevron — opens popup without changing playback
-          const chevron = this._createMiniBoxChevron(() => {
-            // Remove box and chevron for this track
-            if (infoBox.parentNode) infoBox.parentNode.removeChild(infoBox);
-            if (chevron.parentNode) chevron.parentNode.removeChild(chevron);
-            this.miniInfoBoxes = this.miniInfoBoxes.filter(b => b !== infoBox);
-            // Open popup — current audio unaffected, preview=true allows no-audio state
-            const trackCoords = [parseFloat(track.lng), parseFloat(track.lat)];
-            mapController.showPopup(trackCoords, track, audioController.currentAudio, currentIndex, false, true);
-          });
-
-          // Position chevron synchronously — box is already in DOM
-          infoBox._chevron = chevron;
-          const rect = infoBox.getBoundingClientRect();
-          chevron.style.left = `${rect.right + 8}px`;
-          chevron.style.top  = `${rect.top + (rect.height / 2)}px`;
-          document.body.appendChild(chevron);
-
-          infoBox._chevron = chevron;
           this.miniInfoBoxes.push(infoBox);
         });
       }
 
-      // Returns a calculated max-width string for a mini infobox title
-      _miniBoxWidth(titleEl) {
-        // Temporarily append to measure
-        document.body.appendChild(titleEl.parentNode || titleEl);
-        const textWidth = titleEl.scrollWidth;
-        if (titleEl.parentNode && titleEl.parentNode !== document.body) {
-          // already parented, don't remove
+      // Builds a mini infobox with pill+body structure
+      // opts: { onPillClick, onBodyClick, isPlaying, audio }
+      _createMiniInfoBox(track, trackIndex, opts) {
+        const infoBox = document.createElement('div');
+        infoBox.className = 'mini-infobox';
+        infoBox.dataset.trackIndex = trackIndex;
+
+        // Pill — play/pause
+        const pill = document.createElement('div');
+        pill.className = 'mini-infobox-pill';
+
+        const pillIcon = document.createElement('div');
+        pillIcon.className = 'play-icon';
+        pill.appendChild(pillIcon);
+
+        pill.addEventListener('click', (e) => {
+          e.stopPropagation();
+          opts.onPillClick();
+        });
+
+        // Body — title + chevron, tap to expand
+        const body = document.createElement('div');
+        body.className = 'mini-infobox-body';
+
+        const title = document.createElement('span');
+        title.className = 'mini-infobox-title';
+        title.textContent = track.name.replace(/^[^\s]+\s+-\s+/, '');
+
+        const chevron = document.createElement('span');
+        chevron.className = 'mini-infobox-chevron';
+        chevron.textContent = '›';
+
+        body.appendChild(title);
+        body.appendChild(chevron);
+
+        body.addEventListener('click', (e) => {
+          e.stopPropagation();
+          opts.onBodyClick();
+        });
+
+        infoBox.appendChild(pill);
+        infoBox.appendChild(body);
+
+        // Wire play/pause icon if audio provided
+        if (opts.audio) {
+          pillIcon.innerHTML = '';
+          pillIcon.style.cssText = '';
+          const cleanup = mapController._attachPlayPauseIcon(pillIcon, opts.audio, false);
+          infoBox._cleanupIcon = cleanup;
         }
-        return Math.min(Math.max(textWidth + 50, 120), 250) + 'px';
+
+        return infoBox;
       }
 
-      // Creates a chevron element with a click handler
-      // isPlaying: true adds the orange hover variant class
-      _createMiniBoxChevron(onClick, isPlaying = false) {
-        const chevron = document.createElement('div');
-        chevron.className = 'minimized-popup-chevron' + (isPlaying ? ' minimized-popup-chevron--playing' : '');
-        chevron.textContent = '›';
-        chevron.title = 'View details';
-        chevron.addEventListener('click', (e) => {
-          e.stopPropagation();
-          onClick();
-        });
-        return chevron;
-      }
 
       updateMiniInfoBoxPositions() {
         this.miniInfoBoxes.forEach(infoBox => {
@@ -418,19 +413,13 @@ class UIController {
             const pixelCoords = map.project(coords);
             infoBox.style.left = `${pixelCoords.x + 10}px`;
             infoBox.style.top  = `${pixelCoords.y - 20}px`;
-            // Keep chevron pegged to box
-            if (infoBox._chevron) {
-              const rect = infoBox.getBoundingClientRect();
-              infoBox._chevron.style.left = `${rect.right + 8}px`;
-              infoBox._chevron.style.top  = `${rect.top + (rect.height / 2)}px`;
-            }
           }
         });
       }
 
       clearMiniInfoBoxes() {
         this.miniInfoBoxes.forEach(box => {
-          if (box._chevron && box._chevron.parentNode) box._chevron.parentNode.removeChild(box._chevron);
+          if (box._cleanupIcon) box._cleanupIcon();
           if (box.parentNode) box.parentNode.removeChild(box);
         });
         this.miniInfoBoxes = [];

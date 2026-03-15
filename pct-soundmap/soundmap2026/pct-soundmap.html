@@ -240,61 +240,104 @@
   }
 
   /* Mini Info Boxes */
+  /* Mini infobox — two-part structure: pill (left) + body (right) */
   .mini-infobox {
     position: absolute;
-    background-color: rgba(255, 255, 255, 0.70); /* Slightly more transparent */
-    border: 1px solid #ccc;
-    border-radius: 4px;
-    padding: 4px 8px;
+    display: flex;
+    align-items: stretch;
     font-size: 11px;
-    color: #000 !important;
-    pointer-events: auto;
-    cursor: pointer;
+    color: #000;
     z-index: 1;
     box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+    border-radius: 4px;
+    overflow: visible;
+    white-space: nowrap;
+    pointer-events: auto;
+  }
+
+  /* Play/pause pill — left side */
+  .mini-infobox-pill {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    min-width: 28px;
+    background-color: rgba(255, 255, 255, 0.85);
+    border: 1px solid #ccc;
+    border-right: none;
+    border-radius: 4px 0 0 4px;
+    cursor: pointer;
+    transition: background-color 0.2s;
+    flex-shrink: 0;
+  }
+
+  .mini-infobox-pill:hover {
+    background-color: rgba(200, 200, 200, 0.95);
+  }
+
+  /* Orange pill state */
+  .mini-infobox.minimized-popup .mini-infobox-pill {
+    background-color: rgba(255, 200, 150, 0.85);
+    border-color: rgba(200, 130, 80, 0.4);
+  }
+
+  .mini-infobox.minimized-popup .mini-infobox-pill:hover {
+    background-color: rgba(255, 150, 100, 0.95);
+  }
+
+  /* Body — right side, contains title + chevron */
+  .mini-infobox-body {
     display: flex;
     align-items: center;
     gap: 4px;
-    max-width: 200px;
-    white-space: nowrap;
-    overflow: visible;
-    transition: background-color 0.2s;
-  }
-
-    .mini-infobox:hover {
-      background-color: rgba(220, 220, 220, 0.80);
-    }
-    
-    /* Orange mini box base style */
-    .mini-infobox.minimized-popup {
-      background-color: rgba(255, 200, 150, 0.75); /* Match playlist */
-    }
-    
-    /* Orange mini box hover - needs to be after base style */
-    .mini-infobox.minimized-popup:hover {
-      background-color: rgba(255, 150, 100, 0.80);
-    }
-    
-    .mini-infobox-title {
-      flex: 1;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
-      cursor: pointer;
-    }
-
-  .play-icon {
-    width: 0;
-    height: 0;
-    border-left: 6px solid #5c3a2e;
-    border-top: 4px solid transparent;
-    border-bottom: 4px solid transparent;
-    flex-shrink: 0;
+    padding: 4px 6px 4px 6px;
+    background-color: rgba(255, 255, 255, 0.70);
+    border: 1px solid #ccc;
+    border-radius: 0 4px 4px 0;
     cursor: pointer;
+    transition: background-color 0.2s;
+    min-width: 0;
   }
 
-  .play-icon:hover {
-    border-left-color: #4a2e24;
+  .mini-infobox-body:hover {
+    background-color: rgba(220, 220, 220, 0.85);
+  }
+
+  /* Orange body state */
+  .mini-infobox.minimized-popup .mini-infobox-body {
+    background-color: rgba(255, 200, 150, 0.75);
+    border-color: rgba(200, 130, 80, 0.4);
+    border-left: none;
+  }
+
+  .mini-infobox.minimized-popup .mini-infobox-body:hover {
+    background-color: rgba(255, 150, 100, 0.80);
+  }
+
+  .mini-infobox-title {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    flex: 1;
+    min-width: 0;
+  }
+
+  /* Chevron inside body */
+  .mini-infobox-chevron {
+    font-size: 14px;
+    font-weight: 600;
+    color: #555;
+    flex-shrink: 0;
+    line-height: 1;
+  }
+
+  .mini-infobox-body:hover .mini-infobox-chevron {
+    color: #222;
+  }
+
+  /* Play icon inside pill — overrides old .play-icon defaults */
+  .mini-infobox-pill .play-icon {
+    border-left-color: #333;
   }
 
 /* Currently Playing Sound Badge */
@@ -646,11 +689,18 @@
   body.is-mobile .playlist-wrapper .playlist { max-height: none; flex: 1; overflow-y: auto; margin-top: 0; }
   body.is-mobile .playlist-wrapper .scroll-arrow { display: none !important; }
 
-  /* Mini infoboxes — smaller on mobile */
+  /* Mini infoboxes — slightly more compact on mobile */
   body.is-mobile .mini-infobox {
-    max-width: 140px;
     font-size: 12px;
-    padding: 4px 7px;
+  }
+
+  body.is-mobile .mini-infobox-pill {
+    width: 32px;
+    min-width: 32px;
+  }
+
+  body.is-mobile .mini-infobox-body {
+    padding: 5px 7px;
   }
 
   /* Play/pause button symbols */
@@ -922,42 +972,6 @@
     border-top: 4px solid transparent;
     border-bottom: 4px solid transparent;
     flex-shrink: 0;
-  }
-
-  /* Minimized popup expand chevron */
-  .minimized-popup-chevron {
-    position: fixed;
-    font-size: 16px;
-    font-weight: 600;
-    line-height: 1;
-    color: #222;
-    cursor: pointer;
-    z-index: 10001;
-    transform: translateY(-50%);
-    width: 22px;
-    height: 22px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background: rgba(255, 255, 255, 0.85);
-    border: 1px solid rgba(0, 0, 0, 0.18);
-    border-radius: 50%;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.15);
-    transition: background-color 0.15s, border-color 0.15s;
-    pointer-events: auto;
-    user-select: none;
-  }
-
-  /* White box chevron — cool grey hover */
-  .minimized-popup-chevron:hover {
-    background-color: rgba(210, 220, 225, 0.95);
-    border-color: rgba(0, 0, 0, 0.28);
-  }
-
-  /* Orange box chevron — orange hover */
-  .minimized-popup-chevron--playing:hover {
-    background-color: rgba(255, 150, 100, 0.90);
-    border-color: rgba(180, 80, 30, 0.4);
   }
 
   /* ── Minimized popup mini box (orange state) ── */
