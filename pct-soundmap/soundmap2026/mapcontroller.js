@@ -1101,12 +1101,17 @@ class MapController {
             const indicator = document.createElement('span');
             indicator.className = 'play-indicator';
             indicator.style.cssText = 'display:inline-flex;align-items:center;margin-right:6px;flex-shrink:0;';
+
+            // Inner element for the icon — _attachPlayPauseIcon sets cssText on this
+            // so the container's margin-right is never overwritten
+            const iconEl = document.createElement('span');
+            indicator.appendChild(iconEl);
             trackInfo.insertBefore(indicator, trackInfo.firstChild);
 
             // Wire real-time play/pause
             const audioEl = audio || audioController.currentAudio;
             if (audioEl) {
-              const cleanup = this._attachPlayPauseIcon(indicator, audioEl, false);
+              const cleanup = this._attachPlayPauseIcon(iconEl, audioEl, false);
               indicator._cleanupIcon = cleanup;
             }
           }
