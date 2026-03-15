@@ -1329,6 +1329,7 @@ class MapController {
             container.style.width = '320px';
             container.style.zIndex = '10';
             container._coords = coords;
+            container.dataset.trackIndex = index;
         
             // Minimize button — styled via .popup-minimize CSS class
             const minimizeBtn = document.createElement('button');

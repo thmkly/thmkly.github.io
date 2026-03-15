@@ -320,6 +320,14 @@ class UIController {
           
           if (mapController.clusterPickerTracks && mapController.clusterPickerTracks.includes(currentIndex)) return;
           
+          // Skip if this track has a popup open (playing or preview)
+          const hasPopup = mapController.currentPopup && 
+            mapController.currentPopup._container &&
+            parseInt(mapController.currentPopup._container.dataset?.trackIndex) === currentIndex;
+
+          if (hasPopup) return;
+
+          // Skip playing track if it has a popup or minimized box
           if (currentIndex === audioController.currentIndex && 
               (mapController.currentPopup || mapController.minimizedPopup)) return;
           
