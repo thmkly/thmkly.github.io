@@ -916,6 +916,7 @@ class MapController {
           // Not in tight cluster - use _createMiniInfoBox for consistent structure
           const pixelCoords = map.project(coords);
           const audio = audioController.currentAudio;
+          const isActuallyPlaying = audio && !audio.paused;
 
           const miniBox = uiController._createMiniInfoBox(track, index, {
             onPillClick: () => {
@@ -927,16 +928,20 @@ class MapController {
               miniBox.remove();
               this.minimizedPopup = null;
               this.userPreferredPopupState = 'full';
-              this.showPopup(coords, track, audioController.currentAudio, index);
+              this.showPopup(coords, track, audioController.currentAudio, index, false, true);
               setTimeout(() => {
                 this.updateHeaderBadge(audioController.currentIndex >= 0 ? this.audioData[audioController.currentIndex] : null);
               }, 50);
             },
-            isPlaying: true,
-            audio: audio
+            isPlaying: isActuallyPlaying,
+            audio: isActuallyPlaying ? audio : null
           });
 
-          miniBox.classList.add('minimized-popup');
+          // Only apply orange state if audio is actually playing
+          if (isActuallyPlaying) {
+            miniBox.classList.add('minimized-popup');
+          }
+
           miniBox.style.position = 'absolute';
           miniBox.style.left = `${pixelCoords.x + 10}px`;
           miniBox.style.top  = `${pixelCoords.y - 20}px`;
