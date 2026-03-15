@@ -763,6 +763,7 @@ class MapController {
             // Create mini box for the track we're leaving (OLD track) using shared structure
             const coords = [parseFloat(currentTrack.lng), parseFloat(currentTrack.lat)];
             const pixelCoords = map.project(coords);
+            const mapRect = map.getContainer().getBoundingClientRect();
 
             const miniBox = uiController._createMiniInfoBox(currentTrack, oldTrackIndex, {
               onPillClick: () => mapController.playAudio(oldTrackIndex, false, true),
@@ -776,10 +777,11 @@ class MapController {
               audio: null
             });
 
+            miniBox.style.position = 'absolute';
             miniBox.style.left = `${pixelCoords.x + 10}px`;
             miniBox.style.top  = `${pixelCoords.y - 20}px`;
 
-            map.getContainer().appendChild(miniBox);
+            document.body.appendChild(miniBox);
 
             // Remove any existing mini box for this track before adding new one
             const stale = uiController.miniInfoBoxes.find(b => parseInt(b.dataset.trackIndex) === oldTrackIndex);
@@ -965,9 +967,9 @@ class MapController {
 
           // Update position when map moves
           const updatePosition = () => {
-            const newCoords = map.project(coords);
-            miniBox.style.left = `${newCoords.x + 10}px`;
-            miniBox.style.top  = `${newCoords.y - 20}px`;
+            const newPx = map.project(coords);
+            miniBox.style.left = `${newPx.x + 10}px`;
+            miniBox.style.top  = `${newPx.y - 20}px`;
           };
           map.on('move', updatePosition);
           miniBox._updatePosition = updatePosition;

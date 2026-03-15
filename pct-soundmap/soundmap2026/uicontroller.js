@@ -351,10 +351,11 @@ class UIController {
             audio: null
           });
 
+          infoBox.style.position = 'absolute';
           infoBox.style.left = `${pixelCoords.x + 10}px`;
           infoBox.style.top  = `${pixelCoords.y - 20}px`;
 
-          map.getContainer().appendChild(infoBox);
+          document.body.appendChild(infoBox);
           this.miniInfoBoxes.push(infoBox);
         });
       }
@@ -421,9 +422,9 @@ class UIController {
           const track = mapController.audioData[trackIndex];
           if (track) {
             const coords = [parseFloat(track.lng), parseFloat(track.lat)];
-            const pixelCoords = map.project(coords);
-            infoBox.style.left = `${pixelCoords.x + 10}px`;
-            infoBox.style.top  = `${pixelCoords.y - 20}px`;
+            const px = map.project(coords);
+            infoBox.style.left = `${px.x + 10}px`;
+            infoBox.style.top  = `${px.y - 20}px`;
           }
         });
       }
