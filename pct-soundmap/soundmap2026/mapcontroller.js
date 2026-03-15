@@ -1444,7 +1444,8 @@ class MapController {
             controls.appendChild(prevBtn);
         
             // Play/Pause button
-            if (audio) {
+            const audioForControls = audio || audioController.currentAudio;
+            if (audioForControls) {
               const playPauseBtn = document.createElement('button');
               playPauseBtn.className = 'popup-playpause-btn';
 
@@ -1460,7 +1461,7 @@ class MapController {
                 // Normal mode: toggle current audio
                 const updateButton = () => {
                   playPauseBtn.innerHTML = '';
-                  if (audio.paused) {
+                  if (audioForControls.paused) {
                     const t = document.createElement('div');
                     t.className = 'play-triangle-lg';
                     playPauseBtn.appendChild(t);
@@ -1474,10 +1475,10 @@ class MapController {
                   }
                 };
                 updateButton();
-                audio.addEventListener('play', updateButton);
-                audio.addEventListener('pause', updateButton);
+                audioForControls.addEventListener('play', updateButton);
+                audioForControls.addEventListener('pause', updateButton);
                 playPauseBtn.addEventListener('click', () => {
-                  audio.paused ? audio.play() : audio.pause();
+                  audioForControls.paused ? audioForControls.play() : audioForControls.pause();
                 });
               }
               controls.appendChild(playPauseBtn);
@@ -1492,7 +1493,8 @@ class MapController {
             controls.appendChild(nextBtn);
         
             // Time display — only in non-preview mode
-            if (audio && !preview) {
+            const audioForDisplay = audio || audioController.currentAudio;
+            if (audioForDisplay && !preview) {
               const timeDisplay = document.createElement('div');
               timeDisplay.className = 'popup-time-display';
               const formatTime = (secs) => {
@@ -1501,13 +1503,15 @@ class MapController {
                 return `${m}:${String(s).padStart(2, '0')}`;
               };
               const updateTime = () => {
-                const cur = Math.floor(audio.currentTime);
-                const dur = Math.floor(audio.duration) || 0;
+                const cur = Math.floor(audioForDisplay.currentTime);
+                const dur = isFinite(audioForDisplay.duration) ? Math.floor(audioForDisplay.duration) : 0;
                 timeDisplay.textContent = `${formatTime(cur)} / ${formatTime(dur)}`;
               };
-              audio.addEventListener('timeupdate', updateTime);
-              audio.addEventListener('loadedmetadata', updateTime);
+              audioForDisplay.addEventListener('timeupdate', updateTime);
+              audioForDisplay.addEventListener('loadedmetadata', updateTime);
+              audioForDisplay.addEventListener('durationchange', updateTime);
               updateTime();
+              setTimeout(updateTime, 200);
               controls.appendChild(timeDisplay);
             }
         
