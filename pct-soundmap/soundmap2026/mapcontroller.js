@@ -325,12 +325,24 @@ class MapController {
             }
             
             const existingBoxCount = uiController.miniInfoBoxes.length;
+
+            // Count visible points that should have white boxes
+            // (exclude playing track with popup/minimized, preview popup track, cluster picker tracks)
+            const expectedBoxCount = visiblePoints.filter(p => {
+              const origIdx = parseInt(p.properties.originalIndex);
+              const idx = this.audioData.findIndex(t => t.originalIndex === origIdx);
+              if (idx === -1) return false;
+              if (this.clusterPickerTracks && this.clusterPickerTracks.includes(idx)) return false;
+              if (idx === audioController.currentIndex && (this.currentPopup || this.minimizedPopup)) return false;
+              if (this.currentPopup && parseInt(this.currentPopup._container?.dataset?.trackIndex) === idx) return false;
+              return true;
+            }).length;
             
             if (currentPointCount === 0) {
               uiController.clearMiniInfoBoxes();
             } else if (currentPointCount >= 50) {
               uiController.clearMiniInfoBoxes();
-            } else if (currentPointCount !== existingBoxCount) {
+            } else if (expectedBoxCount !== existingBoxCount) {
               uiController.clearMiniInfoBoxes();
               uiController.showMiniInfoBoxes(null, this.audioData);
             } else {
