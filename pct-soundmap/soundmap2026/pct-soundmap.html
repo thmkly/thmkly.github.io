@@ -240,34 +240,33 @@
   }
 
   /* Mini Info Boxes */
-  /* Mini infobox — two-part structure: pill (left) + body (right) */
+  /* Mini infobox — pill (left) + body (right) */
   .mini-infobox {
     position: absolute;
-    display: flex;
+    display: inline-flex;
     align-items: stretch;
     font-size: 11px;
     color: #000;
     z-index: 1;
     box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
     border-radius: 4px;
-    overflow: visible;
     white-space: nowrap;
     pointer-events: auto;
   }
 
-  /* Play/pause pill — left side */
+  /* Play/pause pill — left tap target */
   .mini-infobox-pill {
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 28px;
-    min-width: 28px;
-    background-color: rgba(255, 255, 255, 0.85);
-    border: 1px solid #ccc;
-    border-right: none;
+    width: 26px;
+    min-width: 26px;
+    background-color: rgba(240, 240, 240, 0.90);
+    border: 1px solid #bbb;
+    border-right: 1px solid #ddd;
     border-radius: 4px 0 0 4px;
     cursor: pointer;
-    transition: background-color 0.2s;
+    transition: background-color 0.15s;
     flex-shrink: 0;
   }
 
@@ -275,69 +274,73 @@
     background-color: rgba(200, 200, 200, 0.95);
   }
 
-  /* Orange pill state */
-  .mini-infobox.minimized-popup .mini-infobox-pill {
-    background-color: rgba(255, 200, 150, 0.85);
-    border-color: rgba(200, 130, 80, 0.4);
-  }
-
-  .mini-infobox.minimized-popup .mini-infobox-pill:hover {
-    background-color: rgba(255, 150, 100, 0.95);
-  }
-
-  /* Body — right side, contains title + chevron */
+  /* Body — title + chevron, right tap target */
   .mini-infobox-body {
     display: flex;
     align-items: center;
     gap: 4px;
-    padding: 4px 6px 4px 6px;
-    background-color: rgba(255, 255, 255, 0.70);
-    border: 1px solid #ccc;
+    padding: 4px 6px;
+    background-color: rgba(255, 255, 255, 0.80);
+    border: 1px solid #bbb;
+    border-left: none;
     border-radius: 0 4px 4px 0;
     cursor: pointer;
-    transition: background-color 0.2s;
-    min-width: 0;
+    transition: background-color 0.15s;
   }
 
   .mini-infobox-body:hover {
-    background-color: rgba(220, 220, 220, 0.85);
-  }
-
-  /* Orange body state */
-  .mini-infobox.minimized-popup .mini-infobox-body {
-    background-color: rgba(255, 200, 150, 0.75);
-    border-color: rgba(200, 130, 80, 0.4);
-    border-left: none;
-  }
-
-  .mini-infobox.minimized-popup .mini-infobox-body:hover {
-    background-color: rgba(255, 150, 100, 0.80);
+    background-color: rgba(215, 215, 215, 0.90);
   }
 
   .mini-infobox-title {
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
-    flex: 1;
-    min-width: 0;
+    max-width: 180px;
   }
 
-  /* Chevron inside body */
   .mini-infobox-chevron {
-    font-size: 14px;
-    font-weight: 600;
-    color: #555;
+    font-size: 13px;
+    font-weight: 700;
+    color: #666;
     flex-shrink: 0;
     line-height: 1;
+    margin-left: 2px;
   }
 
   .mini-infobox-body:hover .mini-infobox-chevron {
-    color: #222;
+    color: #111;
   }
 
-  /* Play icon inside pill — overrides old .play-icon defaults */
+  /* Orange / playing state */
+  .mini-infobox.minimized-popup .mini-infobox-pill {
+    background-color: rgba(255, 190, 130, 0.90);
+    border-color: rgba(180, 110, 60, 0.5);
+    border-right-color: rgba(200, 140, 80, 0.4);
+  }
+
+  .mini-infobox.minimized-popup .mini-infobox-pill:hover {
+    background-color: rgba(255, 150, 90, 0.95);
+  }
+
+  .mini-infobox.minimized-popup .mini-infobox-body {
+    background-color: rgba(255, 205, 155, 0.80);
+    border-color: rgba(180, 110, 60, 0.5);
+    border-left: none;
+  }
+
+  .mini-infobox.minimized-popup .mini-infobox-body:hover {
+    background-color: rgba(255, 160, 100, 0.90);
+  }
+
+  /* Play icon inside pill */
   .mini-infobox-pill .play-icon {
-    border-left-color: #333;
+    width: 0;
+    height: 0;
+    border-left: 6px solid #444;
+    border-top: 4px solid transparent;
+    border-bottom: 4px solid transparent;
+    flex-shrink: 0;
   }
 
 /* Currently Playing Sound Badge */

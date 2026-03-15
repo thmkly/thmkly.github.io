@@ -392,7 +392,8 @@ class UIController {
         infoBox.appendChild(pill);
         infoBox.appendChild(body);
 
-        // Wire play/pause icon if audio provided
+        // Wire play/pause icon to audio if provided (orange/playing state)
+        // White boxes keep the static .play-icon CSS triangle
         if (opts.audio) {
           pillIcon.innerHTML = '';
           pillIcon.style.cssText = '';
