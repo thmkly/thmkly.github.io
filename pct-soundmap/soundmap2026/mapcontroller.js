@@ -850,14 +850,22 @@ class MapController {
           return;
         }
 
-        // Clean up picker if it exists (playing a track outside the current picker)
+        // Clean up picker only if explicitly playing from outside — but keep it visible
+        // The picker stays until the user explicitly dismisses it (toggle or expand)
         if (this.clusterPicker) {
-          if (this.clusterPicker._moveHandler) {
-            map.off('move', this.clusterPicker._moveHandler);
-          }
-          this.clusterPicker.remove();
-          this.clusterPicker = null;
-          this.clusterPickerTracks = null;
+          // Update picker highlight to show nothing playing within it
+          this.clusterPicker.querySelectorAll('[data-track-index]').forEach(box => {
+            box.dataset.isPlaying = 'false';
+            box.classList.remove('minimized-popup');
+            // Reset pill icon to static play triangle
+            const pillIcon = box.querySelector('.play-icon');
+            if (pillIcon) {
+              if (box._cleanupIcon) { box._cleanupIcon(); box._cleanupIcon = null; }
+              pillIcon.innerHTML = '';
+              pillIcon.style.cssText = '';
+              pillIcon.className = 'play-icon';
+            }
+          });
         }
         
           // Add delay before positioning to prevent conflicts
