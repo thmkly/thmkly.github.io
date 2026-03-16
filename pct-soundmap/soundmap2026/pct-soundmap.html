@@ -960,56 +960,6 @@
   }
 
   /* ── Header badge ── */
-  /* ── Cluster picker box ── */
-  .cluster-box {
-    position: relative;
-    border: 1px solid #ccc;
-    padding: 4px 8px;
-    font-size: 11px;
-    color: #000;
-    cursor: pointer;
-    box-shadow: 0 2px 5px rgba(0,0,0,0.2);
-    display: flex;
-    align-items: center;
-    gap: 4px;
-    max-width: 200px;
-    white-space: nowrap;
-    transition: background-color 0.2s;
-    background-color: rgba(255,255,255,0.70);
-  }
-
-  .cluster-box:first-child { border-radius: 4px 4px 0 0; }
-  .cluster-box:last-child  { border-radius: 0 0 4px 4px; border-bottom: 1px solid #ccc !important; }
-  .cluster-box:only-child  { border-radius: 4px; }
-  .cluster-box:not(:last-child) { border-bottom: none; }
-
-  .cluster-box.playing {
-    background-color: rgba(255,200,150,0.75);
-  }
-
-  .cluster-box:hover {
-    background-color: rgba(220,220,220,0.80);
-  }
-
-  .cluster-box.playing:hover {
-    background-color: rgba(255,150,100,0.80);
-  }
-
-  .cluster-box-name {
-    flex: 1;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-  }
-
-  .cluster-play-icon {
-    width: 0;
-    height: 0;
-    border-left: 6px solid #5c3a2e;
-    border-top: 4px solid transparent;
-    border-bottom: 4px solid transparent;
-    flex-shrink: 0;
-  }
 
   /* ── Minimized popup mini box (orange state) ── */
   .minimized-box {

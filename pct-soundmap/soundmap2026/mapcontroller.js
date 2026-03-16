@@ -221,6 +221,14 @@ class MapController {
             
             // If tight cluster, show picker instead of breaking
             if (isTightCluster) {
+              // Toggle: if picker already open for this cluster, close it
+              if (this.clusterPicker) {
+                if (this.clusterPicker._moveHandler) map.off('move', this.clusterPicker._moveHandler);
+                this.clusterPicker.remove();
+                this.clusterPicker = null;
+                this.clusterPickerTracks = null;
+                return;
+              }
               this.showClusterPicker(e.point, leaves, audioController.currentIndex);
               return;
             }
@@ -1292,7 +1300,7 @@ class MapController {
         
         const picker = document.createElement('div');
         picker.id = 'cluster-picker';
-        picker.style.cssText = 'position:absolute;z-index:1000;display:flex;flex-direction:column;';
+        picker.style.cssText = 'position:absolute;z-index:1000;display:flex;flex-direction:column;gap:3px;';
         
         const updatePickerPosition = () => {
           const px = map.project(coords);
@@ -1320,36 +1328,35 @@ class MapController {
           
           const currentIndex = this.audioData.findIndex(t => t.originalIndex === originalIndex);
           const isPlaying = playingTrackIndex !== null && currentIndex === playingTrackIndex;
-          
-          const box = document.createElement('div');
-          box.className = 'cluster-box' + (isPlaying ? ' playing' : '');
-          box.dataset.trackIndex = currentIndex;
-          box.dataset.isPlaying = isPlaying ? 'true' : 'false';
+          const audio = isPlaying ? audioController.currentAudio : null;
 
-          const playIcon = document.createElement('div');
-          playIcon.className = 'cluster-play-icon';
-          box.appendChild(playIcon);
-          
-          const trackName = document.createElement('span');
-          trackName.className = 'cluster-box-name';
-          trackName.textContent = track.name.replace(/^[^\s]+\s+-\s+/, '');
-          box.appendChild(trackName);
-          
-          box.addEventListener('click', () => {
-            if (currentIndex < 0) return;
-            if (box.dataset.isPlaying === 'true') {
-              if (this.clusterPicker._moveHandler) map.off('move', this.clusterPicker._moveHandler);
-              this.clusterPicker.remove();
-              this.clusterPicker = null;
-              this.clusterPickerTracks = null;
-              const trackCoords = [parseFloat(track.lng), parseFloat(track.lat)];
-              this.showPopup(trackCoords, track, audioController.currentAudio, currentIndex, false);
-              if (this.userPreferredPopupState === 'mini') this.userPreferredPopupState = 'full';
-              this.updateBadgeVisibility();
-            } else {
-              this.playAudio(currentIndex, false, true);
-            }
+          const box = uiController._createMiniInfoBox(track, currentIndex, {
+            onPillClick: () => {
+              this.playAudio(currentIndex, false, true, true);
+            },
+            onBodyClick: () => {
+              if (box.dataset.isPlaying === 'true') {
+                // Expand to full popup for playing track
+                if (this.clusterPicker._moveHandler) map.off('move', this.clusterPicker._moveHandler);
+                this.clusterPicker.remove();
+                this.clusterPicker = null;
+                this.clusterPickerTracks = null;
+                const trackCoords = [parseFloat(track.lng), parseFloat(track.lat)];
+                this.userPreferredPopupState = 'full';
+                this.showPopup(trackCoords, track, audioController.currentAudio, currentIndex, false);
+                this.updateBadgeVisibility();
+              } else {
+                // Preview popup for non-playing track
+                const trackCoords = [parseFloat(track.lng), parseFloat(track.lat)];
+                this.showPopup(trackCoords, track, audioController.currentAudio, currentIndex, false, true);
+              }
+            },
+            isPlaying,
+            audio
           });
+
+          if (isPlaying) box.classList.add('minimized-popup');
+          box.dataset.isPlaying = isPlaying ? 'true' : 'false';
           
           picker.appendChild(box);
         });
@@ -1362,6 +1369,7 @@ class MapController {
         document.body.appendChild(picker);
         this.updateBadgeVisibility();
       }
+
 
           showPopup(coords, track, audio, index, shouldMinimize = false, preview = false) {
             // Block if no audio playing, UNLESS it's a preview (chevron click on white box)
