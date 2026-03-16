@@ -321,8 +321,27 @@ class MapController {
             const visiblePoints = map.queryRenderedFeatures({ layers: ['unclustered-point'] });
             const currentPointCount = visiblePoints.length;
             
-            // Note: cluster picker is only closed by explicit user action (toggle, expand, or
-            // playing a track outside the picker). It stays visible during pan/zoom.
+            // If picker is open and all its tracks now appear as separate unclustered points,
+            // dissolve the picker into individual mini infoboxes
+            if (this.clusterPicker && this.clusterPickerTracks) {
+              const allPickerPointsVisible = this.clusterPickerTracks.every(trackIndex => {
+                const track = this.audioData[trackIndex];
+                if (!track) return false;
+                return visiblePoints.some(p => parseInt(p.properties.originalIndex) === track.originalIndex);
+              });
+
+              if (allPickerPointsVisible) {
+                // Close the picker
+                if (this.clusterPicker._moveHandler) map.off('move', this.clusterPicker._moveHandler);
+                this.clusterPicker.remove();
+                this.clusterPicker = null;
+                this.clusterPickerTracks = null;
+                // Let showMiniInfoBoxes handle them as normal white/orange boxes
+                uiController.clearMiniInfoBoxes();
+                uiController.showMiniInfoBoxes(null, this.audioData);
+                return;
+              }
+            }
             
             const existingBoxCount = uiController.miniInfoBoxes.length;
 
