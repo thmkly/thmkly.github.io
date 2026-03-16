@@ -994,7 +994,7 @@ class MapController {
         if (track) {
           const badge = document.createElement('div');
           badge.id = 'playing-badge';
-          badge.title = 'Return to sound';
+          badge.title = '';
 
           // Pill — play/pause
           const pill = document.createElement('div');
@@ -1008,6 +1008,13 @@ class MapController {
           if (audioEl) {
             const cleanupBadgeIcon = this._attachPlayPauseIcon(triangle, audioEl, false);
             badge._cleanupBadgeIcon = cleanupBadgeIcon;
+            // Dynamic tooltip reflecting current state
+            const updatePillTitle = () => {
+              pill.title = audioEl.paused ? 'Play' : 'Pause';
+            };
+            updatePillTitle();
+            audioEl.addEventListener('play', updatePillTitle);
+            audioEl.addEventListener('pause', updatePillTitle);
           }
 
           pill.addEventListener('click', (e) => {
@@ -1019,6 +1026,7 @@ class MapController {
           // Body — title + time, click flies to track
           const body = document.createElement('div');
           body.className = 'badge-body';
+          body.title = 'Return to sound';
 
           const titleSpan = document.createElement('span');
           titleSpan.className = 'badge-title';
