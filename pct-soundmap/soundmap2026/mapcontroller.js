@@ -958,6 +958,17 @@ class MapController {
             miniBox.classList.add('minimized-popup');
           }
 
+          // Dynamic Play/Pause tooltip on orange box pill
+          if (audio) {
+            const pill = miniBox.querySelector('.mini-infobox-pill');
+            if (pill) {
+              const updatePillTitle = () => { pill.title = audio.paused ? 'Play' : 'Pause'; };
+              updatePillTitle();
+              audio.addEventListener('play', updatePillTitle);
+              audio.addEventListener('pause', updatePillTitle);
+            }
+          }
+
           miniBox.style.position = 'absolute';
           miniBox.style.left = `${pixelCoords.x + 10}px`;
           miniBox.style.top  = `${pixelCoords.y - 20}px`;

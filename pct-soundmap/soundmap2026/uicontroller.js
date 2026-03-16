@@ -370,6 +370,7 @@ class UIController {
         // Pill — play/pause
         const pill = document.createElement('div');
         pill.className = 'mini-infobox-pill';
+        pill.title = 'Play';
 
         const pillIcon = document.createElement('div');
         pillIcon.className = 'play-icon';
@@ -383,6 +384,7 @@ class UIController {
         // Body — title + chevron, tap to expand
         const body = document.createElement('div');
         body.className = 'mini-infobox-body';
+        body.title = 'Expand';
 
         const title = document.createElement('span');
         title.className = 'mini-infobox-title';
