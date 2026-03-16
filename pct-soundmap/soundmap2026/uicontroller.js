@@ -370,7 +370,7 @@ class UIController {
         // Main zone — play/pause icon + title, tap to play/pause
         const pill = document.createElement('div');
         pill.className = 'mini-infobox-pill';
-        pill.title = 'Play';
+        pill.title = 'Play sound';
 
         const pillIcon = document.createElement('div');
         pillIcon.className = 'play-icon';

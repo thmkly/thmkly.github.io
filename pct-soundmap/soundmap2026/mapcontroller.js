@@ -962,7 +962,7 @@ class MapController {
           if (audio) {
             const pill = miniBox.querySelector('.mini-infobox-pill');
             if (pill) {
-              const updatePillTitle = () => { pill.title = audio.paused ? 'Play' : 'Pause'; };
+              const updatePillTitle = () => { pill.title = audio.paused ? 'Play sound' : 'Pause sound'; };
               updatePillTitle();
               audio.addEventListener('play', updatePillTitle);
               audio.addEventListener('pause', updatePillTitle);
@@ -1021,7 +1021,7 @@ class MapController {
             badge._cleanupBadgeIcon = cleanupBadgeIcon;
             // Dynamic tooltip reflecting current state
             const updatePillTitle = () => {
-              pill.title = audioEl.paused ? 'Play' : 'Pause';
+              pill.title = audioEl.paused ? 'Play sound' : 'Pause sound';
             };
             updatePillTitle();
             audioEl.addEventListener('play', updatePillTitle);
