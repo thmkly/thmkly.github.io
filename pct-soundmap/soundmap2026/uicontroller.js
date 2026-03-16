@@ -360,14 +360,14 @@ class UIController {
         });
       }
 
-      // Builds a mini infobox with pill+body structure
+      // Builds a mini infobox with main+chevron structure
       // opts: { onPillClick, onBodyClick, isPlaying, audio }
       _createMiniInfoBox(track, trackIndex, opts) {
         const infoBox = document.createElement('div');
         infoBox.className = 'mini-infobox';
         infoBox.dataset.trackIndex = trackIndex;
 
-        // Pill — play/pause
+        // Main zone — play/pause icon + title, tap to play/pause
         const pill = document.createElement('div');
         pill.className = 'mini-infobox-pill';
         pill.title = 'Play';
@@ -376,37 +376,31 @@ class UIController {
         pillIcon.className = 'play-icon';
         pill.appendChild(pillIcon);
 
+        const title = document.createElement('span');
+        title.className = 'mini-infobox-title';
+        title.textContent = track.name.replace(/^[^\s]+\s+-\s+/, '');
+        pill.appendChild(title);
+
         pill.addEventListener('click', (e) => {
           e.stopPropagation();
           opts.onPillClick();
         });
 
-        // Body — title + chevron, tap to expand
-        const body = document.createElement('div');
-        body.className = 'mini-infobox-body';
-        body.title = 'Expand';
-
-        const title = document.createElement('span');
-        title.className = 'mini-infobox-title';
-        title.textContent = track.name.replace(/^[^\s]+\s+-\s+/, '');
-
-        const chevron = document.createElement('span');
+        // Chevron — standalone expand tap target
+        const chevron = document.createElement('div');
         chevron.className = 'mini-infobox-chevron';
         chevron.textContent = '›';
+        chevron.title = 'Expand';
 
-        body.appendChild(title);
-        body.appendChild(chevron);
-
-        body.addEventListener('click', (e) => {
+        chevron.addEventListener('click', (e) => {
           e.stopPropagation();
           opts.onBodyClick();
         });
 
         infoBox.appendChild(pill);
-        infoBox.appendChild(body);
+        infoBox.appendChild(chevron);
 
         // Wire play/pause icon to audio if provided (orange/playing state)
-        // White boxes keep the static .play-icon CSS triangle
         if (opts.audio) {
           pillIcon.innerHTML = '';
           pillIcon.style.cssText = '';

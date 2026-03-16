@@ -243,7 +243,7 @@
   }
 
   /* Mini Info Boxes */
-  /* Mini infobox — pill (left) + body (right) */
+  /* Mini infobox — main zone (left) + chevron (right) */
   .mini-infobox {
     position: absolute;
     display: inline-flex;
@@ -257,13 +257,12 @@
     pointer-events: auto;
   }
 
-  /* Play/pause pill — left tap target */
+  /* Main zone — icon + title, tap to play/pause */
   .mini-infobox-pill {
     display: flex;
     align-items: center;
-    justify-content: center;
-    width: 26px;
-    min-width: 26px;
+    gap: 5px;
+    padding: 4px 7px 4px 6px;
     background-color: rgba(240, 240, 240, 0.90);
     border: 1px solid #bbb;
     border-right: 1px solid #ddd;
@@ -277,24 +276,6 @@
     background-color: rgba(200, 200, 200, 0.95);
   }
 
-  /* Body — title + chevron, right tap target */
-  .mini-infobox-body {
-    display: flex;
-    align-items: center;
-    gap: 4px;
-    padding: 4px 6px;
-    background-color: rgba(255, 255, 255, 0.80);
-    border: 1px solid #bbb;
-    border-left: none;
-    border-radius: 0 4px 4px 0;
-    cursor: pointer;
-    transition: background-color 0.15s;
-  }
-
-  .mini-infobox-body:hover {
-    background-color: rgba(215, 215, 215, 0.90);
-  }
-
   .mini-infobox-title {
     overflow: hidden;
     text-overflow: ellipsis;
@@ -302,16 +283,27 @@
     max-width: 180px;
   }
 
+  /* Chevron — standalone expand tap target */
   .mini-infobox-chevron {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 4px 6px;
     font-size: 15px;
     font-weight: 700;
     color: #5c3a2e;
+    background-color: rgba(255, 255, 255, 0.80);
+    border: 1px solid #bbb;
+    border-left: none;
+    border-radius: 0 4px 4px 0;
+    cursor: pointer;
     flex-shrink: 0;
     line-height: 1;
-    margin-left: 4px;
+    transition: background-color 0.15s, color 0.15s;
   }
 
-  .mini-infobox-body:hover .mini-infobox-chevron {
+  .mini-infobox-chevron:hover {
+    background-color: rgba(215, 215, 215, 0.90);
     color: #3d2519;
   }
 
@@ -326,13 +318,13 @@
     background-color: rgba(255, 150, 90, 0.95);
   }
 
-  .mini-infobox.minimized-popup .mini-infobox-body {
+  .mini-infobox.minimized-popup .mini-infobox-chevron {
     background-color: rgba(255, 235, 220, 0.85);
     border-color: rgba(180, 110, 60, 0.5);
     border-left: none;
   }
 
-  .mini-infobox.minimized-popup .mini-infobox-body:hover {
+  .mini-infobox.minimized-popup .mini-infobox-chevron:hover {
     background-color: rgba(255, 180, 140, 0.90);
   }
 
@@ -777,13 +769,12 @@
     font-size: 12px;
   }
 
-  body.is-mobile .mini-infobox-pill {
-    width: 32px;
-    min-width: 32px;
+  body.is-mobile .mini-infobox {
+    font-size: 12px;
   }
 
-  body.is-mobile .mini-infobox-body {
-    padding: 5px 7px;
+  body.is-mobile .mini-infobox-pill {
+    padding: 5px 8px 5px 7px;
   }
 
   /* Play/pause button symbols */
