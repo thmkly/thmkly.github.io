@@ -390,7 +390,7 @@ class UIController {
         const chevron = document.createElement('div');
         chevron.className = 'mini-infobox-chevron';
         chevron.textContent = '›';
-        chevron.title = 'Expand';
+        chevron.title = 'Expand player';
 
         chevron.addEventListener('click', (e) => {
           e.stopPropagation();
