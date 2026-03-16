@@ -674,7 +674,7 @@ class MapController {
           }
         }
 
-     playAudio(index, fromAutoPlay = false, fromMap = false) {
+     playAudio(index, fromAutoPlay = false, fromMap = false, fromMiniPill = false) {
        const track = this.audioData[index];
        if (!track) {
          console.error('No track found at index:', index);
@@ -698,8 +698,8 @@ class MapController {
       // Stop any in-progress map animation
       map.stop();
 
-        // Use user's preferred popup state (defaults to 'full' on first play)
-        const shouldMinimize = this.userPreferredPopupState === 'mini';
+        // Use user's preferred popup state, or force mini if triggered from a pill
+        const shouldMinimize = fromMiniPill || this.userPreferredPopupState === 'mini';
 
         // Clean up any minimized popup
         if (this.minimizedPopup) {
@@ -766,7 +766,7 @@ class MapController {
             const mapRect = map.getContainer().getBoundingClientRect();
 
             const miniBox = uiController._createMiniInfoBox(currentTrack, oldTrackIndex, {
-              onPillClick: () => mapController.playAudio(oldTrackIndex, false, true),
+              onPillClick: () => mapController.playAudio(oldTrackIndex, false, true, true),
               onBodyClick: () => {
                 if (miniBox.parentNode) miniBox.parentNode.removeChild(miniBox);
                 uiController.miniInfoBoxes = uiController.miniInfoBoxes.filter(b => b !== miniBox);
