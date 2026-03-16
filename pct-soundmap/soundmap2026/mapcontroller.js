@@ -12,6 +12,7 @@ class MapController {
        this.hasInitiallyLoaded = false;
        this.clusterPicker = null; // Store active cluster picker
        this.clusterPickerTracks = null; // Store track indices in current picker [index1, index2, ...]
+       this.lastPickerLeaves = null; // Store last picker leaves for zoom-out resurrection
        this.setupMap();
      }
 
@@ -321,25 +322,73 @@ class MapController {
             const visiblePoints = map.queryRenderedFeatures({ layers: ['unclustered-point'] });
             const currentPointCount = visiblePoints.length;
             
-            // If picker is open and all its tracks now appear as separate unclustered points,
-            // dissolve the picker into individual mini infoboxes
+            // If picker is open, check pixel distance between its points.
+            // Only dissolve when they're actually spread apart on screen (>30px apart).
             if (this.clusterPicker && this.clusterPickerTracks) {
-              const allPickerPointsVisible = this.clusterPickerTracks.every(trackIndex => {
-                const track = this.audioData[trackIndex];
-                if (!track) return false;
-                return visiblePoints.some(p => parseInt(p.properties.originalIndex) === track.originalIndex);
-              });
+              const pickerTracks = this.clusterPickerTracks
+                .map(i => this.audioData[i])
+                .filter(Boolean);
 
-              if (allPickerPointsVisible) {
-                // Close the picker
+              // Get pixel positions for all picker tracks
+              const positions = pickerTracks.map(t => 
+                map.project([parseFloat(t.lng), parseFloat(t.lat)])
+              );
+
+              // Find max pixel distance between any two points
+              let maxDist = 0;
+              for (let i = 0; i < positions.length; i++) {
+                for (let j = i + 1; j < positions.length; j++) {
+                  const dx = positions[i].x - positions[j].x;
+                  const dy = positions[i].y - positions[j].y;
+                  maxDist = Math.max(maxDist, Math.sqrt(dx*dx + dy*dy));
+                }
+              }
+
+              // Dissolve picker when points are clearly separated
+              if (maxDist > 30) {
                 if (this.clusterPicker._moveHandler) map.off('move', this.clusterPicker._moveHandler);
                 this.clusterPicker.remove();
                 this.clusterPicker = null;
                 this.clusterPickerTracks = null;
-                // Let showMiniInfoBoxes handle them as normal white/orange boxes
                 uiController.clearMiniInfoBoxes();
                 uiController.showMiniInfoBoxes(null, this.audioData);
                 return;
+              }
+            }
+
+            // If no picker open but we have last picker leaves, check if points have
+            // re-clustered — if so, resurrect the picker
+            if (!this.clusterPicker && this.lastPickerLeaves) {
+              const leaves = this.lastPickerLeaves;
+              const leafIndices = leaves.map(leaf =>
+                this.audioData.findIndex(t => t.originalIndex === parseInt(leaf.properties.originalIndex))
+              );
+
+              // Check pixel distance — if all points are close together again, restore picker
+              const positions = leafIndices
+                .map(i => this.audioData[i])
+                .filter(Boolean)
+                .map(t => map.project([parseFloat(t.lng), parseFloat(t.lat)]));
+
+              let maxDist = 0;
+              for (let i = 0; i < positions.length; i++) {
+                for (let j = i + 1; j < positions.length; j++) {
+                  const dx = positions[i].x - positions[j].x;
+                  const dy = positions[i].y - positions[j].y;
+                  maxDist = Math.max(maxDist, Math.sqrt(dx*dx + dy*dy));
+                }
+              }
+
+              if (maxDist <= 30) {
+                // Points are overlapping again — but only restore if no popup open for these tracks
+                const anyPopupOpen = this.currentPopup && 
+                  leafIndices.includes(parseInt(this.currentPopup._container?.dataset?.trackIndex));
+                if (!anyPopupOpen) {
+                  this.showClusterPicker({ x: 0, y: 0 }, leaves, audioController.currentIndex);
+                  uiController.clearMiniInfoBoxes();
+                  uiController.showMiniInfoBoxes(null, this.audioData);
+                  return;
+                }
               }
             }
             
@@ -1471,6 +1520,7 @@ class MapController {
         });
         
         this.clusterPicker = picker;
+        this.lastPickerLeaves = leaves;
         document.body.appendChild(picker);
         this.updateBadgeVisibility();
       }
