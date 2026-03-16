@@ -813,7 +813,26 @@ class MapController {
           }
         }
         
-        // Clean up picker if it exists
+        // If playing a track within the current cluster picker, skip flyTo and keep picker
+        const isInCurrentPicker = this.clusterPicker && 
+          this.clusterPickerTracks && 
+          this.clusterPickerTracks.includes(index);
+
+        if (isInCurrentPicker) {
+          // Just update the picker highlight and badge — no flyTo, no picker teardown
+          this.updateClusterPickerHighlight(index);
+          // Update isPlaying state on all boxes
+          this.clusterPicker.querySelectorAll('[data-track-index]').forEach(box => {
+            const isPlaying = parseInt(box.dataset.trackIndex) === index;
+            box.dataset.isPlaying = isPlaying ? 'true' : 'false';
+            box.classList.toggle('minimized-popup', isPlaying);
+          });
+          this.updateHeaderBadge(track, audio);
+          setTimeout(() => { this.updateActiveTrack(index, false, audio); }, 50);
+          return;
+        }
+
+        // Clean up picker if it exists (playing a track outside the current picker)
         if (this.clusterPicker) {
           if (this.clusterPicker._moveHandler) {
             map.off('move', this.clusterPicker._moveHandler);
@@ -905,7 +924,6 @@ class MapController {
 
           const wasPreview = this.currentPopup?._preview === true;
           const clusterLeaves = this.currentPopup?._clusterLeaves || null;
-          console.log('[minimizePopup] clusterLeaves:', clusterLeaves, 'currentPopup:', this.currentPopup);
 
           // Remove the popup
           if (this.currentPopup) {
@@ -918,15 +936,16 @@ class MapController {
             audioController.currentAudio.style.display = 'none';
           }
 
-          // Preview popup: just redraw mini boxes naturally, no minimized state needed
-          if (wasPreview) {
+          // If popup came from a cluster picker, always restore the picker
+          // (covers both playing and preview cases)
+          if (clusterLeaves) {
+            this.showClusterPicker({ x: 0, y: 0 }, clusterLeaves, audioController.currentIndex);
             uiController.showMiniInfoBoxes(null, this.audioData);
             return;
           }
 
-          // Cluster popup: recreate the picker instead of a single mini box
-          if (clusterLeaves) {
-            this.showClusterPicker({ x: 0, y: 0 }, clusterLeaves, audioController.currentIndex);
+          // Preview popup (non-cluster): just redraw mini boxes naturally
+          if (wasPreview) {
             uiController.showMiniInfoBoxes(null, this.audioData);
             return;
           }
