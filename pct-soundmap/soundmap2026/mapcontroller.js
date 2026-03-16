@@ -692,6 +692,13 @@ class MapController {
       map.stop();
 
         // Use user's preferred popup state, or force mini if triggered from a pill
+        // If navigating to a track that was in a picker but picker is no longer active,
+        // treat as a fresh play — show full popup regardless of userPreferredPopupState
+        const trackWasInClosedPicker = !this.clusterPicker && 
+          this.clusterPickerTracks && 
+          this.clusterPickerTracks.includes(index);
+        if (trackWasInClosedPicker) this.userPreferredPopupState = 'full';
+
         const shouldMinimize = fromMiniPill || this.userPreferredPopupState === 'mini';
 
         // Clean up any minimized popup
@@ -895,10 +902,10 @@ class MapController {
             const coords = [parseFloat(track.lng), parseFloat(track.lat)];
             
             // Check if track is in existing picker
-            const isInPicker = this.clusterPickerTracks && this.clusterPickerTracks.includes(index);
+            const isInPicker = this.clusterPicker && this.clusterPickerTracks && this.clusterPickerTracks.includes(index);
             
             if (isInPicker) {
-              // Track is in picker - just update highlight, don't create new UI
+              // Track is in active picker - just update highlight, don't create new UI
               this.updateClusterPickerHighlight(index);
               // Don't clear mini boxes - they should stay visible
               this.updateBadgeVisibility();
