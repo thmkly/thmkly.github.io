@@ -312,33 +312,8 @@ class MapController {
             const visiblePoints = map.queryRenderedFeatures({ layers: ['unclustered-point'] });
             const currentPointCount = visiblePoints.length;
             
-            // Close picker only if zoomed out so far that its points are now clustered
-            if (this.clusterPicker && this.clusterPickerTracks) {
-              const allPickerPointsHidden = this.clusterPickerTracks.every(trackIndex => {
-                const track = this.audioData[trackIndex];
-                if (!track) return true;
-                return !visiblePoints.some(p => parseInt(p.properties.originalIndex) === track.originalIndex);
-              });
-              
-              if (allPickerPointsHidden) {
-                // Double-check with a second query to avoid false positives during rendering
-                setTimeout(() => {
-                  if (!this.clusterPicker) return;
-                  const recheck = map.queryRenderedFeatures({ layers: ['unclustered-point'] });
-                  const stillHidden = this.clusterPickerTracks.every(trackIndex => {
-                    const track = this.audioData[trackIndex];
-                    if (!track) return true;
-                    return !recheck.some(p => parseInt(p.properties.originalIndex) === track.originalIndex);
-                  });
-                  if (stillHidden) {
-                    if (this.clusterPicker._moveHandler) map.off('move', this.clusterPicker._moveHandler);
-                    this.clusterPicker.remove();
-                    this.clusterPicker = null;
-                    this.clusterPickerTracks = null;
-                  }
-                }, 300);
-              }
-            }
+            // Note: cluster picker is only closed by explicit user action (toggle, expand, or
+            // playing a track outside the picker). It stays visible during pan/zoom.
             
             const existingBoxCount = uiController.miniInfoBoxes.length;
 
@@ -1408,10 +1383,6 @@ class MapController {
           
           picker.appendChild(box);
         });
-        
-        const moveHandler = () => { if (picker.parentNode) updatePickerPosition(); };
-        map.on('move', moveHandler);
-        picker._moveHandler = moveHandler;
         
         this.clusterPicker = picker;
         document.body.appendChild(picker);
