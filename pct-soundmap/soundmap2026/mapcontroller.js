@@ -894,6 +894,7 @@ class MapController {
           this.userPreferredPopupState = 'mini';
 
           const wasPreview = this.currentPopup?._preview === true;
+          const clusterLeaves = this.currentPopup?._clusterLeaves || null;
 
           // Remove the popup
           if (this.currentPopup) {
@@ -908,6 +909,13 @@ class MapController {
 
           // Preview popup: just redraw mini boxes naturally, no minimized state needed
           if (wasPreview) {
+            uiController.showMiniInfoBoxes(null, this.audioData);
+            return;
+          }
+
+          // Cluster popup: recreate the picker instead of a single mini box
+          if (clusterLeaves) {
+            this.showClusterPicker({ x: 0, y: 0 }, clusterLeaves, audioController.currentIndex);
             uiController.showMiniInfoBoxes(null, this.audioData);
             return;
           }
@@ -1332,23 +1340,33 @@ class MapController {
 
           const box = uiController._createMiniInfoBox(track, currentIndex, {
             onPillClick: () => {
-              this.playAudio(currentIndex, false, true, true);
+              if (box.dataset.isPlaying === 'true') {
+                // Toggle play/pause for active track
+                const a = audioController.currentAudio;
+                if (a) a.paused ? a.play() : a.pause();
+              } else {
+                this.playAudio(currentIndex, false, true, true);
+              }
             },
             onBodyClick: () => {
+              // Store cluster context before removing picker
+              const clusterLeaves = sortedLeaves;
+              const clusterCoords = coords;
+
+              // Always remove picker when expanding to full popup
+              if (this.clusterPicker._moveHandler) map.off('move', this.clusterPicker._moveHandler);
+              this.clusterPicker.remove();
+              this.clusterPicker = null;
+              this.clusterPickerTracks = null;
+              const trackCoords = [parseFloat(track.lng), parseFloat(track.lat)];
               if (box.dataset.isPlaying === 'true') {
-                // Expand to full popup for playing track
-                if (this.clusterPicker._moveHandler) map.off('move', this.clusterPicker._moveHandler);
-                this.clusterPicker.remove();
-                this.clusterPicker = null;
-                this.clusterPickerTracks = null;
-                const trackCoords = [parseFloat(track.lng), parseFloat(track.lat)];
+                // Playing track — expand to full popup
                 this.userPreferredPopupState = 'full';
-                this.showPopup(trackCoords, track, audioController.currentAudio, currentIndex, false);
+                this.showPopup(trackCoords, track, audioController.currentAudio, currentIndex, false, false, clusterLeaves);
                 this.updateBadgeVisibility();
               } else {
-                // Preview popup for non-playing track
-                const trackCoords = [parseFloat(track.lng), parseFloat(track.lat)];
-                this.showPopup(trackCoords, track, audioController.currentAudio, currentIndex, false, true);
+                // Non-playing track — preview popup
+                this.showPopup(trackCoords, track, audioController.currentAudio, currentIndex, false, true, clusterLeaves);
               }
             },
             isPlaying,
@@ -1371,7 +1389,7 @@ class MapController {
       }
 
 
-          showPopup(coords, track, audio, index, shouldMinimize = false, preview = false) {
+          showPopup(coords, track, audio, index, shouldMinimize = false, preview = false, clusterLeaves = null) {
             // Block if no audio playing, UNLESS it's a preview (chevron click on white box)
             if (audioController.currentIndex === -1 && !preview) return;
               
@@ -1588,6 +1606,7 @@ class MapController {
               _container: container,
               _coords: coords,
               _preview: preview,
+              _clusterLeaves: clusterLeaves,
               remove: () => { if (container.parentNode) container.parentNode.removeChild(container); },
               updatePosition: () => {
                 const px = map.project(coords);
