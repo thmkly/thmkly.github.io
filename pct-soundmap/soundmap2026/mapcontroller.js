@@ -1479,6 +1479,7 @@ class MapController {
                 t.className = 'play-triangle-lg';
                 playPauseBtn.appendChild(t);
                 playPauseBtn.addEventListener('click', () => {
+                  this.userPreferredPopupState = 'full';
                   this.playAudio(index, false, true);
                 });
               } else {
