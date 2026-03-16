@@ -221,6 +221,15 @@ class MapController {
             
             // If tight cluster, show picker instead of breaking
             if (isTightCluster) {
+              // Block if a track from this cluster is currently in full popup
+              if (this.currentPopup) {
+                const popupTrackIndex = parseInt(this.currentPopup._container?.dataset?.trackIndex);
+                const clusterIndices = leaves.map(leaf => 
+                  this.audioData.findIndex(t => t.originalIndex === parseInt(leaf.properties.originalIndex))
+                );
+                if (clusterIndices.includes(popupTrackIndex)) return;
+              }
+
               // Toggle: if picker already open for this cluster, close it
               if (this.clusterPicker) {
                 if (this.clusterPicker._moveHandler) map.off('move', this.clusterPicker._moveHandler);
