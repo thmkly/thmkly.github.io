@@ -794,14 +794,57 @@ class MapController {
           this.clusterPickerTracks.includes(index);
 
         if (isInCurrentPicker) {
-          // Just update the picker highlight and badge — no flyTo, no picker teardown
-          this.updateClusterPickerHighlight(index);
-          // Update isPlaying state on all boxes
+          // Update isPlaying state and orange/white styling on all picker boxes
           this.clusterPicker.querySelectorAll('[data-track-index]').forEach(box => {
-            const isPlaying = parseInt(box.dataset.trackIndex) === index;
+            const boxIndex = parseInt(box.dataset.trackIndex);
+            const isPlaying = boxIndex === index;
             box.dataset.isPlaying = isPlaying ? 'true' : 'false';
             box.classList.toggle('minimized-popup', isPlaying);
+
+            // Rewire pill icon for newly active box
+            const pillIcon = box.querySelector('.play-icon');
+            if (pillIcon) {
+              if (isPlaying && audio) {
+                pillIcon.innerHTML = '';
+                pillIcon.style.cssText = '';
+                if (box._cleanupIcon) { box._cleanupIcon(); box._cleanupIcon = null; }
+                const cleanup = mapController._attachPlayPauseIcon(pillIcon, audio, false);
+                box._cleanupIcon = cleanup;
+              } else {
+                // Reset to static play triangle for non-playing boxes
+                if (box._cleanupIcon) { box._cleanupIcon(); box._cleanupIcon = null; }
+                pillIcon.innerHTML = '';
+                pillIcon.style.cssText = '';
+                pillIcon.className = 'play-icon';
+              }
+            }
           });
+
+          // Create mini box for the old track if there was one playing
+          if (oldTrackIndex >= 0 && oldTrackIndex !== index) {
+            const oldTrack = this.audioData[oldTrackIndex];
+            const oldTrackInPicker = this.clusterPickerTracks && this.clusterPickerTracks.includes(oldTrackIndex);
+            if (oldTrack && !oldTrackInPicker) {
+              const oldCoords = [parseFloat(oldTrack.lng), parseFloat(oldTrack.lat)];
+              const oldPixel = map.project(oldCoords);
+              const oldMiniBox = uiController._createMiniInfoBox(oldTrack, oldTrackIndex, {
+                onPillClick: () => mapController.playAudio(oldTrackIndex, false, true, true),
+                onBodyClick: () => {
+                  if (oldMiniBox.parentNode) oldMiniBox.parentNode.removeChild(oldMiniBox);
+                  uiController.miniInfoBoxes = uiController.miniInfoBoxes.filter(b => b !== oldMiniBox);
+                  mapController.showPopup(oldCoords, oldTrack, audioController.currentAudio, oldTrackIndex, false, true);
+                },
+                isPlaying: false,
+                audio: null
+              });
+              oldMiniBox.style.position = 'absolute';
+              oldMiniBox.style.left = `${oldPixel.x + 10}px`;
+              oldMiniBox.style.top = `${oldPixel.y - 20}px`;
+              document.body.appendChild(oldMiniBox);
+              uiController.miniInfoBoxes.push(oldMiniBox);
+            }
+          }
+
           this.updateHeaderBadge(track, audio);
           setTimeout(() => { this.updateActiveTrack(index, false, audio); }, 50);
           return;
