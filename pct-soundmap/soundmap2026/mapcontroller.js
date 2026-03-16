@@ -321,12 +321,22 @@ class MapController {
               });
               
               if (allPickerPointsHidden) {
-                if (this.clusterPicker._moveHandler) {
-                  map.off('move', this.clusterPicker._moveHandler);
-                }
-                this.clusterPicker.remove();
-                this.clusterPicker = null;
-                this.clusterPickerTracks = null;
+                // Double-check with a second query to avoid false positives during rendering
+                setTimeout(() => {
+                  if (!this.clusterPicker) return;
+                  const recheck = map.queryRenderedFeatures({ layers: ['unclustered-point'] });
+                  const stillHidden = this.clusterPickerTracks.every(trackIndex => {
+                    const track = this.audioData[trackIndex];
+                    if (!track) return true;
+                    return !recheck.some(p => parseInt(p.properties.originalIndex) === track.originalIndex);
+                  });
+                  if (stillHidden) {
+                    if (this.clusterPicker._moveHandler) map.off('move', this.clusterPicker._moveHandler);
+                    this.clusterPicker.remove();
+                    this.clusterPicker = null;
+                    this.clusterPickerTracks = null;
+                  }
+                }, 300);
               }
             }
             
@@ -895,6 +905,7 @@ class MapController {
 
           const wasPreview = this.currentPopup?._preview === true;
           const clusterLeaves = this.currentPopup?._clusterLeaves || null;
+          console.log('[minimizePopup] clusterLeaves:', clusterLeaves, 'currentPopup:', this.currentPopup);
 
           // Remove the popup
           if (this.currentPopup) {
