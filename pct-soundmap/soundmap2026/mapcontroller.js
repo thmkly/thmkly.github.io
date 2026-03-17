@@ -248,6 +248,12 @@ class MapController {
             map.getSource('audio').getClusterExpansionZoom(clusterId, (err, zoom) => {
               if (err) return;
               
+              // Cancel any in-flight playAudio setTimeout to prevent stale showMiniInfoBoxes
+              if (this.animationTimeout) {
+                clearTimeout(this.animationTimeout);
+                this.animationTimeout = null;
+              }
+
               const bounds = new mapboxgl.LngLatBounds();
               leaves.forEach(leaf => bounds.extend(leaf.geometry.coordinates));
               
