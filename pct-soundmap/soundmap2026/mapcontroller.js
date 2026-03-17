@@ -413,6 +413,11 @@ class MapController {
             } else if (expectedBoxCount !== existingBoxCount) {
               uiController.clearMiniInfoBoxes();
               uiController.showMiniInfoBoxes(null, this.audioData);
+              // After drawing mini boxes, check for tight sub-groups among visible points
+              // and replace overlapping ones with a cluster picker
+              if (!this.clusterPicker) {
+                this.checkAndShowTightSubgroups(visiblePoints);
+              }
             } else {
               uiController.updateMiniInfoBoxPositions();
             }
@@ -1421,6 +1426,48 @@ class MapController {
         });
         
         return nearbyTracks;
+      }
+
+      // After a cluster breaks apart, check visible points for tight sub-groups.
+      // Any group of 2+ points within 50m of each other gets a cluster picker.
+      checkAndShowTightSubgroups(visiblePoints) {
+        const visited = new Set();
+
+        visiblePoints.forEach(point => {
+          const origIdx = parseInt(point.properties.originalIndex);
+          const idx = this.audioData.findIndex(t => t.originalIndex === origIdx);
+          if (idx === -1 || visited.has(idx)) return;
+
+          const nearby = this.getTracksInTightCluster(idx).filter(i => {
+            // Only include indices that are also currently visible as unclustered points
+            const track = this.audioData[i];
+            if (!track) return false;
+            return visiblePoints.some(p => parseInt(p.properties.originalIndex) === track.originalIndex);
+          });
+
+          if (nearby.length === 0) return;
+
+          // Found a tight sub-group — mark all as visited
+          const groupIndices = [idx, ...nearby];
+          groupIndices.forEach(i => visited.add(i));
+
+          // Build leaves array in the format showClusterPicker expects
+          const leaves = groupIndices.map(i => ({
+            geometry: { coordinates: [parseFloat(this.audioData[i].lng), parseFloat(this.audioData[i].lat)] },
+            properties: { originalIndex: this.audioData[i].originalIndex }
+          }));
+
+          // Remove any mini boxes for these tracks — picker replaces them
+          groupIndices.forEach(i => {
+            const box = uiController.miniInfoBoxes.find(b => parseInt(b.dataset.trackIndex) === i);
+            if (box) {
+              box.remove();
+              uiController.miniInfoBoxes = uiController.miniInfoBoxes.filter(b => b !== box);
+            }
+          });
+
+          this.showClusterPicker({ x: 0, y: 0 }, leaves, audioController.currentIndex);
+        });
       }
 
       updateClusterPickerHighlight(playingIndex) {
