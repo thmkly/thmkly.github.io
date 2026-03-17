@@ -392,6 +392,12 @@ class MapController {
               }
             }
             
+            // Detect tight sub-groups before counting expected boxes,
+            // so clusterPickerTracks is set and those tracks are excluded from expectedBoxCount
+            if (!this.clusterPicker) {
+              this.detectAndReserveTightSubgroups(visiblePoints);
+            }
+
             const existingBoxCount = uiController.miniInfoBoxes.length;
 
             // Count visible points that should have white boxes
@@ -408,16 +414,15 @@ class MapController {
             
             if (currentPointCount === 0) {
               uiController.clearMiniInfoBoxes();
+              this.clusterPickerTracks = null;
+              this._pendingSubgroupLeaves = null;
             } else if (currentPointCount >= 50) {
               uiController.clearMiniInfoBoxes();
-            } else if (expectedBoxCount !== existingBoxCount) {
-              // Detect tight sub-groups first so showMiniInfoBoxes skips them
-              if (!this.clusterPicker) {
-                this.detectAndReserveTightSubgroups(visiblePoints);
-              }
+              this.clusterPickerTracks = null;
+              this._pendingSubgroupLeaves = null;
+            } else if (expectedBoxCount !== existingBoxCount || this._pendingSubgroupLeaves) {
               uiController.clearMiniInfoBoxes();
               uiController.showMiniInfoBoxes(null, this.audioData);
-              // Now show picker for any reserved tight sub-group
               if (this._pendingSubgroupLeaves) {
                 this.showClusterPicker({ x: 0, y: 0 }, this._pendingSubgroupLeaves, audioController.currentIndex);
                 this._pendingSubgroupLeaves = null;
