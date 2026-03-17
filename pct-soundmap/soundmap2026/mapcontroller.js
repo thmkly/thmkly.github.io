@@ -319,7 +319,15 @@ class MapController {
           setTimeout(() => {
             if (this.isPositioning) return; // Skip during playback positioning
             
-            const visiblePoints = map.queryRenderedFeatures({ layers: ['unclustered-point'] });
+            // Deduplicate by originalIndex — Mapbox can return the same point multiple times at tile boundaries
+            const rawPoints = map.queryRenderedFeatures({ layers: ['unclustered-point'] });
+            const seenOriginal = new Set();
+            const visiblePoints = rawPoints.filter(p => {
+              const origIdx = parseInt(p.properties.originalIndex);
+              if (seenOriginal.has(origIdx)) return false;
+              seenOriginal.add(origIdx);
+              return true;
+            });
             const currentPointCount = visiblePoints.length;
             
             // If picker is open, check pixel distance between its points.
