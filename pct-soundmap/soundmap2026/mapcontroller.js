@@ -337,12 +337,27 @@ class MapController {
             });
             const currentPointCount = visiblePoints.length;
             
-            // If picker is open, check pixel distance between its points.
-            // Only dissolve when they're actually spread apart on screen (>30px apart).
+            // If picker is open, check whether to dissolve or close it
             if (this.clusterPicker && this.clusterPickerTracks) {
               const pickerTracks = this.clusterPickerTracks
                 .map(i => this.audioData[i])
                 .filter(Boolean);
+
+              // Check if picker points have been re-clustered (zoom out case)
+              const anyPickerPointVisible = pickerTracks.some(t =>
+                visiblePoints.some(p => parseInt(p.properties.originalIndex) === t.originalIndex)
+              );
+
+              if (!anyPickerPointVisible) {
+                // Points are clustered again — close picker cleanly
+                if (this.clusterPicker._moveHandler) map.off('move', this.clusterPicker._moveHandler);
+                this.clusterPicker.remove();
+                this.clusterPicker = null;
+                this.clusterPickerTracks = null;
+                this.lastPickerLeaves = null;
+                uiController.clearMiniInfoBoxes();
+                return;
+              }
 
               // Get pixel positions for all picker tracks
               const positions = pickerTracks.map(t => 
