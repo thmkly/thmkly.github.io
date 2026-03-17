@@ -1438,38 +1438,53 @@ class MapController {
       }
 
       // Detect tight sub-groups among visible points before drawing mini boxes.
-      // Sets clusterPickerTracks so showMiniInfoBoxes skips them,
-      // and stores _pendingSubgroupLeaves for the picker to be shown after.
+      // Uses pixel distance so only truly overlapping points are grouped.
       detectAndReserveTightSubgroups(visiblePoints) {
         const visited = new Set();
+        const allPendingLeaves = [];
+        const allGroupIndices = [];
 
         for (const point of visiblePoints) {
           const origIdx = parseInt(point.properties.originalIndex);
           const idx = this.audioData.findIndex(t => t.originalIndex === origIdx);
           if (idx === -1 || visited.has(idx)) continue;
 
-          const nearby = this.getTracksInTightCluster(idx).filter(i => {
-            const track = this.audioData[i];
-            if (!track) return false;
-            return visiblePoints.some(p => parseInt(p.properties.originalIndex) === track.originalIndex);
-          });
+          const track = this.audioData[idx];
+          const px = map.project([parseFloat(track.lng), parseFloat(track.lat)]);
+
+          // Find other visible points within 30px on screen
+          const nearby = [];
+          for (const other of visiblePoints) {
+            const otherOrigIdx = parseInt(other.properties.originalIndex);
+            const otherIdx = this.audioData.findIndex(t => t.originalIndex === otherOrigIdx);
+            if (otherIdx === -1 || otherIdx === idx || visited.has(otherIdx)) continue;
+            const otherTrack = this.audioData[otherIdx];
+            const otherPx = map.project([parseFloat(otherTrack.lng), parseFloat(otherTrack.lat)]);
+            const dx = px.x - otherPx.x;
+            const dy = px.y - otherPx.y;
+            if (Math.sqrt(dx*dx + dy*dy) <= 30) {
+              nearby.push(otherIdx);
+            }
+          }
 
           if (nearby.length === 0) continue;
 
           const groupIndices = [idx, ...nearby];
           groupIndices.forEach(i => visited.add(i));
+          allGroupIndices.push(...groupIndices);
 
-          // Reserve these tracks so showMiniInfoBoxes skips them
-          this.clusterPickerTracks = groupIndices;
-
-          // Store leaves for picker creation after showMiniInfoBoxes runs
-          this._pendingSubgroupLeaves = groupIndices.map(i => ({
+          allPendingLeaves.push(groupIndices.map(i => ({
             geometry: { coordinates: [parseFloat(this.audioData[i].lng), parseFloat(this.audioData[i].lat)] },
             properties: { originalIndex: this.audioData[i].originalIndex }
-          }));
+          })));
+        }
 
-          // Only handle one tight sub-group per pass for now
-          break;
+        if (allGroupIndices.length > 0) {
+          this.clusterPickerTracks = allGroupIndices;
+          this._pendingSubgroupLeaves = allPendingLeaves[0];
+        } else {
+          this.clusterPickerTracks = null;
+          this._pendingSubgroupLeaves = null;
         }
       }
 
