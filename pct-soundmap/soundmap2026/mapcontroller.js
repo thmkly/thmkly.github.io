@@ -237,6 +237,7 @@ class MapController {
                 this.clusterPicker.remove();
                 this.clusterPicker = null;
                 this.clusterPickerTracks = null;
+                this.lastPickerLeaves = null;
                 return;
               }
               this.showClusterPicker(e.point, leaves, audioController.currentIndex);
@@ -358,6 +359,7 @@ class MapController {
                 this.clusterPicker.remove();
                 this.clusterPicker = null;
                 this.clusterPickerTracks = null;
+                this.lastPickerLeaves = null;
                 uiController.clearMiniInfoBoxes();
                 uiController.showMiniInfoBoxes(null, this.audioData);
                 return;
@@ -403,7 +405,15 @@ class MapController {
             // Detect tight sub-groups before counting expected boxes,
             // so clusterPickerTracks is set and those tracks are excluded from expectedBoxCount
             if (!this.clusterPicker) {
+              this.clusterPickerTracks = null; // Reset before detection for clean slate
               this.detectAndReserveTightSubgroups(visiblePoints);
+            } else {
+              // Picker is open — ensure clusterPickerTracks is still valid
+              if (!this.clusterPickerTracks) {
+                this.clusterPickerTracks = Array.from(
+                  this.clusterPicker.querySelectorAll('[data-track-index]')
+                ).map(b => parseInt(b.dataset.trackIndex));
+              }
             }
 
             const existingBoxCount = uiController.miniInfoBoxes.length;
