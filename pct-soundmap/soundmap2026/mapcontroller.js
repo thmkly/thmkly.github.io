@@ -472,6 +472,52 @@ class MapController {
           }, 150); // Increased delay for rendering
         });
 
+        // Catch cases where points appear without map movement (e.g. initial load, after flyTo)
+        map.on('idle', () => {
+          if (this.isPositioning) return;
+
+          const rawIdle = map.queryRenderedFeatures({ layers: ['unclustered-point'] });
+          const seenIdle = new Set();
+          const idlePoints = rawIdle.filter(p => {
+            const origIdx = parseInt(p.properties.originalIndex);
+            if (seenIdle.has(origIdx)) return false;
+            seenIdle.add(origIdx);
+            return true;
+          });
+
+          if (idlePoints.length === 0 || idlePoints.length >= 50) return;
+
+          // Skip if picker is open and stable
+          if (this.clusterPicker && this.clusterPickerTracks) return;
+
+          const existingBoxCount = uiController.miniInfoBoxes.length;
+          const expectedCount = idlePoints.filter(p => {
+            const origIdx = parseInt(p.properties.originalIndex);
+            const idx = this.audioData.findIndex(t => t.originalIndex === origIdx);
+            if (idx === -1) return false;
+            if (this.clusterPickerTracks && this.clusterPickerTracks.includes(idx)) return false;
+            if (idx === audioController.currentIndex && (this.currentPopup || this.minimizedPopup)) return false;
+            if (this.currentPopup && parseInt(this.currentPopup._container?.dataset?.trackIndex) === idx) return false;
+            return true;
+          }).length;
+
+          if (expectedCount !== existingBoxCount) {
+            setTimeout(() => {
+              if (this.isPositioning) return;
+              this.clusterPickerTracks = null;
+              this.detectAndReserveTightSubgroups(
+                map.queryRenderedFeatures({ layers: ['unclustered-point'] })
+              );
+              uiController.clearMiniInfoBoxes();
+              uiController.showMiniInfoBoxes(null, this.audioData);
+              if (this._pendingSubgroupLeaves) {
+                this.showClusterPicker({ x: 0, y: 0 }, this._pendingSubgroupLeaves, audioController.currentIndex);
+                this._pendingSubgroupLeaves = null;
+              }
+            }, 150);
+          }
+        });
+
         document.addEventListener('fullscreenchange', () => {
           uiController.isFullscreen = !!document.fullscreenElement;
           const btn = document.getElementById('fullscreenBtn');
