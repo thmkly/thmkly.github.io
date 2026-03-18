@@ -323,6 +323,7 @@ class MapController {
           // Small delay to ensure points are fully rendered after cluster breaks
           setTimeout(() => {
             if (this.isPositioning) return;
+            const raw = map.queryRenderedFeatures({ layers: ['unclustered-point'] });
             const seen = new Set();
             const visiblePoints = raw.filter(p => {
               const origIdx = parseInt(p.properties.originalIndex);
@@ -331,24 +332,25 @@ class MapController {
               return true;
             });
 
-            // If picker is open — close only when a cluster bubble covers those points
+            // If picker is open — close only when a cluster bubble appears near it
             if (this.clusterPicker && this.clusterPickerTracks) {
               const pickerTracks = this.clusterPickerTracks.map(i => this.audioData[i]).filter(Boolean);
               if (!pickerTracks.length) {
-                uiController.updateMiniInfoBoxPositions();
+                this.refreshMiniBoxes();
                 return;
               }
 
-              // Check if a cluster bubble exists near the picker's coordinates
-              const pickerCoords = [parseFloat(pickerTracks[0].lng), parseFloat(pickerTracks[0].lat)];
-              const pickerPx = map.project(pickerCoords);
+              // Use picker's current screen position to check for nearby cluster bubbles
+              const pickerRect = this.clusterPicker.getBoundingClientRect();
+              const pickerCenterX = pickerRect.left + pickerRect.width / 2;
+              const pickerCenterY = pickerRect.top + pickerRect.height / 2;
+              const pad = 80;
               const nearbyClusters = map.queryRenderedFeatures(
-                [[pickerPx.x - 60, pickerPx.y - 60], [pickerPx.x + 60, pickerPx.y + 60]],
+                [[pickerCenterX - pad, pickerCenterY - pad], [pickerCenterX + pad, pickerCenterY + pad]],
                 { layers: ['clusters'] }
               );
 
               if (nearbyClusters.length > 0) {
-                // A cluster bubble is covering this area — close picker
                 if (this.clusterPicker._moveHandler) map.off('move', this.clusterPicker._moveHandler);
                 this.clusterPicker.remove();
                 this.clusterPicker = null;
@@ -357,7 +359,7 @@ class MapController {
                 return;
               }
 
-              // Picker still valid — reposition mini boxes and return
+              // Picker still valid — just update positions, don't redraw
               uiController.updateMiniInfoBoxPositions();
               return;
             }
@@ -1412,15 +1414,7 @@ class MapController {
 
       // Detect tight sub-groups among visible points before drawing mini boxes.
       // Uses pixel distance so only truly overlapping points are grouped.
-      // Single entry point for all mini box redraws.
-      // Handles deduplication, tight subgroup detection, and picker guards.
       refreshMiniBoxes() {
-        // Never touch anything while picker is open and stable
-        if (this.clusterPicker) {
-          uiController.updateMiniInfoBoxPositions();
-          return;
-        }
-
         const raw = map.queryRenderedFeatures({ layers: ['unclustered-point'] });
         const seen = new Set();
         const points = raw.filter(p => {
@@ -1433,12 +1427,21 @@ class MapController {
         const count = points.length;
         if (count === 0 || count >= 50) {
           uiController.clearMiniInfoBoxes();
-          this.clusterPickerTracks = null;
-          this._pendingSubgroupLeaves = null;
+          if (!this.clusterPicker) {
+            this.clusterPickerTracks = null;
+            this._pendingSubgroupLeaves = null;
+          }
           return;
         }
 
-        // Detect tight subgroups — sets clusterPickerTracks and _pendingSubgroupLeaves
+        // If picker is open, just update positions — don't redraw
+        if (this.clusterPicker) {
+          uiController.updateMiniInfoBoxPositions();
+          this.updateBadgeVisibility();
+          return;
+        }
+
+        // No picker — detect subgroups, draw all boxes
         this.clusterPickerTracks = null;
         this.detectAndReserveTightSubgroups(points);
 
