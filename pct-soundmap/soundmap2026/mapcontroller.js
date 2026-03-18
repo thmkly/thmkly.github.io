@@ -1373,41 +1373,32 @@ class MapController {
             return;
           }
 
-          console.log('[updateMapUI] picker stable, evaluating closure. points visible:', points.length);
           const pickerTracks = this.clusterPickerTracks.map(i => this.audioData[i]).filter(Boolean);
+          const pickerOriginalIndices = pickerTracks.map(t => t.originalIndex);
+          const allOriginalIndices = points.map(p => parseInt(p.properties.originalIndex));
+          console.log('[updateMapUI] zoom:', map.getZoom().toFixed(2), 'picker originals:', pickerOriginalIndices, 'visible originals:', allOriginalIndices);
 
-          const zoom = map.getZoom();
-
-          // Close picker if zoomed out past cluster threshold
-          if (zoom < 14) {
-            console.log('[updateMapUI] zoom', zoom.toFixed(1), '< 14 — closing picker');
+          // Only dissolve picker if points have spread apart on screen
+          const positions = pickerTracks.map(t =>
+            map.project([parseFloat(t.lng), parseFloat(t.lat)])
+          );
+          let maxDist = 0;
+          for (let i = 0; i < positions.length; i++) {
+            for (let j = i + 1; j < positions.length; j++) {
+              const dx = positions[i].x - positions[j].x;
+              const dy = positions[i].y - positions[j].y;
+              maxDist = Math.max(maxDist, Math.sqrt(dx*dx + dy*dy));
+            }
+          }
+          console.log('[updateMapUI] picker maxDist:', maxDist.toFixed(1));
+          if (maxDist > 40) {
+            console.log('[updateMapUI] picker dissolved — points spread apart');
             if (this.clusterPicker._moveHandler) map.off('move', this.clusterPicker._moveHandler);
             this.clusterPicker.remove();
             this.clusterPicker = null;
             this.clusterPickerTracks = null;
-          } else {
-            // Check pixel distance for dissolution (zoomed in, points spread apart)
-            const positions = pickerTracks.map(t =>
-              map.project([parseFloat(t.lng), parseFloat(t.lat)])
-            );
-            let maxDist = 0;
-            for (let i = 0; i < positions.length; i++) {
-              for (let j = i + 1; j < positions.length; j++) {
-                const dx = positions[i].x - positions[j].x;
-                const dy = positions[i].y - positions[j].y;
-                maxDist = Math.max(maxDist, Math.sqrt(dx*dx + dy*dy));
-              }
-            }
-            console.log('[updateMapUI] zoom', zoom.toFixed(1), 'picker maxDist:', maxDist.toFixed(1));
-            if (maxDist > 40) {
-              console.log('[updateMapUI] picker dissolved — points spread apart');
-              if (this.clusterPicker._moveHandler) map.off('move', this.clusterPicker._moveHandler);
-              this.clusterPicker.remove();
-              this.clusterPicker = null;
-              this.clusterPickerTracks = null;
-            }
-            // else picker stays open
           }
+          // else picker stays open
         }
 
         // ── Step 2: Draw mini boxes ──────────────────────────────────────────
