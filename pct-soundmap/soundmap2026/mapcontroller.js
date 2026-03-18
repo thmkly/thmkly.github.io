@@ -340,42 +340,17 @@ class MapController {
                 return;
               }
 
-              // Project picker's first track to screen coordinates and check for a cluster bubble there
-              const t = pickerTracks[0];
-              const px = map.project([parseFloat(t.lng), parseFloat(t.lat)]);
-              const pad = 40;
-              const clustersAtPoint = map.queryRenderedFeatures(
-                [[px.x - pad, px.y - pad], [px.x + pad, px.y + pad]],
-                { layers: ['clusters'] }
+              // If picker's points are no longer visible as unclustered points, close the picker
+              const allPickerPointsClustered = pickerTracks.every(t =>
+                !visiblePoints.some(p => parseInt(p.properties.originalIndex) === t.originalIndex)
               );
-
-              if (clustersAtPoint.length > 0) {
-                // Verify the cluster actually contains the picker's tracks
-                const clusterContainsPickerTrack = clustersAtPoint.some(cluster => {
-                  const clusterId = cluster.properties.cluster_id;
-                  const pointCount = cluster.properties.point_count;
-                  if (!clusterId) return false;
-                  // Check synchronously via source if any picker track is in this cluster
-                  let found = false;
-                  map.getSource('audio').getClusterLeaves(clusterId, pointCount, 0, (err, leaves) => {
-                    if (err || !leaves) return;
-                    const leafOriginalIndices = leaves.map(l => parseInt(l.properties.originalIndex));
-                    found = this.clusterPickerTracks.some(trackIdx => {
-                      const track = this.audioData[trackIdx];
-                      return track && leafOriginalIndices.includes(track.originalIndex);
-                    });
-                  });
-                  return found;
-                });
-
-                if (clusterContainsPickerTrack) {
-                  if (this.clusterPicker._moveHandler) map.off('move', this.clusterPicker._moveHandler);
-                  this.clusterPicker.remove();
-                  this.clusterPicker = null;
-                  this.clusterPickerTracks = null;
-                  this.refreshMiniBoxes();
-                  return;
-                }
+              if (allPickerPointsClustered) {
+                if (this.clusterPicker._moveHandler) map.off('move', this.clusterPicker._moveHandler);
+                this.clusterPicker.remove();
+                this.clusterPicker = null;
+                this.clusterPickerTracks = null;
+                this.refreshMiniBoxes();
+                return;
               }
 
               // Check if picker points have spread apart enough to dissolve
@@ -390,7 +365,7 @@ class MapController {
                   maxDist = Math.max(maxDist, Math.sqrt(dx*dx + dy*dy));
                 }
               }
-              if (maxDist > 30) {
+              if (maxDist > 40) {
                 // Points have spread — dissolve picker into individual mini boxes
                 if (this.clusterPicker._moveHandler) map.off('move', this.clusterPicker._moveHandler);
                 this.clusterPicker.remove();
@@ -1521,7 +1496,7 @@ class MapController {
             const otherPx = map.project([parseFloat(otherTrack.lng), parseFloat(otherTrack.lat)]);
             const dx = px.x - otherPx.x;
             const dy = px.y - otherPx.y;
-            if (Math.sqrt(dx*dx + dy*dy) <= 30) {
+            if (Math.sqrt(dx*dx + dy*dy) <= 20) {
               nearby.push(otherIdx);
             }
           }
