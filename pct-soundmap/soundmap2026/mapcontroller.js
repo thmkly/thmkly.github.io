@@ -12,7 +12,6 @@ class MapController {
        this.hasInitiallyLoaded = false;
        this.clusterPicker = null; // Store active cluster picker
        this.clusterPickerTracks = null; // Store track indices in current picker [index1, index2, ...]
-       this.lastPickerLeaves = null; // Store last picker leaves for zoom-out resurrection
        this.setupMap();
      }
 
@@ -237,7 +236,6 @@ class MapController {
                 this.clusterPicker.remove();
                 this.clusterPicker = null;
                 this.clusterPickerTracks = null;
-                this.lastPickerLeaves = null;
                 return;
               }
               this.showClusterPicker(e.point, leaves, audioController.currentIndex);
@@ -325,8 +323,6 @@ class MapController {
           // Small delay to ensure points are fully rendered after cluster breaks
           setTimeout(() => {
             if (this.isPositioning) return;
-
-            const raw = map.queryRenderedFeatures({ layers: ['unclustered-point'] });
             const seen = new Set();
             const visiblePoints = raw.filter(p => {
               const origIdx = parseInt(p.properties.originalIndex);
@@ -335,72 +331,27 @@ class MapController {
               return true;
             });
 
-            // If picker is open — only check dissolution/re-clustering, nothing else
+            // If picker is open — only close when points have re-clustered into a bubble
             if (this.clusterPicker && this.clusterPickerTracks) {
               const pickerTracks = this.clusterPickerTracks.map(i => this.audioData[i]).filter(Boolean);
 
-              // Zoom out: points re-clustered — close picker
               const anyVisible = pickerTracks.some(t =>
                 visiblePoints.some(p => parseInt(p.properties.originalIndex) === t.originalIndex)
               );
+
               if (!anyVisible) {
+                // Points re-clustered — close picker
                 if (this.clusterPicker._moveHandler) map.off('move', this.clusterPicker._moveHandler);
                 this.clusterPicker.remove();
                 this.clusterPicker = null;
                 this.clusterPickerTracks = null;
-                this.lastPickerLeaves = null;
                 this.refreshMiniBoxes();
                 return;
               }
 
-              // Zoom in: points spread apart — dissolve to mini boxes
-              const positions = pickerTracks.map(t => map.project([parseFloat(t.lng), parseFloat(t.lat)]));
-              let maxDist = 0;
-              for (let i = 0; i < positions.length; i++)
-                for (let j = i + 1; j < positions.length; j++) {
-                  const dx = positions[i].x - positions[j].x;
-                  const dy = positions[i].y - positions[j].y;
-                  maxDist = Math.max(maxDist, Math.sqrt(dx*dx + dy*dy));
-                }
-              if (maxDist > 30) {
-                if (this.clusterPicker._moveHandler) map.off('move', this.clusterPicker._moveHandler);
-                this.clusterPicker.remove();
-                this.clusterPicker = null;
-                this.clusterPickerTracks = null;
-                this.lastPickerLeaves = null;
-                this.refreshMiniBoxes();
-                return;
-              }
-
-              // Picker stable — just reposition mini boxes and return
+              // Picker still valid — reposition mini boxes and return, nothing else
               uiController.updateMiniInfoBoxPositions();
               return;
-            }
-
-            // No picker — check resurrection then refresh
-            if (this.lastPickerLeaves) {
-              const leaves = this.lastPickerLeaves;
-              const leafIndices = leaves.map(leaf =>
-                this.audioData.findIndex(t => t.originalIndex === parseInt(leaf.properties.originalIndex))
-              );
-              const positions = leafIndices.map(i => this.audioData[i]).filter(Boolean)
-                .map(t => map.project([parseFloat(t.lng), parseFloat(t.lat)]));
-              let maxDist = 0;
-              for (let i = 0; i < positions.length; i++)
-                for (let j = i + 1; j < positions.length; j++) {
-                  const dx = positions[i].x - positions[j].x;
-                  const dy = positions[i].y - positions[j].y;
-                  maxDist = Math.max(maxDist, Math.sqrt(dx*dx + dy*dy));
-                }
-              if (maxDist <= 30) {
-                const anyPopupOpen = this.currentPopup &&
-                  leafIndices.includes(parseInt(this.currentPopup._container?.dataset?.trackIndex));
-                if (!anyPopupOpen) {
-                  this.showClusterPicker({ x: 0, y: 0 }, leaves, audioController.currentIndex);
-                  this.refreshMiniBoxes();
-                  return;
-                }
-              }
             }
 
             this.refreshMiniBoxes();
@@ -1640,7 +1591,6 @@ class MapController {
         });
         
         this.clusterPicker = picker;
-        this.lastPickerLeaves = leaves;
         document.body.appendChild(picker);
         this.updateBadgeVisibility();
       }
