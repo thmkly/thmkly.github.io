@@ -331,16 +331,24 @@ class MapController {
               return true;
             });
 
-            // If picker is open — only close when points have re-clustered into a bubble
+            // If picker is open — close only when a cluster bubble covers those points
             if (this.clusterPicker && this.clusterPickerTracks) {
               const pickerTracks = this.clusterPickerTracks.map(i => this.audioData[i]).filter(Boolean);
+              if (!pickerTracks.length) {
+                uiController.updateMiniInfoBoxPositions();
+                return;
+              }
 
-              const anyVisible = pickerTracks.some(t =>
-                visiblePoints.some(p => parseInt(p.properties.originalIndex) === t.originalIndex)
+              // Check if a cluster bubble exists near the picker's coordinates
+              const pickerCoords = [parseFloat(pickerTracks[0].lng), parseFloat(pickerTracks[0].lat)];
+              const pickerPx = map.project(pickerCoords);
+              const nearbyClusters = map.queryRenderedFeatures(
+                [[pickerPx.x - 60, pickerPx.y - 60], [pickerPx.x + 60, pickerPx.y + 60]],
+                { layers: ['clusters'] }
               );
 
-              if (!anyVisible) {
-                // Points re-clustered — close picker
+              if (nearbyClusters.length > 0) {
+                // A cluster bubble is covering this area — close picker
                 if (this.clusterPicker._moveHandler) map.off('move', this.clusterPicker._moveHandler);
                 this.clusterPicker.remove();
                 this.clusterPicker = null;
@@ -349,7 +357,7 @@ class MapController {
                 return;
               }
 
-              // Picker still valid — reposition mini boxes and return, nothing else
+              // Picker still valid — reposition mini boxes and return
               uiController.updateMiniInfoBoxPositions();
               return;
             }
