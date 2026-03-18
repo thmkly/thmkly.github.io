@@ -338,11 +338,8 @@ class MapController {
         map.on('wheel', () => { this._lastInteraction = Date.now(); });
 
         map.on('idle', () => {
-          // idle fires when map is fully rendered and stable — safe to query features
           if (this.isPositioning) return;
-          // Don't run while user is actively interacting or too soon after
           if (this._interactionActive) return;
-          if (this._lastInteraction && Date.now() - this._lastInteraction < 500) return;
           this.updateMapUI();
         });
 
@@ -1365,6 +1362,15 @@ class MapController {
         // ── Step 1: Determine picker state ──────────────────────────────────
 
         if (this.clusterPicker && this.clusterPickerTracks) {
+          // Don't close picker until it has had time to stabilize
+          if (!this._pickerStable) {
+            // Just draw mini boxes for other points and return
+            uiController.clearMiniInfoBoxes();
+            uiController.showMiniInfoBoxes(null, this.audioData, points);
+            this.updateBadgeVisibility();
+            return;
+          }
+
           const pickerTracks = this.clusterPickerTracks.map(i => this.audioData[i]).filter(Boolean);
 
           // 1a. Picker points gone from unclustered — absorbed into cluster bubble
@@ -1502,6 +1508,13 @@ class MapController {
           this.clusterPicker.remove();
           this.clusterPicker = null;
         }
+
+        // Mark picker as unstable until it's had time to establish
+        this._pickerStable = false;
+        if (this._pickerStabilityTimer) clearTimeout(this._pickerStabilityTimer);
+        this._pickerStabilityTimer = setTimeout(() => {
+          this._pickerStable = true;
+        }, 800);
         
         const coords = leaves[0].geometry.coordinates;
         
