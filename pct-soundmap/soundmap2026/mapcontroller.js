@@ -332,7 +332,7 @@ class MapController {
               return true;
             });
 
-            // If picker is open — close only when a cluster bubble appears near it
+            // If picker is open — close only when its tracks get absorbed into a cluster bubble
             if (this.clusterPicker && this.clusterPickerTracks) {
               const pickerTracks = this.clusterPickerTracks.map(i => this.audioData[i]).filter(Boolean);
               if (!pickerTracks.length) {
@@ -340,17 +340,14 @@ class MapController {
                 return;
               }
 
-              // Use picker's current screen position to check for nearby cluster bubbles
-              const pickerRect = this.clusterPicker.getBoundingClientRect();
-              const pickerCenterX = pickerRect.left + pickerRect.width / 2;
-              const pickerCenterY = pickerRect.top + pickerRect.height / 2;
-              const pad = 80;
-              const nearbyClusters = map.queryRenderedFeatures(
-                [[pickerCenterX - pad, pickerCenterY - pad], [pickerCenterX + pad, pickerCenterY + pad]],
-                { layers: ['clusters'] }
+              // Check if picker tracks are no longer visible as unclustered points
+              const pickerOriginalIndices = new Set(pickerTracks.map(t => t.originalIndex));
+              const anyPickerPointVisible = visiblePoints.some(p =>
+                pickerOriginalIndices.has(parseInt(p.properties.originalIndex))
               );
 
-              if (nearbyClusters.length > 0) {
+              if (!anyPickerPointVisible) {
+                // Picker tracks have been clustered — close picker
                 if (this.clusterPicker._moveHandler) map.off('move', this.clusterPicker._moveHandler);
                 this.clusterPicker.remove();
                 this.clusterPicker = null;
@@ -359,7 +356,7 @@ class MapController {
                 return;
               }
 
-              // Picker still valid — just update positions, don't redraw
+              // Picker still valid — just update positions
               uiController.updateMiniInfoBoxPositions();
               return;
             }
