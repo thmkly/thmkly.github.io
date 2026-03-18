@@ -1409,10 +1409,34 @@ class MapController {
             // Points spread apart — dissolve into mini boxes
             console.log('[updateMapUI] picker dissolved — points spread apart');
             closePicker();
-          } else if (maxDist < 5 && map.getZoom() < 15) {
-            // Points are on top of each other AND we're zoomed out — they've reclustered
-            console.log('[updateMapUI] picker reclustered — closing');
-            closePicker();
+          } else {
+            // Check if points have been absorbed into a Mapbox cluster bubble
+            // Use async getClusterLeaves for reliable detection
+            const anchorTrack = pickerTracks[0];
+            if (anchorTrack) {
+              const px = map.project([parseFloat(anchorTrack.lng), parseFloat(anchorTrack.lat)]);
+              const pad = 60;
+              const nearbyClusters = map.queryRenderedFeatures(
+                [[px.x - pad, px.y - pad], [px.x + pad, px.y + pad]],
+                { layers: ['clusters'] }
+              );
+              if (nearbyClusters.length > 0) {
+                // Async verify: check if the cluster actually contains our picker tracks
+                const cluster = nearbyClusters[0];
+                const clusterId = cluster.properties.cluster_id;
+                const pointCount = cluster.properties.point_count;
+                map.getSource('audio').getClusterLeaves(clusterId, pointCount, 0, (err, leaves) => {
+                  if (err || !leaves || !this.clusterPicker) return;
+                  const leafOriginals = leaves.map(l => parseInt(l.properties.originalIndex));
+                  const pickerInCluster = pickerOriginalIndices.every(oi => leafOriginals.includes(oi));
+                  if (pickerInCluster) {
+                    console.log('[updateMapUI] picker points confirmed in cluster — closing');
+                    closePicker();
+                    this.updateMapUI();
+                  }
+                });
+              }
+            }
           }
           // else picker stays open
         }
