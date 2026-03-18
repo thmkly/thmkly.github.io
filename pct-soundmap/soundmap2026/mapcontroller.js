@@ -1386,7 +1386,7 @@ class MapController {
           }
 
           const zoomedIn = currentZoom > lastZoom;
-          const zoomedOutEnough = currentZoom < 14.5;
+          const zoomedOutEnough = currentZoom < 13.5;
 
           // Persist on zoom-in — picker stays regardless
           if (zoomedIn) {
