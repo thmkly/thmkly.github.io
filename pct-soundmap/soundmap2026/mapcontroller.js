@@ -334,7 +334,6 @@ class MapController {
 
             // If picker is open — close only when its tracks get absorbed into a cluster bubble
             if (this.clusterPicker && this.clusterPickerTracks) {
-              console.log('[moveend] picker open, clusterPickerTracks:', this.clusterPickerTracks);
               const pickerTracks = this.clusterPickerTracks.map(i => this.audioData[i]).filter(Boolean);
               if (!pickerTracks.length) {
                 this.refreshMiniBoxes();
@@ -384,7 +383,6 @@ class MapController {
               return;
             }
 
-            console.log('[moveend] fallthrough to refreshMiniBoxes. clusterPicker:', this.clusterPicker, 'clusterPickerTracks:', this.clusterPickerTracks);
             this.refreshMiniBoxes();
           }, 150); // Increased delay for rendering
         });
@@ -1436,7 +1434,6 @@ class MapController {
       // Detect tight sub-groups among visible points before drawing mini boxes.
       // Uses pixel distance so only truly overlapping points are grouped.
       refreshMiniBoxes() {
-        console.log('[refreshMiniBoxes] called. clusterPicker:', this.clusterPicker, 'stack:', new Error().stack.split('\n')[2]);
         const raw = map.queryRenderedFeatures({ layers: ['unclustered-point'] });
         const seen = new Set();
         const points = raw.filter(p => {
@@ -1456,9 +1453,10 @@ class MapController {
           return;
         }
 
-        // If picker is open, just update positions — don't redraw
+        // If picker is open, update positions but also redraw mini boxes for non-picker points
         if (this.clusterPicker) {
-          uiController.updateMiniInfoBoxPositions();
+          uiController.clearMiniInfoBoxes();
+          uiController.showMiniInfoBoxes(null, this.audioData, points);
           this.updateBadgeVisibility();
           return;
         }
@@ -1556,6 +1554,9 @@ class MapController {
         
         const updatePickerPosition = () => {
           const px = map.project(coords);
+          // Sanity check — don't position if projected coords are wildly off screen
+          if (px.x < -500 || px.x > window.innerWidth + 500 || 
+              px.y < -500 || px.y > window.innerHeight + 500) return;
           picker.style.left = `${px.x + 10}px`;
           picker.style.top  = `${px.y - 20}px`;
         };
