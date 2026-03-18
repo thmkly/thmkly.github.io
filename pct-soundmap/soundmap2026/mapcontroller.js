@@ -378,8 +378,30 @@ class MapController {
                 }
               }
 
-              // Picker still valid — just update positions
-              uiController.updateMiniInfoBoxPositions();
+              // Check if picker points have spread apart enough to dissolve
+              const pickerPositions = pickerTracks.map(t =>
+                map.project([parseFloat(t.lng), parseFloat(t.lat)])
+              );
+              let maxDist = 0;
+              for (let i = 0; i < pickerPositions.length; i++) {
+                for (let j = i + 1; j < pickerPositions.length; j++) {
+                  const dx = pickerPositions[i].x - pickerPositions[j].x;
+                  const dy = pickerPositions[i].y - pickerPositions[j].y;
+                  maxDist = Math.max(maxDist, Math.sqrt(dx*dx + dy*dy));
+                }
+              }
+              if (maxDist > 30) {
+                // Points have spread — dissolve picker into individual mini boxes
+                if (this.clusterPicker._moveHandler) map.off('move', this.clusterPicker._moveHandler);
+                this.clusterPicker.remove();
+                this.clusterPicker = null;
+                this.clusterPickerTracks = null;
+                this.refreshMiniBoxes();
+                return;
+              }
+
+              // Picker still valid — refresh mini boxes for other visible points
+              this.refreshMiniBoxes();
               return;
             }
 
