@@ -1436,6 +1436,7 @@ class MapController {
       // Detect tight sub-groups among visible points before drawing mini boxes.
       // Uses pixel distance so only truly overlapping points are grouped.
       refreshMiniBoxes() {
+        console.log('[refreshMiniBoxes] called. clusterPicker:', this.clusterPicker, 'stack:', new Error().stack.split('\n')[2]);
         const raw = map.queryRenderedFeatures({ layers: ['unclustered-point'] });
         const seen = new Set();
         const points = raw.filter(p => {
