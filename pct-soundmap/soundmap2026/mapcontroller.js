@@ -347,7 +347,6 @@ class MapController {
         map.on('idle', () => {
           if (this.isPositioning) return;
           if (this._interactionActive) return;
-          console.log('[idle] firing. pickerStable:', this._pickerStable, 'clusterPicker:', !!this.clusterPicker);
           this.updateMapUI();
         });
 
@@ -1356,6 +1355,11 @@ class MapController {
       // Single source of truth for all map UI state.
       // Called from idle (map fully stable, safe to query features).
       updateMapUI() {
+        const currentZoom = map.getZoom();
+        const lastZoom = this._lastZoom ?? currentZoom;
+        const zoomDelta = Math.abs(currentZoom - lastZoom);
+        this._lastZoom = currentZoom;
+
         const raw = map.queryRenderedFeatures({ layers: ['unclustered-point'] });
         const seen = new Set();
         const points = raw.filter(p => {
@@ -1370,10 +1374,9 @@ class MapController {
         // ── Step 1: Determine picker state ──────────────────────────────────
 
         if (this.clusterPicker && this.clusterPickerTracks) {
-          // Don't close picker until it has had time to stabilize
-          if (!this._pickerStable) {
-            console.log('[updateMapUI] picker not stable yet — protecting');
-            // Just draw mini boxes for other points and return
+
+          // Protect picker if zoom hasn't changed meaningfully — pan only, no closure checks
+          if (zoomDelta < 0.5) {
             uiController.clearMiniInfoBoxes();
             uiController.showMiniInfoBoxes(null, this.audioData, points);
             this.updateBadgeVisibility();
@@ -1382,8 +1385,6 @@ class MapController {
 
           const pickerTracks = this.clusterPickerTracks.map(i => this.audioData[i]).filter(Boolean);
           const pickerOriginalIndices = pickerTracks.map(t => t.originalIndex);
-          const allOriginalIndices = points.map(p => parseInt(p.properties.originalIndex));
-          console.log('[updateMapUI] zoom:', map.getZoom().toFixed(2), 'picker originals:', pickerOriginalIndices, 'visible originals:', allOriginalIndices);
 
           const positions = pickerTracks.map(t =>
             map.project([parseFloat(t.lng), parseFloat(t.lat)])
@@ -1396,7 +1397,6 @@ class MapController {
               maxDist = Math.max(maxDist, Math.sqrt(dx*dx + dy*dy));
             }
           }
-          console.log('[updateMapUI] picker maxDist:', maxDist.toFixed(1));
 
           const closePicker = () => {
             if (this.clusterPicker._moveHandler) map.off('move', this.clusterPicker._moveHandler);
@@ -1406,12 +1406,10 @@ class MapController {
           };
 
           if (maxDist > 40) {
-            // Points spread apart — dissolve into mini boxes
-            console.log('[updateMapUI] picker dissolved — points spread apart');
+            // Zoomed in enough — points spread apart, dissolve into mini boxes
             closePicker();
           } else {
-            // Check if points have been absorbed into a Mapbox cluster bubble
-            // Use async getClusterLeaves for reliable detection
+            // Zoomed out — check if points absorbed into a Mapbox cluster bubble
             const anchorTrack = pickerTracks[0];
             if (anchorTrack) {
               const px = map.project([parseFloat(anchorTrack.lng), parseFloat(anchorTrack.lat)]);
@@ -1421,24 +1419,24 @@ class MapController {
                 { layers: ['clusters'] }
               );
               if (nearbyClusters.length > 0) {
-                // Async verify: check if the cluster actually contains our picker tracks
                 const cluster = nearbyClusters[0];
-                const clusterId = cluster.properties.cluster_id;
-                const pointCount = cluster.properties.point_count;
-                map.getSource('audio').getClusterLeaves(clusterId, pointCount, 0, (err, leaves) => {
-                  if (err || !leaves || !this.clusterPicker) return;
-                  const leafOriginals = leaves.map(l => parseInt(l.properties.originalIndex));
-                  const pickerInCluster = pickerOriginalIndices.every(oi => leafOriginals.includes(oi));
-                  if (pickerInCluster) {
-                    console.log('[updateMapUI] picker points confirmed in cluster — closing');
-                    closePicker();
-                    this.updateMapUI();
+                map.getSource('audio').getClusterLeaves(
+                  cluster.properties.cluster_id,
+                  cluster.properties.point_count,
+                  0,
+                  (err, leaves) => {
+                    if (err || !leaves || !this.clusterPicker) return;
+                    const leafOriginals = leaves.map(l => parseInt(l.properties.originalIndex));
+                    const pickerInCluster = pickerOriginalIndices.every(oi => leafOriginals.includes(oi));
+                    if (pickerInCluster) {
+                      closePicker();
+                      this.updateMapUI();
+                    }
                   }
-                });
+                );
               }
             }
           }
-          // else picker stays open
         }
 
         // ── Step 2: Draw mini boxes ──────────────────────────────────────────
@@ -1451,7 +1449,6 @@ class MapController {
 
         if (this.clusterPicker) {
           // Picker open — draw mini boxes for non-picker points only
-          // (clusterPickerTracks exclusion handled inside showMiniInfoBoxes)
           uiController.clearMiniInfoBoxes();
           uiController.showMiniInfoBoxes(null, this.audioData, points);
           this.updateBadgeVisibility();
@@ -1542,13 +1539,6 @@ class MapController {
           this.clusterPicker.remove();
           this.clusterPicker = null;
         }
-
-        // Mark picker as unstable until it's had time to establish
-        this._pickerStable = false;
-        if (this._pickerStabilityTimer) clearTimeout(this._pickerStabilityTimer);
-        this._pickerStabilityTimer = setTimeout(() => {
-          this._pickerStable = true;
-        }, 800);
         
         const coords = leaves[0].geometry.coordinates;
         
