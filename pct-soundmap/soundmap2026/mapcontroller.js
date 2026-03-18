@@ -1376,18 +1376,17 @@ class MapController {
           console.log('[updateMapUI] picker stable, evaluating closure. points visible:', points.length);
           const pickerTracks = this.clusterPickerTracks.map(i => this.audioData[i]).filter(Boolean);
 
-          // 1a. Picker points gone from unclustered — absorbed into cluster bubble
-          const pickerPointsVisible = pickerTracks.filter(t =>
-            points.some(p => parseInt(p.properties.originalIndex) === t.originalIndex)
-          );
-          if (pickerPointsVisible.length === 0) {
-            console.log('[updateMapUI] picker points all clustered — closing picker');
+          const zoom = map.getZoom();
+
+          // Close picker if zoomed out past cluster threshold
+          if (zoom < 14) {
+            console.log('[updateMapUI] zoom', zoom.toFixed(1), '< 14 — closing picker');
             if (this.clusterPicker._moveHandler) map.off('move', this.clusterPicker._moveHandler);
             this.clusterPicker.remove();
             this.clusterPicker = null;
             this.clusterPickerTracks = null;
           } else {
-            // 1b. Check pixel distance — dissolve if spread apart
+            // Check pixel distance for dissolution (zoomed in, points spread apart)
             const positions = pickerTracks.map(t =>
               map.project([parseFloat(t.lng), parseFloat(t.lat)])
             );
@@ -1399,7 +1398,7 @@ class MapController {
                 maxDist = Math.max(maxDist, Math.sqrt(dx*dx + dy*dy));
               }
             }
-            console.log('[updateMapUI] picker maxDist:', maxDist.toFixed(1));
+            console.log('[updateMapUI] zoom', zoom.toFixed(1), 'picker maxDist:', maxDist.toFixed(1));
             if (maxDist > 40) {
               console.log('[updateMapUI] picker dissolved — points spread apart');
               if (this.clusterPicker._moveHandler) map.off('move', this.clusterPicker._moveHandler);
@@ -1407,7 +1406,7 @@ class MapController {
               this.clusterPicker = null;
               this.clusterPickerTracks = null;
             }
-            // else picker stays open — fall through to mini box drawing below
+            // else picker stays open
           }
         }
 
