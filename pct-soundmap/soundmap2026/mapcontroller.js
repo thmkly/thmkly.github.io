@@ -340,14 +340,17 @@ class MapController {
                 return;
               }
 
-              // Check if picker tracks are no longer visible as unclustered points
               const pickerOriginalIndices = new Set(pickerTracks.map(t => t.originalIndex));
               const anyPickerPointVisible = visiblePoints.some(p =>
                 pickerOriginalIndices.has(parseInt(p.properties.originalIndex))
               );
 
+              console.log('[picker check] anyVisible:', anyPickerPointVisible, 
+                'visiblePoints count:', visiblePoints.length,
+                'pickerOriginalIndices:', [...pickerOriginalIndices],
+                'visibleOriginalIndices:', visiblePoints.map(p => parseInt(p.properties.originalIndex)));
+
               if (!anyPickerPointVisible) {
-                // Picker tracks have been clustered — close picker
                 if (this.clusterPicker._moveHandler) map.off('move', this.clusterPicker._moveHandler);
                 this.clusterPicker.remove();
                 this.clusterPicker = null;
@@ -356,7 +359,6 @@ class MapController {
                 return;
               }
 
-              // Picker still valid — just update positions
               uiController.updateMiniInfoBoxPositions();
               return;
             }
