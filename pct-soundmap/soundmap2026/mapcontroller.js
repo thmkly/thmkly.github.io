@@ -1405,7 +1405,7 @@ class MapController {
             this.clusterPickerTracks = null;
           };
 
-          if (maxDist > 40) {
+          if (maxDist > 20) {
             // Zoomed in enough — points spread apart, dissolve into mini boxes
             closePicker();
           } else {
@@ -1557,7 +1557,9 @@ class MapController {
           if (px.x < -500 || px.x > window.innerWidth + 500 || 
               px.y < -500 || px.y > window.innerHeight + 500) return;
           picker.style.left = `${px.x + 10}px`;
-          picker.style.top  = `${px.y - 20}px`;
+          // Vertically center picker on its anchor point after DOM renders height
+          const h = picker.offsetHeight || 0;
+          picker.style.top  = `${px.y - (h / 2)}px`;
         };
         updatePickerPosition();
         picker._updatePosition = updatePickerPosition;
@@ -1625,6 +1627,8 @@ class MapController {
         
         this.clusterPicker = picker;
         document.body.appendChild(picker);
+        // Re-position now that height is known for accurate vertical centering
+        updatePickerPosition();
         this.updateBadgeVisibility();
       }
 
