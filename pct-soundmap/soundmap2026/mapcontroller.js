@@ -340,6 +340,7 @@ class MapController {
         map.on('idle', () => {
           if (this.isPositioning) return;
           if (this._interactionActive) return;
+          console.log('[idle] firing. pickerStable:', this._pickerStable, 'clusterPicker:', !!this.clusterPicker);
           this.updateMapUI();
         });
 
@@ -1364,6 +1365,7 @@ class MapController {
         if (this.clusterPicker && this.clusterPickerTracks) {
           // Don't close picker until it has had time to stabilize
           if (!this._pickerStable) {
+            console.log('[updateMapUI] picker not stable yet — protecting');
             // Just draw mini boxes for other points and return
             uiController.clearMiniInfoBoxes();
             uiController.showMiniInfoBoxes(null, this.audioData, points);
@@ -1371,6 +1373,7 @@ class MapController {
             return;
           }
 
+          console.log('[updateMapUI] picker stable, evaluating closure. points visible:', points.length);
           const pickerTracks = this.clusterPickerTracks.map(i => this.audioData[i]).filter(Boolean);
 
           // 1a. Picker points gone from unclustered — absorbed into cluster bubble
@@ -1378,7 +1381,7 @@ class MapController {
             points.some(p => parseInt(p.properties.originalIndex) === t.originalIndex)
           );
           if (pickerPointsVisible.length === 0) {
-            // All picker points clustered — close picker
+            console.log('[updateMapUI] picker points all clustered — closing picker');
             if (this.clusterPicker._moveHandler) map.off('move', this.clusterPicker._moveHandler);
             this.clusterPicker.remove();
             this.clusterPicker = null;
@@ -1396,8 +1399,9 @@ class MapController {
                 maxDist = Math.max(maxDist, Math.sqrt(dx*dx + dy*dy));
               }
             }
+            console.log('[updateMapUI] picker maxDist:', maxDist.toFixed(1));
             if (maxDist > 40) {
-              // Points spread apart — dissolve picker
+              console.log('[updateMapUI] picker dissolved — points spread apart');
               if (this.clusterPicker._moveHandler) map.off('move', this.clusterPicker._moveHandler);
               this.clusterPicker.remove();
               this.clusterPicker = null;
