@@ -1388,8 +1388,22 @@ class MapController {
           const zoomedIn = currentZoom > lastZoom;
           const zoomedOutEnough = currentZoom < 13.5;
 
-          // Persist on zoom-in — picker stays regardless
+          // Zoom-in: only dissolve if points have spread apart, otherwise persist
           if (zoomedIn) {
+            const positions = pickerTracks.map(t =>
+              map.project([parseFloat(t.lng), parseFloat(t.lat)])
+            );
+            let maxDist = 0;
+            for (let i = 0; i < positions.length; i++) {
+              for (let j = i + 1; j < positions.length; j++) {
+                const dx = positions[i].x - positions[j].x;
+                const dy = positions[i].y - positions[j].y;
+                maxDist = Math.max(maxDist, Math.sqrt(dx*dx + dy*dy));
+              }
+            }
+            if (maxDist > 20) {
+              closePicker();
+            }
             uiController.clearMiniInfoBoxes();
             uiController.showMiniInfoBoxes(null, this.audioData, points);
             this.updateBadgeVisibility();
