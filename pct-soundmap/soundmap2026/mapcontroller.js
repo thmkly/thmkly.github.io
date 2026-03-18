@@ -340,17 +340,17 @@ class MapController {
                 return;
               }
 
-              const pickerOriginalIndices = new Set(pickerTracks.map(t => t.originalIndex));
-              const anyPickerPointVisible = visiblePoints.some(p =>
-                pickerOriginalIndices.has(parseInt(p.properties.originalIndex))
+              // Project picker's first track to screen coordinates and check for a cluster bubble there
+              const t = pickerTracks[0];
+              const px = map.project([parseFloat(t.lng), parseFloat(t.lat)]);
+              const pad = 40;
+              const clustersAtPoint = map.queryRenderedFeatures(
+                [[px.x - pad, px.y - pad], [px.x + pad, px.y + pad]],
+                { layers: ['clusters'] }
               );
 
-              console.log('[picker check] anyVisible:', anyPickerPointVisible, 
-                'visiblePoints count:', visiblePoints.length,
-                'pickerOriginalIndices:', [...pickerOriginalIndices],
-                'visibleOriginalIndices:', visiblePoints.map(p => parseInt(p.properties.originalIndex)));
-
-              if (!anyPickerPointVisible) {
+              if (clustersAtPoint.length > 0) {
+                // A cluster bubble exists at the picker's location — close picker
                 if (this.clusterPicker._moveHandler) map.off('move', this.clusterPicker._moveHandler);
                 this.clusterPicker.remove();
                 this.clusterPicker = null;
@@ -359,6 +359,7 @@ class MapController {
                 return;
               }
 
+              // Picker still valid — just update positions
               uiController.updateMiniInfoBoxPositions();
               return;
             }
