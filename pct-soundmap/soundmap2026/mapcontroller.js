@@ -385,6 +385,10 @@ class MapController {
                 uiController.showMiniInfoBoxes(null, this.audioData);
                 return;
               }
+
+              // Picker is stable — just update mini box positions and return early
+              uiController.updateMiniInfoBoxPositions();
+              return;
             }
 
             // If no picker open but we have last picker leaves, check if points have
@@ -480,9 +484,9 @@ class MapController {
 
         map.on('idle', () => {
           if (this.isPositioning) return;
+          if (this.clusterPicker) return; // Never interfere while picker is open
 
           // Only fire if no user interaction in the last 500ms
-          // Prevents idle from triggering on every pan/drag
           if (this._lastInteraction && Date.now() - this._lastInteraction < 500) return;
 
           const rawIdle = map.queryRenderedFeatures({ layers: ['unclustered-point'] });
@@ -495,9 +499,6 @@ class MapController {
           });
 
           if (idlePoints.length === 0 || idlePoints.length >= 50) return;
-
-          // Skip if picker is open and stable
-          if (this.clusterPicker && this.clusterPickerTracks) return;
 
           const existingBoxCount = uiController.miniInfoBoxes.length;
           const expectedCount = idlePoints.filter(p => {
