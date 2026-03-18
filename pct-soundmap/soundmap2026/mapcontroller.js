@@ -340,15 +340,27 @@ class MapController {
                 return;
               }
 
-              // If picker's points are no longer visible as unclustered points, close the picker
+              // If picker's points are no longer visible as unclustered points,
+              // wait and recheck to avoid false positives during tile loading
               const allPickerPointsClustered = pickerTracks.every(t =>
                 !visiblePoints.some(p => parseInt(p.properties.originalIndex) === t.originalIndex)
               );
               if (allPickerPointsClustered) {
-                if (this.clusterPicker._moveHandler) map.off('move', this.clusterPicker._moveHandler);
-                this.clusterPicker.remove();
-                this.clusterPicker = null;
-                this.clusterPickerTracks = null;
+                setTimeout(() => {
+                  if (!this.clusterPicker || !this.clusterPickerTracks) return;
+                  const recheck = map.queryRenderedFeatures({ layers: ['unclustered-point'] });
+                  const stillClustered = pickerTracks.every(t =>
+                    !recheck.some(p => parseInt(p.properties.originalIndex) === t.originalIndex)
+                  );
+                  if (stillClustered) {
+                    if (this.clusterPicker._moveHandler) map.off('move', this.clusterPicker._moveHandler);
+                    this.clusterPicker.remove();
+                    this.clusterPicker = null;
+                    this.clusterPickerTracks = null;
+                    this.refreshMiniBoxes();
+                  }
+                }, 400);
+                // Don't close yet — wait for recheck
                 this.refreshMiniBoxes();
                 return;
               }
