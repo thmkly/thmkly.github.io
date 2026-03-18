@@ -1446,7 +1446,7 @@ class MapController {
         this.detectAndReserveTightSubgroups(points);
 
         uiController.clearMiniInfoBoxes();
-        uiController.showMiniInfoBoxes(null, this.audioData);
+        uiController.showMiniInfoBoxes(null, this.audioData, points);
 
         if (this._pendingSubgroupLeaves) {
           this.showClusterPicker({ x: 0, y: 0 }, this._pendingSubgroupLeaves, audioController.currentIndex);
