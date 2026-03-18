@@ -334,6 +334,7 @@ class MapController {
 
             // If picker is open — close only when its tracks get absorbed into a cluster bubble
             if (this.clusterPicker && this.clusterPickerTracks) {
+              console.log('[moveend] picker open, clusterPickerTracks:', this.clusterPickerTracks);
               const pickerTracks = this.clusterPickerTracks.map(i => this.audioData[i]).filter(Boolean);
               if (!pickerTracks.length) {
                 this.refreshMiniBoxes();
@@ -350,13 +351,32 @@ class MapController {
               );
 
               if (clustersAtPoint.length > 0) {
-                // A cluster bubble exists at the picker's location — close picker
-                if (this.clusterPicker._moveHandler) map.off('move', this.clusterPicker._moveHandler);
-                this.clusterPicker.remove();
-                this.clusterPicker = null;
-                this.clusterPickerTracks = null;
-                this.refreshMiniBoxes();
-                return;
+                // Verify the cluster actually contains the picker's tracks
+                const clusterContainsPickerTrack = clustersAtPoint.some(cluster => {
+                  const clusterId = cluster.properties.cluster_id;
+                  const pointCount = cluster.properties.point_count;
+                  if (!clusterId) return false;
+                  // Check synchronously via source if any picker track is in this cluster
+                  let found = false;
+                  map.getSource('audio').getClusterLeaves(clusterId, pointCount, 0, (err, leaves) => {
+                    if (err || !leaves) return;
+                    const leafOriginalIndices = leaves.map(l => parseInt(l.properties.originalIndex));
+                    found = this.clusterPickerTracks.some(trackIdx => {
+                      const track = this.audioData[trackIdx];
+                      return track && leafOriginalIndices.includes(track.originalIndex);
+                    });
+                  });
+                  return found;
+                });
+
+                if (clusterContainsPickerTrack) {
+                  if (this.clusterPicker._moveHandler) map.off('move', this.clusterPicker._moveHandler);
+                  this.clusterPicker.remove();
+                  this.clusterPicker = null;
+                  this.clusterPickerTracks = null;
+                  this.refreshMiniBoxes();
+                  return;
+                }
               }
 
               // Picker still valid — just update positions
@@ -364,6 +384,7 @@ class MapController {
               return;
             }
 
+            console.log('[moveend] fallthrough to refreshMiniBoxes. clusterPicker:', this.clusterPicker, 'clusterPickerTracks:', this.clusterPickerTracks);
             this.refreshMiniBoxes();
           }, 150); // Increased delay for rendering
         });
