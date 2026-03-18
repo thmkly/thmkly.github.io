@@ -230,13 +230,20 @@ class MapController {
                 if (clusterIndices.includes(popupTrackIndex)) return;
               }
 
-              // Toggle: if picker already open for this cluster, close it
-              if (this.clusterPicker) {
-                if (this.clusterPicker._moveHandler) map.off('move', this.clusterPicker._moveHandler);
-                this.clusterPicker.remove();
-                this.clusterPicker = null;
-                this.clusterPickerTracks = null;
-                return;
+              // Toggle: if picker already open for THIS cluster, close it
+              if (this.clusterPicker && this.clusterPickerTracks) {
+                const theseIndices = leaves.map(leaf =>
+                  this.audioData.findIndex(t => t.originalIndex === parseInt(leaf.properties.originalIndex))
+                );
+                const isSameCluster = theseIndices.every(i => this.clusterPickerTracks.includes(i)) &&
+                  theseIndices.length === this.clusterPickerTracks.length;
+                if (isSameCluster) {
+                  if (this.clusterPicker._moveHandler) map.off('move', this.clusterPicker._moveHandler);
+                  this.clusterPicker.remove();
+                  this.clusterPicker = null;
+                  this.clusterPickerTracks = null;
+                  return;
+                }
               }
               this.showClusterPicker(e.point, leaves, audioController.currentIndex);
               return;
@@ -1378,7 +1385,6 @@ class MapController {
           const allOriginalIndices = points.map(p => parseInt(p.properties.originalIndex));
           console.log('[updateMapUI] zoom:', map.getZoom().toFixed(2), 'picker originals:', pickerOriginalIndices, 'visible originals:', allOriginalIndices);
 
-          // Only dissolve picker if points have spread apart on screen
           const positions = pickerTracks.map(t =>
             map.project([parseFloat(t.lng), parseFloat(t.lat)])
           );
@@ -1391,12 +1397,22 @@ class MapController {
             }
           }
           console.log('[updateMapUI] picker maxDist:', maxDist.toFixed(1));
-          if (maxDist > 40) {
-            console.log('[updateMapUI] picker dissolved — points spread apart');
+
+          const closePicker = () => {
             if (this.clusterPicker._moveHandler) map.off('move', this.clusterPicker._moveHandler);
             this.clusterPicker.remove();
             this.clusterPicker = null;
             this.clusterPickerTracks = null;
+          };
+
+          if (maxDist > 40) {
+            // Points spread apart — dissolve into mini boxes
+            console.log('[updateMapUI] picker dissolved — points spread apart');
+            closePicker();
+          } else if (maxDist < 5 && map.getZoom() < 15) {
+            // Points are on top of each other AND we're zoomed out — they've reclustered
+            console.log('[updateMapUI] picker reclustered — closing');
+            closePicker();
           }
           // else picker stays open
         }
