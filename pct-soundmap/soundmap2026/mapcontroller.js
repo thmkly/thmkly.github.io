@@ -324,155 +324,86 @@ class MapController {
         map.on('moveend', () => {
           // Small delay to ensure points are fully rendered after cluster breaks
           setTimeout(() => {
-            if (this.isPositioning) return; // Skip during playback positioning
-            
-            // Deduplicate by originalIndex — Mapbox can return the same point multiple times at tile boundaries
-            const rawPoints = map.queryRenderedFeatures({ layers: ['unclustered-point'] });
-            const seenOriginal = new Set();
-            const visiblePoints = rawPoints.filter(p => {
+            if (this.isPositioning) return;
+
+            const raw = map.queryRenderedFeatures({ layers: ['unclustered-point'] });
+            const seen = new Set();
+            const visiblePoints = raw.filter(p => {
               const origIdx = parseInt(p.properties.originalIndex);
-              if (seenOriginal.has(origIdx)) return false;
-              seenOriginal.add(origIdx);
+              if (seen.has(origIdx)) return false;
+              seen.add(origIdx);
               return true;
             });
-            const currentPointCount = visiblePoints.length;
-            
-            // If picker is open, check whether to dissolve or close it
-            if (this.clusterPicker && this.clusterPickerTracks) {
-              const pickerTracks = this.clusterPickerTracks
-                .map(i => this.audioData[i])
-                .filter(Boolean);
 
-              // Check if picker points have been re-clustered (zoom out case)
-              const anyPickerPointVisible = pickerTracks.some(t =>
+            // If picker is open — only check dissolution/re-clustering, nothing else
+            if (this.clusterPicker && this.clusterPickerTracks) {
+              const pickerTracks = this.clusterPickerTracks.map(i => this.audioData[i]).filter(Boolean);
+
+              // Zoom out: points re-clustered — close picker
+              const anyVisible = pickerTracks.some(t =>
                 visiblePoints.some(p => parseInt(p.properties.originalIndex) === t.originalIndex)
               );
-
-              if (!anyPickerPointVisible) {
-                // Points are clustered again — close picker cleanly
+              if (!anyVisible) {
                 if (this.clusterPicker._moveHandler) map.off('move', this.clusterPicker._moveHandler);
                 this.clusterPicker.remove();
                 this.clusterPicker = null;
                 this.clusterPickerTracks = null;
                 this.lastPickerLeaves = null;
-                uiController.clearMiniInfoBoxes();
+                this.refreshMiniBoxes();
                 return;
               }
 
-              // Get pixel positions for all picker tracks
-              const positions = pickerTracks.map(t => 
-                map.project([parseFloat(t.lng), parseFloat(t.lat)])
-              );
-
-              // Find max pixel distance between any two points
+              // Zoom in: points spread apart — dissolve to mini boxes
+              const positions = pickerTracks.map(t => map.project([parseFloat(t.lng), parseFloat(t.lat)]));
               let maxDist = 0;
-              for (let i = 0; i < positions.length; i++) {
+              for (let i = 0; i < positions.length; i++)
                 for (let j = i + 1; j < positions.length; j++) {
                   const dx = positions[i].x - positions[j].x;
                   const dy = positions[i].y - positions[j].y;
                   maxDist = Math.max(maxDist, Math.sqrt(dx*dx + dy*dy));
                 }
-              }
-
-              // Dissolve picker when points are clearly separated
               if (maxDist > 30) {
                 if (this.clusterPicker._moveHandler) map.off('move', this.clusterPicker._moveHandler);
                 this.clusterPicker.remove();
                 this.clusterPicker = null;
                 this.clusterPickerTracks = null;
                 this.lastPickerLeaves = null;
-                uiController.clearMiniInfoBoxes();
-                uiController.showMiniInfoBoxes(null, this.audioData);
+                this.refreshMiniBoxes();
                 return;
               }
 
-              // Picker is stable — just update mini box positions and return early
+              // Picker stable — just reposition mini boxes and return
               uiController.updateMiniInfoBoxPositions();
               return;
             }
 
-            // If no picker open but we have last picker leaves, check if points have
-            // re-clustered — if so, resurrect the picker
-            if (!this.clusterPicker && this.lastPickerLeaves) {
+            // No picker — check resurrection then refresh
+            if (this.lastPickerLeaves) {
               const leaves = this.lastPickerLeaves;
               const leafIndices = leaves.map(leaf =>
                 this.audioData.findIndex(t => t.originalIndex === parseInt(leaf.properties.originalIndex))
               );
-
-              // Check pixel distance — if all points are close together again, restore picker
-              const positions = leafIndices
-                .map(i => this.audioData[i])
-                .filter(Boolean)
+              const positions = leafIndices.map(i => this.audioData[i]).filter(Boolean)
                 .map(t => map.project([parseFloat(t.lng), parseFloat(t.lat)]));
-
               let maxDist = 0;
-              for (let i = 0; i < positions.length; i++) {
+              for (let i = 0; i < positions.length; i++)
                 for (let j = i + 1; j < positions.length; j++) {
                   const dx = positions[i].x - positions[j].x;
                   const dy = positions[i].y - positions[j].y;
                   maxDist = Math.max(maxDist, Math.sqrt(dx*dx + dy*dy));
                 }
-              }
-
               if (maxDist <= 30) {
-                // Points are overlapping again — but only restore if no popup open for these tracks
-                const anyPopupOpen = this.currentPopup && 
+                const anyPopupOpen = this.currentPopup &&
                   leafIndices.includes(parseInt(this.currentPopup._container?.dataset?.trackIndex));
                 if (!anyPopupOpen) {
                   this.showClusterPicker({ x: 0, y: 0 }, leaves, audioController.currentIndex);
-                  uiController.clearMiniInfoBoxes();
-                  uiController.showMiniInfoBoxes(null, this.audioData);
+                  this.refreshMiniBoxes();
                   return;
                 }
               }
             }
-            
-            // Detect tight sub-groups before counting expected boxes,
-            // so clusterPickerTracks is set and those tracks are excluded from expectedBoxCount
-            if (!this.clusterPicker) {
-              this.clusterPickerTracks = null; // Reset before detection for clean slate
-              this.detectAndReserveTightSubgroups(visiblePoints);
-            } else {
-              // Picker is open — ensure clusterPickerTracks is still valid
-              if (!this.clusterPickerTracks) {
-                this.clusterPickerTracks = Array.from(
-                  this.clusterPicker.querySelectorAll('[data-track-index]')
-                ).map(b => parseInt(b.dataset.trackIndex));
-              }
-            }
 
-            const existingBoxCount = uiController.miniInfoBoxes.length;
-
-            // Count visible points that should have white boxes
-            // (exclude playing track with popup/minimized, preview popup track, cluster picker tracks)
-            const expectedBoxCount = visiblePoints.filter(p => {
-              const origIdx = parseInt(p.properties.originalIndex);
-              const idx = this.audioData.findIndex(t => t.originalIndex === origIdx);
-              if (idx === -1) return false;
-              if (this.clusterPickerTracks && this.clusterPickerTracks.includes(idx)) return false;
-              if (idx === audioController.currentIndex && (this.currentPopup || this.minimizedPopup)) return false;
-              if (this.currentPopup && parseInt(this.currentPopup._container?.dataset?.trackIndex) === idx) return false;
-              return true;
-            }).length;
-            
-            if (currentPointCount === 0) {
-              uiController.clearMiniInfoBoxes();
-              this.clusterPickerTracks = null;
-              this._pendingSubgroupLeaves = null;
-            } else if (currentPointCount >= 50) {
-              uiController.clearMiniInfoBoxes();
-              this.clusterPickerTracks = null;
-              this._pendingSubgroupLeaves = null;
-            } else if (expectedBoxCount !== existingBoxCount || this._pendingSubgroupLeaves) {
-              uiController.clearMiniInfoBoxes();
-              uiController.showMiniInfoBoxes(null, this.audioData);
-              if (this._pendingSubgroupLeaves) {
-                this.showClusterPicker({ x: 0, y: 0 }, this._pendingSubgroupLeaves, audioController.currentIndex);
-                this._pendingSubgroupLeaves = null;
-              }
-            } else {
-              uiController.updateMiniInfoBoxPositions();
-            }
+            this.refreshMiniBoxes();
           }, 150); // Increased delay for rendering
         });
 
@@ -515,16 +446,7 @@ class MapController {
             setTimeout(() => {
               if (this.isPositioning) return;
               if (this._lastInteraction && Date.now() - this._lastInteraction < 500) return;
-              this.clusterPickerTracks = null;
-              this.detectAndReserveTightSubgroups(
-                map.queryRenderedFeatures({ layers: ['unclustered-point'] })
-              );
-              uiController.clearMiniInfoBoxes();
-              uiController.showMiniInfoBoxes(null, this.audioData);
-              if (this._pendingSubgroupLeaves) {
-                this.showClusterPicker({ x: 0, y: 0 }, this._pendingSubgroupLeaves, audioController.currentIndex);
-                this._pendingSubgroupLeaves = null;
-              }
+              this.refreshMiniBoxes();
             }, 150);
           }
         });
@@ -1125,12 +1047,12 @@ class MapController {
                   })
                 ];
                 this.showClusterPicker({ x: 0, y: 0 }, leaves, index);
-                uiController.showMiniInfoBoxes(null, this.audioData);
+                this.refreshMiniBoxes();
                 this.updateBadgeVisibility();
               } else {
                 // State 3/4 or no tight cluster: Show normal popup
                 this.showPopup(coords, track, audio, index, shouldMinimize);
-                uiController.showMiniInfoBoxes(null, this.audioData);
+                this.refreshMiniBoxes();
                 this.updateBadgeVisibility();
               }
             }
@@ -1160,13 +1082,13 @@ class MapController {
           // (covers both playing and preview cases)
           if (clusterLeaves) {
             this.showClusterPicker({ x: 0, y: 0 }, clusterLeaves, audioController.currentIndex);
-            uiController.showMiniInfoBoxes(null, this.audioData);
+            this.refreshMiniBoxes();
             return;
           }
 
           // Preview popup (non-cluster): just redraw mini boxes naturally
           if (wasPreview) {
-            uiController.showMiniInfoBoxes(null, this.audioData);
+            this.refreshMiniBoxes();
             return;
           }
           
@@ -1191,7 +1113,7 @@ class MapController {
               })
             ];
             this.showClusterPicker({ x: 0, y: 0 }, leaves, index);
-            uiController.showMiniInfoBoxes(null, this.audioData);
+            this.refreshMiniBoxes();
             return; // Don't create regular mini box
           }
           
@@ -1319,7 +1241,6 @@ class MapController {
           body.addEventListener('click', () => {
             const coords = [parseFloat(track.lng), parseFloat(track.lat)];
             const trackIndex = audioController.currentIndex;
-            uiController.clearMiniInfoBoxes();
             this.positionMapForTrack(track, trackIndex);
             const movementDuration = this.getMovementDuration(track);
             setTimeout(() => {
@@ -1338,10 +1259,7 @@ class MapController {
               } else {
                 this.showPopup(coords, track, a, trackIndex, shouldMinimize);
               }
-              const visiblePoints = map.queryRenderedFeatures({ layers: ['unclustered-point'] });
-              if (visiblePoints.length > 0 && visiblePoints.length < 50) {
-                uiController.showMiniInfoBoxes(null, this.audioData);
-              }
+              this.refreshMiniBoxes();
             }, movementDuration + 100);
           });
 
@@ -1535,6 +1453,47 @@ class MapController {
 
       // Detect tight sub-groups among visible points before drawing mini boxes.
       // Uses pixel distance so only truly overlapping points are grouped.
+      // Single entry point for all mini box redraws.
+      // Handles deduplication, tight subgroup detection, and picker guards.
+      refreshMiniBoxes() {
+        // Never touch anything while picker is open and stable
+        if (this.clusterPicker) {
+          uiController.updateMiniInfoBoxPositions();
+          return;
+        }
+
+        const raw = map.queryRenderedFeatures({ layers: ['unclustered-point'] });
+        const seen = new Set();
+        const points = raw.filter(p => {
+          const origIdx = parseInt(p.properties.originalIndex);
+          if (seen.has(origIdx)) return false;
+          seen.add(origIdx);
+          return true;
+        });
+
+        const count = points.length;
+        if (count === 0 || count >= 50) {
+          uiController.clearMiniInfoBoxes();
+          this.clusterPickerTracks = null;
+          this._pendingSubgroupLeaves = null;
+          return;
+        }
+
+        // Detect tight subgroups — sets clusterPickerTracks and _pendingSubgroupLeaves
+        this.clusterPickerTracks = null;
+        this.detectAndReserveTightSubgroups(points);
+
+        uiController.clearMiniInfoBoxes();
+        uiController.showMiniInfoBoxes(null, this.audioData);
+
+        if (this._pendingSubgroupLeaves) {
+          this.showClusterPicker({ x: 0, y: 0 }, this._pendingSubgroupLeaves, audioController.currentIndex);
+          this._pendingSubgroupLeaves = null;
+        }
+
+        this.updateBadgeVisibility();
+      }
+
       detectAndReserveTightSubgroups(visiblePoints) {
         const visited = new Set();
         const allPendingLeaves = [];
