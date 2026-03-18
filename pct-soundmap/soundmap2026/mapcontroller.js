@@ -330,15 +330,19 @@ class MapController {
           this.updateBadgeVisibility();
         });
 
-        // Track last user interaction
-        map.on('mousedown', () => { this._lastInteraction = Date.now(); });
-        map.on('touchstart', () => { this._lastInteraction = Date.now(); });
+        // Track when user interaction ends (not starts) for accurate settling detection
+        map.on('mousedown', () => { this._interactionActive = true; });
+        map.on('touchstart', () => { this._interactionActive = true; });
+        map.on('mouseup', () => { this._interactionActive = false; this._lastInteraction = Date.now(); });
+        map.on('touchend', () => { this._interactionActive = false; this._lastInteraction = Date.now(); });
         map.on('wheel', () => { this._lastInteraction = Date.now(); });
 
         map.on('idle', () => {
           // idle fires when map is fully rendered and stable — safe to query features
           if (this.isPositioning) return;
-          if (this._lastInteraction && Date.now() - this._lastInteraction < 300) return;
+          // Don't run while user is actively interacting or too soon after
+          if (this._interactionActive) return;
+          if (this._lastInteraction && Date.now() - this._lastInteraction < 500) return;
           this.updateMapUI();
         });
 
