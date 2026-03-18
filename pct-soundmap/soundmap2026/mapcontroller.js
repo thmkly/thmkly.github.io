@@ -473,8 +473,17 @@ class MapController {
         });
 
         // Catch cases where points appear without map movement (e.g. initial load, after flyTo)
+        // Track last user interaction to suppress idle handler during active use
+        map.on('mousedown', () => { this._lastInteraction = Date.now(); });
+        map.on('touchstart', () => { this._lastInteraction = Date.now(); });
+        map.on('wheel', () => { this._lastInteraction = Date.now(); });
+
         map.on('idle', () => {
           if (this.isPositioning) return;
+
+          // Only fire if no user interaction in the last 500ms
+          // Prevents idle from triggering on every pan/drag
+          if (this._lastInteraction && Date.now() - this._lastInteraction < 500) return;
 
           const rawIdle = map.queryRenderedFeatures({ layers: ['unclustered-point'] });
           const seenIdle = new Set();
@@ -504,6 +513,7 @@ class MapController {
           if (expectedCount !== existingBoxCount) {
             setTimeout(() => {
               if (this.isPositioning) return;
+              if (this._lastInteraction && Date.now() - this._lastInteraction < 500) return;
               this.clusterPickerTracks = null;
               this.detectAndReserveTightSubgroups(
                 map.queryRenderedFeatures({ layers: ['unclustered-point'] })
