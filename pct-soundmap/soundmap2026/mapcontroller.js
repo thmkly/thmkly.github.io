@@ -320,124 +320,26 @@ class MapController {
         });
 
         map.on('moveend', () => {
-          // Small delay to ensure points are fully rendered after cluster breaks
-          setTimeout(() => {
-            if (this.isPositioning) return;
-            const raw = map.queryRenderedFeatures({ layers: ['unclustered-point'] });
-            const seen = new Set();
-            const visiblePoints = raw.filter(p => {
-              const origIdx = parseInt(p.properties.originalIndex);
-              if (seen.has(origIdx)) return false;
-              seen.add(origIdx);
-              return true;
-            });
-
-            // If picker is open — close only when its tracks get absorbed into a cluster bubble
-            if (this.clusterPicker && this.clusterPickerTracks) {
-              const pickerTracks = this.clusterPickerTracks.map(i => this.audioData[i]).filter(Boolean);
-              if (!pickerTracks.length) {
-                this.refreshMiniBoxes();
-                return;
-              }
-
-              // If picker's points are no longer visible as unclustered points,
-              // wait and recheck to avoid false positives during tile loading
-              const allPickerPointsClustered = pickerTracks.every(t =>
-                !visiblePoints.some(p => parseInt(p.properties.originalIndex) === t.originalIndex)
-              );
-              if (allPickerPointsClustered) {
-                setTimeout(() => {
-                  if (!this.clusterPicker || !this.clusterPickerTracks) return;
-                  const recheck = map.queryRenderedFeatures({ layers: ['unclustered-point'] });
-                  const stillClustered = pickerTracks.every(t =>
-                    !recheck.some(p => parseInt(p.properties.originalIndex) === t.originalIndex)
-                  );
-                  if (stillClustered) {
-                    if (this.clusterPicker._moveHandler) map.off('move', this.clusterPicker._moveHandler);
-                    this.clusterPicker.remove();
-                    this.clusterPicker = null;
-                    this.clusterPickerTracks = null;
-                    this.refreshMiniBoxes();
-                  }
-                }, 400);
-                // Don't close yet — wait for recheck
-                this.refreshMiniBoxes();
-                return;
-              }
-
-              // Check if picker points have spread apart enough to dissolve
-              const pickerPositions = pickerTracks.map(t =>
-                map.project([parseFloat(t.lng), parseFloat(t.lat)])
-              );
-              let maxDist = 0;
-              for (let i = 0; i < pickerPositions.length; i++) {
-                for (let j = i + 1; j < pickerPositions.length; j++) {
-                  const dx = pickerPositions[i].x - pickerPositions[j].x;
-                  const dy = pickerPositions[i].y - pickerPositions[j].y;
-                  maxDist = Math.max(maxDist, Math.sqrt(dx*dx + dy*dy));
-                }
-              }
-              if (maxDist > 40) {
-                // Points have spread — dissolve picker into individual mini boxes
-                if (this.clusterPicker._moveHandler) map.off('move', this.clusterPicker._moveHandler);
-                this.clusterPicker.remove();
-                this.clusterPicker = null;
-                this.clusterPickerTracks = null;
-                this.refreshMiniBoxes();
-                return;
-              }
-
-              // Picker still valid — refresh mini boxes for other visible points
-              this.refreshMiniBoxes();
-              return;
-            }
-
-            this.refreshMiniBoxes();
-          }, 150); // Increased delay for rendering
+          // On moveend, just update positions — don't query features yet
+          // State decisions happen in idle when map is truly stable
+          if (this.isPositioning) return;
+          uiController.updateMiniInfoBoxPositions();
+          if (this.currentPopup?.updatePosition) this.currentPopup.updatePosition();
+          if (this.minimizedPopup?._updatePosition) this.minimizedPopup._updatePosition();
+          if (this.clusterPicker?._updatePosition) this.clusterPicker._updatePosition();
+          this.updateBadgeVisibility();
         });
 
-        // Catch cases where points appear without map movement (e.g. initial load, after flyTo)
-        // Track last user interaction to suppress idle handler during active use
+        // Track last user interaction
         map.on('mousedown', () => { this._lastInteraction = Date.now(); });
         map.on('touchstart', () => { this._lastInteraction = Date.now(); });
         map.on('wheel', () => { this._lastInteraction = Date.now(); });
 
         map.on('idle', () => {
+          // idle fires when map is fully rendered and stable — safe to query features
           if (this.isPositioning) return;
-          if (this.clusterPicker) return; // Never interfere while picker is open
-
-          // Only fire if no user interaction in the last 500ms
-          if (this._lastInteraction && Date.now() - this._lastInteraction < 500) return;
-
-          const rawIdle = map.queryRenderedFeatures({ layers: ['unclustered-point'] });
-          const seenIdle = new Set();
-          const idlePoints = rawIdle.filter(p => {
-            const origIdx = parseInt(p.properties.originalIndex);
-            if (seenIdle.has(origIdx)) return false;
-            seenIdle.add(origIdx);
-            return true;
-          });
-
-          if (idlePoints.length === 0 || idlePoints.length >= 50) return;
-
-          const existingBoxCount = uiController.miniInfoBoxes.length;
-          const expectedCount = idlePoints.filter(p => {
-            const origIdx = parseInt(p.properties.originalIndex);
-            const idx = this.audioData.findIndex(t => t.originalIndex === origIdx);
-            if (idx === -1) return false;
-            if (this.clusterPickerTracks && this.clusterPickerTracks.includes(idx)) return false;
-            if (idx === audioController.currentIndex && (this.currentPopup || this.minimizedPopup)) return false;
-            if (this.currentPopup && parseInt(this.currentPopup._container?.dataset?.trackIndex) === idx) return false;
-            return true;
-          }).length;
-
-          if (expectedCount !== existingBoxCount) {
-            setTimeout(() => {
-              if (this.isPositioning) return;
-              if (this._lastInteraction && Date.now() - this._lastInteraction < 500) return;
-              this.refreshMiniBoxes();
-            }, 150);
-          }
+          if (this._lastInteraction && Date.now() - this._lastInteraction < 300) return;
+          this.updateMapUI();
         });
 
         document.addEventListener('fullscreenchange', () => {
@@ -789,7 +691,9 @@ class MapController {
       // Stop any in-progress map animation
       map.stop();
 
-        // Use user's preferred popup state, or force mini if triggered from a pill
+        // Direct playlist click or map point click — always show full popup
+        if (!fromAutoPlay && !fromMiniPill) this.userPreferredPopupState = 'full';
+
         // If navigating to a track that was in a picker but picker is no longer active,
         // treat as a fresh play — show full popup regardless of userPreferredPopupState
         const trackWasInClosedPicker = !this.clusterPicker && 
@@ -1440,9 +1344,9 @@ class MapController {
         return nearbyTracks;
       }
 
-      // Detect tight sub-groups among visible points before drawing mini boxes.
-      // Uses pixel distance so only truly overlapping points are grouped.
-      refreshMiniBoxes() {
+      // Single source of truth for all map UI state.
+      // Called from idle (map fully stable, safe to query features).
+      updateMapUI() {
         const raw = map.queryRenderedFeatures({ layers: ['unclustered-point'] });
         const seen = new Set();
         const points = raw.filter(p => {
@@ -1453,24 +1357,64 @@ class MapController {
         });
 
         const count = points.length;
+
+        // ── Step 1: Determine picker state ──────────────────────────────────
+
+        if (this.clusterPicker && this.clusterPickerTracks) {
+          const pickerTracks = this.clusterPickerTracks.map(i => this.audioData[i]).filter(Boolean);
+
+          // 1a. Picker points gone from unclustered — absorbed into cluster bubble
+          const pickerPointsVisible = pickerTracks.filter(t =>
+            points.some(p => parseInt(p.properties.originalIndex) === t.originalIndex)
+          );
+          if (pickerPointsVisible.length === 0) {
+            // All picker points clustered — close picker
+            if (this.clusterPicker._moveHandler) map.off('move', this.clusterPicker._moveHandler);
+            this.clusterPicker.remove();
+            this.clusterPicker = null;
+            this.clusterPickerTracks = null;
+          } else {
+            // 1b. Check pixel distance — dissolve if spread apart
+            const positions = pickerTracks.map(t =>
+              map.project([parseFloat(t.lng), parseFloat(t.lat)])
+            );
+            let maxDist = 0;
+            for (let i = 0; i < positions.length; i++) {
+              for (let j = i + 1; j < positions.length; j++) {
+                const dx = positions[i].x - positions[j].x;
+                const dy = positions[i].y - positions[j].y;
+                maxDist = Math.max(maxDist, Math.sqrt(dx*dx + dy*dy));
+              }
+            }
+            if (maxDist > 40) {
+              // Points spread apart — dissolve picker
+              if (this.clusterPicker._moveHandler) map.off('move', this.clusterPicker._moveHandler);
+              this.clusterPicker.remove();
+              this.clusterPicker = null;
+              this.clusterPickerTracks = null;
+            }
+            // else picker stays open — fall through to mini box drawing below
+          }
+        }
+
+        // ── Step 2: Draw mini boxes ──────────────────────────────────────────
+
         if (count === 0 || count >= 50) {
           uiController.clearMiniInfoBoxes();
-          if (!this.clusterPicker) {
-            this.clusterPickerTracks = null;
-            this._pendingSubgroupLeaves = null;
-          }
+          this.updateBadgeVisibility();
           return;
         }
 
-        // If picker is open, update positions but also redraw mini boxes for non-picker points
         if (this.clusterPicker) {
+          // Picker open — draw mini boxes for non-picker points only
+          // (clusterPickerTracks exclusion handled inside showMiniInfoBoxes)
           uiController.clearMiniInfoBoxes();
           uiController.showMiniInfoBoxes(null, this.audioData, points);
           this.updateBadgeVisibility();
           return;
         }
 
-        // No picker — detect subgroups, draw all boxes
+        // No picker — detect tight subgroups and draw everything
         this.clusterPickerTracks = null;
         this.detectAndReserveTightSubgroups(points);
 
@@ -1483,6 +1427,11 @@ class MapController {
         }
 
         this.updateBadgeVisibility();
+      }
+
+      // Thin wrapper — calls updateMapUI for backwards compatibility
+      refreshMiniBoxes() {
+        this.updateMapUI();
       }
 
       detectAndReserveTightSubgroups(visiblePoints) {
