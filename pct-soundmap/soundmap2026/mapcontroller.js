@@ -1385,20 +1385,19 @@ class MapController {
             return;
           }
 
+          const zoomedIn = currentZoom > lastZoom;
+          const zoomedOutEnough = currentZoom < 14.5;
+
+          // Persist on zoom-in — picker stays regardless
+          if (zoomedIn) {
+            uiController.clearMiniInfoBoxes();
+            uiController.showMiniInfoBoxes(null, this.audioData, points);
+            this.updateBadgeVisibility();
+            return;
+          }
+
           const pickerTracks = this.clusterPickerTracks.map(i => this.audioData[i]).filter(Boolean);
           const pickerOriginalIndices = pickerTracks.map(t => t.originalIndex);
-
-          const positions = pickerTracks.map(t =>
-            map.project([parseFloat(t.lng), parseFloat(t.lat)])
-          );
-          let maxDist = 0;
-          for (let i = 0; i < positions.length; i++) {
-            for (let j = i + 1; j < positions.length; j++) {
-              const dx = positions[i].x - positions[j].x;
-              const dy = positions[i].y - positions[j].y;
-              maxDist = Math.max(maxDist, Math.sqrt(dx*dx + dy*dy));
-            }
-          }
 
           const closePicker = () => {
             if (this.clusterPicker._moveHandler) map.off('move', this.clusterPicker._moveHandler);
@@ -1407,11 +1406,8 @@ class MapController {
             this.clusterPickerTracks = null;
           };
 
-          if (maxDist > 20) {
-            // Zoomed in enough — points spread apart, dissolve into mini boxes
-            closePicker();
-          } else {
-            // Zoomed out — check if points absorbed into a Mapbox cluster bubble
+          // Only evaluate closure when zoomed out past cluster threshold
+          if (zoomedOutEnough) {
             const anchorTrack = pickerTracks[0];
             if (anchorTrack) {
               const px = map.project([parseFloat(anchorTrack.lng), parseFloat(anchorTrack.lat)]);
@@ -1439,6 +1435,7 @@ class MapController {
               }
             }
           }
+          // else zoomed out but not past threshold — keep picker
         }
 
         // ── Step 2: Draw mini boxes ──────────────────────────────────────────
