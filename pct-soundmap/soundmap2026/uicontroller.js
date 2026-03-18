@@ -365,6 +365,8 @@ class UIController {
           infoBox.style.top  = `${pixelCoords.y - 20}px`;
 
           document.body.appendChild(infoBox);
+          // Re-position now height is known for vertical centering
+          infoBox.style.top = `${pixelCoords.y - (infoBox.offsetHeight / 2)}px`;
           this.miniInfoBoxes.push(infoBox);
         });
       }
@@ -429,7 +431,7 @@ class UIController {
             const coords = [parseFloat(track.lng), parseFloat(track.lat)];
             const px = map.project(coords);
             infoBox.style.left = `${px.x + 10}px`;
-            infoBox.style.top  = `${px.y - 20}px`;
+            infoBox.style.top  = `${px.y - (infoBox.offsetHeight / 2)}px`;
           }
         });
       }

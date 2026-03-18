@@ -792,6 +792,7 @@ class MapController {
             miniBox.style.top  = `${pixelCoords.y - 20}px`;
 
             document.body.appendChild(miniBox);
+            miniBox.style.top = `${pixelCoords.y - (miniBox.offsetHeight / 2)}px`;
 
             // Remove any existing mini box for this track before adding new one
             const stale = uiController.miniInfoBoxes.find(b => parseInt(b.dataset.trackIndex) === oldTrackIndex);
@@ -1063,13 +1064,14 @@ class MapController {
           miniBox.style.top  = `${pixelCoords.y - 20}px`;
 
           document.body.appendChild(miniBox);
+          miniBox.style.top = `${pixelCoords.y - (miniBox.offsetHeight / 2)}px`;
           this.minimizedPopup = miniBox;
 
           // Update position when map moves
           const updatePosition = () => {
             const newPx = map.project(coords);
             miniBox.style.left = `${newPx.x + 10}px`;
-            miniBox.style.top  = `${newPx.y - 20}px`;
+            miniBox.style.top  = `${newPx.y - (miniBox.offsetHeight / 2)}px`;
           };
           map.on('move', updatePosition);
           miniBox._updatePosition = updatePosition;
