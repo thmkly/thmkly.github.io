@@ -830,6 +830,11 @@ class MapController {
           this.clusterPickerTracks.includes(index);
 
         if (isInCurrentPicker) {
+          // Close any open popup — picker and popup can't coexist
+          if (this.currentPopup) {
+            this.currentPopup.remove();
+            this.currentPopup = null;
+          }
           // Update isPlaying state and orange/white styling on all picker boxes
           this.clusterPicker.querySelectorAll('[data-track-index]').forEach(box => {
             const boxIndex = parseInt(box.dataset.trackIndex);
@@ -904,8 +909,9 @@ class MapController {
           });
         }
         
-        // Skip flyto if point is comfortably visible and at a zoom where it's unclustered
-        const pointComfortablyVisible = this.isPointComfortablyVisible(track) && map.getZoom() >= 14;
+        // Skip flyto if point is comfortably visible AND at a reasonable zoom level
+        const pointComfortablyVisible = this.isPointComfortablyVisible(track) && 
+          map.getZoom() >= 12 && map.getZoom() <= 13.5;
 
           // Add delay before positioning to prevent conflicts
         this.animationTimeout = setTimeout(() => {
@@ -935,8 +941,9 @@ class MapController {
           setTimeout(() => {
             const coords = [parseFloat(track.lng), parseFloat(track.lat)];
             
-            // Check if track is in existing picker
-            const isInPicker = this.clusterPicker && this.clusterPickerTracks && this.clusterPickerTracks.includes(index);
+            // Check if track is in existing picker or known picker tracks
+            const isInPicker = (this.clusterPicker || this.clusterPickerTracks) && 
+              this.clusterPickerTracks && this.clusterPickerTracks.includes(index);
             
             if (isInPicker) {
               // Track is in active picker - just update highlight, don't create new UI
@@ -956,8 +963,8 @@ class MapController {
               // Check if in tight cluster (any size)
               const nearbyTrackIndices = this.getTracksInTightCluster(index);
               
-              if (nearbyTrackIndices.length > 0 && shouldMinimize) {
-                // State 2: Show picker with all tracks in tight cluster
+              if (nearbyTrackIndices.length > 0) {
+                // Always show picker for tight cluster — never show popup alongside it
                 const leaves = [
                   { 
                     geometry: { coordinates: coords },
