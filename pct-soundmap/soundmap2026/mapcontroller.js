@@ -1385,31 +1385,6 @@ class MapController {
             return;
           }
 
-          const zoomedIn = currentZoom > lastZoom;
-          const zoomedOutEnough = currentZoom < 13.5;
-
-          // Zoom-in: only dissolve if points have spread apart, otherwise persist
-          if (zoomedIn) {
-            const positions = pickerTracks.map(t =>
-              map.project([parseFloat(t.lng), parseFloat(t.lat)])
-            );
-            let maxDist = 0;
-            for (let i = 0; i < positions.length; i++) {
-              for (let j = i + 1; j < positions.length; j++) {
-                const dx = positions[i].x - positions[j].x;
-                const dy = positions[i].y - positions[j].y;
-                maxDist = Math.max(maxDist, Math.sqrt(dx*dx + dy*dy));
-              }
-            }
-            if (maxDist > 20) {
-              closePicker();
-            }
-            uiController.clearMiniInfoBoxes();
-            uiController.showMiniInfoBoxes(null, this.audioData, points);
-            this.updateBadgeVisibility();
-            return;
-          }
-
           const pickerTracks = this.clusterPickerTracks.map(i => this.audioData[i]).filter(Boolean);
           const pickerOriginalIndices = pickerTracks.map(t => t.originalIndex);
 
@@ -1420,8 +1395,35 @@ class MapController {
             this.clusterPickerTracks = null;
           };
 
-          // Only evaluate closure when zoomed out past cluster threshold
-          if (zoomedOutEnough) {
+          const zoomedIn = currentZoom > lastZoom;
+          const zoomedOutEnough = currentZoom < 13.5;
+          console.log('[picker] zoomDelta:', zoomDelta.toFixed(3), 'zoomedIn:', zoomedIn, 'zoom:', currentZoom.toFixed(2));
+
+          // Check dissolution regardless of zoom direction
+          const positions = pickerTracks.map(t =>
+            map.project([parseFloat(t.lng), parseFloat(t.lat)])
+          );
+          let maxDist = 0;
+          for (let i = 0; i < positions.length; i++) {
+            for (let j = i + 1; j < positions.length; j++) {
+              const dx = positions[i].x - positions[j].x;
+              const dy = positions[i].y - positions[j].y;
+              maxDist = Math.max(maxDist, Math.sqrt(dx*dx + dy*dy));
+            }
+          }
+
+          if (maxDist > 20) {
+            console.log('[picker] dissolving, maxDist:', maxDist.toFixed(1), 'zoom:', currentZoom.toFixed(2));
+            closePicker();
+            // Fall through to mini box redraw below
+          } else if (zoomedIn) {
+            // Zoomed in, points still close — persist picker
+            uiController.clearMiniInfoBoxes();
+            uiController.showMiniInfoBoxes(null, this.audioData, points);
+            this.updateBadgeVisibility();
+            return;
+          } else if (zoomedOutEnough) {
+            // Zoomed out past threshold — async check if absorbed into cluster
             const anchorTrack = pickerTracks[0];
             if (anchorTrack) {
               const px = map.project([parseFloat(anchorTrack.lng), parseFloat(anchorTrack.lat)]);
@@ -1448,8 +1450,18 @@ class MapController {
                 );
               }
             }
+            // Picker stays open pending async confirmation
+            uiController.clearMiniInfoBoxes();
+            uiController.showMiniInfoBoxes(null, this.audioData, points);
+            this.updateBadgeVisibility();
+            return;
+          } else {
+            // Zoomed out but not past threshold — persist picker
+            uiController.clearMiniInfoBoxes();
+            uiController.showMiniInfoBoxes(null, this.audioData, points);
+            this.updateBadgeVisibility();
+            return;
           }
-          // else zoomed out but not past threshold — keep picker
         }
 
         // ── Step 2: Draw mini boxes ──────────────────────────────────────────
