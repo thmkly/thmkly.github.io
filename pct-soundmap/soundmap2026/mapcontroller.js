@@ -773,6 +773,9 @@ class MapController {
 
         // Save old track index BEFORE audioController.play changes it
         const oldTrackIndex = audioController.currentIndex;
+        // Snapshot picker tracks before async operations — updateMapUI may clear them during flyTo
+        const pickerTracksSnapshot = this.clusterPickerTracks ? [...this.clusterPickerTracks] : null;
+        console.log('[playAudio] index:', index, 'pickerTracksSnapshot:', pickerTracksSnapshot, 'clusterPicker:', !!this.clusterPicker);
 
         const audio = audioController.play(index, this.audioData);
 
@@ -941,11 +944,16 @@ class MapController {
           setTimeout(() => {
             const coords = [parseFloat(track.lng), parseFloat(track.lat)];
             
-            // Check if track is in existing picker or known picker tracks
-            const isInPicker = (this.clusterPicker || this.clusterPickerTracks) && 
-              this.clusterPickerTracks && this.clusterPickerTracks.includes(index);
+            // Check if track is in existing picker or known picker tracks (use snapshot to survive updateMapUI)
+            const isInPicker = pickerTracksSnapshot && pickerTracksSnapshot.includes(index);
+            console.log('[flyTo setTimeout] index:', index, 'pickerTracksSnapshot:', pickerTracksSnapshot, 'isInPicker:', isInPicker, 'currentPopup:', !!this.currentPopup);
             
             if (isInPicker) {
+              // Close any open popup — picker and popup can't coexist
+              if (this.currentPopup) {
+                this.currentPopup.remove();
+                this.currentPopup = null;
+              }
               // Track is in active picker - just update highlight, don't create new UI
               this.updateClusterPickerHighlight(index);
               // Don't clear mini boxes - they should stay visible
