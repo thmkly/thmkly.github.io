@@ -904,12 +904,17 @@ class MapController {
           });
         }
         
+        // Skip flyto if point is comfortably visible and at a zoom where it's unclustered
+        const pointComfortablyVisible = this.isPointComfortablyVisible(track) && map.getZoom() >= 14;
+
           // Add delay before positioning to prevent conflicts
         this.animationTimeout = setTimeout(() => {
-          this.positionMapForTrack(track, index, fromAutoPlay);
+          if (!pointComfortablyVisible) {
+            this.positionMapForTrack(track, index, fromAutoPlay);
+          }
           
-          // Get the flyto duration and delay popup creation until after it completes
-          const duration = this.getMovementDuration(track);
+          // Get the flyto duration (0 if no flyto needed)
+          const duration = pointComfortablyVisible ? 0 : this.getMovementDuration(track);
           
           // Apply atmospheric lighting DURING flyTo (ONLY in 3D mode)
           // Start halfway through flyTo for smooth, gradual transition
@@ -2053,6 +2058,19 @@ class MapController {
         showNotification('Map reset to default view', 2000);
         }
 
+      // Returns true if point is within the inner 70% of the viewport — comfortably visible
+      isPointComfortablyVisible(track) {
+        const coords = [parseFloat(track.lng), parseFloat(track.lat)];
+        const px = map.project(coords);
+        const canvas = map.getCanvas();
+        const w = canvas.offsetWidth;
+        const h = canvas.offsetHeight;
+        const marginX = w * 0.15; // 15% margin on each side = inner 70%
+        const marginY = h * 0.15;
+        return px.x > marginX && px.x < w - marginX &&
+               px.y > marginY && px.y < h - marginY;
+      }
+
       getMovementDuration(track) {
         // Calculate the same duration logic used in positionMapForTrack
         const coords = [parseFloat(track.lng), parseFloat(track.lat)];
@@ -2064,12 +2082,14 @@ class MapController {
         
         const distanceKm = distance / 1000;
         let duration;
-        if (distanceKm < 5) {
-          duration = 2200;
+        if (distanceKm < 0.5) {
+          duration = 800;
+        } else if (distanceKm < 5) {
+          duration = 800 + ((distanceKm - 0.5) / 4.5) * 800;
         } else if (distanceKm < 50) {
-          duration = 2200 + ((distanceKm - 5) / 45) * 1800;
+          duration = 1600 + ((distanceKm - 5) / 45) * 1900;
         } else {
-          duration = Math.min(5000, 4000 + ((distanceKm - 50) / 100) * 1000);
+          duration = Math.min(5000, 3500 + ((distanceKm - 50) / 100) * 1500);
         }
         return duration;
       }
