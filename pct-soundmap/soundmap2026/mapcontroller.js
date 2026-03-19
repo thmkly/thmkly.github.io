@@ -1511,7 +1511,13 @@ class MapController {
         uiController.showMiniInfoBoxes(null, this.audioData, points);
 
         if (this._pendingSubgroupLeaves) {
-          this.showClusterPicker({ x: 0, y: 0 }, this._pendingSubgroupLeaves, audioController.currentIndex);
+          // Don't create picker if the currently playing track has an open popup
+          const currentTrackInSubgroup = this._pendingSubgroupLeaves.some(l =>
+            parseInt(l.properties.originalIndex) === (this.audioData[audioController.currentIndex]?.originalIndex)
+          );
+          if (!currentTrackInSubgroup || !this.currentPopup) {
+            this.showClusterPicker({ x: 0, y: 0 }, this._pendingSubgroupLeaves, audioController.currentIndex);
+          }
           this._pendingSubgroupLeaves = null;
         }
 
