@@ -1414,7 +1414,7 @@ class MapController {
           };
 
           const zoomedIn = currentZoom > lastZoom;
-          const zoomedOutEnough = currentZoom < 13.5;
+          const zoomedOutEnough = currentZoom < 14;
 
           // No dissolution — picker persists until explicit close or zoom-out recluster
           if (zoomedIn) {
