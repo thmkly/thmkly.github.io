@@ -221,6 +221,14 @@ class MapController {
             
             // If tight cluster, show picker instead of breaking
             if (isTightCluster) {
+              // Picker is 2D only — in 3D mode, break cluster normally
+              if (uiController.is3DEnabled) {
+                map.getSource('audio').getClusterExpansionZoom(clusterId, (err, zoom) => {
+                  if (err) return;
+                  map.flyTo({ center: firstCoords, zoom: zoom + 1 });
+                });
+                return;
+              }
               // Block if a track from this cluster is currently in full popup
               if (this.currentPopup) {
                 const popupTrackIndex = parseInt(this.currentPopup._container?.dataset?.trackIndex);
@@ -1397,27 +1405,9 @@ class MapController {
 
           const zoomedIn = currentZoom > lastZoom;
           const zoomedOutEnough = currentZoom < 13.5;
-          console.log('[picker] zoomDelta:', zoomDelta.toFixed(3), 'zoomedIn:', zoomedIn, 'zoom:', currentZoom.toFixed(2));
 
-          // Check dissolution regardless of zoom direction
-          const positions = pickerTracks.map(t =>
-            map.project([parseFloat(t.lng), parseFloat(t.lat)])
-          );
-          let maxDist = 0;
-          for (let i = 0; i < positions.length; i++) {
-            for (let j = i + 1; j < positions.length; j++) {
-              const dx = positions[i].x - positions[j].x;
-              const dy = positions[i].y - positions[j].y;
-              maxDist = Math.max(maxDist, Math.sqrt(dx*dx + dy*dy));
-            }
-          }
-
-          if (maxDist > 20) {
-            console.log('[picker] dissolving, maxDist:', maxDist.toFixed(1), 'zoom:', currentZoom.toFixed(2));
-            closePicker();
-            // Fall through to mini box redraw below
-          } else if (zoomedIn) {
-            // Zoomed in, points still close — persist picker
+          // No dissolution — picker persists until explicit close or zoom-out recluster
+          if (zoomedIn) {
             uiController.clearMiniInfoBoxes();
             uiController.showMiniInfoBoxes(null, this.audioData, points);
             this.updateBadgeVisibility();
@@ -1565,7 +1555,10 @@ class MapController {
           this.clusterPicker = null;
         }
         
-        const coords = leaves[0].geometry.coordinates;
+        // Compute centroid of all picker points for positioning
+        const centroidLng = leaves.reduce((sum, l) => sum + l.geometry.coordinates[0], 0) / leaves.length;
+        const centroidLat = leaves.reduce((sum, l) => sum + l.geometry.coordinates[1], 0) / leaves.length;
+        const coords = [centroidLng, centroidLat];
         
         this.clusterPickerTracks = leaves.map(leaf => {
           const originalIndex = parseInt(leaf.properties.originalIndex);

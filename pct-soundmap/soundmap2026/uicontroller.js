@@ -215,6 +215,13 @@ class UIController {
         if (btnMobile) btnMobile.classList.toggle('active', this.is3DEnabled);
 
         if (this.is3DEnabled) {
+          // Close picker when entering 3D — picker is a 2D-only UI element
+          if (mapController.clusterPicker) {
+            if (mapController.clusterPicker._moveHandler) map.off('move', mapController.clusterPicker._moveHandler);
+            mapController.clusterPicker.remove();
+            mapController.clusterPicker = null;
+            mapController.clusterPickerTracks = null;
+          }
           mapController.enable3D();
         } else {
           mapController.disable3D();
