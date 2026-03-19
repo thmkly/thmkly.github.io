@@ -620,6 +620,16 @@ class MapController {
           const displayMile = this.getDisplayMile(track);
           const mile = displayMile !== null && displayMile.toString().trim().toLowerCase() !== 'n/a' ? `mi.${displayMile}` : '';
           trackMile.textContent = mile;
+
+          // Mile marker click — fly to location without triggering playback
+          if (mile) {
+            trackMile.title = 'Fly to location';
+            trackMile.addEventListener('click', (e) => {
+              e.stopPropagation();
+              const coords = [parseFloat(track.lng), parseFloat(track.lat)];
+              this.positionMapForTrack(track, index);
+            });
+          }
           
           div.appendChild(trackInfo);
           div.appendChild(trackMile);
