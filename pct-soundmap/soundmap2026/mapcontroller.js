@@ -135,7 +135,7 @@ class MapController {
           type: 'geojson',
           data: { type: 'FeatureCollection', features: [] },
           cluster: true,
-          clusterMaxZoom: 14,
+          clusterMaxZoom: 11,
           clusterRadius: 45
         });
 
@@ -1317,9 +1317,10 @@ class MapController {
         // - For manual clicks: Only zoom if currently zoomed out (don't zoom out if already close)
         let useZoom;
         if (fromAutoPlay) {
-          useZoom = Math.max(targetZoom, 15); // Ensure clusters break
+          useZoom = Math.max(targetZoom, 12); // Ensure clusters break
         } else {
-          useZoom = currentZoom < targetZoom ? targetZoom : currentZoom;
+          // For manual clicks: zoom to 12 if below it, otherwise stay at current zoom
+          useZoom = currentZoom < 12 ? 12 : currentZoom;
         }
 
         const flyToOptions = {
@@ -1419,7 +1420,7 @@ class MapController {
           };
 
           const zoomedIn = currentZoom > lastZoom;
-          const zoomedOutEnough = currentZoom < 14;
+          const zoomedOutEnough = currentZoom < 12;
 
           // No dissolution — picker persists until explicit close or zoom-out recluster
           if (zoomedIn) {
@@ -2083,13 +2084,13 @@ class MapController {
         const distanceKm = distance / 1000;
         let duration;
         if (distanceKm < 0.5) {
-          duration = 800;
+          duration = 1400;
         } else if (distanceKm < 5) {
-          duration = 800 + ((distanceKm - 0.5) / 4.5) * 800;
+          duration = 1400 + ((distanceKm - 0.5) / 4.5) * 800;
         } else if (distanceKm < 50) {
-          duration = 1600 + ((distanceKm - 5) / 45) * 1900;
+          duration = 2200 + ((distanceKm - 5) / 45) * 1800;
         } else {
-          duration = Math.min(5000, 3500 + ((distanceKm - 50) / 100) * 1500);
+          duration = Math.min(5000, 4000 + ((distanceKm - 50) / 100) * 1000);
         }
         return duration;
       }
