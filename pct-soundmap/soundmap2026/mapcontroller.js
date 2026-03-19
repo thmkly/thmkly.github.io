@@ -1582,6 +1582,7 @@ class MapController {
       }
 
       showClusterPicker(clickPoint, leaves, playingTrackIndex = null) {
+        console.log('[showClusterPicker] called, leaves:', leaves.map(l => l.properties.originalIndex), 'stack:', new Error().stack.split('\n')[2]);
         if (this.clusterPicker) {
           if (this.clusterPicker._moveHandler) map.off('move', this.clusterPicker._moveHandler);
           this.clusterPicker.remove();
