@@ -774,7 +774,9 @@ class MapController {
         // Save old track index BEFORE audioController.play changes it
         const oldTrackIndex = audioController.currentIndex;
         // Snapshot picker tracks before async operations — updateMapUI may clear them during flyTo
-        const pickerTracksSnapshot = this.clusterPickerTracks ? [...this.clusterPickerTracks] : null;
+        // Also check picker DOM directly in case clusterPickerTracks was already cleared
+        const pickerTracksSnapshot = this.clusterPickerTracks ? [...this.clusterPickerTracks] :
+          this.clusterPicker ? Array.from(this.clusterPicker.querySelectorAll('[data-track-index]')).map(el => parseInt(el.dataset.trackIndex)) : null;
         console.log('[playAudio] index:', index, 'pickerTracksSnapshot:', pickerTracksSnapshot, 'clusterPicker:', !!this.clusterPicker);
 
         const audio = audioController.play(index, this.audioData);
