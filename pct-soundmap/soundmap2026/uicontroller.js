@@ -315,7 +315,6 @@ class UIController {
       }
 
       showMiniInfoBoxes(currentTrack, audioData, precomputedPoints = null) {
-        this.clearMiniInfoBoxes();
 
         const visiblePoints = precomputedPoints || (() => {
           const raw = map.queryRenderedFeatures({ layers: ['unclustered-point'] });

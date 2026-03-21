@@ -1420,7 +1420,7 @@ class MapController {
 
           // Protect picker if zoom hasn't changed meaningfully — pan only, no closure checks
           if (zoomDelta < 0.5) {
-            uiController.clearMiniInfoBoxes();
+            uiController.reconcileMiniInfoBoxes(points);
             uiController.showMiniInfoBoxes(null, this.audioData, points);
             this.updateBadgeVisibility();
             return;
@@ -1441,7 +1441,7 @@ class MapController {
 
           // No dissolution — picker persists until explicit close or zoom-out recluster
           if (zoomedIn) {
-            uiController.clearMiniInfoBoxes();
+            uiController.reconcileMiniInfoBoxes(points);
             uiController.showMiniInfoBoxes(null, this.audioData, points);
             this.updateBadgeVisibility();
             return;
@@ -1474,13 +1474,13 @@ class MapController {
               }
             }
             // Picker stays open pending async confirmation
-            uiController.clearMiniInfoBoxes();
+            uiController.reconcileMiniInfoBoxes(points);
             uiController.showMiniInfoBoxes(null, this.audioData, points);
             this.updateBadgeVisibility();
             return;
           } else {
             // Zoomed out but not past threshold — persist picker
-            uiController.clearMiniInfoBoxes();
+            uiController.reconcileMiniInfoBoxes(points);
             uiController.showMiniInfoBoxes(null, this.audioData, points);
             this.updateBadgeVisibility();
             return;
