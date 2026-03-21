@@ -1497,7 +1497,7 @@ class MapController {
 
         if (this.clusterPicker) {
           // Picker open — draw mini boxes for non-picker points only
-          uiController.clearMiniInfoBoxes();
+          uiController.reconcileMiniInfoBoxes(points);
           uiController.showMiniInfoBoxes(null, this.audioData, points);
           this.updateBadgeVisibility();
           return;
@@ -1507,7 +1507,7 @@ class MapController {
         this.clusterPickerTracks = null;
         this.detectAndReserveTightSubgroups(points);
 
-        uiController.clearMiniInfoBoxes();
+        uiController.reconcileMiniInfoBoxes(points);
         uiController.showMiniInfoBoxes(null, this.audioData, points);
 
         if (this._pendingSubgroupLeaves) {

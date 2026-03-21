@@ -447,6 +447,27 @@ class UIController {
         });
       }
 
+      // Remove mini boxes for tracks no longer visible, without wiping manually-created boxes
+      reconcileMiniInfoBoxes(visiblePoints) {
+        const visibleOriginalIndices = new Set(visiblePoints.map(p => parseInt(p.properties.originalIndex)));
+        this.miniInfoBoxes = this.miniInfoBoxes.filter(box => {
+          const trackIndex = parseInt(box.dataset.trackIndex);
+          const track = mapController.audioData[trackIndex];
+          if (!track) {
+            if (box._cleanupIcon) box._cleanupIcon();
+            if (box.parentNode) box.parentNode.removeChild(box);
+            return false;
+          }
+          const stillVisible = visibleOriginalIndices.has(track.originalIndex);
+          if (!stillVisible) {
+            if (box._cleanupIcon) box._cleanupIcon();
+            if (box.parentNode) box.parentNode.removeChild(box);
+            return false;
+          }
+          return true;
+        });
+      }
+
       clearMiniInfoBoxes() {
         this.miniInfoBoxes.forEach(box => {
           if (box._cleanupIcon) box._cleanupIcon();
