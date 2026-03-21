@@ -816,6 +816,7 @@ class MapController {
 
             document.body.appendChild(miniBox);
             miniBox.style.top = `${pixelCoords.y - (miniBox.offsetHeight / 2)}px`;
+            miniBox._manuallyCreated = true;
 
             // Remove any existing mini box for this track before adding new one
             const stale = uiController.miniInfoBoxes.find(b => parseInt(b.dataset.trackIndex) === oldTrackIndex);
@@ -1105,6 +1106,7 @@ class MapController {
 
           document.body.appendChild(miniBox);
           miniBox.style.top = `${pixelCoords.y - (miniBox.offsetHeight / 2)}px`;
+          miniBox._manuallyCreated = true;
           this.minimizedPopup = miniBox;
 
           // Update position when map moves
@@ -1420,8 +1422,7 @@ class MapController {
 
           // Protect picker if zoom hasn't changed meaningfully — pan only, no closure checks
           if (zoomDelta < 0.5) {
-            uiController.reconcileMiniInfoBoxes(points);
-            uiController.showMiniInfoBoxes(null, this.audioData, points);
+                        uiController.showMiniInfoBoxes(null, this.audioData, points);
             this.updateBadgeVisibility();
             return;
           }
@@ -1441,8 +1442,7 @@ class MapController {
 
           // No dissolution — picker persists until explicit close or zoom-out recluster
           if (zoomedIn) {
-            uiController.reconcileMiniInfoBoxes(points);
-            uiController.showMiniInfoBoxes(null, this.audioData, points);
+                        uiController.showMiniInfoBoxes(null, this.audioData, points);
             this.updateBadgeVisibility();
             return;
           } else if (zoomedOutEnough) {
@@ -1474,14 +1474,12 @@ class MapController {
               }
             }
             // Picker stays open pending async confirmation
-            uiController.reconcileMiniInfoBoxes(points);
-            uiController.showMiniInfoBoxes(null, this.audioData, points);
+                        uiController.showMiniInfoBoxes(null, this.audioData, points);
             this.updateBadgeVisibility();
             return;
           } else {
             // Zoomed out but not past threshold — persist picker
-            uiController.reconcileMiniInfoBoxes(points);
-            uiController.showMiniInfoBoxes(null, this.audioData, points);
+                        uiController.showMiniInfoBoxes(null, this.audioData, points);
             this.updateBadgeVisibility();
             return;
           }
@@ -1497,8 +1495,7 @@ class MapController {
 
         if (this.clusterPicker) {
           // Picker open — draw mini boxes for non-picker points only
-          uiController.reconcileMiniInfoBoxes(points);
-          uiController.showMiniInfoBoxes(null, this.audioData, points);
+                    uiController.showMiniInfoBoxes(null, this.audioData, points);
           this.updateBadgeVisibility();
           return;
         }
@@ -1507,8 +1504,7 @@ class MapController {
         this.clusterPickerTracks = null;
         this.detectAndReserveTightSubgroups(points);
 
-        uiController.reconcileMiniInfoBoxes(points);
-        uiController.showMiniInfoBoxes(null, this.audioData, points);
+                uiController.showMiniInfoBoxes(null, this.audioData, points);
 
         if (this._pendingSubgroupLeaves) {
           // Don't create picker if the currently playing track has an open popup
@@ -1522,6 +1518,7 @@ class MapController {
         }
 
         this.updateBadgeVisibility();
+        uiController.releaseManualBoxes();
       }
 
       // Thin wrapper — calls updateMapUI for backwards compatibility
