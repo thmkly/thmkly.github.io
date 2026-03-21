@@ -1552,7 +1552,7 @@ class MapController {
             const otherPx = map.project([parseFloat(otherTrack.lng), parseFloat(otherTrack.lat)]);
             const dx = px.x - otherPx.x;
             const dy = px.y - otherPx.y;
-            if (Math.sqrt(dx*dx + dy*dy) <= 20) {
+            if (Math.sqrt(dx*dx + dy*dy) <= 30) {
               nearby.push(otherIdx);
             }
           }
@@ -1628,9 +1628,14 @@ class MapController {
           const getNum = (leaf) => {
             const t = this.audioData.find(t => t.originalIndex === parseInt(leaf.properties.originalIndex));
             const m = t?.name.match(/(\d+)$/);
-            return m ? parseInt(m[1]) : 0;
+            return m ? parseInt(m[1]) : null;
           };
-          return getNum(a) - getNum(b);
+          const numA = getNum(a);
+          const numB = getNum(b);
+          // If both have trailing numbers, sort by those
+          if (numA !== null && numB !== null) return numA - numB;
+          // Otherwise sort by originalIndex for stable consistent order
+          return parseInt(a.properties.originalIndex) - parseInt(b.properties.originalIndex);
         });
         
         sortedLeaves.forEach((leaf) => {
