@@ -784,56 +784,19 @@ class MapController {
           // Always update badge when audio plays (visibility is controlled inside updateHeaderBadge)
           this.updateHeaderBadge(track, audio);
         
-        // If currently in State 3/4 (popup showing), collapse to State 1 (mini box) before flyTo
-        // This gives clean visual transition without clearing OTHER mini boxes
+        // If currently in State 3/4 (popup showing), collapse before flyTo
+        // Let updateMapUI handle creating the mini box naturally
         if (this.currentPopup && oldTrackIndex >= 0) {
-          const currentTrack = this.audioData[oldTrackIndex];
-          if (currentTrack) {
-            // Collapse current popup to mini box
-            this.currentPopup.remove();
-            this.currentPopup = null;
-            
-            // Create mini box for the track we're leaving (OLD track) using shared structure
-            const coords = [parseFloat(currentTrack.lng), parseFloat(currentTrack.lat)];
-            const pixelCoords = map.project(coords);
-            const mapRect = map.getContainer().getBoundingClientRect();
-
-            const miniBox = uiController._createMiniInfoBox(currentTrack, oldTrackIndex, {
-              onPillClick: () => mapController.playAudio(oldTrackIndex, false, true, true),
-              onBodyClick: () => {
-                if (miniBox.parentNode) miniBox.parentNode.removeChild(miniBox);
-                uiController.miniInfoBoxes = uiController.miniInfoBoxes.filter(b => b !== miniBox);
-                const trackCoords = [parseFloat(currentTrack.lng), parseFloat(currentTrack.lat)];
-                mapController.showPopup(trackCoords, currentTrack, audioController.currentAudio, oldTrackIndex, false, true);
-              },
-              isPlaying: false,
-              audio: null
-            });
-
-            miniBox.style.position = 'absolute';
-            miniBox.style.left = `${pixelCoords.x + 10}px`;
-            miniBox.style.top  = `${pixelCoords.y - 20}px`;
-
-            document.body.appendChild(miniBox);
-            miniBox.style.top = `${pixelCoords.y - (miniBox.offsetHeight / 2)}px`;
-            miniBox._manuallyCreated = true;
-
-            // Remove any existing mini box for this track before adding new one
-            const stale = uiController.miniInfoBoxes.find(b => parseInt(b.dataset.trackIndex) === oldTrackIndex);
-            if (stale) {
-              stale.remove();
-              uiController.miniInfoBoxes = uiController.miniInfoBoxes.filter(b => b !== stale);
-            }
-
-            // Add to mini boxes array so it gets updated during map movement
-            uiController.miniInfoBoxes.push(miniBox);
-          }
+          this.currentPopup.remove();
+          this.currentPopup = null;
         }
         
         // If playing a track within the current cluster picker, skip flyTo and keep picker
+        // UNLESS user was in full popup state — state should persist through picker tracks
         const isInCurrentPicker = this.clusterPicker && 
           this.clusterPickerTracks && 
-          this.clusterPickerTracks.includes(index);
+          this.clusterPickerTracks.includes(index) &&
+          this.userPreferredPopupState !== 'full';
 
         if (isInCurrentPicker) {
           // Close any open popup — picker and popup can't coexist
