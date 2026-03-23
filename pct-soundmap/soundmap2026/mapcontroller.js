@@ -967,6 +967,16 @@ class MapController {
             audioController.currentAudio.style.display = 'none';
           }
 
+          // If picker is open and this track's box was hidden, restore it
+          if (this.clusterPicker && this.clusterPickerTracks && this.clusterPickerTracks.includes(index)) {
+            this.clusterPicker.querySelectorAll('[data-track-index]').forEach(box => {
+              box.style.display = '';
+            });
+            this.updateClusterPickerHighlight(index);
+            this.refreshMiniBoxes();
+            return;
+          }
+
           // If popup came from a cluster picker, always restore the picker
           // (covers both playing and preview cases)
           if (clusterLeaves) {
@@ -1649,13 +1659,26 @@ class MapController {
               this.currentPopup = null;
             }
 
-            // If opening a full popup for a picker track, close the picker
+            // If opening a full popup for a picker track, keep picker but hide this track's box
             if (!shouldMinimize && !preview && this.clusterPicker && this.clusterPickerTracks &&
                 this.clusterPickerTracks.includes(index)) {
-              if (this.clusterPicker._moveHandler) map.off('move', this.clusterPicker._moveHandler);
-              this.clusterPicker.remove();
-              this.clusterPicker = null;
-              this.clusterPickerTracks = null;
+              // Hide the playing track's picker box — popup is its representation
+              this.clusterPicker.querySelectorAll('[data-track-index]').forEach(box => {
+                if (parseInt(box.dataset.trackIndex) === index) {
+                  box.style.display = 'none';
+                } else {
+                  box.style.display = '';
+                  box.dataset.isPlaying = 'false';
+                  box.classList.remove('minimized-popup');
+                  const pillIcon = box.querySelector('.play-icon');
+                  if (pillIcon) {
+                    if (box._cleanupIcon) { box._cleanupIcon(); box._cleanupIcon = null; }
+                    pillIcon.innerHTML = '';
+                    pillIcon.style.cssText = '';
+                    pillIcon.className = 'play-icon';
+                  }
+                }
+              });
             }
 
             // Clean up any existing mini box for this track
