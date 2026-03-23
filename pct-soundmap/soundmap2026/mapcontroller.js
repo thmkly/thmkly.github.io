@@ -1473,9 +1473,15 @@ class MapController {
           const currentTrackInSubgroup = this._pendingSubgroupLeaves.some(l =>
             parseInt(l.properties.originalIndex) === (this.audioData[audioController.currentIndex]?.originalIndex)
           );
-          const shouldSkipPicker = currentTrackInSubgroup && this.currentPopup;
-          if (!shouldSkipPicker) {
-            this.showClusterPicker({ x: 0, y: 0 }, this._pendingSubgroupLeaves, audioController.currentIndex);
+          // Always create the picker — if current track has a popup open, hide its box
+          this.showClusterPicker({ x: 0, y: 0 }, this._pendingSubgroupLeaves, audioController.currentIndex);
+          if (currentTrackInSubgroup && this.currentPopup) {
+            // Hide the playing track's picker box — popup is its representation
+            this.clusterPicker.querySelectorAll('[data-track-index]').forEach(box => {
+              if (parseInt(box.dataset.trackIndex) === audioController.currentIndex) {
+                box.style.display = 'none';
+              }
+            });
           }
           this._pendingSubgroupLeaves = null;
         }
