@@ -1678,7 +1678,7 @@ class MapController {
             container.className = 'custom-popup';
             container.style.position = 'absolute';
             container.style.width = '320px';
-            container.style.zIndex = '10';
+            container.style.zIndex = '1001';
             container._coords = coords;
             container.dataset.trackIndex = index;
         
