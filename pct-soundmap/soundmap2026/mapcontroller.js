@@ -834,25 +834,7 @@ class MapController {
           if (oldTrackIndex >= 0 && oldTrackIndex !== index) {
             const oldTrack = this.audioData[oldTrackIndex];
             const oldTrackInPicker = this.clusterPickerTracks && this.clusterPickerTracks.includes(oldTrackIndex);
-            if (oldTrack && !oldTrackInPicker) {
-              const oldCoords = [parseFloat(oldTrack.lng), parseFloat(oldTrack.lat)];
-              const oldPixel = map.project(oldCoords);
-              const oldMiniBox = uiController._createMiniInfoBox(oldTrack, oldTrackIndex, {
-                onPillClick: () => mapController.playAudio(oldTrackIndex, false, true, true),
-                onBodyClick: () => {
-                  if (oldMiniBox.parentNode) oldMiniBox.parentNode.removeChild(oldMiniBox);
-                  uiController.miniInfoBoxes = uiController.miniInfoBoxes.filter(b => b !== oldMiniBox);
-                  mapController.showPopup(oldCoords, oldTrack, audioController.currentAudio, oldTrackIndex, false, true);
-                },
-                isPlaying: false,
-                audio: null
-              });
-              oldMiniBox.style.position = 'absolute';
-              oldMiniBox.style.left = `${oldPixel.x + 10}px`;
-              oldMiniBox.style.top = `${oldPixel.y - 20}px`;
-              document.body.appendChild(oldMiniBox);
-              uiController.miniInfoBoxes.push(oldMiniBox);
-            }
+            // Let updateMapUI handle creating mini box for old track naturally
           }
 
           this.updateHeaderBadge(track, audio);
@@ -880,7 +862,7 @@ class MapController {
         
         // Skip flyto if point is comfortably visible AND at a reasonable zoom level
         const pointComfortablyVisible = this.isPointComfortablyVisible(track) && 
-          map.getZoom() >= 12 && map.getZoom() <= 13.5;
+          map.getZoom() >= 12;
 
           // Add delay before positioning to prevent conflicts
         this.animationTimeout = setTimeout(() => {
@@ -1471,11 +1453,12 @@ class MapController {
                 uiController.showMiniInfoBoxes(null, this.audioData, points);
 
         if (this._pendingSubgroupLeaves) {
-          // Don't create picker if the currently playing track has an open popup
+          // Don't create picker if the currently playing track has an open popup and is in the subgroup
           const currentTrackInSubgroup = this._pendingSubgroupLeaves.some(l =>
             parseInt(l.properties.originalIndex) === (this.audioData[audioController.currentIndex]?.originalIndex)
           );
-          if (!currentTrackInSubgroup || !this.currentPopup) {
+          const shouldSkipPicker = currentTrackInSubgroup && this.currentPopup;
+          if (!shouldSkipPicker) {
             this.showClusterPicker({ x: 0, y: 0 }, this._pendingSubgroupLeaves, audioController.currentIndex);
           }
           this._pendingSubgroupLeaves = null;
