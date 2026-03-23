@@ -1548,7 +1548,9 @@ class MapController {
             const otherPx = map.project([parseFloat(otherTrack.lng), parseFloat(otherTrack.lat)]);
             const dx = px.x - otherPx.x;
             const dy = px.y - otherPx.y;
-            if (Math.sqrt(dx*dx + dy*dy) <= 30) {
+            const dist = Math.sqrt(dx*dx + dy*dy);
+            console.log('[subgroup] dist:', dist.toFixed(1), 'between', this.audioData[idx].name, 'and', this.audioData[otherIdx].name);
+            if (dist <= 30) {
               nearby.push(otherIdx);
             }
           }
