@@ -1649,6 +1649,15 @@ class MapController {
               this.currentPopup = null;
             }
 
+            // If opening a full popup for a picker track, close the picker
+            if (!shouldMinimize && !preview && this.clusterPicker && this.clusterPickerTracks &&
+                this.clusterPickerTracks.includes(index)) {
+              if (this.clusterPicker._moveHandler) map.off('move', this.clusterPicker._moveHandler);
+              this.clusterPicker.remove();
+              this.clusterPicker = null;
+              this.clusterPickerTracks = null;
+            }
+
             // Clean up any existing mini box for this track
             const existingBox = uiController.miniInfoBoxes.find(b => parseInt(b.dataset.trackIndex) === index);
             if (existingBox) {
