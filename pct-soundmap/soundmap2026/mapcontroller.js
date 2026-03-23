@@ -1488,6 +1488,36 @@ class MapController {
 
         this.updateBadgeVisibility();
         uiController.releaseManualBoxes();
+
+        // Safety net: if any visible unclustered points have no mini box or picker box,
+        // schedule one more pass after a short delay to catch queryRenderedFeatures misses
+        if (!this._safetyNetPending) {
+          this._safetyNetPending = true;
+          setTimeout(() => {
+            this._safetyNetPending = false;
+            const raw = map.queryRenderedFeatures({ layers: ['unclustered-point'] });
+            const seen = new Set();
+            const visiblePoints = raw.filter(p => {
+              const idx = parseInt(p.properties.originalIndex);
+              if (seen.has(idx)) return false;
+              seen.add(idx);
+              return true;
+            });
+            const coveredIndices = new Set([
+              ...uiController.miniInfoBoxes.map(b => parseInt(b.dataset.trackIndex)),
+              ...(this.clusterPickerTracks || []),
+              audioController.currentIndex
+            ]);
+            const missed = visiblePoints.filter(p => {
+              const origIdx = parseInt(p.properties.originalIndex);
+              const idx = this.audioData.findIndex(t => t.originalIndex === origIdx);
+              return idx !== -1 && !coveredIndices.has(idx);
+            });
+            if (missed.length > 0) {
+              this.updateMapUI();
+            }
+          }, 250);
+        }
       }
 
       // Thin wrapper — calls updateMapUI for backwards compatibility
