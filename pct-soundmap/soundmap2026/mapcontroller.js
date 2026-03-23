@@ -789,6 +789,12 @@ class MapController {
         if (this.currentPopup && oldTrackIndex >= 0) {
           this.currentPopup.remove();
           this.currentPopup = null;
+          // If leaving a picker track, restore any hidden picker boxes
+          if (this.clusterPicker && this.clusterPickerTracks && this.clusterPickerTracks.includes(oldTrackIndex)) {
+            this.clusterPicker.querySelectorAll('[data-track-index]').forEach(box => {
+              box.style.display = '';
+            });
+          }
         }
         
         // If playing a track within the current cluster picker, skip flyTo and keep picker
