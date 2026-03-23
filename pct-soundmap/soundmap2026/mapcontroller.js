@@ -911,7 +911,8 @@ class MapController {
             const coords = [parseFloat(track.lng), parseFloat(track.lat)];
             
             // Check if track is in existing picker or known picker tracks (use snapshot to survive updateMapUI)
-            const isInPicker = pickerTracksSnapshot && pickerTracksSnapshot.includes(index);
+            const isInPicker = pickerTracksSnapshot && pickerTracksSnapshot.includes(index) &&
+              this.userPreferredPopupState !== 'full';
             console.log('[flyTo setTimeout] index:', index, 'pickerTracksSnapshot:', pickerTracksSnapshot, 'isInPicker:', isInPicker, 'currentPopup:', !!this.currentPopup);
             
             if (isInPicker) {
@@ -937,7 +938,7 @@ class MapController {
               // Check if in tight cluster (any size)
               const nearbyTrackIndices = this.getTracksInTightCluster(index);
               
-              if (nearbyTrackIndices.length > 0) {
+              if (nearbyTrackIndices.length > 0 && this.userPreferredPopupState !== 'full') {
                 // Always show picker for tight cluster — never show popup alongside it
                 const leaves = [
                   { 
