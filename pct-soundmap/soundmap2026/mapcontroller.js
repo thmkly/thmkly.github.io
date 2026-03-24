@@ -1460,51 +1460,9 @@ class MapController {
           return;
         }
 
-        // No picker — detect tight subgroups and draw everything
+        // No picker — draw all visible points as mini boxes
         this.clusterPickerTracks = null;
-        this.detectAndReserveTightSubgroups(points);
-
-        // Pre-set clusterPickerTracks for the active subgroup BEFORE showMiniInfoBoxes
-        // so those tracks are excluded from mini boxes
-        if (this._pendingSubgroupLeaves) {
-          const subgroups = this._pendingSubgroupLeaves;
-          const activeSubgroup = subgroups.find(leaves =>
-            leaves.some(l =>
-              parseInt(l.properties.originalIndex) === (this.audioData[audioController.currentIndex]?.originalIndex)
-            )
-          ) || subgroups[0];
-
-          // Pre-set clusterPickerTracks so showMiniInfoBoxes excludes these tracks
-          this.clusterPickerTracks = activeSubgroup.map(l => {
-            const origIdx = parseInt(l.properties.originalIndex);
-            return this.audioData.findIndex(t => t.originalIndex === origIdx);
-          }).filter(i => i !== -1);
-        }
-
         uiController.showMiniInfoBoxes(null, this.audioData, points);
-
-        if (this._pendingSubgroupLeaves) {
-          const subgroups = this._pendingSubgroupLeaves;
-          const activeSubgroup = subgroups.find(leaves =>
-            leaves.some(l =>
-              parseInt(l.properties.originalIndex) === (this.audioData[audioController.currentIndex]?.originalIndex)
-            )
-          ) || subgroups[0];
-
-          this.showClusterPicker({ x: 0, y: 0 }, activeSubgroup, audioController.currentIndex);
-
-          const currentTrackInSubgroup = activeSubgroup.some(l =>
-            parseInt(l.properties.originalIndex) === (this.audioData[audioController.currentIndex]?.originalIndex)
-          );
-          if (currentTrackInSubgroup && this.currentPopup) {
-            this.clusterPicker.querySelectorAll('[data-track-index]').forEach(box => {
-              if (parseInt(box.dataset.trackIndex) === audioController.currentIndex) {
-                box.style.display = 'none';
-              }
-            });
-          }
-          this._pendingSubgroupLeaves = null;
-        }
 
         this.updateBadgeVisibility();
         uiController.releaseManualBoxes();
@@ -1545,55 +1503,7 @@ class MapController {
         this.updateMapUI();
       }
 
-      detectAndReserveTightSubgroups(visiblePoints) {
-        const visited = new Set();
-        const allPendingLeaves = [];
-        const allGroupIndices = [];
 
-        for (const point of visiblePoints) {
-          const origIdx = parseInt(point.properties.originalIndex);
-          const idx = this.audioData.findIndex(t => t.originalIndex === origIdx);
-          if (idx === -1 || visited.has(idx)) continue;
-
-          const track = this.audioData[idx];
-          const px = map.project([parseFloat(track.lng), parseFloat(track.lat)]);
-
-          // Find other visible points within 30px on screen
-          const nearby = [];
-          for (const other of visiblePoints) {
-            const otherOrigIdx = parseInt(other.properties.originalIndex);
-            const otherIdx = this.audioData.findIndex(t => t.originalIndex === otherOrigIdx);
-            if (otherIdx === -1 || otherIdx === idx || visited.has(otherIdx)) continue;
-            const otherTrack = this.audioData[otherIdx];
-            const otherPx = map.project([parseFloat(otherTrack.lng), parseFloat(otherTrack.lat)]);
-            const dx = px.x - otherPx.x;
-            const dy = px.y - otherPx.y;
-            const dist = Math.sqrt(dx*dx + dy*dy);
-            if (dist <= 30) {
-              nearby.push(otherIdx);
-            }
-          }
-
-          if (nearby.length === 0) continue;
-
-          const groupIndices = [idx, ...nearby];
-          groupIndices.forEach(i => visited.add(i));
-          allGroupIndices.push(...groupIndices);
-
-          allPendingLeaves.push(groupIndices.map(i => ({
-            geometry: { coordinates: [parseFloat(this.audioData[i].lng), parseFloat(this.audioData[i].lat)] },
-            properties: { originalIndex: this.audioData[i].originalIndex }
-          })));
-        }
-
-        if (allGroupIndices.length > 0) {
-          this.clusterPickerTracks = null; // Will be set when picker is created
-          this._pendingSubgroupLeaves = allPendingLeaves; // array of subgroups
-        } else {
-          this.clusterPickerTracks = null;
-          this._pendingSubgroupLeaves = null;
-        }
-      }
 
       updateClusterPickerHighlight(playingIndex) {
         if (!this.clusterPicker) return;
