@@ -777,7 +777,6 @@ class MapController {
         // Also check picker DOM directly in case clusterPickerTracks was already cleared
         const pickerTracksSnapshot = this.clusterPickerTracks ? [...this.clusterPickerTracks] :
           this.clusterPicker ? Array.from(this.clusterPicker.querySelectorAll('[data-track-index]')).map(el => parseInt(el.dataset.trackIndex)) : null;
-        console.log('[playAudio] index:', index, 'pickerTracksSnapshot:', pickerTracksSnapshot, 'clusterPicker:', !!this.clusterPicker);
 
         const audio = audioController.play(index, this.audioData);
 
@@ -901,7 +900,6 @@ class MapController {
             // Check if track is in existing picker or known picker tracks (use snapshot to survive updateMapUI)
             const isInPicker = pickerTracksSnapshot && pickerTracksSnapshot.includes(index) &&
               this.userPreferredPopupState !== 'full';
-            console.log('[flyTo setTimeout] index:', index, 'pickerTracksSnapshot:', pickerTracksSnapshot, 'isInPicker:', isInPicker, 'currentPopup:', !!this.currentPopup);
             
             if (isInPicker) {
               // Close any open popup — picker and popup can't coexist
@@ -1469,14 +1467,20 @@ class MapController {
                 uiController.showMiniInfoBoxes(null, this.audioData, points);
 
         if (this._pendingSubgroupLeaves) {
-          // Don't create picker if the currently playing track has an open popup and is in the subgroup
-          const currentTrackInSubgroup = this._pendingSubgroupLeaves.some(l =>
+          const subgroups = this._pendingSubgroupLeaves;
+          // Find subgroup containing playing track, or fall back to first
+          const activeSubgroup = subgroups.find(leaves =>
+            leaves.some(l =>
+              parseInt(l.properties.originalIndex) === (this.audioData[audioController.currentIndex]?.originalIndex)
+            )
+          ) || subgroups[0];
+
+          this.showClusterPicker({ x: 0, y: 0 }, activeSubgroup, audioController.currentIndex);
+
+          const currentTrackInSubgroup = activeSubgroup.some(l =>
             parseInt(l.properties.originalIndex) === (this.audioData[audioController.currentIndex]?.originalIndex)
           );
-          // Always create the picker — if current track has a popup open, hide its box
-          this.showClusterPicker({ x: 0, y: 0 }, this._pendingSubgroupLeaves, audioController.currentIndex);
           if (currentTrackInSubgroup && this.currentPopup) {
-            // Hide the playing track's picker box — popup is its representation
             this.clusterPicker.querySelectorAll('[data-track-index]').forEach(box => {
               if (parseInt(box.dataset.trackIndex) === audioController.currentIndex) {
                 box.style.display = 'none';
@@ -1549,7 +1553,6 @@ class MapController {
             const dx = px.x - otherPx.x;
             const dy = px.y - otherPx.y;
             const dist = Math.sqrt(dx*dx + dy*dy);
-            console.log('[subgroup] dist:', dist.toFixed(1), 'between', this.audioData[idx].name, 'and', this.audioData[otherIdx].name);
             if (dist <= 30) {
               nearby.push(otherIdx);
             }
@@ -1568,8 +1571,8 @@ class MapController {
         }
 
         if (allGroupIndices.length > 0) {
-          this.clusterPickerTracks = allGroupIndices;
-          this._pendingSubgroupLeaves = allPendingLeaves[0];
+          this.clusterPickerTracks = null; // Will be set when picker is created
+          this._pendingSubgroupLeaves = allPendingLeaves; // array of subgroups
         } else {
           this.clusterPickerTracks = null;
           this._pendingSubgroupLeaves = null;
@@ -1586,7 +1589,6 @@ class MapController {
       }
 
       showClusterPicker(clickPoint, leaves, playingTrackIndex = null) {
-        console.log('[showClusterPicker] called, leaves:', leaves.map(l => l.properties.originalIndex), 'stack:', new Error().stack.split('\n')[2]);
         if (this.clusterPicker) {
           if (this.clusterPicker._moveHandler) map.off('move', this.clusterPicker._moveHandler);
           this.clusterPicker.remove();

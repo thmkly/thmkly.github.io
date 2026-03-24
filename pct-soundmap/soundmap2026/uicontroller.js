@@ -376,8 +376,19 @@ class UIController {
           infoBox.style.top  = `${pixelCoords.y - 20}px`;
 
           document.body.appendChild(infoBox);
-          // Re-position now height is known for vertical centering
-          infoBox.style.top = `${pixelCoords.y - (infoBox.offsetHeight / 2)}px`;
+
+          // Stack boxes at identical pixel coordinates vertically
+          const boxHeight = infoBox.offsetHeight || 32;
+          const stackOffset = this.miniInfoBoxes.filter(b => {
+            const bLeft = parseFloat(b.style.left);
+            const track2Index = parseInt(b.dataset.trackIndex);
+            const track2 = mapController.audioData[track2Index];
+            if (!track2) return false;
+            const bPx = map.project([parseFloat(track2.lng), parseFloat(track2.lat)]);
+            return Math.abs(bLeft - (pixelCoords.x + 10)) < 5 &&
+                   Math.abs(bPx.y - pixelCoords.y) < 5;
+          }).length;
+          infoBox.style.top = `${pixelCoords.y - (boxHeight / 2) + (stackOffset * (boxHeight + 3))}px`;
           this.miniInfoBoxes.push(infoBox);
         });
       }
@@ -435,14 +446,21 @@ class UIController {
 
 
       updateMiniInfoBoxPositions() {
+        // Track stack counts per x position to maintain vertical offsets
+        const stackCounts = {};
         this.miniInfoBoxes.forEach(infoBox => {
           const trackIndex = parseInt(infoBox.dataset.trackIndex);
           const track = mapController.audioData[trackIndex];
           if (track) {
             const coords = [parseFloat(track.lng), parseFloat(track.lat)];
             const px = map.project(coords);
+            const leftKey = Math.round(px.x + 10);
+            stackCounts[leftKey] = (stackCounts[leftKey] || 0);
+            const boxHeight = infoBox.offsetHeight || 32;
+            const stackOffset = stackCounts[leftKey];
             infoBox.style.left = `${px.x + 10}px`;
-            infoBox.style.top  = `${px.y - (infoBox.offsetHeight / 2)}px`;
+            infoBox.style.top  = `${px.y - (boxHeight / 2) + (stackOffset * (boxHeight + 3))}px`;
+            stackCounts[leftKey]++;
           }
         });
       }
