@@ -434,7 +434,7 @@ class UIController {
         // Chevron — standalone expand tap target
         const chevron = document.createElement('div');
         chevron.className = 'mini-infobox-chevron';
-        chevron.textContent = '›';
+        chevron.textContent = '···';
         chevron.title = 'Expand player';
 
         chevron.addEventListener('click', (e) => {
