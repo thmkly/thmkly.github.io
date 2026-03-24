@@ -77,6 +77,18 @@ class UIController {
         const scrollDown = this.scrollDown;
 
         playlist.addEventListener('scroll', () => this.updateScrollArrows());
+
+        // Prevent scroll chaining — stop wheel events from reaching the page
+        // when the playlist is at its scroll limits
+        playlist.addEventListener('wheel', (e) => {
+          const atTop = playlist.scrollTop === 0;
+          const atBottom = (playlist.scrollTop + playlist.clientHeight) >= playlist.scrollHeight - 1;
+          const scrollingUp = e.deltaY < 0;
+          const scrollingDown = e.deltaY > 0;
+          if ((atTop && scrollingUp) || (atBottom && scrollingDown)) {
+            e.preventDefault();
+          }
+        }, { passive: false });
         scrollUp.addEventListener('click', () => {
           if (!scrollUp.classList.contains('disabled')) {
             playlist.scrollBy({ top: -100, behavior: 'smooth' });
