@@ -348,9 +348,9 @@ class MapController {
         // Track when user interaction ends (not starts) for accurate settling detection
         map.on('mousedown', () => { this._interactionActive = true; });
         map.on('touchstart', () => { this._interactionActive = true; });
-        map.on('mouseup', () => { this._interactionActive = false; this._lastInteraction = Date.now(); });
-        map.on('touchend', () => { this._interactionActive = false; this._lastInteraction = Date.now(); });
-        map.on('wheel', () => { this._lastInteraction = Date.now(); });
+        map.on('mouseup', () => { this._interactionActive = false; });
+        map.on('touchend', () => { this._interactionActive = false; });
+        map.on('wheel', () => { this._interactionActive = false; });
 
         map.on('idle', () => {
           if (this.isPositioning) return;
@@ -920,34 +920,11 @@ class MapController {
                 existingMiniBox.remove();
                 uiController.miniInfoBoxes = uiController.miniInfoBoxes.filter(box => box !== existingMiniBox);
               }
-              
-              // Check if in tight cluster (any size)
-              const nearbyTrackIndices = this.getTracksInTightCluster(index);
-              
-              if (nearbyTrackIndices.length > 0 && this.userPreferredPopupState !== 'full') {
-                // Always show picker for tight cluster — never show popup alongside it
-                const leaves = [
-                  { 
-                    geometry: { coordinates: coords },
-                    properties: { originalIndex: track.originalIndex }
-                  },
-                  ...nearbyTrackIndices.map(nearbyIndex => {
-                    const nearbyTrack = this.audioData[nearbyIndex];
-                    return {
-                      geometry: { coordinates: [parseFloat(nearbyTrack.lng), parseFloat(nearbyTrack.lat)] },
-                      properties: { originalIndex: nearbyTrack.originalIndex }
-                    };
-                  })
-                ];
-                this.showClusterPicker({ x: 0, y: 0 }, leaves, index);
-                this.refreshMiniBoxes();
-                this.updateBadgeVisibility();
-              } else {
-                // State 3/4 or no tight cluster: Show normal popup
-                this.showPopup(coords, track, audio, index, shouldMinimize);
-                this.refreshMiniBoxes();
-                this.updateBadgeVisibility();
-              }
+
+              // Show normal popup
+              this.showPopup(coords, track, audio, index, shouldMinimize);
+              this.refreshMiniBoxes();
+              this.updateBadgeVisibility();
             }
           }, duration + 200); // 200ms additional delay after flyto completes
         }, 100);
@@ -996,29 +973,6 @@ class MapController {
           }
           
           const coords = [parseFloat(track.lng), parseFloat(track.lat)];
-          
-          // Check if in tight cluster - if so, show picker instead of mini box
-          const nearbyTrackIndices = this.getTracksInTightCluster(index);
-          
-          if (nearbyTrackIndices.length > 0) {
-            // Show picker for tight cluster with all nearby tracks
-            const leaves = [
-              { 
-                geometry: { coordinates: coords },
-                properties: { originalIndex: track.originalIndex }
-              },
-              ...nearbyTrackIndices.map(nearbyIndex => {
-                const nearbyTrack = this.audioData[nearbyIndex];
-                return {
-                  geometry: { coordinates: [parseFloat(nearbyTrack.lng), parseFloat(nearbyTrack.lat)] },
-                  properties: { originalIndex: nearbyTrack.originalIndex }
-                };
-              })
-            ];
-            this.showClusterPicker({ x: 0, y: 0 }, leaves, index);
-            this.refreshMiniBoxes();
-            return; // Don't create regular mini box
-          }
           
           // Not in tight cluster - use _createMiniInfoBox for consistent structure
           const pixelCoords = map.project(coords);
@@ -1151,19 +1105,7 @@ class MapController {
             setTimeout(() => {
               const a = audioController.currentAudio;
               const shouldMinimize = this.userPreferredPopupState === 'mini';
-              const nearbyTrackIndices = this.getTracksInTightCluster(trackIndex);
-              if (nearbyTrackIndices.length > 0 && shouldMinimize) {
-                const leaves = [
-                  { geometry: { coordinates: coords }, properties: { originalIndex: track.originalIndex } },
-                  ...nearbyTrackIndices.map(nearbyIndex => {
-                    const t = this.audioData[nearbyIndex];
-                    return { geometry: { coordinates: [parseFloat(t.lng), parseFloat(t.lat)] }, properties: { originalIndex: t.originalIndex } };
-                  })
-                ];
-                this.showClusterPicker({ x: 0, y: 0 }, leaves, trackIndex);
-              } else {
-                this.showPopup(coords, track, a, trackIndex, shouldMinimize);
-              }
+              this.showPopup(coords, track, a, trackIndex, shouldMinimize);
               this.refreshMiniBoxes();
             }, movementDuration + 100);
           });
@@ -1332,30 +1274,6 @@ class MapController {
       }
       
       // Check if track is in a tight cluster - returns array of nearby track indices (or empty array)
-      getTracksInTightCluster(trackIndex) {
-        const track = this.audioData[trackIndex];
-        if (!track) return [];
-        
-        const trackLat = parseFloat(track.lat);
-        const trackLng = parseFloat(track.lng);
-        
-        // Find all tracks within 50m
-        const nearbyTracks = [];
-        
-        this.audioData.forEach((otherTrack, otherIndex) => {
-          if (otherIndex === trackIndex) return;
-          
-          const otherLat = parseFloat(otherTrack.lat);
-          const otherLng = parseFloat(otherTrack.lng);
-          const distance = this.calculateDistance(trackLat, trackLng, otherLat, otherLng);
-          
-          if (distance < 50) {
-            nearbyTracks.push(otherIndex);
-          }
-        });
-        
-        return nearbyTracks;
-      }
 
       // Single source of truth for all map UI state.
       // Called from idle (map fully stable, safe to query features).
@@ -1382,8 +1300,9 @@ class MapController {
 
           // Protect picker if zoom hasn't changed meaningfully — pan only, no closure checks
           if (zoomDelta < 0.5) {
-                        uiController.showMiniInfoBoxes(null, this.audioData, points);
+            uiController.showMiniInfoBoxes(null, this.audioData, points);
             this.updateBadgeVisibility();
+            uiController.releaseManualBoxes();
             return;
           }
 
@@ -1402,8 +1321,9 @@ class MapController {
 
           // No dissolution — picker persists until explicit close or zoom-out recluster
           if (zoomedIn) {
-                        uiController.showMiniInfoBoxes(null, this.audioData, points);
+            uiController.showMiniInfoBoxes(null, this.audioData, points);
             this.updateBadgeVisibility();
+            uiController.releaseManualBoxes();
             return;
           } else if (zoomedOutEnough) {
             // Zoomed out past threshold — async check if absorbed into cluster
@@ -1434,13 +1354,15 @@ class MapController {
               }
             }
             // Picker stays open pending async confirmation
-                        uiController.showMiniInfoBoxes(null, this.audioData, points);
+            uiController.showMiniInfoBoxes(null, this.audioData, points);
             this.updateBadgeVisibility();
+            uiController.releaseManualBoxes();
             return;
           } else {
             // Zoomed out but not past threshold — persist picker
-                        uiController.showMiniInfoBoxes(null, this.audioData, points);
+            uiController.showMiniInfoBoxes(null, this.audioData, points);
             this.updateBadgeVisibility();
+            uiController.releaseManualBoxes();
             return;
           }
         }
@@ -1455,8 +1377,9 @@ class MapController {
 
         if (this.clusterPicker) {
           // Picker open — draw mini boxes for non-picker points only
-                    uiController.showMiniInfoBoxes(null, this.audioData, points);
+          uiController.showMiniInfoBoxes(null, this.audioData, points);
           this.updateBadgeVisibility();
+          uiController.releaseManualBoxes();
           return;
         }
 
