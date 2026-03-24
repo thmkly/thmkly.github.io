@@ -470,7 +470,9 @@ class UIController {
           if (mpTrack) {
             const mpPx = map.project([parseFloat(mpTrack.lng), parseFloat(mpTrack.lat)]);
             const mpKey = Math.round(mpPx.x + 10);
-            stackCounts[mpKey] = 1;
+            // Account for stack offset — occupy slot at _stackOffset position
+            const mpOffset = mapController.minimizedPopup._stackOffset || 0;
+            stackCounts[mpKey] = Math.max(stackCounts[mpKey] || 0, mpOffset + 1);
           }
         }
         this.miniInfoBoxes.forEach(infoBox => {

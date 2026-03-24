@@ -1019,15 +1019,29 @@ class MapController {
           miniBox.style.top  = `${pixelCoords.y - 20}px`;
 
           document.body.appendChild(miniBox);
-          miniBox.style.top = `${pixelCoords.y - (miniBox.offsetHeight / 2)}px`;
+
+          // Stack minimized popup accounting for any existing mini boxes at same coords
+          const boxHeight = miniBox.offsetHeight || 32;
+          const existingAtSameCoords = uiController.miniInfoBoxes.filter(b => {
+            const bLeft = parseFloat(b.style.left);
+            const bTrack = mapController.audioData[parseInt(b.dataset.trackIndex)];
+            if (!bTrack) return false;
+            const bPx = map.project([parseFloat(bTrack.lng), parseFloat(bTrack.lat)]);
+            return Math.abs(bLeft - (pixelCoords.x + 10)) < 5 &&
+                   Math.abs(bPx.y - pixelCoords.y) < 5;
+          });
+          const stackOffset = existingAtSameCoords.length;
+          miniBox.style.top = `${pixelCoords.y - (boxHeight / 2) + (stackOffset * (boxHeight + 3))}px`;
           miniBox._manuallyCreated = true;
+          miniBox._stackOffset = stackOffset;
           this.minimizedPopup = miniBox;
 
-          // Update position when map moves
+          // Update position when map moves — maintain stack offset
           const updatePosition = () => {
             const newPx = map.project(coords);
+            const bh = miniBox.offsetHeight || 32;
             miniBox.style.left = `${newPx.x + 10}px`;
-            miniBox.style.top  = `${newPx.y - (miniBox.offsetHeight / 2)}px`;
+            miniBox.style.top  = `${newPx.y - (bh / 2) + ((miniBox._stackOffset || 0) * (bh + 3))}px`;
           };
           map.on('move', updatePosition);
           miniBox._updatePosition = updatePosition;
