@@ -1464,11 +1464,27 @@ class MapController {
         this.clusterPickerTracks = null;
         this.detectAndReserveTightSubgroups(points);
 
-                uiController.showMiniInfoBoxes(null, this.audioData, points);
+        // Pre-set clusterPickerTracks for the active subgroup BEFORE showMiniInfoBoxes
+        // so those tracks are excluded from mini boxes
+        if (this._pendingSubgroupLeaves) {
+          const subgroups = this._pendingSubgroupLeaves;
+          const activeSubgroup = subgroups.find(leaves =>
+            leaves.some(l =>
+              parseInt(l.properties.originalIndex) === (this.audioData[audioController.currentIndex]?.originalIndex)
+            )
+          ) || subgroups[0];
+
+          // Pre-set clusterPickerTracks so showMiniInfoBoxes excludes these tracks
+          this.clusterPickerTracks = activeSubgroup.map(l => {
+            const origIdx = parseInt(l.properties.originalIndex);
+            return this.audioData.findIndex(t => t.originalIndex === origIdx);
+          }).filter(i => i !== -1);
+        }
+
+        uiController.showMiniInfoBoxes(null, this.audioData, points);
 
         if (this._pendingSubgroupLeaves) {
           const subgroups = this._pendingSubgroupLeaves;
-          // Find subgroup containing playing track, or fall back to first
           const activeSubgroup = subgroups.find(leaves =>
             leaves.some(l =>
               parseInt(l.properties.originalIndex) === (this.audioData[audioController.currentIndex]?.originalIndex)
