@@ -1031,7 +1031,7 @@ class MapController {
           });
           const maxExistingSlot = sameCoordBoxes.reduce((max, b) => Math.max(max, b._stackOffset || 0), -1);
           const stackOffset = maxExistingSlot + 1;
-          miniBox.style.top = `${pixelCoords.y - (boxHeight / 2) + (stackOffset * (boxHeight + 3))}px`;
+          miniBox.style.top = `${pixelCoords.y - 20 + (stackOffset * (boxHeight + 3))}px`;
           miniBox._manuallyCreated = true;
           miniBox._stackOffset = stackOffset;
           this.minimizedPopup = miniBox;
@@ -1041,7 +1041,7 @@ class MapController {
             const newPx = map.project(coords);
             const bh = miniBox.offsetHeight || 32;
             miniBox.style.left = `${newPx.x + 10}px`;
-            miniBox.style.top  = `${newPx.y - (bh / 2) + ((miniBox._stackOffset || 0) * (bh + 3))}px`;
+            miniBox.style.top  = `${newPx.y - 20 + ((miniBox._stackOffset || 0) * (bh + 3))}px`;
           };
           map.on('move', updatePosition);
           miniBox._updatePosition = updatePosition;
