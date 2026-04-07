@@ -912,17 +912,24 @@ class MapController {
               // Don't clear mini boxes - they should stay visible
               this.updateBadgeVisibility();
             } else {
-              // Remove the mini box for THIS track before creating popup (prevents duplicates)
-              const existingMiniBox = uiController.miniInfoBoxes.find(box => 
+              // Find existing mini box for this track
+              const existingMiniBox = uiController.miniInfoBoxes.find(box =>
                 parseInt(box.dataset.trackIndex) === index
               );
-              if (existingMiniBox) {
-                existingMiniBox.remove();
-                uiController.miniInfoBoxes = uiController.miniInfoBoxes.filter(box => box !== existingMiniBox);
-              }
 
-              // Show normal popup
-              this.showPopup(coords, track, audio, index, shouldMinimize);
+              if (shouldMinimize && existingMiniBox) {
+                // Update in place — remove from miniInfoBoxes management but keep in DOM
+                uiController.miniInfoBoxes = uiController.miniInfoBoxes.filter(box => box !== existingMiniBox);
+                this.minimizePopup(track, index, existingMiniBox);
+              } else {
+                // Remove existing mini box before creating full popup
+                if (existingMiniBox) {
+                  existingMiniBox.remove();
+                  uiController.miniInfoBoxes = uiController.miniInfoBoxes.filter(box => box !== existingMiniBox);
+                }
+                // Show normal popup
+                this.showPopup(coords, track, audio, index, shouldMinimize);
+              }
               this.refreshMiniBoxes();
               this.updateBadgeVisibility();
             }
@@ -930,7 +937,7 @@ class MapController {
         }, 100);
       }
 
-        minimizePopup(track, index) {
+        minimizePopup(track, index, existingBox = null) {
           // User explicitly minimized - save this preference
           this.userPreferredPopupState = 'mini';
 
@@ -971,13 +978,80 @@ class MapController {
             this.refreshMiniBoxes();
             return;
           }
-          
+
           const coords = [parseFloat(track.lng), parseFloat(track.lat)];
-          
-          // Not in tight cluster - use _createMiniInfoBox for consistent structure
-          const pixelCoords = map.project(coords);
           const audio = audioController.currentAudio;
           const isActiveTrack = audioController.currentIndex === index;
+
+          // If an existing box was passed in, update it in place — no position change
+          if (existingBox) {
+            // Clean up any previous icon listener
+            if (existingBox._cleanupIcon) { existingBox._cleanupIcon(); existingBox._cleanupIcon = null; }
+
+            // Apply orange state
+            if (isActiveTrack) existingBox.classList.add('minimized-popup');
+
+            // Rewire pill click to play/pause
+            const pill = existingBox.querySelector('.mini-infobox-pill');
+            if (pill) {
+              const newPill = pill.cloneNode(true); // Remove old listeners
+              pill.parentNode.replaceChild(newPill, pill);
+              newPill.addEventListener('click', (e) => {
+                e.stopPropagation();
+                if (audio) audio.paused ? audio.play() : audio.pause();
+              });
+              if (audio) {
+                const pillIcon = newPill.querySelector('.play-icon');
+                if (pillIcon) {
+                  const cleanup = mapController._attachPlayPauseIcon(pillIcon, audio, false);
+                  existingBox._cleanupIcon = cleanup;
+                }
+                const updatePillTitle = () => { newPill.title = audio.paused ? 'Play sound' : 'Pause sound'; };
+                updatePillTitle();
+                audio.addEventListener('play', updatePillTitle);
+                audio.addEventListener('pause', updatePillTitle);
+              }
+            }
+
+            // Rewire chevron click to expand
+            const chevron = existingBox.querySelector('.mini-infobox-chevron');
+            if (chevron) {
+              const newChevron = chevron.cloneNode(true);
+              chevron.parentNode.replaceChild(newChevron, chevron);
+              newChevron.addEventListener('click', (e) => {
+                e.stopPropagation();
+                if (existingBox._cleanupIcon) existingBox._cleanupIcon();
+                if (existingBox._updatePosition) map.off('move', existingBox._updatePosition);
+                existingBox.remove();
+                this.minimizedPopup = null;
+                this.userPreferredPopupState = 'full';
+                this.showPopup(coords, track, audioController.currentAudio, index);
+                setTimeout(() => {
+                  this.updateHeaderBadge(audioController.currentIndex >= 0 ? this.audioData[audioController.currentIndex] : null);
+                }, 50);
+              });
+            }
+
+            existingBox._manuallyCreated = true;
+            this.minimizedPopup = existingBox;
+
+            // Attach move handler using existing _stackOffset — position stays unchanged
+            if (existingBox._updatePosition) map.off('move', existingBox._updatePosition);
+            const updatePosition = () => {
+              const newPx = map.project(coords);
+              const bh = existingBox.offsetHeight || 32;
+              existingBox.style.left = `${newPx.x + 10}px`;
+              existingBox.style.top  = `${newPx.y - (bh / 2) + ((existingBox._stackOffset || 0) * (bh + 3))}px`;
+            };
+            map.on('move', updatePosition);
+            existingBox._updatePosition = updatePosition;
+
+            this.updateHeaderBadge(track);
+            return;
+          }
+
+          // No existing box — create a new one (e.g. minimize button clicked on full popup)
+          const pixelCoords = map.project(coords);
 
           const miniBox = uiController._createMiniInfoBox(track, index, {
             onPillClick: () => {
@@ -1020,8 +1094,7 @@ class MapController {
 
           document.body.appendChild(miniBox);
 
-          // Stack minimized popup by finding the next available slot among mini boxes at same coords
-          // Match by lat/lng identity rather than pixel position (pixels shift during map moves)
+          // Stack new minimized popup by finding next available slot among mini boxes at same coords
           const boxHeight = miniBox.offsetHeight || 32;
           const sameCoordBoxes = uiController.miniInfoBoxes.filter(b => {
             const bTrack = mapController.audioData[parseInt(b.dataset.trackIndex)];
@@ -1046,7 +1119,6 @@ class MapController {
           map.on('move', updatePosition);
           miniBox._updatePosition = updatePosition;
 
-        // Add header badge only if playlist is collapsed
           this.updateHeaderBadge(track);
         }
         
