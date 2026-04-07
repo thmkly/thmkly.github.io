@@ -918,9 +918,10 @@ class MapController {
               );
 
               if (shouldMinimize && existingMiniBox) {
-                // Update in place — remove from miniInfoBoxes management but keep in DOM
+                // Update in place — no refresh needed, everything is already correct
                 uiController.miniInfoBoxes = uiController.miniInfoBoxes.filter(box => box !== existingMiniBox);
                 this.minimizePopup(track, index, existingMiniBox);
+                this.updateBadgeVisibility();
               } else {
                 // Remove existing mini box before creating full popup
                 if (existingMiniBox) {
@@ -929,9 +930,9 @@ class MapController {
                 }
                 // Show normal popup
                 this.showPopup(coords, track, audio, index, shouldMinimize);
+                this.refreshMiniBoxes();
+                this.updateBadgeVisibility();
               }
-              this.refreshMiniBoxes();
-              this.updateBadgeVisibility();
             }
           }, duration + 200); // 200ms additional delay after flyto completes
         }, 100);
