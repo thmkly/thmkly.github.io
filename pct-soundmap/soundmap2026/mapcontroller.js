@@ -4,6 +4,7 @@ class MapController {
        this.audioData = [];
        this.originalAudioData = [];
        this.currentPopup = null;
+       this.previewPopup = null;
        this.minimizedPopup = null; // Store minimized orange mini box (State 2 for non-tight clusters)
        this.userPreferredPopupState = 'full'; // States: 'mini' (State 2), 'full' (State 3), 'full-with-notes' (State 4) - default State 3
        this.isPositioning = false;
@@ -997,6 +998,12 @@ class MapController {
             this.currentPopup = null;
           }
 
+          // Remove any preview popup
+          if (this.previewPopup) {
+            this.previewPopup.remove();
+            this.previewPopup = null;
+          }
+
           // Hide the audio element
           if (audioController.currentAudio) {
             audioController.currentAudio.style.display = 'none';
@@ -1678,27 +1685,26 @@ class MapController {
             // Block if no audio playing, UNLESS it's a preview (chevron click on white box)
             if (audioController.currentIndex === -1 && !preview) return;
               
-            if (this.currentPopup) {
-              // If the old popup was a preview (chevron-expanded white box), demote it back to mini box
-              const oldPopupIndex = this.currentPopup._container
-                ? parseInt(this.currentPopup._container.dataset.trackIndex)
+            // Close/demote any existing preview popup
+            if (this.previewPopup) {
+              const prevIdx = this.previewPopup._container
+                ? parseInt(this.previewPopup._container.dataset.trackIndex)
                 : -1;
-              const wasPreviewPopup = this.currentPopup._preview === true;
-              this.currentPopup.remove();
-              this.currentPopup = null;
-
-              if (wasPreviewPopup && oldPopupIndex !== -1 && oldPopupIndex !== index) {
-                const oldTrack = this.audioData[oldPopupIndex];
+              this.previewPopup.remove();
+              this.previewPopup = null;
+              // Demote old preview track back to mini box if it's not the new track
+              if (prevIdx !== -1 && prevIdx !== index) {
+                const oldTrack = this.audioData[prevIdx];
                 if (oldTrack) {
                   const oldCoords = [parseFloat(oldTrack.lng), parseFloat(oldTrack.lat)];
                   const oldPx = map.project(oldCoords);
-                  const slot = uiController.getStackSlot(oldPopupIndex, this.audioData);
-                  const restoredBox = uiController._createMiniInfoBox(oldTrack, oldPopupIndex, {
-                    onPillClick: () => mapController.playAudio(oldPopupIndex, false, true, true),
+                  const slot = uiController.getStackSlot(prevIdx, this.audioData);
+                  const restoredBox = uiController._createMiniInfoBox(oldTrack, prevIdx, {
+                    onPillClick: () => mapController.playAudio(prevIdx, false, true, true),
                     onBodyClick: () => {
                       if (restoredBox.parentNode) restoredBox.parentNode.removeChild(restoredBox);
                       uiController.miniInfoBoxes = uiController.miniInfoBoxes.filter(b => b !== restoredBox);
-                      mapController.showPopup(oldCoords, oldTrack, audioController.currentAudio, oldPopupIndex, false, true);
+                      mapController.showPopup(oldCoords, oldTrack, audioController.currentAudio, prevIdx, false, true);
                     },
                     isPlaying: false,
                     audio: null
@@ -1711,7 +1717,7 @@ class MapController {
                   const moveHandler = () => {
                     const newPx = map.project(oldCoords);
                     const h = restoredBox.offsetHeight || 32;
-                    const s = uiController.getStackSlot(oldPopupIndex, mapController.audioData);
+                    const s = uiController.getStackSlot(prevIdx, mapController.audioData);
                     restoredBox.style.left = `${newPx.x + 10}px`;
                     restoredBox.style.top  = `${newPx.y - (h / 2) + (s * (h + 3))}px`;
                   };
@@ -1721,6 +1727,14 @@ class MapController {
                   uiController.miniInfoBoxes.push(restoredBox);
                 }
               }
+            }
+
+            // If incoming is a preview and a full playing popup exists, don't replace it
+            const keepCurrentPopup = preview && this.currentPopup && !this.currentPopup._preview;
+
+            if (this.currentPopup && !keepCurrentPopup) {
+              this.currentPopup.remove();
+              this.currentPopup = null;
             }
 
             // If opening a full popup for a picker track, keep picker but hide this track's box
@@ -1949,7 +1963,7 @@ class MapController {
             container.style.left = `${pixelCoords.x - (popupWidth / 2)}px`;
             container.style.top  = `${pixelCoords.y - container.offsetHeight - 20}px`;
         
-            this.currentPopup = {
+            const popupObj = {
               _container: container,
               _coords: coords,
               _preview: preview,
@@ -1962,8 +1976,15 @@ class MapController {
                 container.style.top  = `${px.y - container.offsetHeight - 20}px`;
               }
             };
-        
-            setTimeout(() => this.currentPopup.updatePosition(), 10);
+
+            // Route to previewPopup slot if a full playing popup is already open
+            if (keepCurrentPopup) {
+              this.previewPopup = popupObj;
+            } else {
+              this.currentPopup = popupObj;
+            }
+
+            setTimeout(() => popupObj.updatePosition(), 10);
         
           if (shouldMinimize && !preview) {
             this.minimizePopup(track, index);
@@ -2080,6 +2101,11 @@ class MapController {
           if (this.currentPopup) {
             this.currentPopup.remove();
             this.currentPopup = null;
+          }
+
+          if (this.previewPopup) {
+            this.previewPopup.remove();
+            this.previewPopup = null;
           }
           
           // Clean up minimized popup if it exists
