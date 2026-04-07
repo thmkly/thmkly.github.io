@@ -1679,8 +1679,48 @@ class MapController {
             if (audioController.currentIndex === -1 && !preview) return;
               
             if (this.currentPopup) {
+              // If the old popup was a preview (chevron-expanded white box), demote it back to mini box
+              const oldPopupIndex = this.currentPopup._container
+                ? parseInt(this.currentPopup._container.dataset.trackIndex)
+                : -1;
+              const wasPreviewPopup = this.currentPopup._preview === true;
               this.currentPopup.remove();
               this.currentPopup = null;
+
+              if (wasPreviewPopup && oldPopupIndex !== -1 && oldPopupIndex !== index) {
+                const oldTrack = this.audioData[oldPopupIndex];
+                if (oldTrack) {
+                  const oldCoords = [parseFloat(oldTrack.lng), parseFloat(oldTrack.lat)];
+                  const oldPx = map.project(oldCoords);
+                  const slot = uiController.getStackSlot(oldPopupIndex, this.audioData);
+                  const restoredBox = uiController._createMiniInfoBox(oldTrack, oldPopupIndex, {
+                    onPillClick: () => mapController.playAudio(oldPopupIndex, false, true, true),
+                    onBodyClick: () => {
+                      if (restoredBox.parentNode) restoredBox.parentNode.removeChild(restoredBox);
+                      uiController.miniInfoBoxes = uiController.miniInfoBoxes.filter(b => b !== restoredBox);
+                      mapController.showPopup(oldCoords, oldTrack, audioController.currentAudio, oldPopupIndex, false, true);
+                    },
+                    isPlaying: false,
+                    audio: null
+                  });
+                  restoredBox.style.position = 'absolute';
+                  const bh = 32;
+                  restoredBox.style.left = `${oldPx.x + 10}px`;
+                  restoredBox.style.top  = `${oldPx.y - (bh / 2) + (slot * (bh + 3))}px`;
+                  restoredBox._stackOffset = slot;
+                  const moveHandler = () => {
+                    const newPx = map.project(oldCoords);
+                    const h = restoredBox.offsetHeight || 32;
+                    const s = uiController.getStackSlot(oldPopupIndex, mapController.audioData);
+                    restoredBox.style.left = `${newPx.x + 10}px`;
+                    restoredBox.style.top  = `${newPx.y - (h / 2) + (s * (h + 3))}px`;
+                  };
+                  map.on('move', moveHandler);
+                  restoredBox._updatePosition = moveHandler;
+                  document.body.appendChild(restoredBox);
+                  uiController.miniInfoBoxes.push(restoredBox);
+                }
+              }
             }
 
             // If opening a full popup for a picker track, keep picker but hide this track's box
