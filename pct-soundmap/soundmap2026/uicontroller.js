@@ -402,7 +402,7 @@ class UIController {
           });
           const maxExistingSlot = sameCoordBoxes.reduce((max, b) => Math.max(max, b._stackOffset || 0), -1);
           const stackOffset = maxExistingSlot + 1;
-          infoBox.style.top = `${pixelCoords.y - 20 + (stackOffset * (boxHeight + 3))}px`;
+          infoBox.style.top = `${pixelCoords.y - (boxHeight / 2) + (stackOffset * (boxHeight + 3))}px`;
           infoBox._stackOffset = stackOffset;
           this.miniInfoBoxes.push(infoBox);
         });
@@ -471,7 +471,7 @@ class UIController {
             const boxHeight = infoBox.offsetHeight || 32;
             const stackOffset = infoBox._stackOffset || 0;
             infoBox.style.left = `${px.x + 10}px`;
-            infoBox.style.top  = `${px.y - 20 + (stackOffset * (boxHeight + 3))}px`;
+            infoBox.style.top  = `${px.y - (boxHeight / 2) + (stackOffset * (boxHeight + 3))}px`;
           }
         });
       }
