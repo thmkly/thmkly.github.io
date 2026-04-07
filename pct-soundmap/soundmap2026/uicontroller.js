@@ -404,6 +404,7 @@ class UIController {
                    Math.abs(bPx.y - pixelCoords.y) < 5;
           }).length;
           infoBox.style.top = `${pixelCoords.y - (boxHeight / 2) + (stackOffset * (boxHeight + 3))}px`;
+          infoBox._stackOffset = stackOffset;
           this.miniInfoBoxes.push(infoBox);
         });
       }
@@ -461,33 +462,17 @@ class UIController {
 
 
       updateMiniInfoBoxPositions() {
-        // Track stack counts per x position to maintain vertical offsets
-        // Pre-seed with minimized popup position so mini boxes stack correctly around it
-        const stackCounts = {};
-        if (mapController.minimizedPopup) {
-          const mpTrackIndex = parseInt(mapController.minimizedPopup.dataset.trackIndex);
-          const mpTrack = mapController.audioData[mpTrackIndex];
-          if (mpTrack) {
-            const mpPx = map.project([parseFloat(mpTrack.lng), parseFloat(mpTrack.lat)]);
-            const mpKey = Math.round(mpPx.x + 10);
-            // Account for stack offset — occupy slot at _stackOffset position
-            const mpOffset = mapController.minimizedPopup._stackOffset || 0;
-            stackCounts[mpKey] = Math.max(stackCounts[mpKey] || 0, mpOffset + 1);
-          }
-        }
+        // Each box has a stable _stackOffset assigned at creation — just reproject to new pixel coords
         this.miniInfoBoxes.forEach(infoBox => {
           const trackIndex = parseInt(infoBox.dataset.trackIndex);
           const track = mapController.audioData[trackIndex];
           if (track) {
             const coords = [parseFloat(track.lng), parseFloat(track.lat)];
             const px = map.project(coords);
-            const leftKey = Math.round(px.x + 10);
-            stackCounts[leftKey] = (stackCounts[leftKey] || 0);
             const boxHeight = infoBox.offsetHeight || 32;
-            const stackOffset = stackCounts[leftKey];
+            const stackOffset = infoBox._stackOffset || 0;
             infoBox.style.left = `${px.x + 10}px`;
             infoBox.style.top  = `${px.y - (boxHeight / 2) + (stackOffset * (boxHeight + 3))}px`;
-            stackCounts[leftKey]++;
           }
         });
       }
