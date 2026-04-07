@@ -389,20 +389,19 @@ class UIController {
 
           document.body.appendChild(infoBox);
 
-          // Stack boxes at identical pixel coordinates vertically
-          // Include minimized popup in count to avoid overlap with it
+          // Stack boxes at identical coordinates — match by lat/lng, use stored _stackOffset for slot assignment
           const boxHeight = infoBox.offsetHeight || 32;
           const allBoxes = [...this.miniInfoBoxes];
           if (mapController.minimizedPopup) allBoxes.push(mapController.minimizedPopup);
-          const stackOffset = allBoxes.filter(b => {
-            const bLeft = parseFloat(b.style.left);
-            const track2Index = parseInt(b.dataset.trackIndex);
-            const track2 = mapController.audioData[track2Index];
-            if (!track2) return false;
-            const bPx = map.project([parseFloat(track2.lng), parseFloat(track2.lat)]);
-            return Math.abs(bLeft - (pixelCoords.x + 10)) < 5 &&
-                   Math.abs(bPx.y - pixelCoords.y) < 5;
-          }).length;
+          const sameCoordBoxes = allBoxes.filter(b => {
+            const bTrackIndex = parseInt(b.dataset.trackIndex);
+            const bTrack = mapController.audioData[bTrackIndex];
+            if (!bTrack) return false;
+            return parseFloat(bTrack.lng) === parseFloat(track.lng) &&
+                   parseFloat(bTrack.lat) === parseFloat(track.lat);
+          });
+          const maxExistingSlot = sameCoordBoxes.reduce((max, b) => Math.max(max, b._stackOffset || 0), -1);
+          const stackOffset = maxExistingSlot + 1;
           infoBox.style.top = `${pixelCoords.y - (boxHeight / 2) + (stackOffset * (boxHeight + 3))}px`;
           infoBox._stackOffset = stackOffset;
           this.miniInfoBoxes.push(infoBox);

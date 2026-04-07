@@ -1020,17 +1020,17 @@ class MapController {
 
           document.body.appendChild(miniBox);
 
-          // Stack minimized popup accounting for any existing mini boxes at same coords
+          // Stack minimized popup by finding the next available slot among mini boxes at same coords
+          // Match by lat/lng identity rather than pixel position (pixels shift during map moves)
           const boxHeight = miniBox.offsetHeight || 32;
-          const existingAtSameCoords = uiController.miniInfoBoxes.filter(b => {
-            const bLeft = parseFloat(b.style.left);
+          const sameCoordBoxes = uiController.miniInfoBoxes.filter(b => {
             const bTrack = mapController.audioData[parseInt(b.dataset.trackIndex)];
             if (!bTrack) return false;
-            const bPx = map.project([parseFloat(bTrack.lng), parseFloat(bTrack.lat)]);
-            return Math.abs(bLeft - (pixelCoords.x + 10)) < 5 &&
-                   Math.abs(bPx.y - pixelCoords.y) < 5;
+            return parseFloat(bTrack.lng) === parseFloat(track.lng) &&
+                   parseFloat(bTrack.lat) === parseFloat(track.lat);
           });
-          const stackOffset = existingAtSameCoords.length;
+          const maxExistingSlot = sameCoordBoxes.reduce((max, b) => Math.max(max, b._stackOffset || 0), -1);
+          const stackOffset = maxExistingSlot + 1;
           miniBox.style.top = `${pixelCoords.y - (boxHeight / 2) + (stackOffset * (boxHeight + 3))}px`;
           miniBox._manuallyCreated = true;
           miniBox._stackOffset = stackOffset;
