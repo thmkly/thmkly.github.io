@@ -1033,15 +1033,17 @@ class MapController {
             }
 
             existingBox._manuallyCreated = true;
+            existingBox._stackOffset = uiController.getStackSlot(index, this.audioData);
             this.minimizedPopup = existingBox;
 
-            // Attach move handler using existing _stackOffset — position stays unchanged
+            // Attach move handler using index-order slot — always stable
             if (existingBox._updatePosition) map.off('move', existingBox._updatePosition);
             const updatePosition = () => {
               const newPx = map.project(coords);
               const bh = existingBox.offsetHeight || 32;
+              const slot = uiController.getStackSlot(index, mapController.audioData);
               existingBox.style.left = `${newPx.x + 10}px`;
-              existingBox.style.top  = `${newPx.y - (bh / 2) + ((existingBox._stackOffset || 0) * (bh + 3))}px`;
+              existingBox.style.top  = `${newPx.y - (bh / 2) + (slot * (bh + 3))}px`;
             };
             map.on('move', updatePosition);
             existingBox._updatePosition = updatePosition;
@@ -1094,27 +1096,21 @@ class MapController {
 
           document.body.appendChild(miniBox);
 
-          // Stack new minimized popup by finding next available slot among mini boxes at same coords
+          // Slot is determined by track index order — always stable
           const boxHeight = miniBox.offsetHeight || 32;
-          const sameCoordBoxes = uiController.miniInfoBoxes.filter(b => {
-            const bTrack = mapController.audioData[parseInt(b.dataset.trackIndex)];
-            if (!bTrack) return false;
-            return parseFloat(bTrack.lng) === parseFloat(track.lng) &&
-                   parseFloat(bTrack.lat) === parseFloat(track.lat);
-          });
-          const maxExistingSlot = sameCoordBoxes.reduce((max, b) => Math.max(max, b._stackOffset || 0), -1);
-          const stackOffset = maxExistingSlot + 1;
+          const stackOffset = uiController.getStackSlot(index, this.audioData);
           miniBox.style.top = `${pixelCoords.y - (boxHeight / 2) + (stackOffset * (boxHeight + 3))}px`;
           miniBox._manuallyCreated = true;
           miniBox._stackOffset = stackOffset;
           this.minimizedPopup = miniBox;
 
-          // Update position when map moves — maintain stack offset
+          // Update position when map moves — use index-order slot
           const updatePosition = () => {
             const newPx = map.project(coords);
             const bh = miniBox.offsetHeight || 32;
+            const slot = uiController.getStackSlot(index, mapController.audioData);
             miniBox.style.left = `${newPx.x + 10}px`;
-            miniBox.style.top  = `${newPx.y - (bh / 2) + ((miniBox._stackOffset || 0) * (bh + 3))}px`;
+            miniBox.style.top  = `${newPx.y - (bh / 2) + (slot * (bh + 3))}px`;
           };
           map.on('move', updatePosition);
           miniBox._updatePosition = updatePosition;

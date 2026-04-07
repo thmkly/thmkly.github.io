@@ -389,19 +389,9 @@ class UIController {
 
           document.body.appendChild(infoBox);
 
-          // Stack boxes at identical coordinates — match by lat/lng, use stored _stackOffset for slot assignment
+          // Slot is determined by track index order among all tracks at same coords — always stable
           const boxHeight = infoBox.offsetHeight || 32;
-          const allBoxes = [...this.miniInfoBoxes];
-          if (mapController.minimizedPopup) allBoxes.push(mapController.minimizedPopup);
-          const sameCoordBoxes = allBoxes.filter(b => {
-            const bTrackIndex = parseInt(b.dataset.trackIndex);
-            const bTrack = mapController.audioData[bTrackIndex];
-            if (!bTrack) return false;
-            return parseFloat(bTrack.lng) === parseFloat(track.lng) &&
-                   parseFloat(bTrack.lat) === parseFloat(track.lat);
-          });
-          const maxExistingSlot = sameCoordBoxes.reduce((max, b) => Math.max(max, b._stackOffset || 0), -1);
-          const stackOffset = maxExistingSlot + 1;
+          const stackOffset = this.getStackSlot(currentIndex, audioData);
           infoBox.style.top = `${pixelCoords.y - (boxHeight / 2) + (stackOffset * (boxHeight + 3))}px`;
           infoBox._stackOffset = stackOffset;
           this.miniInfoBoxes.push(infoBox);
@@ -460,8 +450,24 @@ class UIController {
       }
 
 
+      // Returns the vertical stack slot for a track at shared coords, based on sorted track index order.
+      // Includes the minimized popup track in the sort so slots are consistent across all box types.
+      getStackSlot(trackIndex, audioData) {
+        const track = audioData[trackIndex];
+        if (!track) return 0;
+        const sameLng = parseFloat(track.lng);
+        const sameLat = parseFloat(track.lat);
+        // Gather all track indices at this coord, including the minimized popup's track
+        const allIndices = audioData
+          .map((t, i) => ({ i, lng: parseFloat(t.lng), lat: parseFloat(t.lat) }))
+          .filter(t => t.lng === sameLng && t.lat === sameLat)
+          .map(t => t.i);
+        allIndices.sort((a, b) => a - b);
+        return allIndices.indexOf(trackIndex);
+      }
+
       updateMiniInfoBoxPositions() {
-        // Each box has a stable _stackOffset assigned at creation — just reproject to new pixel coords
+        // Reproject each box to new pixel coords, using index-order slot for stable positioning
         this.miniInfoBoxes.forEach(infoBox => {
           const trackIndex = parseInt(infoBox.dataset.trackIndex);
           const track = mapController.audioData[trackIndex];
@@ -469,7 +475,7 @@ class UIController {
             const coords = [parseFloat(track.lng), parseFloat(track.lat)];
             const px = map.project(coords);
             const boxHeight = infoBox.offsetHeight || 32;
-            const stackOffset = infoBox._stackOffset || 0;
+            const stackOffset = this.getStackSlot(trackIndex, mapController.audioData);
             infoBox.style.left = `${px.x + 10}px`;
             infoBox.style.top  = `${px.y - (boxHeight / 2) + (stackOffset * (boxHeight + 3))}px`;
           }
