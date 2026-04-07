@@ -729,11 +729,57 @@ class MapController {
 
         const shouldMinimize = fromMiniPill || this.userPreferredPopupState === 'mini';
 
-        // Clean up any minimized popup
+        // Demote any existing minimized popup back to a regular white mini box
         if (this.minimizedPopup) {
-          if (this.minimizedPopup._cleanupIcon) this.minimizedPopup._cleanupIcon();
-          if (this.minimizedPopup._updatePosition) map.off('move', this.minimizedPopup._updatePosition);
-          this.minimizedPopup.remove();
+          const oldMin = this.minimizedPopup;
+          // Clean up icon listener and move handler
+          if (oldMin._cleanupIcon) { oldMin._cleanupIcon(); oldMin._cleanupIcon = null; }
+          if (oldMin._updatePosition) { map.off('move', oldMin._updatePosition); oldMin._updatePosition = null; }
+          // Strip orange state
+          oldMin.classList.remove('minimized-popup');
+          // Reset pill to static play icon and rewire click to play that track
+          const oldTrackIndex = parseInt(oldMin.dataset.trackIndex);
+          const oldTrack = this.audioData[oldTrackIndex];
+          const oldPill = oldMin.querySelector('.mini-infobox-pill');
+          if (oldPill && oldTrack) {
+            const newPill = oldPill.cloneNode(true);
+            oldPill.parentNode.replaceChild(newPill, oldPill);
+            const pillIcon = newPill.querySelector('.play-icon');
+            if (pillIcon) { pillIcon.innerHTML = ''; pillIcon.style.cssText = ''; pillIcon.className = 'play-icon'; }
+            newPill.addEventListener('click', (e) => {
+              e.stopPropagation();
+              mapController.playAudio(oldTrackIndex, false, true, true);
+            });
+          }
+          // Rewire chevron to expand
+          const oldChevron = oldMin.querySelector('.mini-infobox-chevron');
+          if (oldChevron && oldTrack) {
+            const newChevron = oldChevron.cloneNode(true);
+            oldChevron.parentNode.replaceChild(newChevron, oldChevron);
+            newChevron.addEventListener('click', (e) => {
+              e.stopPropagation();
+              const coords = [parseFloat(oldTrack.lng), parseFloat(oldTrack.lat)];
+              oldMin.remove();
+              uiController.miniInfoBoxes = uiController.miniInfoBoxes.filter(b => b !== oldMin);
+              mapController.showPopup(coords, oldTrack, audioController.currentAudio, oldTrackIndex, false, true);
+            });
+          }
+          // Reattach move handler using index-order slot
+          const oldCoords = oldTrack ? [parseFloat(oldTrack.lng), parseFloat(oldTrack.lat)] : null;
+          if (oldCoords) {
+            const moveHandler = () => {
+              const newPx = map.project(oldCoords);
+              const bh = oldMin.offsetHeight || 32;
+              const slot = uiController.getStackSlot(oldTrackIndex, mapController.audioData);
+              oldMin.style.left = `${newPx.x + 10}px`;
+              oldMin.style.top  = `${newPx.y - (bh / 2) + (slot * (bh + 3))}px`;
+            };
+            map.on('move', moveHandler);
+            oldMin._updatePosition = moveHandler;
+          }
+          oldMin._manuallyCreated = false;
+          // Hand back to miniInfoBoxes so it's managed normally
+          uiController.miniInfoBoxes.push(oldMin);
           this.minimizedPopup = null;
         }
 
