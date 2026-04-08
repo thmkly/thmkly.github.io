@@ -354,7 +354,7 @@ class UIController {
           // Skip if this track has a popup open
           const hasPopup = mapController.currentPopup &&
             mapController.currentPopup._container &&
-            parseInt(mapController.currentPopup._container.dataset?.originalIndex) === originalIndex;
+            parseInt(mapController.currentPopup._container.dataset?.trackIndex) === currentIndex;
           if (hasPopup) return;
 
           // Skip if this track is currently in the minimized popup
@@ -362,9 +362,7 @@ class UIController {
               parseInt(mapController.minimizedPopup.dataset?.trackIndex) === currentIndex) return;
 
           // Skip if this track has a preview popup open
-          if (mapController.previewPopup &&
-              mapController.previewPopup._container &&
-              parseInt(mapController.previewPopup._container.dataset?.originalIndex) === originalIndex) return;
+          if (mapController.previewPopupTrackIndex === currentIndex) return;
           
           // Skip if a mini box already exists for this track
           const alreadyHasBox = this.miniInfoBoxes.some(b => parseInt(b.dataset.trackIndex) === currentIndex);

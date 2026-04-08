@@ -5,6 +5,7 @@ class MapController {
        this.originalAudioData = [];
        this.currentPopup = null;
        this.previewPopup = null;
+       this.previewPopupTrackIndex = -1;
        this.minimizedPopup = null; // Store minimized orange mini box (State 2 for non-tight clusters)
        this.userPreferredPopupState = 'full'; // States: 'mini' (State 2), 'full' (State 3), 'full-with-notes' (State 4) - default State 3
        this.isPositioning = false;
@@ -1693,6 +1694,7 @@ class MapController {
                 : -1;
               this.previewPopup.remove();
               this.previewPopup = null;
+              this.previewPopupTrackIndex = -1;
               // Demote old preview track back to mini box if it's not the new track
               if (prevIdx !== -1 && prevIdx !== index) {
                 const oldTrack = this.audioData[prevIdx];
@@ -1791,6 +1793,7 @@ class MapController {
               if (this.previewPopup && this.previewPopup._container === container) {
                 this.previewPopup.remove();
                 this.previewPopup = null;
+                this.previewPopupTrackIndex = -1;
                 // Restore mini box for this track
                 const restoreCoords = [parseFloat(track.lng), parseFloat(track.lat)];
                 const restorePx = map.project(restoreCoords);
@@ -2019,6 +2022,7 @@ class MapController {
             // Route to previewPopup slot if a full playing popup is already open
             if (keepCurrentPopup) {
               this.previewPopup = popupObj;
+              this.previewPopupTrackIndex = index;
             } else {
               this.currentPopup = popupObj;
             }
@@ -2145,6 +2149,7 @@ class MapController {
           if (this.previewPopup) {
             this.previewPopup.remove();
             this.previewPopup = null;
+            this.previewPopupTrackIndex = -1;
           }
           
           // Clean up minimized popup if it exists
