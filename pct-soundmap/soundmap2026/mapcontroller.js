@@ -739,6 +739,7 @@ class MapController {
 
         // Demote any existing minimized popup back to a regular white mini box
         if (this.minimizedPopup) {
+          console.log(`[playAudio] demoting minimizedPopup track ${this.minimizedPopup?.dataset?.trackIndex}`);
           const oldMin = this.minimizedPopup;
           // Clean up icon listener and move handler
           if (oldMin._cleanupIcon) { oldMin._cleanupIcon(); oldMin._cleanupIcon = null; }
@@ -993,6 +994,7 @@ class MapController {
       }
 
         minimizePopup(track, index, existingBox = null) {
+          console.log(`[minimizePopup] track="${track?.name}" index=${index} existingBox=${!!existingBox} | currentPopup=${this.currentPopup?._container?.dataset?.trackIndex ?? 'null'} previewPopup=${this.previewPopupTrackIndex} minimizedPopup=${this.minimizedPopup?.dataset?.trackIndex ?? 'null'}`);
           // User explicitly minimized - save this preference
           this.userPreferredPopupState = 'mini';
 
@@ -1415,6 +1417,7 @@ class MapController {
       // Single source of truth for all map UI state.
       // Called from idle (map fully stable, safe to query features).
       updateMapUI() {
+        console.log(`[updateMapUI] currentIndex=${audioController.currentIndex} currentPopup=${this.currentPopup?._container?.dataset?.trackIndex ?? 'null'} previewPopup=${this.previewPopupTrackIndex} minimizedPopup=${this.minimizedPopup?.dataset?.trackIndex ?? 'null'}`);
         const currentZoom = map.getZoom();
         const lastZoom = this._lastZoom ?? currentZoom;
         const zoomDelta = Math.abs(currentZoom - lastZoom);
@@ -1683,6 +1686,7 @@ class MapController {
 
 
           showPopup(coords, track, audio, index, shouldMinimize = false, preview = false, clusterLeaves = null) {
+            console.log('[showPopup]', { index, preview, shouldMinimize, keepCurrentPopup: preview && !!this.currentPopup && !this.currentPopup?._preview, previewPopupTrackIndex: this.previewPopupTrackIndex, hasCurrentPopup: !!this.currentPopup, hasPreviewPopup: !!this.previewPopup });
             // Block if no audio playing, UNLESS it's a preview (chevron click on white box)
             if (audioController.currentIndex === -1 && !preview) return;
               
@@ -1734,8 +1738,10 @@ class MapController {
 
             // If incoming is a preview and a full playing popup exists, don't replace it
             const keepCurrentPopup = preview && this.currentPopup && !this.currentPopup._preview;
+            console.log(`[showPopup] keepCurrentPopup=${keepCurrentPopup}`);
 
             if (this.currentPopup && !keepCurrentPopup) {
+              console.log(`[showPopup] removing currentPopup (track ${this.currentPopup._container?.dataset?.trackIndex})`);
               this.currentPopup.remove();
               this.currentPopup = null;
             }
@@ -2023,8 +2029,10 @@ class MapController {
             if (keepCurrentPopup) {
               this.previewPopup = popupObj;
               this.previewPopupTrackIndex = index;
+              console.log(`[showPopup] → stored as previewPopup, previewPopupTrackIndex=${index}`);
             } else {
               this.currentPopup = popupObj;
+              console.log(`[showPopup] → stored as currentPopup`);
             }
 
             setTimeout(() => popupObj.updatePosition(), 10);
@@ -2290,3 +2298,77 @@ class MapController {
         }
       }
     }
+
+// ─── DEBUG LOGGER ────────────────────────────────────────────────────────────
+(function installDebugLogger() {
+  const log = (label, data = {}) => {
+    const mc = window.mapController;
+    const ac = window.audioController;
+    const ui = window.uiController;
+    if (!mc) return;
+    const state = {
+      currentPopup: mc.currentPopup
+        ? `track:${mc.currentPopup._container?.dataset?.trackIndex} preview:${mc.currentPopup._preview}`
+        : 'null',
+      previewPopup: mc.previewPopup
+        ? `track:${mc.previewPopup._container?.dataset?.trackIndex}`
+        : 'null',
+      previewPopupTrackIndex: mc.previewPopupTrackIndex,
+      minimizedPopup: mc.minimizedPopup
+        ? `track:${mc.minimizedPopup.dataset?.trackIndex}`
+        : 'null',
+      currentIndex: ac?.currentIndex,
+      miniBoxes: ui?.miniInfoBoxes.map(b => parseInt(b.dataset.trackIndex)),
+      userPreferredPopupState: mc.userPreferredPopupState,
+    };
+    console.log(`%c[SOUNDMAP] ${label}`, 'color:#ff6b35;font-weight:bold', { ...data, state });
+  };
+
+  // Patch showPopup
+  const origShowPopup = MapController.prototype.showPopup;
+  MapController.prototype.showPopup = function(coords, track, audio, index, shouldMinimize, preview, clusterLeaves) {
+    log('showPopup ENTER', { trackIndex: index, trackName: track?.name, shouldMinimize, preview });
+    const result = origShowPopup.apply(this, arguments);
+    log('showPopup EXIT', { trackIndex: index });
+    return result;
+  };
+
+  // Patch minimizePopup
+  const origMinimizePopup = MapController.prototype.minimizePopup;
+  MapController.prototype.minimizePopup = function(track, index, existingBox) {
+    log('minimizePopup ENTER', { trackIndex: index, trackName: track?.name, hasExistingBox: !!existingBox });
+    const result = origMinimizePopup.apply(this, arguments);
+    log('minimizePopup EXIT', { trackIndex: index });
+    return result;
+  };
+
+  // Patch playAudio
+  const origPlayAudio = MapController.prototype.playAudio;
+  MapController.prototype.playAudio = function(index, fromAutoPlay, fromMap, fromMiniPill) {
+    log('playAudio ENTER', { index, fromAutoPlay, fromMap, fromMiniPill });
+    const result = origPlayAudio.apply(this, arguments);
+    log('playAudio EXIT', { index });
+    return result;
+  };
+
+  // Patch updateMapUI
+  const origUpdateMapUI = MapController.prototype.updateMapUI;
+  MapController.prototype.updateMapUI = function() {
+    log('updateMapUI');
+    return origUpdateMapUI.apply(this, arguments);
+  };
+
+  // Patch showMiniInfoBoxes
+  const origShowMiniInfoBoxes = UIController.prototype.showMiniInfoBoxes;
+  UIController.prototype.showMiniInfoBoxes = function(currentTrack, audioData, precomputedPoints) {
+    log('showMiniInfoBoxes START');
+    const result = origShowMiniInfoBoxes.apply(this, arguments);
+    log('showMiniInfoBoxes END', {
+      miniBoxes: this.miniInfoBoxes.map(b => parseInt(b.dataset.trackIndex))
+    });
+    return result;
+  };
+
+  log('Debug logger installed');
+})();
+// ─── END DEBUG LOGGER ────────────────────────────────────────────────────────
