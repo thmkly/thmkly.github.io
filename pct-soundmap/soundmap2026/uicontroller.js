@@ -362,11 +362,15 @@ class UIController {
               parseInt(mapController.minimizedPopup.dataset?.trackIndex) === currentIndex) return;
 
           // Skip if this track has a preview popup open
-          if (mapController.previewPopupTrackIndex === currentIndex) return;
+          if (mapController.previewPopupTrackIndex === currentIndex) {
+            return;
+          }
           
           // Skip if a mini box already exists for this track
           const alreadyHasBox = this.miniInfoBoxes.some(b => parseInt(b.dataset.trackIndex) === currentIndex);
-          if (alreadyHasBox) return;
+          if (alreadyHasBox) {
+            return;
+          }
 
           const track = audioData[currentIndex];
           if (!track) return;
