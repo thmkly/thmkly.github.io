@@ -1741,9 +1741,21 @@ class MapController {
             console.log(`[showPopup] keepCurrentPopup=${keepCurrentPopup}`);
 
             if (this.currentPopup && !keepCurrentPopup) {
-              console.log(`[showPopup] removing currentPopup (track ${this.currentPopup._container?.dataset?.trackIndex})`);
-              this.currentPopup.remove();
-              this.currentPopup = null;
+              // If we're opening a full popup and currentPopup is a preview for a different track,
+              // rescue it into previewPopup instead of destroying it
+              const currentIsPreviewForDifferentTrack = !preview &&
+                this.currentPopup._preview === true &&
+                parseInt(this.currentPopup._container?.dataset?.trackIndex) !== index;
+              if (currentIsPreviewForDifferentTrack) {
+                // Move existing preview to previewPopup slot — don't destroy it
+                this.previewPopup = this.currentPopup;
+                this.previewPopupTrackIndex = parseInt(this.currentPopup._container?.dataset?.trackIndex);
+                this.currentPopup = null;
+              } else {
+                console.log(`[showPopup] removing currentPopup (track ${this.currentPopup._container?.dataset?.trackIndex})`);
+                this.currentPopup.remove();
+                this.currentPopup = null;
+              }
             }
 
             // If opening a full popup for a picker track, keep picker but hide this track's box
