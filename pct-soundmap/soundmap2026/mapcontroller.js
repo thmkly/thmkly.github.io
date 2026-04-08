@@ -309,6 +309,11 @@ class MapController {
           if (this.currentPopup && this.currentPopup.updatePosition) {
             this.currentPopup.updatePosition();
           }
+
+          // Update preview popup position if it exists
+          if (this.previewPopup && this.previewPopup.updatePosition) {
+            this.previewPopup.updatePosition();
+          }
           
           // Update minimized popup position if it exists
           if (this.minimizedPopup && this.minimizedPopup._updatePosition) {
@@ -1785,7 +1790,44 @@ class MapController {
             minimizeBtn.addEventListener('click', (e) => {
               e.preventDefault();
               e.stopPropagation();
-              this.minimizePopup(track, index);
+              // Preview popup — just close it and restore mini box, don't touch playing state
+              if (this.previewPopup && this.previewPopup._container === container) {
+                this.previewPopup.remove();
+                this.previewPopup = null;
+                // Restore mini box for this track
+                const restoreCoords = [parseFloat(track.lng), parseFloat(track.lat)];
+                const restorePx = map.project(restoreCoords);
+                const slot = uiController.getStackSlot(index, this.audioData);
+                const restoredBox = uiController._createMiniInfoBox(track, index, {
+                  onPillClick: () => mapController.playAudio(index, false, true, true),
+                  onBodyClick: () => {
+                    if (restoredBox.parentNode) restoredBox.parentNode.removeChild(restoredBox);
+                    uiController.miniInfoBoxes = uiController.miniInfoBoxes.filter(b => b !== restoredBox);
+                    mapController.showPopup(restoreCoords, track, audioController.currentAudio, index, false, true);
+                  },
+                  isPlaying: false,
+                  audio: null
+                });
+                restoredBox.style.position = 'absolute';
+                const bh = restoredBox.offsetHeight || 32;
+                restoredBox.style.left = `${restorePx.x + 10}px`;
+                restoredBox.style.top  = `${restorePx.y - (bh / 2) + (slot * (bh + 3))}px`;
+                restoredBox._stackOffset = slot;
+                const moveHandler = () => {
+                  const newPx = map.project(restoreCoords);
+                  const h = restoredBox.offsetHeight || 32;
+                  const s = uiController.getStackSlot(index, mapController.audioData);
+                  restoredBox.style.left = `${newPx.x + 10}px`;
+                  restoredBox.style.top  = `${newPx.y - (h / 2) + (s * (h + 3))}px`;
+                };
+                map.on('move', moveHandler);
+                restoredBox._updatePosition = moveHandler;
+                document.body.appendChild(restoredBox);
+                uiController.miniInfoBoxes.push(restoredBox);
+              } else {
+                // Full playing popup — normal minimize
+                this.minimizePopup(track, index);
+              }
             });
             container.appendChild(minimizeBtn);
         
