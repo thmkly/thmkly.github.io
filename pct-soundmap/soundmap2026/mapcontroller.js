@@ -346,6 +346,7 @@ class MapController {
           if (this.isPositioning) return;
           uiController.updateMiniInfoBoxPositions();
           if (this.currentPopup?.updatePosition) this.currentPopup.updatePosition();
+          if (this.previewPopup?.updatePosition) this.previewPopup.updatePosition();
           if (this.minimizedPopup?._updatePosition) this.minimizedPopup._updatePosition();
           if (this.clusterPicker?._updatePosition) this.clusterPicker._updatePosition();
           this.updateBadgeVisibility();
@@ -1779,6 +1780,7 @@ class MapController {
             container.style.zIndex = '1001';
             container._coords = coords;
             container.dataset.trackIndex = index;
+            container.dataset.originalIndex = track.originalIndex;
         
             // Minimize button — styled via .popup-minimize CSS class
             const minimizeBtn = document.createElement('button');

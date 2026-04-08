@@ -351,15 +351,20 @@ class UIController {
           // Skip the active track entirely — its state is managed by minimizePopup/showPopup
           if (currentIndex === audioController.currentIndex) return;
 
-          // Skip if this track has a popup open (preview)
-          const hasPopup = mapController.currentPopup && 
+          // Skip if this track has a popup open
+          const hasPopup = mapController.currentPopup &&
             mapController.currentPopup._container &&
-            parseInt(mapController.currentPopup._container.dataset?.trackIndex) === currentIndex;
+            parseInt(mapController.currentPopup._container.dataset?.originalIndex) === originalIndex;
           if (hasPopup) return;
 
           // Skip if this track is currently in the minimized popup
-          if (mapController.minimizedPopup && 
+          if (mapController.minimizedPopup &&
               parseInt(mapController.minimizedPopup.dataset?.trackIndex) === currentIndex) return;
+
+          // Skip if this track has a preview popup open
+          if (mapController.previewPopup &&
+              mapController.previewPopup._container &&
+              parseInt(mapController.previewPopup._container.dataset?.originalIndex) === originalIndex) return;
           
           // Skip if a mini box already exists for this track
           const alreadyHasBox = this.miniInfoBoxes.some(b => parseInt(b.dataset.trackIndex) === currentIndex);
