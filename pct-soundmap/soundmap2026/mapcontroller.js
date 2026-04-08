@@ -1685,8 +1685,9 @@ class MapController {
             // Block if no audio playing, UNLESS it's a preview (chevron click on white box)
             if (audioController.currentIndex === -1 && !preview) return;
               
-            // Close/demote any existing preview popup
-            if (this.previewPopup) {
+            // Close/demote any existing preview popup — only when opening another preview,
+            // never when opening a full playing popup (those are fully independent)
+            if (preview && this.previewPopup) {
               const prevIdx = this.previewPopup._container
                 ? parseInt(this.previewPopup._container.dataset.trackIndex)
                 : -1;
