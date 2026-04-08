@@ -1778,7 +1778,7 @@ class MapController {
             }
         
             const container = document.createElement('div');
-            container.className = 'custom-popup';
+            container.className = preview ? 'custom-popup' : 'custom-popup playing-popup';
             container.style.position = 'absolute';
             container.style.width = '320px';
             container.style.zIndex = '1001';
