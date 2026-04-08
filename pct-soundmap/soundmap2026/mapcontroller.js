@@ -1004,12 +1004,6 @@ class MapController {
             this.currentPopup = null;
           }
 
-          // Remove any preview popup
-          if (this.previewPopup) {
-            this.previewPopup.remove();
-            this.previewPopup = null;
-          }
-
           // Hide the audio element
           if (audioController.currentAudio) {
             audioController.currentAudio.style.display = 'none';
