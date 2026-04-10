@@ -803,19 +803,16 @@ class MapController {
               this.updateActiveTrack(index, true, audio); // Scroll if can't determine visibility
             }
           } else {
-            // For manual clicks: scroll if from map click AND track not visible
+            // For manual clicks: scroll if track not visible (map click, next/prev button, or playlist click)
+            const trackElement = document.querySelector(`.track[data-id="${index}"]`);
+            const playlist = document.getElementById('playlist');
             let shouldScroll = false;
-            if (fromMap) {
-              const trackElement = document.querySelector(`.track[data-id="${index}"]`);
-              const playlist = document.getElementById('playlist');
-              if (trackElement && playlist) {
-                const trackRect = trackElement.getBoundingClientRect();
-                const playlistRect = playlist.getBoundingClientRect();
-                const isVisible = trackRect.top >= playlistRect.top && trackRect.bottom <= playlistRect.bottom;
-                shouldScroll = !isVisible;
-              } else {
-                shouldScroll = true;
-              }
+            if (trackElement && playlist) {
+              const trackRect = trackElement.getBoundingClientRect();
+              const playlistRect = playlist.getBoundingClientRect();
+              shouldScroll = !(trackRect.top >= playlistRect.top && trackRect.bottom <= playlistRect.bottom);
+            } else {
+              shouldScroll = true;
             }
             this.updateActiveTrack(index, shouldScroll, audio);
           }
