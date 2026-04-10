@@ -1958,7 +1958,7 @@ class MapController {
             nextBtn.className = 'popup-nav-btn';
             nextBtn.textContent = 'next ›';
             nextBtn.disabled = preview || index === this.audioData.length - 1;
-            nextBtn.addEventListener('click', () => audioController.playNext(this.audioData));
+            nextBtn.addEventListener('click', () => audioController.playNext(this.audioData, true));
             controls.appendChild(nextBtn);
         
             // Time display

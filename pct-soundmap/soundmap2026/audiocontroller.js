@@ -143,7 +143,7 @@ class AudioController {
     }
   }
 
-  playNext(audioData) {
+  playNext(audioData, fromUser = false) {
     // Circuit breaker: prevent rapid successive calls
     const now = Date.now();
     if (this.lastPlayNext && (now - this.lastPlayNext) < 1000) {
@@ -169,9 +169,9 @@ class AudioController {
     }
     
     if (nextIndex !== this.currentIndex) {
-      // Pass true flag to indicate this is from auto-play
       if (window.mapController) {
-        window.mapController.playAudio(nextIndex, true);
+        // fromUser=true means manual button click — not autoplay, triggers fade
+        window.mapController.playAudio(nextIndex, !fromUser);
       }
     }
   }
