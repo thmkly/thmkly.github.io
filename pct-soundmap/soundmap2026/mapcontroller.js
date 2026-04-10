@@ -721,7 +721,8 @@ class MapController {
       map.stop();
 
         // Direct playlist click or map point click — always show full popup
-        if (!fromAutoPlay && !fromMiniPill) this.userPreferredPopupState = 'full';
+        // Preserve 'full-with-notes' state so notes stay expanded when clicking play on a preview
+        if (!fromAutoPlay && !fromMiniPill && this.userPreferredPopupState !== 'full-with-notes') this.userPreferredPopupState = 'full';
 
         // If navigating to a track that was in a picker but picker is no longer active,
         // treat as a fresh play — show full popup regardless of userPreferredPopupState
