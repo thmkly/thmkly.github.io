@@ -1839,10 +1839,15 @@ class MapController {
             });
             container.appendChild(minimizeBtn);
         
-            // Title
+            // Title — click to fly back to this sound's location
             const title = document.createElement('h3');
             title.className = 'popup-title';
             title.textContent = track.name;
+            title.style.cursor = 'pointer';
+            title.title = 'Re-center on this sound';
+            title.addEventListener('click', () => {
+              this.positionMapForTrack(track, index);
+            });
             container.appendChild(title);
         
             // Meta line: timestamp · mile · elevation · section
