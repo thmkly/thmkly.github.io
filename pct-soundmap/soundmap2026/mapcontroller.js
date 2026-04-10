@@ -828,7 +828,9 @@ class MapController {
         const pickerTracksSnapshot = this.clusterPickerTracks ? [...this.clusterPickerTracks] :
           this.clusterPicker ? Array.from(this.clusterPicker.querySelectorAll('[data-track-index]')).map(el => parseInt(el.dataset.trackIndex)) : null;
 
-        const audio = audioController.play(index, this.audioData);
+        // Fade out on manual navigation (not autoplay, not mini pill play/pause, not same track)
+        const withFade = !fromAutoPlay && !fromMiniPill && audioController.currentIndex !== index;
+        const audio = audioController.play(index, this.audioData, withFade);
 
           // Always update badge when audio plays (visibility is controlled inside updateHeaderBadge)
           this.updateHeaderBadge(track, audio);

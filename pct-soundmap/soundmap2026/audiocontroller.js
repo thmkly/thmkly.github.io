@@ -64,8 +64,34 @@ class AudioController {
     });
   }
 
+  // Fade out current audio over given duration (ms)
+  // Returns a promise that resolves when fade is complete
+  fadeOut(duration = 1000) {
+    if (this._fadeRaf) { cancelAnimationFrame(this._fadeRaf); this._fadeRaf = null; }
+    return new Promise(resolve => {
+      if (!this.currentAudio || this.currentAudio.paused) { resolve(); return; }
+      const audio = this.currentAudio;
+      const startVolume = audio.volume;
+      const startTime = performance.now();
+      const tick = (now) => {
+        const progress = Math.min((now - startTime) / duration, 1);
+        audio.volume = startVolume * (1 - progress);
+        if (progress < 1) {
+          this._fadeRaf = requestAnimationFrame(tick);
+        } else {
+          audio.pause();
+          audio.volume = 1;
+          this._fadeRaf = null;
+          resolve();
+        }
+      };
+      this._fadeRaf = requestAnimationFrame(tick);
+    });
+  }
+
   // CHANGED: Simplified play method - just changes src instead of creating new elements
-  play(index, audioData) {
+  // withFade: if true, fades out current track before starting new one
+  play(index, audioData, withFade = false) {
     const track = audioData[index];
     if (!track) return;
 
@@ -84,19 +110,24 @@ class AudioController {
     this.currentIndex = index;
     this.isPlaying = true;
 
-    // Just change the source - don't create new elements
-    this.currentAudio.src = track.audioUrl;
-    this.currentAudio.load();
-    
-    // Attempt to play immediately since this is called from user interaction
-    const playPromise = this.currentAudio.play();
-    if (playPromise !== undefined) {
-      playPromise.catch(error => {
-        console.log('Playback prevented (autoplay policy):', error);
-        // This is expected on first load - user needs to interact first
-      });
+    const startPlayback = () => {
+      this.currentAudio.src = track.audioUrl;
+      this.currentAudio.load();
+      this.currentAudio.volume = 1;
+      const playPromise = this.currentAudio.play();
+      if (playPromise !== undefined) {
+        playPromise.catch(error => {
+          console.log('Playback prevented (autoplay policy):', error);
+        });
+      }
+    };
+
+    if (withFade && !this.currentAudio.paused) {
+      this.fadeOut(1000).then(startPlayback);
+    } else {
+      startPlayback();
     }
-    
+
     return this.currentAudio;
   }
 
