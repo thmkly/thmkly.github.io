@@ -1116,10 +1116,11 @@
     }
     
     function initializeApp() {
-      // Scale UI panels on large screens to match visual density of smaller screens
+      // Scale UI panels on large screens — gentle zoom to match Cmd++ equivalent
       if (!isActualMobile()) {
-        const uiScale = Math.pow(2, CONFIG.getDefaultZoom() - 4.65);
-        if (uiScale !== 1) {
+        const zoomDelta = CONFIG.getDefaultZoom() - 4.65;
+        const uiScale = 1 + (zoomDelta * 0.15); // ~1.1x on BenQ
+        if (uiScale > 1.01) {
           const playlistWrapper = document.getElementById('playlistWrapper');
           const controlPanel = document.querySelector('.control-panel');
           if (playlistWrapper) playlistWrapper.style.zoom = uiScale;
