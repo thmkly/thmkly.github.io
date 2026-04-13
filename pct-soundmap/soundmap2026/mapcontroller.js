@@ -133,19 +133,16 @@ class MapController {
 
 
       setupMapLayers() {
+        // Scale factor for cluster visuals — keeps circles and grouping consistent across screen sizes
+        const _clusterScale = Math.pow(2, CONFIG.getDefaultZoom() - 4.65);
+        const _r = (n) => Math.round(n * _clusterScale);
+
         map.addSource('audio', {
           type: 'geojson',
           data: { type: 'FeatureCollection', features: [] },
           cluster: true,
           clusterMaxZoom: 11,
-          clusterRadius: (() => {
-            // Scale cluster radius proportionally to default zoom so clustering
-            // looks the same across all screen sizes
-            const defaultZoom = CONFIG.getDefaultZoom();
-            const baseZoom = 4.65;   // MBA reference zoom
-            const baseRadius = 45;   // MBA reference radius
-            return Math.round(baseRadius * Math.pow(2, defaultZoom - baseZoom));
-          })()
+          clusterRadius: _r(45)
         });
 
         map.addLayer({
@@ -162,9 +159,9 @@ class MapController {
             'circle-radius': [
               'step',
               ['get', 'point_count'],
-              18, 3, 22, 5, 26, 6, 30, 7, 34, 8, 36,
-              10, 38, 15, 40, 18, 42, 22, 44, 25, 46,
-              30, 48, 35, 50, 40, 52, 50, 54, 100, 56
+              _r(18), 3, _r(22), 5, _r(26), 6, _r(30), 7, _r(34), 8, _r(36),
+              10, _r(38), 15, _r(40), 18, _r(42), 22, _r(44), 25, _r(46),
+              30, _r(48), 35, _r(50), 40, _r(52), 50, _r(54), 100, _r(56)
             ]
           }
         });
