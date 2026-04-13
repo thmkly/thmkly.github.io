@@ -121,6 +121,16 @@
     cursor: default;
   }
 
+  .playlist-title {
+    font-size: 10px;
+    color: #999;
+    letter-spacing: 0.04em;
+    text-align: center;
+    padding: 4px 8px 2px;
+    user-select: none;
+    pointer-events: none;
+  }
+
   .track {
     cursor: pointer;
     padding: 5px;
@@ -1045,6 +1055,7 @@
     <button class="mobile-menu-close" id="mobileMenuClose" aria-label="Close menu"></button>
     <!-- Track list - primary content, comes first -->
     <div class="scroll-arrow up" id="scrollUp" title="Scroll up">▲</div>
+    <div class="playlist-title">a sound map of the pacific crest trail, 2023</div>
     <div class="playlist" id="playlist">
       <div class="loading-placeholder">loading recordings...</div>
     </div>
