@@ -444,11 +444,8 @@ class MapController {
                 // Show playlist wrapper again with flex display
                 playlistWrapper.style.display = 'flex';
                 
-                // Hide loading notification and show success message
-                hideNotification();
-                setTimeout(() => {
-                  showNotification(`${data.length} recordings loaded`, 3000);
-                }, 100);
+                // Replace loading notification directly with success — no gap
+                showNotification(`${data.length} recordings loaded`, 3000);
                 
               } catch (parseError) {
                 throw new Error(`Invalid JSON response: ${parseError.message}`);
@@ -459,20 +456,14 @@ class MapController {
               
               // Retry logic for intermittent failures
               if (retryCount < 3) {
-                hideNotification();
+                showNotification(`Connection issue, retrying... (${retryCount + 1}/3)`);
                 setTimeout(() => {
-                  showNotification(`Connection issue, retrying... (${retryCount + 1}/3)`);
-                  setTimeout(() => {
-                    this.loadAudioData(retryCount + 1);
-                  }, 2000);
-                }, 100);
+                  this.loadAudioData(retryCount + 1);
+                }, 2000);
               } else {
                 // Hide loading notification and show error after max retries
-                hideNotification();
-                setTimeout(() => {
-                  this.showLoadingError(`Failed to load recordings after 3 attempts: ${errorMsg}`);
-                  showNotification(`Error: ${errorMsg}`, 5000);
-                }, 100);
+                this.showLoadingError(`Failed to load recordings after 3 attempts: ${errorMsg}`);
+                showNotification(`Error: ${errorMsg}`, 5000);
               }
             });
         }
