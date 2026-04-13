@@ -138,7 +138,14 @@ class MapController {
           data: { type: 'FeatureCollection', features: [] },
           cluster: true,
           clusterMaxZoom: 11,
-          clusterRadius: 45
+          clusterRadius: (() => {
+            // Scale cluster radius proportionally to default zoom so clustering
+            // looks the same across all screen sizes
+            const defaultZoom = CONFIG.getDefaultZoom();
+            const baseZoom = 4.65;   // MBA reference zoom
+            const baseRadius = 45;   // MBA reference radius
+            return Math.round(baseRadius * Math.pow(2, defaultZoom - baseZoom));
+          })()
         });
 
         map.addLayer({
