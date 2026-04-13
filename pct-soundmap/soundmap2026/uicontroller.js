@@ -379,7 +379,7 @@ class UIController {
           const pixelCoords = map.project(coords);
 
           const infoBox = this._createMiniInfoBox(track, currentIndex, {
-            onPillClick: () => mapController.playAudio(currentIndex, false, true, true),
+            onPillClick: () => mapController.playAudio(currentIndex, false, true, false),
             onBodyClick: () => {
               if (infoBox.parentNode) infoBox.parentNode.removeChild(infoBox);
               this.miniInfoBoxes = this.miniInfoBoxes.filter(b => b !== infoBox);
