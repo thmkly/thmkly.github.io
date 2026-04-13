@@ -174,7 +174,7 @@ class MapController {
           layout: {
             'text-field': '{point_count_abbreviated}',
             'text-font': ['Open Sans Semibold', 'Arial Unicode MS Bold'],
-            'text-size': Math.round(12 * _clusterScale)
+            'text-size': Math.round(12 * (1 + ((_clusterScale - 1) * 0.15)))
           }
         });
 
