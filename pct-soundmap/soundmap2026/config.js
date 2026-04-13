@@ -50,23 +50,24 @@
           }
         } else {
           // Safari/Chrome and other browsers with reliable screen data
-          // Use your exact measurements for interpolation
-          const ref1 = { diagonal: 3037, zoom: 4.4 };  // 13" MacBook Air M3 (2560x1664)
-          const ref2 = { diagonal: 2203, zoom: 4.95 }; // 27" monitor (1920x1080)
-          
-          // Calculate zoom using linear interpolation between reference points
-          if (diagonalPixels <= ref2.diagonal) {
-            // Smaller/lower-res than 27" monitor - extrapolate to higher zoom
-            const slope = (ref2.zoom - ref1.zoom) / (ref2.diagonal - ref1.diagonal);
-            return Math.min(5.5, ref2.zoom + slope * (ref2.diagonal - diagonalPixels));
-          } else if (diagonalPixels >= ref1.diagonal) {
-            // Higher-res than MacBook Air - extrapolate to lower zoom  
-            const slope = (ref2.zoom - ref1.zoom) / (ref2.diagonal - ref1.diagonal);
+          // Reference points — larger diagonal = larger physical screen = needs higher zoom
+          // MBA 13" (1470x956 scaled): diagonal 1752px, zoom 4.65
+          // BenQ 27" 1440p (2560x1440): diagonal 2939px, zoom 5.38
+          const ref1 = { diagonal: 1752, zoom: 4.65 };  // 13" MacBook Air M3
+          const ref2 = { diagonal: 2939, zoom: 5.38 };  // 27" BenQ 1440p
+
+          const slope = (ref2.zoom - ref1.zoom) / (ref2.diagonal - ref1.diagonal);
+
+          if (diagonalPixels <= ref1.diagonal) {
+            // Smaller than MBA — extrapolate downward
             return Math.max(4.0, ref1.zoom + slope * (diagonalPixels - ref1.diagonal));
+          } else if (diagonalPixels >= ref2.diagonal) {
+            // Larger than BenQ — extrapolate upward
+            return Math.min(6.0, ref2.zoom + slope * (diagonalPixels - ref2.diagonal));
           } else {
-            // Between the two reference points - interpolate
-            const ratio = (diagonalPixels - ref2.diagonal) / (ref1.diagonal - ref2.diagonal);
-            return ref2.zoom + ratio * (ref1.zoom - ref2.zoom);
+            // Between the two reference points — interpolate
+            const ratio = (diagonalPixels - ref1.diagonal) / (ref2.diagonal - ref1.diagonal);
+            return ref1.zoom + ratio * (ref2.zoom - ref1.zoom);
           }
         }
       },
