@@ -133,16 +133,12 @@ class MapController {
 
 
       setupMapLayers() {
-        // Scale factor for cluster visuals — keeps circles and grouping consistent across screen sizes
-        const _clusterScale = Math.pow(2, CONFIG.getDefaultZoom() - 4.65);
-        const _r = (n) => Math.round(n * _clusterScale);
-
         map.addSource('audio', {
           type: 'geojson',
           data: { type: 'FeatureCollection', features: [] },
           cluster: true,
           clusterMaxZoom: 11,
-          clusterRadius: _r(45)
+          clusterRadius: 45
         });
 
         map.addLayer({
@@ -159,9 +155,9 @@ class MapController {
             'circle-radius': [
               'step',
               ['get', 'point_count'],
-              _r(18), 3, _r(22), 5, _r(26), 6, _r(30), 7, _r(34), 8, _r(36),
-              10, _r(38), 15, _r(40), 18, _r(42), 22, _r(44), 25, _r(46),
-              30, _r(48), 35, _r(50), 40, _r(52), 50, _r(54), 100, _r(56)
+              18, 3, 22, 5, 26, 6, 30, 7, 34, 8, 36,
+              10, 38, 15, 40, 18, 42, 22, 44, 25, 46,
+              30, 48, 35, 50, 40, 52, 50, 54, 100, 56
             ]
           }
         });
@@ -174,7 +170,7 @@ class MapController {
           layout: {
             'text-field': '{point_count_abbreviated}',
             'text-font': ['Open Sans Semibold', 'Arial Unicode MS Bold'],
-            'text-size': Math.round(12 * (1 + ((_clusterScale - 1) * 0.15)))
+            'text-size': 12
           }
         });
 
@@ -448,8 +444,11 @@ class MapController {
                 // Show playlist wrapper again with flex display
                 playlistWrapper.style.display = 'flex';
                 
-                // Replace loading notification directly with success — no gap
-                showNotification(`${data.length} recordings loaded`, 3000);
+                // Hide loading notification and show success message
+                hideNotification();
+                setTimeout(() => {
+                  showNotification(`${data.length} recordings loaded`, 3000);
+                }, 100);
                 
               } catch (parseError) {
                 throw new Error(`Invalid JSON response: ${parseError.message}`);
@@ -460,14 +459,20 @@ class MapController {
               
               // Retry logic for intermittent failures
               if (retryCount < 3) {
-                showNotification(`Connection issue, retrying... (${retryCount + 1}/3)`);
+                hideNotification();
                 setTimeout(() => {
-                  this.loadAudioData(retryCount + 1);
-                }, 2000);
+                  showNotification(`Connection issue, retrying... (${retryCount + 1}/3)`);
+                  setTimeout(() => {
+                    this.loadAudioData(retryCount + 1);
+                  }, 2000);
+                }, 100);
               } else {
                 // Hide loading notification and show error after max retries
-                this.showLoadingError(`Failed to load recordings after 3 attempts: ${errorMsg}`);
-                showNotification(`Error: ${errorMsg}`, 5000);
+                hideNotification();
+                setTimeout(() => {
+                  this.showLoadingError(`Failed to load recordings after 3 attempts: ${errorMsg}`);
+                  showNotification(`Error: ${errorMsg}`, 5000);
+                }, 100);
               }
             });
         }
@@ -716,8 +721,7 @@ class MapController {
       map.stop();
 
         // Direct playlist click or map point click — always show full popup
-        // Preserve 'full-with-notes' state so notes stay expanded when clicking play on a preview
-        if (!fromAutoPlay && !fromMiniPill && this.userPreferredPopupState !== 'full-with-notes') this.userPreferredPopupState = 'full';
+        if (!fromAutoPlay && !fromMiniPill) this.userPreferredPopupState = 'full';
 
         // If navigating to a track that was in a picker but picker is no longer active,
         // treat as a fresh play — show full popup regardless of userPreferredPopupState
@@ -727,45 +731,6 @@ class MapController {
         if (trackWasInClosedPicker) this.userPreferredPopupState = 'full';
 
         const shouldMinimize = fromMiniPill || this.userPreferredPopupState === 'mini';
-
-        // Demote current full popup's track to a white mini box if switching to a different track
-        if (this.currentPopup && !this.currentPopup._preview) {
-          const oldIndex = parseInt(this.currentPopup._container?.dataset?.trackIndex);
-          if (oldIndex !== -1 && oldIndex !== index) {
-            const oldTrack = this.audioData[oldIndex];
-            if (oldTrack) {
-              const oldCoords = [parseFloat(oldTrack.lng), parseFloat(oldTrack.lat)];
-              const oldPx = map.project(oldCoords);
-              const slot = uiController.getStackSlot(oldIndex, this.audioData);
-              const restoredBox = uiController._createMiniInfoBox(oldTrack, oldIndex, {
-                onPillClick: () => mapController.playAudio(oldIndex, false, true, false),
-                onBodyClick: () => {
-                  if (restoredBox.parentNode) restoredBox.parentNode.removeChild(restoredBox);
-                  uiController.miniInfoBoxes = uiController.miniInfoBoxes.filter(b => b !== restoredBox);
-                  mapController.showPopup(oldCoords, oldTrack, audioController.currentAudio, oldIndex, false, true);
-                },
-                isPlaying: false,
-                audio: null
-              });
-              restoredBox.style.position = 'absolute';
-              const bh = restoredBox.offsetHeight || 32;
-              restoredBox.style.left = `${oldPx.x + 10}px`;
-              restoredBox.style.top  = `${oldPx.y - (bh / 2) + (slot * (bh + 3))}px`;
-              restoredBox._stackOffset = slot;
-              const moveHandler = () => {
-                const newPx = map.project(oldCoords);
-                const h = restoredBox.offsetHeight || 32;
-                const s = uiController.getStackSlot(oldIndex, mapController.audioData);
-                restoredBox.style.left = `${newPx.x + 10}px`;
-                restoredBox.style.top  = `${newPx.y - (h / 2) + (s * (h + 3))}px`;
-              };
-              map.on('move', moveHandler);
-              restoredBox._updatePosition = moveHandler;
-              document.body.appendChild(restoredBox);
-              uiController.miniInfoBoxes.push(restoredBox);
-            }
-          }
-        }
 
         // Demote any existing minimized popup back to a regular white mini box
         if (this.minimizedPopup) {
@@ -837,16 +802,19 @@ class MapController {
               this.updateActiveTrack(index, true, audio); // Scroll if can't determine visibility
             }
           } else {
-            // For manual clicks: scroll if track not visible (map click, next/prev button, or playlist click)
-            const trackElement = document.querySelector(`.track[data-id="${index}"]`);
-            const playlist = document.getElementById('playlist');
+            // For manual clicks: scroll if from map click AND track not visible
             let shouldScroll = false;
-            if (trackElement && playlist) {
-              const trackRect = trackElement.getBoundingClientRect();
-              const playlistRect = playlist.getBoundingClientRect();
-              shouldScroll = !(trackRect.top >= playlistRect.top && trackRect.bottom <= playlistRect.bottom);
-            } else {
-              shouldScroll = true;
+            if (fromMap) {
+              const trackElement = document.querySelector(`.track[data-id="${index}"]`);
+              const playlist = document.getElementById('playlist');
+              if (trackElement && playlist) {
+                const trackRect = trackElement.getBoundingClientRect();
+                const playlistRect = playlist.getBoundingClientRect();
+                const isVisible = trackRect.top >= playlistRect.top && trackRect.bottom <= playlistRect.bottom;
+                shouldScroll = !isVisible;
+              } else {
+                shouldScroll = true;
+              }
             }
             this.updateActiveTrack(index, shouldScroll, audio);
           }
@@ -859,9 +827,7 @@ class MapController {
         const pickerTracksSnapshot = this.clusterPickerTracks ? [...this.clusterPickerTracks] :
           this.clusterPicker ? Array.from(this.clusterPicker.querySelectorAll('[data-track-index]')).map(el => parseInt(el.dataset.trackIndex)) : null;
 
-        // Fade out on manual navigation (not autoplay, not mini pill play/pause, not same track)
-        const withFade = !fromAutoPlay && !fromMiniPill && audioController.currentIndex !== index;
-        const audio = audioController.play(index, this.audioData, withFade);
+        const audio = audioController.play(index, this.audioData);
 
           // Always update badge when audio plays (visibility is controlled inside updateHeaderBadge)
           this.updateHeaderBadge(track, audio);
@@ -948,8 +914,11 @@ class MapController {
           });
         }
         
-        // Skip flyto if point is comfortably visible AND at a reasonable zoom level
-        const pointComfortablyVisible = this.isPointComfortablyVisible(track) && 
+        // In 3D mode always flyTo — camera pitch makes 2D visibility checks unreliable
+        // In 2D mode skip flyTo only if point is comfortably visible at a reasonable zoom
+        const is3DMode = uiController.is3DEnabled;
+        const pointComfortablyVisible = !is3DMode && 
+          this.isPointComfortablyVisible(track) && 
           map.getZoom() >= 12;
 
           // Add delay before positioning to prevent conflicts
@@ -1872,15 +1841,10 @@ class MapController {
             });
             container.appendChild(minimizeBtn);
         
-            // Title — click to fly back to this sound's location
+            // Title
             const title = document.createElement('h3');
             title.className = 'popup-title';
             title.textContent = track.name;
-            title.style.cursor = 'pointer';
-            title.title = 'Re-center on this sound';
-            title.addEventListener('click', () => {
-              this.positionMapForTrack(track, index);
-            });
             container.appendChild(title);
         
             // Meta line: timestamp · mile · elevation · section
@@ -1989,7 +1953,7 @@ class MapController {
             nextBtn.className = 'popup-nav-btn';
             nextBtn.textContent = 'next ›';
             nextBtn.disabled = preview || index === this.audioData.length - 1;
-            nextBtn.addEventListener('click', () => audioController.playNext(this.audioData, true));
+            nextBtn.addEventListener('click', () => audioController.playNext(this.audioData));
             controls.appendChild(nextBtn);
         
             // Time display
