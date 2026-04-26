@@ -1367,31 +1367,41 @@ class MapController {
         const is3D = uiController.is3DEnabled;
         const targetZoom = is3D ? CONFIG.ZOOM_3D : CONFIG.ZOOM_2D;
         const currentZoom = map.getZoom();
+
+        // Per-point camera overrides from spreadsheet (3D only)
+        const hasCustomCamera = is3D && track.camera_lat && track.camera_lng;
+        const customCenter = hasCustomCamera
+          ? [parseFloat(track.camera_lng), parseFloat(track.camera_lat)]
+          : coords;
+        const customZoom = is3D && track.zoom ? parseFloat(track.zoom) : null;
+        const customBearing = is3D && track.bearing !== '' && track.bearing != null ? parseFloat(track.bearing) : null;
+        const customPitch = is3D && track.pitch !== '' && track.pitch != null ? parseFloat(track.pitch) : null;
+        const customCurve = is3D && track.curve !== '' && track.curve != null ? parseFloat(track.curve) : null;
         
         // Zoom logic:
-        // - For autoplay: Use at least zoom 15 to ensure clusters break (clusterMaxZoom is 14)
+        // - For autoplay: Use at least zoom 12 to ensure clusters break (clusterMaxZoom is 11)
         // - For manual clicks: Only zoom if currently zoomed out (don't zoom out if already close)
         let useZoom;
-        if (fromAutoPlay) {
-          useZoom = Math.max(targetZoom, 12); // Ensure clusters break
+        if (customZoom) {
+          useZoom = customZoom;
+        } else if (fromAutoPlay) {
+          useZoom = Math.max(targetZoom, 12);
         } else {
-          // For manual clicks: zoom to 12 if below it, otherwise stay at current zoom
           useZoom = currentZoom < 12 ? 12 : currentZoom;
         }
 
         const flyToOptions = {
-          center: coords,
+          center: customCenter,
           zoom: useZoom,
           duration,
           easing: smoothLandingEasing
         };
         
-        // Add 3D properties for smoother rainbow arc
+        // Add 3D properties — use per-point overrides if available, fall back to defaults
         if (is3D) {
-          flyToOptions.pitch = 82; // More immersive angle
-          flyToOptions.bearing = map.getBearing();
-          // Higher curve for ultra-smooth rainbow effect in 3D
-          flyToOptions.curve = 2.5; // Even higher curve = smoother, more elevated arc
+          flyToOptions.pitch = customPitch !== null ? customPitch : 82;
+          flyToOptions.bearing = customBearing !== null ? customBearing : map.getBearing();
+          flyToOptions.curve = customCurve !== null ? customCurve : 2.5;
         }
         
         map.flyTo(flyToOptions);
