@@ -133,12 +133,16 @@ class MapController {
 
 
       setupMapLayers() {
+        // Scale factor for cluster visuals — keeps circles and grouping consistent across screen sizes
+        const _clusterScale = Math.pow(2, CONFIG.getDefaultZoom() - 4.65);
+        const _r = (n) => Math.round(n * _clusterScale);
+
         map.addSource('audio', {
           type: 'geojson',
           data: { type: 'FeatureCollection', features: [] },
           cluster: true,
           clusterMaxZoom: 11,
-          clusterRadius: 45
+          clusterRadius: _r(45)
         });
 
         map.addLayer({
@@ -155,9 +159,9 @@ class MapController {
             'circle-radius': [
               'step',
               ['get', 'point_count'],
-              18, 3, 22, 5, 26, 6, 30, 7, 34, 8, 36,
-              10, 38, 15, 40, 18, 42, 22, 44, 25, 46,
-              30, 48, 35, 50, 40, 52, 50, 54, 100, 56
+              _r(18), 3, _r(22), 5, _r(26), 6, _r(30), 7, _r(34), 8, _r(36),
+              10, _r(38), 15, _r(40), 18, _r(42), 22, _r(44), 25, _r(46),
+              30, _r(48), 35, _r(50), 40, _r(52), 50, _r(54), 100, _r(56)
             ]
           }
         });
@@ -170,7 +174,7 @@ class MapController {
           layout: {
             'text-field': '{point_count_abbreviated}',
             'text-font': ['Open Sans Semibold', 'Arial Unicode MS Bold'],
-            'text-size': 12
+            'text-size': Math.round(12 * (1 + ((_clusterScale - 1) * 0.15)))
           }
         });
 
@@ -914,11 +918,8 @@ class MapController {
           });
         }
         
-        // In 3D mode always flyTo — camera pitch makes 2D visibility checks unreliable
-        // In 2D mode skip flyTo only if point is comfortably visible at a reasonable zoom
-        const is3DMode = uiController.is3DEnabled;
-        const pointComfortablyVisible = !is3DMode && 
-          this.isPointComfortablyVisible(track) && 
+        // Skip flyto if point is comfortably visible AND at a reasonable zoom level
+        const pointComfortablyVisible = this.isPointComfortablyVisible(track) && 
           map.getZoom() >= 12;
 
           // Add delay before positioning to prevent conflicts
@@ -1367,41 +1368,31 @@ class MapController {
         const is3D = uiController.is3DEnabled;
         const targetZoom = is3D ? CONFIG.ZOOM_3D : CONFIG.ZOOM_2D;
         const currentZoom = map.getZoom();
-
-        // Per-point camera overrides from spreadsheet (3D only)
-        const hasCustomCamera = is3D && track.camera_lat && track.camera_lng;
-        const customCenter = hasCustomCamera
-          ? [parseFloat(track.camera_lng), parseFloat(track.camera_lat)]
-          : coords;
-        const customZoom = is3D && track.zoom ? parseFloat(track.zoom) : null;
-        const customBearing = is3D && track.bearing !== '' && track.bearing != null ? parseFloat(track.bearing) : null;
-        const customPitch = is3D && track.pitch !== '' && track.pitch != null ? parseFloat(track.pitch) : null;
-        const customCurve = is3D && track.curve !== '' && track.curve != null ? parseFloat(track.curve) : null;
         
         // Zoom logic:
-        // - For autoplay: Use at least zoom 12 to ensure clusters break (clusterMaxZoom is 11)
+        // - For autoplay: Use at least zoom 15 to ensure clusters break (clusterMaxZoom is 14)
         // - For manual clicks: Only zoom if currently zoomed out (don't zoom out if already close)
         let useZoom;
-        if (customZoom) {
-          useZoom = customZoom;
-        } else if (fromAutoPlay) {
-          useZoom = Math.max(targetZoom, 12);
+        if (fromAutoPlay) {
+          useZoom = Math.max(targetZoom, 12); // Ensure clusters break
         } else {
+          // For manual clicks: zoom to 12 if below it, otherwise stay at current zoom
           useZoom = currentZoom < 12 ? 12 : currentZoom;
         }
 
         const flyToOptions = {
-          center: customCenter,
+          center: coords,
           zoom: useZoom,
           duration,
           easing: smoothLandingEasing
         };
         
-        // Add 3D properties — use per-point overrides if available, fall back to defaults
+        // Add 3D properties for smoother rainbow arc
         if (is3D) {
-          flyToOptions.pitch = customPitch !== null ? customPitch : 82;
-          flyToOptions.bearing = customBearing !== null ? customBearing : map.getBearing();
-          flyToOptions.curve = customCurve !== null ? customCurve : 2.5;
+          flyToOptions.pitch = 82; // More immersive angle
+          flyToOptions.bearing = map.getBearing();
+          // Higher curve for ultra-smooth rainbow effect in 3D
+          flyToOptions.curve = 2.5; // Even higher curve = smoother, more elevated arc
         }
         
         map.flyTo(flyToOptions);
