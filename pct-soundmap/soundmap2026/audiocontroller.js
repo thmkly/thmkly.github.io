@@ -65,7 +65,6 @@ class AudioController {
   }
 
   // Fade out current audio over given duration (ms)
-  // Returns a promise that resolves when fade is complete
   fadeOut(duration = 1000) {
     if (this._fadeRaf) { cancelAnimationFrame(this._fadeRaf); this._fadeRaf = null; }
     return new Promise(resolve => {
@@ -90,7 +89,6 @@ class AudioController {
   }
 
   // CHANGED: Simplified play method - just changes src instead of creating new elements
-  // withFade: if true, fades out current track before starting new one
   play(index, audioData, withFade = false) {
     const track = audioData[index];
     if (!track) return;
@@ -170,7 +168,7 @@ class AudioController {
     
     if (nextIndex !== this.currentIndex) {
       if (window.mapController) {
-        // fromUser=true means manual button click — not autoplay, triggers fade
+        // fromUser=true means manual button click — triggers fade
         window.mapController.playAudio(nextIndex, !fromUser);
       }
     }
