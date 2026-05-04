@@ -915,8 +915,11 @@ class MapController {
           });
         }
         
-        // Skip flyto if point is comfortably visible AND at a reasonable zoom level
-        const pointComfortablyVisible = this.isPointComfortablyVisible(track) && 
+        // In 3D mode always flyTo — camera pitch makes 2D visibility checks unreliable
+        // In 2D mode skip flyTo only if point is comfortably visible at a reasonable zoom
+        const is3DMode = uiController.is3DEnabled;
+        const pointComfortablyVisible = !is3DMode &&
+          this.isPointComfortablyVisible(track) && 
           map.getZoom() >= 12;
 
           // Add delay before positioning to prevent conflicts
