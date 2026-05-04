@@ -2131,7 +2131,7 @@ class MapController {
           map.addSource('mapbox-dem', {
             type: 'raster-dem',
             url: 'mapbox://mapbox.mapbox-terrain-dem-v1',
-            tileSize: 256,
+            tileSize: 512,
             maxzoom: 14
           });
         }
