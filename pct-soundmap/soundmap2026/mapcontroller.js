@@ -2148,6 +2148,10 @@ class MapController {
             : null;
 
           if (currentTrack) {
+            // Stop any in-progress flyTo and reset positioning flag so 3D flyTo fires immediately
+            map.stop();
+            this.isPositioning = false;
+            if (this.animationTimeout) { clearTimeout(this.animationTimeout); this.animationTimeout = null; }
             // Use positionMapForTrack to pick up custom camera angles from spreadsheet
             this.positionMapForTrack(currentTrack, audioController.currentIndex);
             atmosphereController.applyAtmosphere(currentTrack);
