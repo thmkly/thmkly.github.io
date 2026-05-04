@@ -724,15 +724,12 @@ class MapController {
       // Stop any in-progress map animation
       map.stop();
 
-        // Direct playlist click or map point click — show full popup, but preserve full-with-notes state
-        if (!fromAutoPlay && !fromMiniPill && this.userPreferredPopupState !== 'full-with-notes') this.userPreferredPopupState = 'full';
 
         // If navigating to a track that was in a picker but picker is no longer active,
         // treat as a fresh play — show full popup regardless of userPreferredPopupState
         const trackWasInClosedPicker = !this.clusterPicker && 
           this.clusterPickerTracks && 
           this.clusterPickerTracks.includes(index);
-        if (trackWasInClosedPicker) this.userPreferredPopupState = 'full';
 
         const shouldMinimize = fromMiniPill || this.userPreferredPopupState === 'mini';
 
@@ -1919,7 +1916,6 @@ class MapController {
                 t.className = 'play-triangle-lg';
                 playPauseBtn.appendChild(t);
                 playPauseBtn.addEventListener('click', () => {
-                  if (this.userPreferredPopupState !== 'full-with-notes') this.userPreferredPopupState = 'full';
                   this.playAudio(index, false, true);
                 });
               } else {
