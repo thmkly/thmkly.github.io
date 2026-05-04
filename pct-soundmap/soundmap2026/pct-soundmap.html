@@ -2,7 +2,7 @@
 <html>
 <head>
   <meta charset="utf-8" />
-  <title>A Soundmap of the PCT, Stereo 2023</title>
+  <title>a sound map of the pacific crest trail, 2023, by stereo</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
   <meta http-equiv="Pragma" content="no-cache" />
@@ -119,6 +119,16 @@
     color: #ccc;
     opacity: 0.3;
     cursor: default;
+  }
+
+  .playlist-title {
+    font-size: 11px;
+    color: #888;
+    letter-spacing: 0.04em;
+    text-align: center;
+    padding: 2px 8px 5px;
+    user-select: none;
+    pointer-events: none;
   }
 
   .track {
@@ -1058,6 +1068,7 @@
     <button class="mobile-menu-close" id="mobileMenuClose" aria-label="Close menu"></button>
     <!-- Track list - primary content, comes first -->
     <div class="scroll-arrow up" id="scrollUp" title="Scroll up">▲</div>
+    <div class="playlist-title">a sound map of the pacific crest trail, 2023, by stereo</div>
     <div class="playlist" id="playlist">
       <div class="loading-placeholder">loading recordings...</div>
     </div>
@@ -1129,6 +1140,18 @@
     }
     
     function initializeApp() {
+      // Scale UI panels on large screens — gentle zoom to match Cmd++ equivalent
+      if (!isActualMobile()) {
+        const zoomDelta = CONFIG.getDefaultZoom() - 4.65;
+        const uiScale = 1 + (zoomDelta * 0.15); // ~1.1x on BenQ
+        if (uiScale > 1.01) {
+          const playlistWrapper = document.getElementById('playlistWrapper');
+          const controlPanel = document.querySelector('.control-panel');
+          if (playlistWrapper) playlistWrapper.style.zoom = uiScale;
+          if (controlPanel) controlPanel.style.zoom = uiScale;
+        }
+      }
+
       // Initialize controllers after DOM is ready
       audioController = new AudioController();
       atmosphereController = new AtmosphereController();

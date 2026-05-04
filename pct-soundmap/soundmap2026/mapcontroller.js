@@ -733,6 +733,45 @@ class MapController {
 
         const shouldMinimize = fromMiniPill || this.userPreferredPopupState === 'mini';
 
+        // Demote current full popup's track to a white mini box if switching to a different track
+        if (this.currentPopup && !this.currentPopup._preview) {
+          const oldIndex = parseInt(this.currentPopup._container?.dataset?.trackIndex);
+          if (oldIndex !== -1 && oldIndex !== index) {
+            const oldTrack = this.audioData[oldIndex];
+            if (oldTrack) {
+              const oldCoords = [parseFloat(oldTrack.lng), parseFloat(oldTrack.lat)];
+              const oldPx = map.project(oldCoords);
+              const slot = uiController.getStackSlot(oldIndex, this.audioData);
+              const restoredBox = uiController._createMiniInfoBox(oldTrack, oldIndex, {
+                onPillClick: () => mapController.playAudio(oldIndex, false, true, false),
+                onBodyClick: () => {
+                  if (restoredBox.parentNode) restoredBox.parentNode.removeChild(restoredBox);
+                  uiController.miniInfoBoxes = uiController.miniInfoBoxes.filter(b => b !== restoredBox);
+                  mapController.showPopup(oldCoords, oldTrack, audioController.currentAudio, oldIndex, false, true);
+                },
+                isPlaying: false,
+                audio: null
+              });
+              restoredBox.style.position = 'absolute';
+              const bh = restoredBox.offsetHeight || 32;
+              restoredBox.style.left = `${oldPx.x + 10}px`;
+              restoredBox.style.top  = `${oldPx.y - (bh / 2) + (slot * (bh + 3))}px`;
+              restoredBox._stackOffset = slot;
+              const moveHandler = () => {
+                const newPx = map.project(oldCoords);
+                const h = restoredBox.offsetHeight || 32;
+                const s = uiController.getStackSlot(oldIndex, mapController.audioData);
+                restoredBox.style.left = `${newPx.x + 10}px`;
+                restoredBox.style.top  = `${newPx.y - (h / 2) + (s * (h + 3))}px`;
+              };
+              map.on('move', moveHandler);
+              restoredBox._updatePosition = moveHandler;
+              document.body.appendChild(restoredBox);
+              uiController.miniInfoBoxes.push(restoredBox);
+            }
+          }
+        }
+
         // Demote any existing minimized popup back to a regular white mini box
         if (this.minimizedPopup) {
           const oldMin = this.minimizedPopup;
@@ -803,19 +842,16 @@ class MapController {
               this.updateActiveTrack(index, true, audio); // Scroll if can't determine visibility
             }
           } else {
-            // For manual clicks: scroll if from map click AND track not visible
+            // For manual clicks: scroll if track not visible
+            const trackElement = document.querySelector(`.track[data-id="${index}"]`);
+            const playlist = document.getElementById('playlist');
             let shouldScroll = false;
-            if (fromMap) {
-              const trackElement = document.querySelector(`.track[data-id="${index}"]`);
-              const playlist = document.getElementById('playlist');
-              if (trackElement && playlist) {
-                const trackRect = trackElement.getBoundingClientRect();
-                const playlistRect = playlist.getBoundingClientRect();
-                const isVisible = trackRect.top >= playlistRect.top && trackRect.bottom <= playlistRect.bottom;
-                shouldScroll = !isVisible;
-              } else {
-                shouldScroll = true;
-              }
+            if (trackElement && playlist) {
+              const trackRect = trackElement.getBoundingClientRect();
+              const playlistRect = playlist.getBoundingClientRect();
+              shouldScroll = !(trackRect.top >= playlistRect.top && trackRect.bottom <= playlistRect.bottom);
+            } else {
+              shouldScroll = true;
             }
             this.updateActiveTrack(index, shouldScroll, audio);
           }
