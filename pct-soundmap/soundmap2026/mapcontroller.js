@@ -2148,14 +2148,8 @@ class MapController {
             : null;
 
           if (currentTrack) {
-            map.flyTo({
-              center: [parseFloat(currentTrack.lng), parseFloat(currentTrack.lat)],
-              zoom: CONFIG.ZOOM_3D,
-              pitch: 82,
-              bearing: 0,
-              duration: 2500,
-              easing: t => 1 - Math.pow(1 - t, 3)
-            });
+            // Use positionMapForTrack to pick up custom camera angles from spreadsheet
+            this.positionMapForTrack(currentTrack, audioController.currentIndex);
             atmosphereController.applyAtmosphere(currentTrack);
           } else {
             map.flyTo({ pitch: 82, zoom: Math.max(map.getZoom(), CONFIG.ZOOM_3D), duration: 2000 });
