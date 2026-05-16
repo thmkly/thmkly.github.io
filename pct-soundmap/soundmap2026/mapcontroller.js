@@ -185,7 +185,13 @@ class MapController {
           filter: ['!', ['has', 'point_count']],
           paint: {
             'circle-color': '#5c3a2e',
-            'circle-radius': 6,
+            'circle-radius': [
+              'interpolate', ['linear'], ['zoom'],
+              10, 3,
+              12, 4,
+              14, 6,
+              16, 7
+            ],
             'circle-opacity': 0.6,
             'circle-stroke-width': 1,
             'circle-stroke-color': '#fff',
@@ -2148,11 +2154,9 @@ class MapController {
             : null;
 
           if (currentTrack) {
-            // Stop any in-progress flyTo and reset positioning flag so 3D flyTo fires immediately
             map.stop();
             this.isPositioning = false;
             if (this.animationTimeout) { clearTimeout(this.animationTimeout); this.animationTimeout = null; }
-            // Use positionMapForTrack to pick up custom camera angles from spreadsheet
             this.positionMapForTrack(currentTrack, audioController.currentIndex);
             atmosphereController.applyAtmosphere(currentTrack);
           } else {
