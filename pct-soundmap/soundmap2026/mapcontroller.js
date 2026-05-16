@@ -187,10 +187,10 @@ class MapController {
             'circle-color': '#5c3a2e',
             'circle-radius': [
               'interpolate', ['linear'], ['zoom'],
-              10, 3,
-              12, 4,
-              14, 6,
-              16, 7
+              10, 1.5,
+              12, 2.5,
+              14, 4,
+              16, 6
             ],
             'circle-opacity': 0.6,
             'circle-stroke-width': 1,
