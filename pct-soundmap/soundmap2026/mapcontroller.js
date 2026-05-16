@@ -185,7 +185,14 @@ class MapController {
           filter: ['!', ['has', 'point_count']],
           paint: {
             'circle-color': '#5c3a2e',
-            'circle-radius': 4,
+            'circle-radius': [
+              'interpolate', ['linear'], ['zoom'],
+              6,  1,
+              10, 2,
+              13, 3,
+              15, 4,
+              17, 4
+            ],
             'circle-opacity': 0.6,
             'circle-stroke-width': 1,
             'circle-stroke-color': '#fff',
