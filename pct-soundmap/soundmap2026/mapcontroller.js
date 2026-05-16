@@ -185,7 +185,7 @@ class MapController {
           filter: ['!', ['has', 'point_count']],
           paint: {
             'circle-color': '#5c3a2e',
-            'circle-radius': 3,
+            'circle-radius': 4,
             'circle-opacity': 0.6,
             'circle-stroke-width': 1,
             'circle-stroke-color': '#fff',
