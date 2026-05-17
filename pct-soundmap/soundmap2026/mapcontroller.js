@@ -718,11 +718,14 @@ class MapController {
         this.moveTimeout = null;
       }
       
+      // Stop any in-progress map animation only if we were mid-flyTo
+      // On iOS Safari, unconditional map.stop() can prevent subsequent flyTo from firing
+      if (this.isPositioning) {
+        map.stop();
+      }
+
       // Force reset positioning flag to allow new movement
       this.isPositioning = false;
-      
-      // Stop any in-progress map animation
-      map.stop();
 
 
         // If navigating to a track that was in a picker but picker is no longer active,
