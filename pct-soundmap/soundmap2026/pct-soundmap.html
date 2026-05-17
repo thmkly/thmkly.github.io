@@ -587,6 +587,15 @@
   }
 
 
+  /* Playing popup — orange tint to indicate currently playing track */
+  .custom-popup.playing-popup {
+    background-color: rgba(255, 235, 220, 0.75);
+  }
+
+  .custom-popup.playing-popup::after {
+    border-top-color: rgba(255, 235, 220, 0.75);
+  }
+
   .loading-placeholder {
     text-align: center;
     color: #555;
@@ -919,6 +928,11 @@
     font-size: 15px;
     font-weight: 600;
     padding-right: 30px;
+    cursor: pointer;
+  }
+
+  .popup-title:hover {
+    text-decoration: underline;
   }
 
   .popup-meta {
