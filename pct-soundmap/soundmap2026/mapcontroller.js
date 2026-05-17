@@ -1181,6 +1181,8 @@ class MapController {
         
         // New helper method - add this RIGHT AFTER minimizePopup() closes
               updateHeaderBadge(track, audio = null) {
+        // Never show badge while flying to a location
+        if (this.isFlying) return;
         // Remove existing badge and clean up listeners
         const existingBadge = document.getElementById('playing-badge');
         if (existingBadge) {
