@@ -1421,7 +1421,12 @@ class MapController {
 
         this.isFlying = true;
         map.flyTo(flyToOptions);
-        setTimeout(() => { this.isFlying = false; }, duration + 300);
+        setTimeout(() => {
+          this.isFlying = false;
+          // Now that we've landed, create badge if needed
+          const currentTrack = audioController.currentIndex >= 0 ? this.audioData[audioController.currentIndex] : null;
+          if (currentTrack) this.updateHeaderBadge(currentTrack, audioController.currentAudio);
+        }, duration + 300);
         setTimeout(resetPositioning, duration + 200);
       }
 
