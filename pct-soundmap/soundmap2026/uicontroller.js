@@ -197,28 +197,27 @@ class UIController {
           wrapper.style.bottom = `${window.innerHeight - topMargin - finalH}px`;
 
           // Position scroll arrows dynamically
-          // Top arrow: centered with first track (headerH + half first track height)
           const firstTrack = tracks[0];
-          const lastTrack = tracks[tracks.length - 1];
           if (firstTrack && scrollUp) {
             const firstTrackH = firstTrack.offsetHeight;
-            scrollUp.style.top = `${headerH + firstTrackH / 2 - scrollUp.offsetHeight / 2}px`;
+            // Center arrow with first track: header bottom + half track height - half arrow height
+            scrollUp.style.top = `${headerH + (firstTrackH / 2) - (scrollUp.offsetHeight / 2)}px`;
           }
 
-          // Bottom arrow: centered with last fully visible track before footer
-          if (lastTrack && scrollDown) {
-            const playlistH = finalH - headerH - footerH;
-            // Find last track that fits fully within playlist area
+          if (scrollDown) {
+            // Find last fully visible track (bottom of track < playlist area bottom)
+            const playlistAreaH = finalH - headerH - footerH;
             let accum = 0;
-            let lastVisibleTrack = firstTrack;
+            let lastVisibleTrackH = firstTrack ? firstTrack.offsetHeight : 33;
             tracks.forEach(t => {
-              accum += t.offsetHeight;
-              if (accum <= playlistH) lastVisibleTrack = t;
+              const h = t.offsetHeight;
+              if (accum + h <= playlistAreaH) {
+                lastVisibleTrackH = h;
+                accum += h;
+              }
             });
-            const lastTrackH = lastVisibleTrack.offsetHeight;
-            // Position from bottom of wrapper
-            const lastTrackBottomFromWrapperBottom = footerH + (playlistH - (accum <= playlistH ? trackH : playlistH)) + lastTrackH / 2;
-            scrollDown.style.bottom = `${footerH + lastTrackH / 2 - scrollDown.offsetHeight / 2}px`;
+            // Center arrow with last visible track from bottom of wrapper
+            scrollDown.style.bottom = `${footerH + (lastVisibleTrackH / 2) - (scrollDown.offsetHeight / 2)}px`;
           }
         }
 
