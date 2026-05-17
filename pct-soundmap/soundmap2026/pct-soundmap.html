@@ -173,7 +173,7 @@
     background-color: #f0f0f0;
   }
 
-  .track:has(.track-mile:hover) {
+  .track:has(.track-mile-zone:hover) {
     background-color: transparent;
   }
 
@@ -188,10 +188,18 @@
     min-width: 0;
   }
 
+  .track-mile-zone {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    min-width: 55px;
+    align-self: stretch;
+    padding: 0 0 0 8px;
+  }
+
   .track-mile {
     font-size: 0.8em;
     color: #666;
-    min-width: 40px;
     text-align: right;
     cursor: pointer;
     transition: color 0.15s;

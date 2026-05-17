@@ -625,6 +625,9 @@ class MapController {
           trackInfo.className = 'track-info';
           trackInfo.textContent = track.name.replace(/^[^\s]+\s+-\s+/, '');
           
+          const trackMileZone = document.createElement('div');
+          trackMileZone.className = 'track-mile-zone';
+
           const trackMile = document.createElement('div');
           trackMile.className = 'track-mile';
           const displayMile = this.getDisplayMile(track);
@@ -634,14 +637,15 @@ class MapController {
           // Mile marker click — fly to location without triggering playback (desktop only)
           if (mile && !uiController.isMobile) {
             trackMile.title = 'Fly to location';
-            trackMile.addEventListener('click', (e) => {
+            trackMileZone.addEventListener('click', (e) => {
               e.stopPropagation();
               this.positionMapForTrack(track, index);
             });
           }
-          
+
+          trackMileZone.appendChild(trackMile);
           div.appendChild(trackInfo);
-          div.appendChild(trackMile);
+          div.appendChild(trackMileZone);
           
           div.addEventListener('click', (e) => {
             // If clicking the currently playing track, toggle pause/play
