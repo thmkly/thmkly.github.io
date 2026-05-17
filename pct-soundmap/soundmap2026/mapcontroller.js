@@ -1256,6 +1256,7 @@ class MapController {
           badge.appendChild(pill);
           badge.appendChild(body);
 
+          badge.style.display = 'none'; // hidden by default, shown by updateBadgeVisibility
           document.body.appendChild(badge);
 
           const audioForTime = audio || audioController.currentAudio;
