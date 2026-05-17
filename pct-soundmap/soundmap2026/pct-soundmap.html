@@ -179,7 +179,7 @@
   }
 
   .active-track {
-    background-color: #d0d0d0;
+    background-color: #f0f0f0;
   }
 
   .track-info {
@@ -187,7 +187,7 @@
     display: flex;
     align-items: center;
     min-width: 0;
-    padding-right: 65px;
+    padding-right: 57px;
   }
 
   .track-mile-zone {
@@ -195,12 +195,17 @@
     right: 0;
     top: 0;
     bottom: -1px;
-    min-width: 60px;
+    width: 52px;
     display: flex;
     align-items: center;
     justify-content: flex-end;
     padding-right: 5px;
     cursor: default;
+    pointer-events: none;
+  }
+
+  .track-mile-zone .track-mile {
+    pointer-events: auto;
   }
 
   .track-mile {
