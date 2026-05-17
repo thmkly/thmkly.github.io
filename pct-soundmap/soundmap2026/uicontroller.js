@@ -201,7 +201,7 @@ class UIController {
           if (firstTrack && scrollUp) {
             const firstTrackH = firstTrack.offsetHeight;
             // Center arrow with first track: header bottom + half track height - half arrow height
-            scrollUp.style.top = `${headerH + (firstTrackH / 2) - (scrollUp.offsetHeight / 2)}px`;
+            scrollUp.style.top = `${headerH + (firstTrackH / 2) - (scrollUp.offsetHeight / 2) + 1}px`;
           }
 
           if (scrollDown) {
@@ -217,7 +217,7 @@ class UIController {
               }
             });
             // Center arrow with last visible track from bottom of wrapper
-            scrollDown.style.bottom = `${footerH + (lastVisibleTrackH / 2) - (scrollDown.offsetHeight / 2)}px`;
+            scrollDown.style.bottom = `${footerH + (lastVisibleTrackH / 2) - (scrollDown.offsetHeight / 2) - 1}px`;
           }
         }
 
