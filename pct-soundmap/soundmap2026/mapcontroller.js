@@ -348,7 +348,6 @@ class MapController {
         });
 
         map.on('moveend', () => {
-          this.isFlying = false;
           // On moveend, just update positions — don't query features yet
           // State decisions happen in idle when map is truly stable
           if (this.isPositioning) return;
@@ -1416,6 +1415,7 @@ class MapController {
 
         this.isFlying = true;
         map.flyTo(flyToOptions);
+        setTimeout(() => { this.isFlying = false; }, duration + 300);
         setTimeout(resetPositioning, duration + 200);
       }
 
