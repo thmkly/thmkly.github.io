@@ -7,7 +7,7 @@
       getDefaultZoom: () => {
         // Mobile gets fixed zoom to account for Ko-fi widget
         if (window.innerWidth <= 768) {
-          return 5.378898887009354;
+          return 4.46;
         }
   
   const screenWidth = window.screen.width;

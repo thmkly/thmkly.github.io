@@ -135,7 +135,8 @@ class MapController {
 
       setupMapLayers() {
         // Scale factor for cluster visuals — keeps circles and grouping consistent across screen sizes
-        const _clusterScale = Math.pow(2, CONFIG.getDefaultZoom() - 4.65);
+        // Mobile uses a fixed scale of 1 (MBA reference) regardless of zoom
+        const _clusterScale = uiController.isMobile ? 1 : Math.pow(2, CONFIG.getDefaultZoom() - 4.65);
         const _r = (n) => Math.round(n * _clusterScale);
 
         map.addSource('audio', {
