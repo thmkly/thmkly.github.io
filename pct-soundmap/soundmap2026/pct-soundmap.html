@@ -978,19 +978,24 @@
     font-size: 13px;
     padding: 6px 10px;
     cursor: pointer;
-    border: 1px solid rgba(180, 110, 60, 0.5);
+    border: 1px solid #ccc;
     border-radius: 4px;
-    background: rgba(255, 215, 175, 0.72);
-    color: #3d2519;
+    background: white;
+    color: #333;
+  }
+
+  .popup-nav-btn:hover {
+    background: #f0f0f0;
   }
 
   .playing-popup .popup-nav-btn {
-    background: rgba(255, 215, 175, 0.72);
-    border-color: rgba(180, 110, 60, 0.5);
+    background: rgba(255, 235, 220, 0.75);
+    border-color: rgba(180, 110, 60, 0.3);
+    color: #3d2519;
   }
 
   .playing-popup .popup-nav-btn:hover {
-    background: rgba(255, 190, 130, 0.90);
+    background: rgba(255, 215, 175, 0.72);
   }
 
   .popup-nav-btn:disabled {
@@ -1001,13 +1006,26 @@
   .popup-playpause-btn {
     padding: 8px 14px;
     cursor: pointer;
-    border: 1px solid rgba(180, 110, 60, 0.5);
+    border: 1px solid #ccc;
     border-radius: 4px;
-    background: rgba(255, 215, 175, 0.72);
+    background: white;
     display: flex;
     align-items: center;
     justify-content: center;
     min-width: 50px;
+  }
+
+  .popup-playpause-btn:hover {
+    background: #f0f0f0;
+  }
+
+  .playing-popup .popup-playpause-btn {
+    background: rgba(255, 235, 220, 0.75);
+    border-color: rgba(180, 110, 60, 0.3);
+  }
+
+  .playing-popup .popup-playpause-btn:hover {
+    background: rgba(255, 215, 175, 0.72);
   }
 
   .popup-time-display {
