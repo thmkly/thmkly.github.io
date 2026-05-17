@@ -97,7 +97,8 @@ class MapController {
           touchZoomRotate: true,
           touchPitch: false, // Keep pitch locked on mobile
           // Initially disable drag rotate (will be enabled in 3D mode on desktop)
-          dragRotate: false
+          dragRotate: false,
+          respectPrefersReducedMotion: false
         });
 
         // Disable drag rotation initially
@@ -993,7 +994,7 @@ class MapController {
               }
             }
           }, duration + 200); // 200ms additional delay after flyto completes
-        }, 100);
+        }, uiController.isMobile ? 300 : 100);
       }
 
         minimizePopup(track, index, existingBox = null) {
