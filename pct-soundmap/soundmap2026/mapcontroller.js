@@ -837,6 +837,9 @@ class MapController {
         const withFade = !fromAutoPlay && !fromMiniPill && audioController.currentIndex !== index;
         const audio = audioController.play(index, this.audioData, withFade);
 
+        // Mark as flying immediately so badge is suppressed from the start
+        this.isFlying = true;
+
           // Always update badge when audio plays (visibility is controlled inside updateHeaderBadge)
           this.updateHeaderBadge(track, audio);
         
