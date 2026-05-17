@@ -1019,10 +1019,6 @@
     outline: none;
   }
 
-  /* Custom map attribution */
-  .mapboxgl-ctrl-attrib-inner::before {
-    content: '© Thomas Kelly · ';
-  }
 
   /* Play/Pause button styling */
   .play-pause-btn {
@@ -1144,6 +1140,20 @@
           if (controlPanel) controlPanel.style.zoom = uiScale;
         }
       }
+
+      // Add custom attribution link
+      setTimeout(() => {
+        const attrib = document.querySelector('.mapboxgl-ctrl-attrib-inner');
+        if (attrib) {
+          const link = document.createElement('a');
+          link.href = 'https://thomasmkelly.com';
+          link.target = '_blank';
+          link.rel = 'noopener noreferrer';
+          link.textContent = '© Thomas Kelly';
+          link.style.cssText = 'margin-right: 4px;';
+          attrib.insertBefore(link, attrib.firstChild);
+        }
+      }, 1000);
 
       // Initialize controllers after DOM is ready
       audioController = new AudioController();
