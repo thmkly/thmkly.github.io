@@ -1401,25 +1401,11 @@ class MapController {
           easing: smoothLandingEasing
         };
 
+        // Add 3D properties — use per-point overrides if available, fall back to defaults
         if (is3D) {
-          // Distance-based curve — modest arc that scales with journey length
-          const distanceKm = this.calculateDistance(
-            map.getCenter().lat, map.getCenter().lng,
-            customCenter[1], customCenter[0]
-          ) / 1000;
-          const autoCurve = distanceKm < 10 ? 1.1 :
-                            distanceKm < 50 ? 1.3 :
-                            distanceKm < 200 ? 1.5 : 1.8;
-
           flyToOptions.pitch = customPitch !== null ? customPitch : 82;
           flyToOptions.bearing = customBearing !== null ? customBearing : map.getBearing();
-          flyToOptions.curve = customCurve !== null ? customCurve : autoCurve;
-
-          // Pre-flight pitch reset — instantly set to 75° so flyTo smoothly rises to destination pitch
-          // Happens in the same frame as flyTo so it's imperceptible as a separate step
-          if (map.getPitch() > 76) {
-            map.setPitch(75);
-          }
+          flyToOptions.curve = customCurve !== null ? customCurve : 2.5;
         }
 
         map.flyTo(flyToOptions);
