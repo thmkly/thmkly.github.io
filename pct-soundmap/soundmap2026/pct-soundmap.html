@@ -713,18 +713,19 @@
 
   body.is-mobile .playlist-wrapper {
     position: fixed;
-    top: 0;
+    top: 20px;
+    bottom: 20px;
     right: 0;
     left: auto;
     transform: translateX(100%);
     width: calc(100vw - 50px);
     max-width: 350px;
-    height: 100vh;
-    background-color: rgba(255, 255, 255, 0.6);
+    height: auto;
+    background-color: rgba(255, 255, 255, 0.75);
     backdrop-filter: blur(10px);
     -webkit-backdrop-filter: blur(10px);
     z-index: 10000;
-    border-radius: 0;
+    border-radius: 12px 0 0 12px;
     box-shadow: -4px 0 20px rgba(0, 0, 0, 0.3);
     transition: transform 0.3s ease;
     display: flex;
@@ -810,7 +811,7 @@
   body.is-mobile .playlist-wrapper .mobile-controls { display: block !important; }
   body.is-mobile .playlist-header { display: block !important; }
   body.is-mobile .playlist-footer { display: block !important; }
-  body.is-mobile .playlist-wrapper .playlist { max-height: none; flex: 1; overflow-y: auto; margin-top: 0; }
+  body.is-mobile .playlist-wrapper .playlist { max-height: none; flex: 1; overflow-y: auto; margin-top: 0; background-color: transparent; }
   body.is-mobile .playlist-wrapper .scroll-arrow { display: none !important; }
 
   /* Mini infoboxes — slightly more compact on mobile */
