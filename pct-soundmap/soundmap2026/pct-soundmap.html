@@ -730,7 +730,6 @@
     border-radius: 0;
     box-shadow: none;
     filter: none;
-    border-left: 1px solid rgba(0,0,0,0.12);
     transition: transform 0.3s ease;
     display: flex;
     flex-direction: column;
@@ -768,18 +767,7 @@
     padding: 0;
   }
 
-  /* Dark scrim behind open panel */
-  body.is-mobile .playlist-wrapper.mobile-expanded::before {
-    content: '';
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100vw;
-    height: 100vh;
-    background: rgba(0, 0, 0, 0.35);
-    z-index: -1;
-    pointer-events: none;
-  }
+  /* No scrim on mobile — panel background is sufficient */
 
   /* Sort footer */
   body.is-mobile .mobile-controls {
