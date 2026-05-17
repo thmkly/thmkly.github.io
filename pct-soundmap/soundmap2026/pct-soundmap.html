@@ -124,13 +124,13 @@
   .playlist-header {
     flex-shrink: 0;
     border-bottom: 1px solid rgba(0,0,0,0.08);
-    background: rgba(255, 255, 255, 0.7);
+    background: rgba(255, 255, 255, 0.75);
     position: relative;
   }
 
   .playlist-title {
     font-size: 11px;
-    color: #888;
+    color: #000;
     letter-spacing: 0.04em;
     text-align: center;
     padding: 8px 8px 4px;
@@ -143,12 +143,12 @@
     text-align: center;
     padding: 8px;
     border-top: 1px solid rgba(0,0,0,0.08);
-    background: rgba(255, 255, 255, 0.7);
+    background: rgba(255, 255, 255, 0.75);
   }
 
   .support-link {
     font-size: 12px;
-    color: #5c3a2e;
+    color: #000;
     text-decoration: none;
     letter-spacing: 0.04em;
   }
@@ -622,11 +622,11 @@
   .hamburger-menu {
     display: none;
     position: fixed;
-    top: 15px;
+    top: 56px;
     right: 15px;
     left: auto;
-    width: 40px;
-    height: 40px;
+    width: 36px;
+    height: 36px;
     padding: 0;
     background: rgba(255, 255, 255, 0.5);
     backdrop-filter: blur(10px);
@@ -716,7 +716,7 @@
   body.is-mobile .playlist-wrapper {
     position: fixed;
     top: 20px;
-    bottom: 60px;
+    bottom: 30px;
     right: 0;
     left: auto;
     transform: translateX(100%);
@@ -743,14 +743,16 @@
 
   body.is-mobile .playlist-wrapper.mobile-expanded .mobile-menu-close {
     display: flex;
-    position: absolute;
-    top: 0;
-    right: 0;
+    position: static;
     height: 36px;
     width: 36px;
     align-items: center;
     justify-content: center;
-    z-index: 10001;
+    background: rgba(255, 255, 255, 0.5);
+    border: 1px solid #ccc;
+    border-radius: 5px;
+    flex-shrink: 0;
+    margin-left: auto;
   }
 
   /* Dark scrim behind open panel */
@@ -822,8 +824,23 @@
   body.is-mobile .playlist-wrapper .mobile-controls { display: block !important; }
   body.is-mobile .playlist-header { display: block !important; }
   body.is-mobile .playlist-footer { display: block !important; }
-  body.is-mobile .playlist-wrapper .playlist { max-height: none; flex: 1; overflow-y: auto; margin-top: 0; background-color: rgba(255, 255, 255, 0.7); }
-  body.is-mobile .playlist-wrapper .scroll-arrow { display: block; }
+  body.is-mobile .playlist-wrapper .playlist { max-height: none; flex: 1; overflow-y: auto; margin-top: 0; background-color: rgba(255, 255, 255, 0.75); }
+  body.is-mobile .playlist-wrapper .scroll-arrow {
+    display: block;
+    position: absolute;
+    left: -24px;
+    width: 20px;
+    font-size: 10px;
+    color: #333;
+    background: rgba(255,255,255,0.6);
+    border-radius: 3px;
+    padding: 4px 2px;
+    text-align: center;
+  }
+  body.is-mobile #scrollUp { top: 20px; }
+  body.is-mobile #scrollDown { bottom: 20px; }
+  body.is-mobile .playlist-wrapper { overflow: visible; }
+  body.is-mobile .playlist-wrapper .playlist { overflow-y: auto; }
 
   /* Mini infoboxes — slightly more compact on mobile */
   body.is-mobile .mini-infobox {
@@ -1082,7 +1099,6 @@
     <!-- Playlist header: title + sort controls + close button -->
     <div class="playlist-header">
       <div class="playlist-title">a sound map of the pacific crest trail, 2023, by stereo</div>
-      <button class="mobile-menu-close" id="mobileMenuClose" aria-label="Close menu"></button>
       <div class="mobile-controls">
         <div class="sort-controls">
           <button class="control-btn sort-btn active" id="sortNoboMobile" title="Northbound playlist">NOBO</button>
@@ -1094,6 +1110,7 @@
               <div class="toggle-slider"></div>
             </div>
           </div>
+          <button class="mobile-menu-close" id="mobileMenuClose" aria-label="Close menu" style="position:static;display:none;margin-left:auto;flex-shrink:0;"></button>
         </div>
       </div>
     </div>
