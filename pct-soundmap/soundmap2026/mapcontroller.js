@@ -1415,21 +1415,10 @@ class MapController {
           flyToOptions.bearing = customBearing !== null ? customBearing : map.getBearing();
           flyToOptions.curve = customCurve !== null ? customCurve : autoCurve;
 
-          // Pre-flight pitch ease — camera tilts forward (looks more downward) before departure
-          // giving it clearance to fly over terrain, then Mapbox interpolates back to destination pitch
-          const prePitch = Math.min(map.getPitch(), 75);
+          // Pre-flight pitch reset — instantly set to 75° so flyTo smoothly rises to destination pitch
+          // Happens in the same frame as flyTo so it's imperceptible as a separate step
           if (map.getPitch() > 76) {
-            // Only ease if current pitch is steep enough to risk terrain clipping
-            map.easeTo({
-              pitch: prePitch,
-              duration: 600,
-              easing: t => t * t // ease-in — starts slow, feels organic
-            });
-            setTimeout(() => {
-              map.flyTo(flyToOptions);
-              setTimeout(resetPositioning, duration + 200);
-            }, 600);
-            return;
+            map.setPitch(75);
           }
         }
 
