@@ -2112,14 +2112,10 @@ class MapController {
             : null;
 
           if (currentTrack) {
-            map.flyTo({
-              center: [parseFloat(currentTrack.lng), parseFloat(currentTrack.lat)],
-              zoom: CONFIG.ZOOM_3D,
-              pitch: 82,
-              bearing: 0,
-              duration: 2500,
-              easing: t => 1 - Math.pow(1 - t, 3)
-            });
+            map.stop();
+            this.isPositioning = false;
+            if (this.animationTimeout) { clearTimeout(this.animationTimeout); this.animationTimeout = null; }
+            this.positionMapForTrack(currentTrack, audioController.currentIndex);
             atmosphereController.applyAtmosphere(currentTrack);
           } else {
             map.flyTo({ pitch: 82, zoom: Math.max(map.getZoom(), CONFIG.ZOOM_3D), duration: 2000 });
@@ -2136,7 +2132,22 @@ class MapController {
 
         map.setTerrain(null);
         if (typeof map.setLight === 'function') map.setLight(null);
-        map.flyTo({ pitch: 0, bearing: 0, duration: 1500 });
+
+        // Fly back to current track in 2D if one is playing, otherwise just reset pitch/bearing
+        const currentTrack = audioController.currentIndex >= 0
+          ? this.audioData[audioController.currentIndex]
+          : null;
+        if (currentTrack) {
+          map.flyTo({
+            center: [parseFloat(currentTrack.lng), parseFloat(currentTrack.lat)],
+            zoom: CONFIG.ZOOM_2D,
+            pitch: 0,
+            bearing: 0,
+            duration: 1500
+          });
+        } else {
+          map.flyTo({ pitch: 0, bearing: 0, duration: 1500 });
+        }
 
         setTimeout(() => {
           if (map.getSource('mapbox-dem')) map.removeSource('mapbox-dem');
