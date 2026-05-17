@@ -929,6 +929,7 @@ class MapController {
         // In 2D mode skip flyTo only if point is comfortably visible at a reasonable zoom
         const is3DMode = uiController.is3DEnabled;
         const pointComfortablyVisible = !is3DMode &&
+          !uiController.isMobile &&
           this.isPointComfortablyVisible(track) && 
           map.getZoom() >= 12;
 
