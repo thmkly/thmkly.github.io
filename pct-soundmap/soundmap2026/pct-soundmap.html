@@ -234,9 +234,9 @@
   }
 
   .control-btn.active {
-    background-color: #5c3a2e;
+    background-color: #888;
     color: white;
-    border-color: #5c3a2e;
+    border-color: #888;
   }
 
   .sort-controls {
@@ -368,7 +368,7 @@
   }
 
   .mini-infobox.minimized-popup .mini-infobox-chevron {
-    background-color: rgba(255, 235, 220, 0.85);
+    background-color: rgba(255, 215, 175, 0.72);
     border-color: rgba(180, 110, 60, 0.5);
     border-left: none;
   }
@@ -434,7 +434,7 @@
     align-items: center;
     gap: 8px;
     padding: 5px 10px;
-    background-color: rgba(255, 235, 220, 0.85);
+    background-color: rgba(255, 215, 175, 0.72);
     border: 1px solid rgba(180, 110, 60, 0.5);
     border-left: none;
     border-radius: 0 4px 4px 0;
@@ -443,7 +443,7 @@
   }
 
   .badge-body:hover {
-    background-color: rgba(255, 180, 140, 0.90);
+    background-color: rgba(255, 150, 90, 0.95);
   }
 
   .badge-title {
@@ -589,11 +589,11 @@
 
   /* Playing popup — orange tint to indicate currently playing track */
   .custom-popup.playing-popup {
-    background-color: rgba(255, 235, 220, 0.75);
+    background-color: rgba(255, 215, 175, 0.72);
   }
 
   .custom-popup.playing-popup::after {
-    border-top-color: rgba(255, 235, 220, 0.75);
+    border-top-color: rgba(255, 215, 175, 0.72);
   }
 
   .loading-placeholder {
@@ -978,10 +978,19 @@
     font-size: 13px;
     padding: 6px 10px;
     cursor: pointer;
-    border: 1px solid #ccc;
+    border: 1px solid rgba(180, 110, 60, 0.5);
     border-radius: 4px;
-    background: white;
-    color: #333;
+    background: rgba(255, 190, 130, 0.90);
+    color: #3d2519;
+  }
+
+  .playing-popup .popup-nav-btn {
+    background: rgba(255, 190, 130, 0.90);
+    border-color: rgba(180, 110, 60, 0.5);
+  }
+
+  .playing-popup .popup-nav-btn:hover {
+    background: rgba(255, 150, 90, 0.95);
   }
 
   .popup-nav-btn:disabled {
@@ -992,9 +1001,9 @@
   .popup-playpause-btn {
     padding: 8px 14px;
     cursor: pointer;
-    border: 1px solid #ccc;
+    border: 1px solid rgba(180, 110, 60, 0.5);
     border-radius: 4px;
-    background: white;
+    background: rgba(255, 190, 130, 0.90);
     display: flex;
     align-items: center;
     justify-content: center;
