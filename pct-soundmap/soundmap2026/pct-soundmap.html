@@ -825,10 +825,9 @@
   body.is-mobile .playlist-wrapper .mobile-controls { display: block !important; }
   body.is-mobile .playlist-header { display: block !important; }
   body.is-mobile .playlist-footer { display: block !important; }
-  body.is-mobile .playlist-wrapper .playlist { max-height: none; flex: 1; overflow-y: auto; margin: 0; padding: 0; background-color: transparent !important; }
-  body.is-mobile .playlist-wrapper .playlist .track:last-child { border-bottom: none; }
-  body.is-mobile .playlist-wrapper .track { background-color: transparent !important; }
-  body.is-mobile .playlist-wrapper .playlist .track:last-child { margin-bottom: 0 !important; padding-bottom: 0 !important; }
+  body.is-mobile .playlist-wrapper .playlist { max-height: none; flex: 1; overflow-y: auto; margin: 0; padding: 0 !important; background-color: transparent !important; }
+  body.is-mobile .playlist-wrapper .track { background-color: transparent !important; margin-bottom: 0 !important; }
+  body.is-mobile .playlist-wrapper .playlist .track:last-child { border-bottom: none; margin-bottom: 0 !important; padding-bottom: 5px !important; }
   body.is-mobile .playlist-wrapper .track:hover { background-color: rgba(0,0,0,0.05) !important; }
   body.is-mobile .playlist-wrapper .scroll-arrow {
     display: none;
@@ -844,7 +843,7 @@
   body.is-mobile .playlist-wrapper.mobile-expanded .scroll-arrow { display: block; }
   body.is-mobile #scrollUp { top: 95px; }
   body.is-mobile #scrollDown { bottom: 42px; }
-  body.is-mobile .playlist-wrapper .playlist { overflow-y: auto; }
+
 
   /* Mini infoboxes — slightly more compact on mobile */
   body.is-mobile .mini-infobox {
