@@ -147,6 +147,15 @@
     display: none;
   }
 
+  .playlist-footer-title {
+    font-size: 10px;
+    color: #888;
+    letter-spacing: 0.04em;
+    margin-bottom: 3px;
+    user-select: none;
+    pointer-events: none;
+  }
+
   .support-link {
     font-size: 12px;
     color: #000;
@@ -793,8 +802,8 @@
   body.is-mobile .playlist-wrapper.mobile-expanded .mobile-menu-close {
     display: flex !important;
     position: absolute !important;
-    top: 8px !important;
-    right: 8px !important;
+    top: 5px !important;
+    right: 6px !important;
     height: 36px;
     width: 36px;
     align-items: center;
@@ -863,6 +872,7 @@
   body.is-mobile .playlist-wrapper .mobile-controls { display: block !important; }
   body.is-mobile .playlist-header { display: block !important; }
   body.is-mobile .playlist-footer { display: block !important; }
+  body.is-mobile .playlist-title { display: none; }
   body.is-mobile .playlist-wrapper #playlist { max-height: none; flex: 1; overflow-y: auto; margin: 0 !important; padding: 0 !important; background-color: transparent !important; }
   body.is-mobile .playlist-wrapper .track { background-color: transparent !important; margin-bottom: 0 !important; }
   body.is-mobile .playlist-wrapper .playlist .track:last-child { border-bottom: none; margin-bottom: 0 !important; padding-bottom: 5px !important; }
@@ -1170,9 +1180,8 @@
 
   <div class="playlist-wrapper" id="playlistWrapper">
     <button class="playlist-toggle" id="playlistToggle" title="Collapse playlist">◀</button>
-    <!-- Playlist header: title + sort controls + close button -->
+    <!-- Playlist header: sort controls + close button -->
     <div class="playlist-header">
-      <div class="playlist-title">a sound map of the pacific crest trail, 2023, by stereo</div>
       <button class="mobile-menu-close" id="mobileMenuClose" aria-label="Close menu"></button>
       <div class="mobile-controls">
         <div class="sort-controls">
@@ -1191,7 +1200,8 @@
     <div class="scroll-arrow down" id="scrollDown" title="Scroll down">▼</div>
     <!-- Playlist footer: support link -->
     <div class="playlist-footer">
-      <a href="https://ko-fi.com/thmkly" target="_blank" rel="noopener noreferrer" class="support-link">support this project &#10084;&#xFE0E;</a>
+      <div class="playlist-footer-title">a sound map of the pacific crest trail, 2023, by stereo</div>
+      <a href="https://ko-fi.com/thmkly" target="_blank" rel="noopener noreferrer" class="support-link">support this project and my future work &#10084;&#xFE0E;</a>
     </div>
   </div>
 
