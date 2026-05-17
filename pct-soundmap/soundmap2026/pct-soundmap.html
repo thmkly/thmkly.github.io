@@ -167,6 +167,7 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
+    position: relative;
   }
 
   .track:hover {
@@ -186,15 +187,20 @@
     display: flex;
     align-items: center;
     min-width: 0;
+    padding-right: 65px;
   }
 
   .track-mile-zone {
+    position: absolute;
+    right: 0;
+    top: 0;
+    bottom: 0;
+    min-width: 60px;
     display: flex;
     align-items: center;
     justify-content: flex-end;
-    min-width: 55px;
-    align-self: stretch;
-    padding: 0 0 0 8px;
+    padding-right: 5px;
+    cursor: default;
   }
 
   .track-mile {
