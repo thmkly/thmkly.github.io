@@ -348,6 +348,7 @@ class MapController {
         });
 
         map.on('moveend', () => {
+          this.isFlying = false;
           // On moveend, just update positions — don't query features yet
           // State decisions happen in idle when map is truly stable
           if (this.isPositioning) return;
@@ -1413,6 +1414,7 @@ class MapController {
           flyToOptions.curve = customCurve !== null ? customCurve : 2.5;
         }
 
+        this.isFlying = true;
         map.flyTo(flyToOptions);
         setTimeout(resetPositioning, duration + 200);
       }
@@ -2319,6 +2321,12 @@ class MapController {
 
       // Update badge visibility based on playlist state and point visibility  
       updateBadgeVisibility() {
+        // Don't show badge during flyTo — map is in transit, not settled
+        if (this.isFlying) {
+          const badge = document.getElementById('playing-badge');
+          if (badge) badge.style.display = 'none';
+          return;
+        }
         const badge = document.getElementById('playing-badge');
         if (!badge) return;
         
