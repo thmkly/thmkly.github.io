@@ -141,7 +141,7 @@
   .playlist-footer {
     flex-shrink: 0;
     text-align: center;
-    padding: 8px;
+    padding: 6px 8px;
     border-top: 1px solid rgba(0,0,0,0.08);
     background: rgba(255, 255, 255, 0.75);
   }
@@ -741,11 +741,16 @@
     transform: translateX(0);
   }
 
-  body.is-mobile .playlist-wrapper.mobile-expanded .mobile-menu-close {
-    display: flex;
+  body.is-mobile .mobile-menu-close {
+    display: none !important;
     position: static !important;
     top: auto !important;
     right: auto !important;
+  }
+
+  body.is-mobile .playlist-wrapper.mobile-expanded .mobile-menu-close {
+    display: flex !important;
+    position: static !important;
     height: 36px;
     width: 36px;
     align-items: center;
@@ -827,8 +832,9 @@
   body.is-mobile .playlist-wrapper .mobile-controls { display: block !important; }
   body.is-mobile .playlist-header { display: block !important; }
   body.is-mobile .playlist-footer { display: block !important; }
-  body.is-mobile .playlist-wrapper .playlist { max-height: none; flex: 1; overflow-y: auto; margin-top: 0; background-color: rgba(255, 255, 255, 0.75) !important; }
+  body.is-mobile .playlist-wrapper .playlist { max-height: none; flex: 1; overflow-y: auto; margin-top: 0; background-color: transparent !important; }
   body.is-mobile .playlist-wrapper .track { background-color: transparent !important; }
+  body.is-mobile .playlist-wrapper .track:hover { background-color: rgba(0,0,0,0.04) !important; }
   body.is-mobile .playlist-wrapper .scroll-arrow {
     display: none;
     position: absolute;
@@ -841,8 +847,8 @@
     text-align: center;
   }
   body.is-mobile .playlist-wrapper.mobile-expanded .scroll-arrow { display: block; }
-  body.is-mobile #scrollUp { top: 100px; }
-  body.is-mobile #scrollDown { bottom: 48px; }
+  body.is-mobile #scrollUp { top: 95px; }
+  body.is-mobile #scrollDown { bottom: 52px; }
   body.is-mobile .playlist-wrapper { overflow: visible; }
   body.is-mobile .playlist-wrapper .playlist { overflow-y: auto; }
 
@@ -1114,7 +1120,7 @@
               <div class="toggle-slider"></div>
             </div>
           </div>
-          <button class="mobile-menu-close" id="mobileMenuClose" aria-label="Close menu" style="position:static;display:none;margin-left:auto;flex-shrink:0;"></button>
+          <button class="mobile-menu-close" id="mobileMenuClose" aria-label="Close menu"></button>
         </div>
       </div>
     </div>
