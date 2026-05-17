@@ -672,6 +672,11 @@ class MapController {
           playlist.appendChild(div);
         });
         
+        // Dynamically size the mobile playlist to fit content
+        if (uiController.isMobile) {
+          setTimeout(() => uiController.sizeMobilePlaylist(), 50);
+        }
+
         // Show collapse arrow now that playlist is rendered
         const toggleBtn = document.getElementById('playlistToggle');
         if (toggleBtn) {

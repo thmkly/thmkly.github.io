@@ -172,6 +172,56 @@ class UIController {
           if (hamburger) hamburger.classList.remove('open');
         }
 
+        sizeMobilePlaylist() {
+          if (!this.isMobile) return;
+          const wrapper = document.getElementById('playlistWrapper');
+          const header = wrapper.querySelector('.playlist-header');
+          const playlist = wrapper.querySelector('#playlist');
+          const footer = wrapper.querySelector('.playlist-footer');
+          const scrollUp = document.getElementById('scrollUp');
+          const scrollDown = document.getElementById('scrollDown');
+          if (!header || !playlist || !footer) return;
+
+          const headerH = header.offsetHeight;
+          const footerH = footer.offsetHeight;
+
+          // Measure total track height
+          const tracks = playlist.querySelectorAll('.track');
+          let trackH = 0;
+          tracks.forEach(t => { trackH += t.offsetHeight; });
+
+          const totalH = headerH + trackH + footerH;
+          const topMargin = 20;
+          const maxH = window.innerHeight - topMargin - 20;
+          const finalH = Math.min(totalH, maxH);
+          wrapper.style.bottom = `${window.innerHeight - topMargin - finalH}px`;
+
+          // Position scroll arrows dynamically
+          // Top arrow: centered with first track (headerH + half first track height)
+          const firstTrack = tracks[0];
+          const lastTrack = tracks[tracks.length - 1];
+          if (firstTrack && scrollUp) {
+            const firstTrackH = firstTrack.offsetHeight;
+            scrollUp.style.top = `${headerH + firstTrackH / 2 - scrollUp.offsetHeight / 2}px`;
+          }
+
+          // Bottom arrow: centered with last fully visible track before footer
+          if (lastTrack && scrollDown) {
+            const playlistH = finalH - headerH - footerH;
+            // Find last track that fits fully within playlist area
+            let accum = 0;
+            let lastVisibleTrack = firstTrack;
+            tracks.forEach(t => {
+              accum += t.offsetHeight;
+              if (accum <= playlistH) lastVisibleTrack = t;
+            });
+            const lastTrackH = lastVisibleTrack.offsetHeight;
+            // Position from bottom of wrapper
+            const lastTrackBottomFromWrapperBottom = footerH + (playlistH - (accum <= playlistH ? trackH : playlistH)) + lastTrackH / 2;
+            scrollDown.style.bottom = `${footerH + lastTrackH / 2 - scrollDown.offsetHeight / 2}px`;
+          }
+        }
+
       _detectMobile() {
         return /iphone|ipad|ipod|android|mobile|blackberry|iemobile|wpdesktop/i.test(navigator.userAgent);
       }
