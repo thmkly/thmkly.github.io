@@ -132,8 +132,8 @@
     font-size: 11px;
     color: #000;
     letter-spacing: 0.04em;
-    text-align: center;
-    padding: 8px 8px 4px;
+    text-align: left;
+    padding: 8px 40px 8px 8px;
     user-select: none;
     pointer-events: none;
   }
@@ -663,7 +663,7 @@
   .hamburger-menu {
     display: none;
     position: fixed;
-    top: 56px;
+    top: 20px;
     right: 15px;
     left: auto;
     width: 36px;
@@ -785,26 +785,24 @@
 
   body.is-mobile .mobile-menu-close {
     display: none !important;
-    position: static !important;
-    top: auto !important;
-    right: auto !important;
+    position: absolute !important;
+    top: 8px !important;
+    right: 8px !important;
   }
 
   body.is-mobile .playlist-wrapper.mobile-expanded .mobile-menu-close {
     display: flex !important;
-    position: relative !important;
-    top: auto !important;
-    right: auto !important;
-    height: 36px;
-    width: 36px;
+    position: absolute !important;
+    top: 8px !important;
+    right: 8px !important;
+    height: 32px;
+    width: 32px;
     align-items: center;
     justify-content: center;
     background: rgba(255, 255, 255, 0.5);
     border: 1px solid #ccc;
     border-radius: 5px;
-    flex-shrink: 0;
-    margin-left: auto;
-    z-index: auto;
+    z-index: 1;
     padding: 0;
   }
 
@@ -1176,18 +1174,13 @@
     <!-- Playlist header: title + sort controls + close button -->
     <div class="playlist-header">
       <div class="playlist-title">a sound map of the pacific crest trail, 2023, by stereo</div>
+      <button class="mobile-menu-close" id="mobileMenuClose" aria-label="Close menu"></button>
       <div class="mobile-controls">
         <div class="sort-controls">
           <button class="control-btn sort-btn active" id="sortNoboMobile" title="Northbound playlist">NOBO</button>
           <button class="control-btn sort-btn" id="sortSoboMobile" title="Southbound playlist">SOBO</button>
           <button class="control-btn sort-btn" id="sortDateMobile" title="Chronological playlist">STEREO</button>
-          <div class="random-control">
-            <span class="random-label">Random</span>
-            <div class="toggle-switch" id="randomToggleMobile" title="Random on/off">
-              <div class="toggle-slider"></div>
-            </div>
-          </div>
-          <button class="mobile-menu-close" id="mobileMenuClose" aria-label="Close menu"></button>
+          <button class="control-btn sort-btn" id="sortRandomMobile" title="Random playback">RANDOM</button>
         </div>
       </div>
     </div>
@@ -1221,12 +1214,7 @@
       <button class="control-btn sort-btn active" id="sortNobo" title="Northbound playlist">NOBO</button>
       <button class="control-btn sort-btn" id="sortSobo" title="Southbound playlist">SOBO</button>
       <button class="control-btn sort-btn" id="sortDate" title="Chronological playlist">STEREO</button>
-      <div class="random-control">
-        <span class="random-label">Random</span>
-        <div class="toggle-switch" id="randomToggle" title="Random on/off">
-          <div class="toggle-slider"></div>
-        </div>
-      </div>
+      <button class="control-btn sort-btn" id="sortRandom" title="Random playback">RANDOM</button>
     </div>
   </div>
 
@@ -1389,33 +1377,26 @@
           const mobileBtn = document.getElementById('sort' + mode + 'Mobile');
           if (mobileBtn) {
             mobileBtn.addEventListener('click', () => {
-              // Update active states
               document.querySelectorAll('.sort-btn').forEach(btn => btn.classList.remove('active'));
-              document.querySelectorAll('#sortNoboMobile, #sortSoboMobile, #sortDateMobile').forEach(btn => {
-                btn.classList.remove('active');
-              });
               mobileBtn.classList.add('active');
               document.getElementById('sort' + mode).classList.add('active');
-              
-              // Set sort mode directly
-              const sortMap = {
-                'Nobo': 'nobo',
-                'Sobo': 'sobo',
-                'Date': 'date'
-              };
+              audioController.playMode = 'sequential';
+              const sortMap = { 'Nobo': 'nobo', 'Sobo': 'sobo', 'Date': 'date' };
               audioController.sortMode = sortMap[mode];
               mapController.sortAndUpdatePlaylist();
             });
           }
         });
 
-        // Sync random toggle
-        const randomToggleMobile = document.getElementById('randomToggleMobile');
-        if (randomToggleMobile) {
-          randomToggleMobile.addEventListener('click', () => {
-            audioController.playMode = audioController.playMode === 'random' ? 'sequential' : 'random';
-            randomToggleMobile.classList.toggle('active');
-            document.getElementById('randomToggle').classList.toggle('active');
+        // Random as sort button
+        const sortRandomMobile = document.getElementById('sortRandomMobile');
+        if (sortRandomMobile) {
+          sortRandomMobile.addEventListener('click', () => {
+            document.querySelectorAll('.sort-btn').forEach(btn => btn.classList.remove('active'));
+            sortRandomMobile.classList.add('active');
+            const desktopRandom = document.getElementById('sortRandom');
+            if (desktopRandom) desktopRandom.classList.add('active');
+            audioController.playMode = 'random';
           });
         }
       }

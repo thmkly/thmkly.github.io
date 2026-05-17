@@ -34,18 +34,24 @@ class UIController {
           });
         }
 
-        // Sort buttons
-        document.querySelectorAll('.sort-btn').forEach(btn => {
+        // Sort buttons (excluding RANDOM which has its own handler)
+        document.querySelectorAll('.sort-btn:not(#sortRandom):not(#sortRandomMobile)').forEach(btn => {
           btn.addEventListener('click', (e) => {
             this.handleSortChange(e.target.id);
           });
         });
 
-        // Random toggle
-        document.getElementById('randomToggle').addEventListener('click', () => {
-          audioController.playMode = audioController.playMode === 'random' ? 'sequential' : 'random';
-          this.updateRandomToggle();
-        });
+        // RANDOM as sort button
+        const sortRandomBtn = document.getElementById('sortRandom');
+        if (sortRandomBtn) {
+          sortRandomBtn.addEventListener('click', () => {
+            document.querySelectorAll('.sort-btn').forEach(btn => btn.classList.remove('active'));
+            sortRandomBtn.classList.add('active');
+            const sortRandomMobile = document.getElementById('sortRandomMobile');
+            if (sortRandomMobile) sortRandomMobile.classList.add('active');
+            audioController.playMode = 'random';
+          });
+        }
 
         document.getElementById('resetMapBtn').addEventListener('click', () => {
           mapController.resetMap();
@@ -187,14 +193,11 @@ class UIController {
           'sortSobo': 'sobo',
           'sortDate': 'date'
         };
-        
+
+        // Switching to a non-random sort resets random playMode
+        audioController.playMode = 'sequential';
         audioController.sortMode = sortMap[sortId];
         mapController.sortAndUpdatePlaylist();
-      }
-
-      updateRandomToggle() {
-        const toggle = document.getElementById('randomToggle');
-        toggle.classList.toggle('active', audioController.playMode === 'random');
       }
 
       toggleFullscreen() {
