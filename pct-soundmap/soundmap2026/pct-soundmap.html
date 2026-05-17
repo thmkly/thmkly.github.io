@@ -173,6 +173,10 @@
     background-color: #f0f0f0;
   }
 
+  .track:has(.track-mile:hover) {
+    background-color: transparent;
+  }
+
   .active-track {
     background-color: #d0d0d0;
   }
@@ -920,7 +924,8 @@
 
   /* Mobile track items */
   body.is-mobile .track { padding: 8px; }
-  body.is-mobile .track-mile { font-size: 13px; }
+  body.is-mobile .track-mile { font-size: 13px; cursor: default; pointer-events: none; }
+  body.is-mobile .track-mile:hover { color: #666; text-decoration: none; }
   body.is-mobile .control-btn { padding: 8px 10px; font-size: 13px; }
   body.is-mobile .sort-btn { padding: 6px 8px; font-size: 12px; }
 
