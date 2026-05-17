@@ -64,7 +64,7 @@ class AudioController {
     });
   }
 
-  // Fade out current audio over given duration (ms)
+  // Fade out current audio over given duration (ms) — desktop only
   fadeOut(duration = 1000) {
     if (this._fadeRaf) { cancelAnimationFrame(this._fadeRaf); this._fadeRaf = null; }
     return new Promise(resolve => {
@@ -88,7 +88,6 @@ class AudioController {
     });
   }
 
-  // CHANGED: Simplified play method - just changes src instead of creating new elements
   play(index, audioData, withFade = false) {
     const track = audioData[index];
     if (!track) return;
@@ -120,9 +119,13 @@ class AudioController {
       }
     };
 
-    if (withFade && !this.currentAudio.paused) {
+    const isMobile = window.uiController ? uiController.isMobile : window.innerWidth <= 768;
+    if (withFade && !this.currentAudio.paused && !isMobile) {
+      // Desktop: smooth fade out
       this.fadeOut(1000).then(startPlayback);
     } else {
+      // Mobile: hard stop (iOS doesn't support programmatic volume changes)
+      if (!this.currentAudio.paused) this.currentAudio.pause();
       startPlayback();
     }
 
