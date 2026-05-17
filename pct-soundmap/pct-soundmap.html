@@ -2,7 +2,7 @@
 <html>
 <head>
   <meta charset="utf-8" />
-  <title>A Soundmap of the PCT, Stereo 2023</title>
+  <title>a sound map of the pacific crest trail, 2023, by stereo</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
   <meta http-equiv="Pragma" content="no-cache" />
@@ -13,6 +13,8 @@
     margin: 0;
     padding: 0;
     font-family: helvetica, sans-serif;
+    color: #333;
+    color-scheme: light;
   }
 
   #map {
@@ -37,6 +39,7 @@
     border-radius: 5px;
     box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
     background-color: rgba(255, 255, 255, 0.75);
+    color: #333;
     font-family: helvetica;
     font-size: small;
     display: none; /* Initially hidden to prevent flash */
@@ -118,6 +121,44 @@
     cursor: default;
   }
 
+  .playlist-header {
+    flex-shrink: 0;
+    border-bottom: 1px solid rgba(0,0,0,0.08);
+    background: transparent;
+    position: relative;
+  }
+
+  .playlist-title {
+    font-size: 11px;
+    color: #000;
+    letter-spacing: 0.04em;
+    text-align: center;
+    padding: 8px 8px 4px;
+    user-select: none;
+    pointer-events: none;
+  }
+
+  .playlist-footer {
+    flex-shrink: 0;
+    text-align: center;
+    padding: 5px 8px;
+    border-top: 1px solid rgba(0,0,0,0.08);
+    background: transparent;
+    display: none;
+  }
+
+  .support-link {
+    font-size: 12px;
+    color: #000;
+    text-decoration: none;
+    letter-spacing: 0.04em;
+  }
+
+  .support-link:hover {
+    text-decoration: underline;
+  }
+
+
   .track {
     cursor: pointer;
     padding: 5px;
@@ -138,6 +179,9 @@
 
   .track-info {
     flex: 1;
+    display: flex;
+    align-items: center;
+    min-width: 0;
   }
 
   .track-mile {
@@ -145,6 +189,13 @@
     color: #666;
     min-width: 40px;
     text-align: right;
+    cursor: pointer;
+    transition: color 0.15s;
+  }
+
+  .track-mile:hover {
+    color: #5c3a2e;
+    text-decoration: underline;
   }
 
   /* Control Panel */
@@ -172,6 +223,7 @@
     border: 1px solid #ccc;
     border-radius: 3px;
     background-color: white;
+    color: #333;
     cursor: pointer;
     font-size: 12px;
     transition: all 0.2s;
@@ -240,73 +292,189 @@
   }
 
   /* Mini Info Boxes */
+  /* Mini infobox — main zone (left) + chevron (right) */
   .mini-infobox {
     position: absolute;
-    background-color: rgba(255, 255, 255, 0.70); /* Slightly more transparent */
-    border: 1px solid #ccc;
-    border-radius: 4px;
-    padding: 4px 8px;
+    display: inline-flex;
+    align-items: stretch;
     font-size: 11px;
-    color: #000 !important;
-    pointer-events: auto;
-    cursor: pointer;
+    color: #000;
     z-index: 1;
     box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
-    display: flex;
-    align-items: center;
-    gap: 4px;
-    max-width: 200px;
+    border-radius: 4px;
     white-space: nowrap;
-    overflow: visible;
-    transition: background-color 0.2s;
+    pointer-events: auto;
   }
 
-    .mini-infobox:hover {
-      background-color: rgba(220, 220, 220, 0.80);
-    }
-    
-    /* Orange mini box base style */
-    .mini-infobox.minimized-popup {
-      background-color: rgba(255, 200, 150, 0.75); /* Match playlist */
-    }
-    
-    /* Orange mini box hover - needs to be after base style */
-    .mini-infobox.minimized-popup:hover {
-      background-color: rgba(255, 150, 100, 0.80);
-    }
-    
-    .mini-infobox-title {
-      flex: 1;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
-      cursor: pointer;
-    }
+  /* Main zone — icon + title, tap to play/pause */
+  .mini-infobox-pill {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    padding: 4px 7px 4px 6px;
+    background-color: rgba(235, 235, 235, 0.75);
+    border: 1px solid #bbb;
+    border-right: 1px solid #ddd;
+    border-radius: 4px 0 0 4px;
+    cursor: pointer;
+    transition: background-color 0.15s;
+    flex-shrink: 0;
+  }
 
-  .play-icon {
+  .mini-infobox-pill:hover {
+    background-color: rgba(200, 200, 200, 0.90);
+  }
+
+  .mini-infobox-title {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    max-width: 180px;
+  }
+
+  /* Chevron — standalone expand tap target */
+  .mini-infobox-chevron {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 4px 7px 5px 7px;
+    font-size: 18px;
+    font-weight: 900;
+    color: #5c3a2e;
+    background-color: rgba(255, 255, 255, 0.80);
+    border: 1px solid #bbb;
+    border-left: none;
+    border-radius: 0 4px 4px 0;
+    cursor: pointer;
+    flex-shrink: 0;
+    line-height: 1;
+    transition: background-color 0.15s, color 0.15s;
+  }
+
+  .mini-infobox-chevron:hover {
+    background-color: rgba(190, 190, 190, 0.92);
+    color: #3d2519;
+  }
+
+  /* Orange / playing state */
+  .mini-infobox.minimized-popup .mini-infobox-pill {
+    background-color: rgba(255, 215, 175, 0.72);
+    border-color: rgba(180, 110, 60, 0.5);
+    border-right-color: rgba(200, 140, 80, 0.4);
+  }
+
+  .mini-infobox.minimized-popup .mini-infobox-pill:hover {
+    background-color: rgba(255, 150, 90, 0.95);
+  }
+
+  .mini-infobox.minimized-popup .mini-infobox-chevron {
+    background-color: rgba(255, 235, 220, 0.85);
+    border-color: rgba(180, 110, 60, 0.5);
+    border-left: none;
+  }
+
+  .mini-infobox.minimized-popup .mini-infobox-chevron:hover {
+    background-color: rgba(255, 150, 90, 0.95);
+    color: #3d2519;
+  }
+
+  /* Play icon inside pill */
+  .mini-infobox-pill .play-icon {
     width: 0;
     height: 0;
-    border-left: 6px solid #5c3a2e;
+    border-left: 6px solid #444;
     border-top: 4px solid transparent;
     border-bottom: 4px solid transparent;
     flex-shrink: 0;
-    cursor: pointer;
-  }
-
-  .play-icon:hover {
-    border-left-color: #4a2e24;
   }
 
 /* Currently Playing Sound Badge */
+  /* ── Header badge ── */
+
+  /* Badge container — flex row, no background of its own */
+  /* ── Header badge ── */
+
   #playing-badge {
-    background-color: rgba(255, 235, 220, 0.7); /* ADDED: Subtle background for visibility */
-    padding: 8px 12px;
+    display: flex;
+    align-items: stretch;
     border-radius: 4px;
-    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.15);
+    font-size: 13px;
+    color: #333;
+    font-family: helvetica, sans-serif;
+    position: absolute;
+    z-index: 1;
+    pointer-events: auto;
+    top: 20px;
+    left: 20px;
+    width: max-content;
   }
 
-  #playing-badge:hover {
-    background-color: rgba(255, 180, 140, 0.75); /* Slightly more visible on hover */
+  .badge-pill {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    min-width: 28px;
+    background-color: rgba(255, 190, 130, 0.90);
+    border: 1px solid rgba(180, 110, 60, 0.5);
+    border-right: 1px solid rgba(200, 140, 80, 0.4);
+    border-radius: 4px 0 0 4px;
+    cursor: pointer;
+    transition: background-color 0.15s;
+    flex-shrink: 0;
+  }
+
+  .badge-pill:hover {
+    background-color: rgba(255, 150, 90, 0.95);
+  }
+
+  .badge-body {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 5px 10px;
+    background-color: rgba(255, 235, 220, 0.85);
+    border: 1px solid rgba(180, 110, 60, 0.5);
+    border-left: none;
+    border-radius: 0 4px 4px 0;
+    cursor: pointer;
+    transition: background-color 0.15s;
+  }
+
+  .badge-body:hover {
+    background-color: rgba(255, 180, 140, 0.90);
+  }
+
+  .badge-title {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 300px;
+    font-weight: 500;
+  }
+
+  .badge-time {
+    font-family: monospace;
+    color: #666;
+    font-size: 11px;
+    flex-shrink: 0;
+    white-space: nowrap;
+  }
+
+  /* Triangle inside badge pill — no margin, no vertical offset, centered by flex */
+  .badge-triangle {
+    display: block;
+    width: 0;
+    height: 0;
+    border-left: 7px solid #333;
+    border-top: 5px solid transparent;
+    border-bottom: 5px solid transparent;
+  }
+
+  /* badge pill .play-icon margin override */
+  .badge-pill .play-icon {
+    margin-right: 0;
   }
   
   /* Popup minimize button */
@@ -394,14 +562,14 @@
     box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
     max-width: 400px;
     box-sizing: border-box;
+    padding: 12px;
+    font-family: helvetica, sans-serif;
   }
   
   /* Mobile popup size constraint */
-  @media (max-width: 768px) {
-    .custom-popup {
-      max-width: calc(100vw - 40px);
-      min-width: 280px;
-    }
+  body.is-mobile .custom-popup {
+    max-width: calc(100vw - 40px);
+    min-width: 280px;
   }
   
   /* Add popup arrow pointing down */
@@ -455,11 +623,11 @@
   .hamburger-menu {
     display: none;
     position: fixed;
-    top: 15px;
+    top: 56px;
     right: 15px;
     left: auto;
-    width: 40px;
-    height: 40px;
+    width: 36px;
+    height: 36px;
     padding: 0;
     background: rgba(255, 255, 255, 0.5);
     backdrop-filter: blur(10px);
@@ -535,186 +703,353 @@
     display: none;
   }
 
-  /* Mobile Layout */
-  @media (max-width: 768px) {
-    /* Hide desktop control panel on mobile */
-    .control-panel {
-      display: none;
-    }
+  /* ── Mobile layout — gated on device detection, not window width ── */
 
-    /* Show hamburger menu on mobile */
-    .hamburger-menu {
-      display: flex;
-    }
-    
-    /* Hide hamburger when menu is expanded */
-    body.mobile-menu-open .hamburger-menu {
-      display: none;
-    }
+  body.is-mobile .control-panel { display: none; }
 
-    /* Hamburger transforms to X when menu is open */
-    .hamburger-menu.open span:nth-child(1) {
-      transform: rotate(45deg) translate(5px, 5px);
-    }
-    
-    .hamburger-menu.open span:nth-child(2) {
-      opacity: 0;
-    }
-    
-    .hamburger-menu.open span:nth-child(3) {
-      transform: rotate(-45deg) translate(5px, -5px);
-    }
+  body.is-mobile .hamburger-menu { display: flex; }
+  body.is-mobile.mobile-menu-open .hamburger-menu { display: none; }
 
-    /* Mobile playlist wrapper - slides in from left with high z-index */
-    .playlist-wrapper {
-      position: fixed;
-      top: 0;
-      right: 0;
-      left: auto;
-      transform: translateX(100%);
-      width: calc(100vw - 50px);
-      max-width: 350px;
-      height: 100vh;
-      background-color: rgba(255, 255, 255, 0.6);
-      backdrop-filter: blur(10px);
-      z-index: 10000; /* High z-index to be above ko-fi widget */
-      border-radius: 0;
-      box-shadow: 4px 0 20px rgba(0, 0, 0, 0.3);
-      transition: transform 0.3s ease;
-      display: flex;
-      flex-direction: column;
-      opacity: 1;
-      pointer-events: auto;
-    }
+  body.is-mobile .hamburger-menu.open span:nth-child(1) { transform: rotate(45deg) translate(5px, 5px); }
+  body.is-mobile .hamburger-menu.open span:nth-child(2) { opacity: 0; }
+  body.is-mobile .hamburger-menu.open span:nth-child(3) { transform: rotate(-45deg) translate(5px, -5px); }
 
-    .playlist-wrapper.mobile-expanded {
-      transform: translateX(0);
-    }
-
-    /* Show close button when menu is expanded */
-    .playlist-wrapper.mobile-expanded .mobile-menu-close {
-      display: block;
-    }
-
-    /* Mobile controls integrated into playlist wrapper */
-    .mobile-controls {
-      display: block;
-      padding: 15px; /* Uniform padding since close button is absolute positioned */
-      border-bottom: 1px solid #ddd;
-      background: rgba(255, 255, 255, 0.6);
-      border-radius: 0;
-    }
-    
-    .mobile-controls .control-row {
-      display: flex;
-      gap: 8px;
-      margin-bottom: 10px;
-    }
-    
-    .mobile-controls .sort-controls {
-      display: flex;
-      gap: 4px;
-      align-items: center;
-      flex-wrap: wrap;
-    }
-
-    /* Mobile playlist toggle - hide since we use hamburger */
-    .playlist-wrapper .playlist-toggle {
-      display: none;
-    }
-
-    /* Remove mobile-specific show/hide buttons */
-    .mobile-playlist-toggle {
-      display: none !important;
-    }
-
-    .mobile-playlist-collapse {
-      display: none !important;
-    }
-
-    /* Show mobile controls inside playlist when on mobile */
-    .playlist-wrapper .mobile-controls {
-      display: block !important;
-    }
-
-    /* Mobile playlist content */
-    .playlist-wrapper .playlist {
-      max-height: none;
-      flex: 1;
-      overflow-y: auto;
-      margin-top: 0;
-    }
-
-    /* Hide desktop scroll arrows on mobile */
-    .playlist-wrapper .scroll-arrow {
-      display: none !important;
-    }
-  
-    /* Ko-fi widget - force position on mobile */
-    .floatingchat-container-wrap-mobi,
-    .floatingchat-container-wrap-mobi[style] {
-      position: fixed !important;
-      left: auto;
-      right: 99% !important;
-      transform: translateX(-50%) !important;
-      margin-left: 0 !important;
-      bottom: 5px !important;
-      width: auto !important;
-      z-index: 9999 !important;
-    }
-    
-    .floating-chat-kofi-popup-iframe-mobi,
-    .floating-chat-kofi-popup-iframe-mobi[style] {
-      left: 50% !important;
-      right: unset !important;
-      transform: translateX(-50%) !important;
-      bottom: 80px !important;
-      z-index: 9999 !important;
-    }
-    
-    .floating-chat-kofi-popup-iframe-closer-mobi,
-    .floating-chat-kofi-popup-iframe-closer-mobi[style] {
-      left: 50% !important;
-      right: unset !important;
-      transform: translateX(-50%) !important;
-    }
+  body.is-mobile .playlist-wrapper {
+    position: fixed;
+    top: 20px;
+    bottom: 38px;
+    right: 0;
+    left: auto;
+    transform: translateX(100%);
+    width: calc(100vw - 50px);
+    max-width: 350px;
+    height: auto;
+    background-color: rgba(255, 255, 255, 0.82);
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+    z-index: 10000;
+    border-radius: 0;
+    box-shadow: none;
+    filter: none;
+    transition: transform 0.3s ease;
+    display: flex;
+    flex-direction: column;
+    opacity: 1;
+    pointer-events: auto;
+    overflow: visible;
   }
-    
-    /* Mobile popup specific elements */
-    @media (max-width: 768px) {
-      /* Mobile mini info boxes */
-      .mini-infobox {
-        max-width: 140px;
-        font-size: 12px;
-        padding: 4px 7px;
-      }
-    }
-    
-    /* Mobile notification text */
-    .notification {
-      font-size: 16px;
-    }
 
-    /* Mobile track items - larger text for readability */
-    .track {
-      padding: 8px 8px;
-      font-size: px;
-    }
-    
-    .track-mile {
-      font-size: 13px;
-    }
-    
-    /* Mobile control buttons - larger text */
-    .control-btn {
-      padding: 8px 10px;
-      font-size: 13px;
-    }
-    
-    .sort-btn {
-      padding: 6px 8px;
-      font-size: 12px;
-    }
+  body.is-mobile .playlist-wrapper.mobile-expanded {
+    transform: translateX(0);
+  }
+
+  body.is-mobile .mobile-menu-close {
+    display: none !important;
+    position: static !important;
+    top: auto !important;
+    right: auto !important;
+  }
+
+  body.is-mobile .playlist-wrapper.mobile-expanded .mobile-menu-close {
+    display: flex !important;
+    position: relative !important;
+    top: auto !important;
+    right: auto !important;
+    height: 36px;
+    width: 36px;
+    align-items: center;
+    justify-content: center;
+    background: rgba(255, 255, 255, 0.5);
+    border: 1px solid #ccc;
+    border-radius: 5px;
+    flex-shrink: 0;
+    margin-left: auto;
+    z-index: auto;
+    padding: 0;
+  }
+
+  /* No scrim on mobile — panel background is sufficient */
+
+  /* Sort footer */
+  body.is-mobile .mobile-controls {
+    display: block;
+    padding: 10px 12px;
+    border-bottom: 1px solid rgba(0,0,0,0.08);
+    background: transparent;
+    flex-shrink: 0;
+  }
+
+  body.is-mobile .mobile-controls .sort-controls {
+    display: flex;
+    gap: 4px;
+    align-items: center;
+    justify-content: flex-start;
+  }
+
+  /* Map action buttons */
+  body.is-mobile .mobile-map-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    position: fixed;
+    bottom: 24px;
+    left: 12px;
+    z-index: 100;
+  }
+
+  body.is-mobile .mobile-map-btn {
+    width: 44px;
+    height: 44px;
+    background: rgba(255, 255, 255, 0.85);
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+    border: 1px solid rgba(0,0,0,0.15);
+    border-radius: 6px;
+    font-size: 11px;
+    font-weight: 600;
+    color: #333;
+    cursor: pointer;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.2);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    letter-spacing: 0.02em;
+  }
+
+  body.is-mobile .mobile-map-btn.active {
+    background-color: #5c3a2e;
+    color: white;
+    border-color: #5c3a2e;
+  }
+
+  body.is-mobile .playlist-wrapper .playlist-toggle { display: none; }
+  body.is-mobile .playlist-wrapper .mobile-controls { display: block !important; }
+  body.is-mobile .playlist-header { display: block !important; }
+  body.is-mobile .playlist-footer { display: block !important; }
+  body.is-mobile .playlist-wrapper #playlist { max-height: none; flex: 1; overflow-y: auto; margin: 0 !important; padding: 0 !important; background-color: transparent !important; }
+  body.is-mobile .playlist-wrapper .track { background-color: transparent !important; margin-bottom: 0 !important; }
+  body.is-mobile .playlist-wrapper .playlist .track:last-child { border-bottom: none; margin-bottom: 0 !important; padding-bottom: 5px !important; }
+  body.is-mobile .playlist-wrapper .track:hover { background-color: rgba(0,0,0,0.05) !important; }
+  body.is-mobile .playlist-wrapper .scroll-arrow {
+    display: none;
+    position: absolute;
+    left: -22px;
+    width: 18px;
+    font-size: 10px;
+    color: #333;
+    background: transparent;
+    padding: 2px;
+    text-align: center;
+  }
+  body.is-mobile .playlist-wrapper.mobile-expanded .scroll-arrow { display: block; }
+  body.is-mobile #scrollUp { top: 92px; }
+  body.is-mobile #scrollDown { bottom: 31px; }
+
+
+  /* Mini infoboxes — slightly more compact on mobile */
+  body.is-mobile .mini-infobox {
+    font-size: 12px;
+  }
+
+  body.is-mobile .mini-infobox {
+    font-size: 12px;
+  }
+
+  body.is-mobile .mini-infobox-pill {
+    padding: 5px 8px 5px 7px;
+  }
+
+  /* Play/pause button symbols */
+  body.is-mobile .play-pause-btn {
+    font-family: Arial, sans-serif !important;
+    font-weight: normal !important;
+  }
+
+  /* Badge max-width on mobile */
+  body.is-mobile #playing-badge .badge-title {
+    max-width: calc(100vw - 150px);
+  }
+
+  /* Ko-fi widget — pinned bottom-right always, both mobi and non-mobi variants */
+  .floatingchat-container-wrap,
+  .floatingchat-container-wrap[style],
+  .floatingchat-container-wrap-mobi,
+  .floatingchat-container-wrap-mobi[style] {
+    position: fixed !important;
+    bottom: 25px !important;
+    right: 20px !important;
+    left: auto !important;
+    transform: none !important;
+    margin: 0 !important;
+    z-index: 9999 !important;
+  }
+
+  /* Ko-fi popup iframe — same for both variants */
+  .floating-chat-kofi-popup-iframe,
+  .floating-chat-kofi-popup-iframe[style],
+  .floating-chat-kofi-popup-iframe-mobi,
+  .floating-chat-kofi-popup-iframe-mobi[style] {
+    right: 20px !important;
+    left: auto !important;
+    bottom: 80px !important;
+    transform: none !important;
+    z-index: 9999 !important;
+  }
+
+  /* Hide Ko-fi floating widget on mobile — support link is in playlist footer instead */
+  body.is-mobile .floatingchat-container-wrap-mobi,
+  body.is-mobile .floatingchat-container-wrap {
+    display: none !important;
+  }
+
+  /* Mobile notification */
+  body.is-mobile .notification { font-size: 16px; }
+
+  /* Mobile track items */
+  body.is-mobile .track { padding: 8px; }
+  body.is-mobile .track-mile { font-size: 13px; }
+  body.is-mobile .control-btn { padding: 8px 10px; font-size: 13px; }
+  body.is-mobile .sort-btn { padding: 6px 8px; font-size: 12px; }
+
+
+
+  /* ── Popup internals ── */
+  .popup-title {
+    margin: 0 0 8px 0;
+    font-size: 15px;
+    font-weight: 600;
+    padding-right: 30px;
+  }
+
+  .popup-meta {
+    font-size: 13px;
+    color: #666;
+    margin-bottom: 8px;
+  }
+
+  .popup-notes-toggle {
+    font-size: 12px;
+    color: #5c3a2e;
+    background: none;
+    border: none;
+    padding: 0;
+    cursor: pointer;
+    text-decoration: underline;
+    margin-bottom: 8px;
+    display: block;
+  }
+
+  .popup-notes-content {
+    display: none;
+    font-size: 13px;
+    color: #555;
+    margin-top: 4px;
+    margin-bottom: 8px;
+  }
+
+  .popup-notes-content.expanded {
+    display: block;
+  }
+
+  .popup-controls {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-top: 12px;
+    padding-top: 12px;
+    border-top: 1px solid #eee;
+  }
+
+  .popup-nav-btn {
+    font-size: 13px;
+    padding: 6px 10px;
+    cursor: pointer;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    background: white;
+    color: #333;
+  }
+
+  .popup-nav-btn:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+  }
+
+  .popup-playpause-btn {
+    padding: 8px 14px;
+    cursor: pointer;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    background: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 50px;
+  }
+
+  .popup-time-display {
+    font-size: 12px;
+    color: #666;
+    margin-left: auto;
+    font-family: monospace;
+  }
+
+  /* Play triangle icon (used in popup controls and badge) */
+  .play-triangle {
+    display: inline-block;
+    width: 0;
+    height: 0;
+    border-left: 8px solid #333;
+    border-top: 5px solid transparent;
+    border-bottom: 5px solid transparent;
+    vertical-align: baseline;
+    position: relative;
+    top: -1px;
+    margin-right: 6px;
+    flex-shrink: 0;
+  }
+
+  /* Larger triangle for play/pause button */
+  .play-triangle-lg {
+    width: 0;
+    height: 0;
+    border-left: 10px solid #333;
+    border-top: 7px solid transparent;
+    border-bottom: 7px solid transparent;
+  }
+
+  /* Pause bars */
+  .pause-bar {
+    width: 4px;
+    height: 14px;
+    background-color: #333;
+  }
+
+  .pause-bar + .pause-bar {
+    margin-left: 4px;
+  }
+
+  /* ── Header badge ── */
+
+  /* Cluster picker — boxes stack vertically, not absolutely positioned */
+  #cluster-picker .mini-infobox {
+    position: static;
+    box-shadow: none;
+  }
+
+  #cluster-picker {
+    filter: drop-shadow(0 2px 5px rgba(0, 0, 0, 0.2));
+  }
+
+  /* ── Minimized popup mini box (orange state) ── */
+  .minimized-box {
+    position: absolute;
+  }
+
+  /* Mobile map action buttons - hidden on desktop */
+  .mobile-map-actions {
+    display: none;
+  }
 
   /* Fullscreen styles */
   .fullscreen-active {
@@ -731,6 +1066,7 @@
     outline: none;
   }
 
+
   /* Play/Pause button styling */
   .play-pause-btn {
     font-family: helvetica, sans-serif !important;
@@ -739,31 +1075,7 @@
     appearance: none;
   }
 
-/* Mobile - make symbols less emoji-like */
-  @media (max-width: 768px) {
-    .play-pause-btn {
-      font-family: Arial, sans-serif !important;
-      font-weight: normal !important;
-    }
-  }
 
-/* Desktop - ensure right positioning is restored */
-  @media (min-width: 769px) {
-    .floatingchat-container-wrap,
-    .floatingchat-container-wrap[style] {
-      left: auto !important;
-      right: 20px !important;
-      transform: none !important;
-      bottom: 25px !important;
-    }
-    .floating-chat-kofi-popup-iframe,
-    .floating-chat-kofi-popup-iframe[style] {
-      left: auto !important;
-      right: 20px !important;
-      transform: none !important;
-      bottom: 80px !important;
-    }
-  }
   
 </style>
 </head>
@@ -788,32 +1100,41 @@
 
   <div class="playlist-wrapper" id="playlistWrapper">
     <button class="playlist-toggle" id="playlistToggle" title="Collapse playlist">◀</button>
-    <!-- Mobile close button (X) -->
-    <button class="mobile-menu-close" id="mobileMenuClose" aria-label="Close menu"></button>
-    <!-- Mobile controls - hidden on desktop, shown on mobile inside playlist -->
-    <div class="mobile-controls" style="display: none;">
-      <div class="control-row">
-        <button class="control-btn" id="resetMapBtnMobile" title="Reset view and stop playback">Reset Map</button>
-        <button class="control-btn" id="fullscreenBtnMobile" title="Fullscreen on/off" style="display: none;">Fullscreen</button>
-        <button class="control-btn" id="terrain3dBtnMobile" title="3D terrain on/off">3D Terrain</button>
-      </div>
-      <div class="sort-controls">
-        <button class="control-btn sort-btn active" id="sortNoboMobile" title="Northbound playlist">NOBO</button>
-        <button class="control-btn sort-btn" id="sortSoboMobile" title="Southbound playlist">SOBO</button>
-        <button class="control-btn sort-btn" id="sortDateMobile" title="Chronological playlist">STEREO</button>
-        <div class="random-control">
-          <span class="random-label">Random</span>
-          <div class="toggle-switch" id="randomToggleMobile" title="Random on/off">
-            <div class="toggle-slider"></div>
+    <!-- Playlist header: title + sort controls + close button -->
+    <div class="playlist-header">
+      <div class="playlist-title">a sound map of the pacific crest trail, 2023, by stereo</div>
+      <div class="mobile-controls">
+        <div class="sort-controls">
+          <button class="control-btn sort-btn active" id="sortNoboMobile" title="Northbound playlist">NOBO</button>
+          <button class="control-btn sort-btn" id="sortSoboMobile" title="Southbound playlist">SOBO</button>
+          <button class="control-btn sort-btn" id="sortDateMobile" title="Chronological playlist">STEREO</button>
+          <div class="random-control">
+            <span class="random-label">Random</span>
+            <div class="toggle-switch" id="randomToggleMobile" title="Random on/off">
+              <div class="toggle-slider"></div>
+            </div>
           </div>
+          <button class="mobile-menu-close" id="mobileMenuClose" aria-label="Close menu"></button>
         </div>
       </div>
     </div>
+    <!-- Track list -->
     <div class="scroll-arrow up" id="scrollUp" title="Scroll up">▲</div>
     <div class="playlist" id="playlist">
       <div class="loading-placeholder">loading recordings...</div>
     </div>
     <div class="scroll-arrow down" id="scrollDown" title="Scroll down">▼</div>
+    <!-- Playlist footer: support link -->
+    <div class="playlist-footer">
+      <a href="https://ko-fi.com/thmkly" target="_blank" rel="noopener noreferrer" class="support-link">support this project</a>
+    </div>
+  </div>
+
+  <!-- Mobile map action buttons - float on map, hidden on desktop -->
+  <div class="mobile-map-actions" id="mobileMapActions">
+
+    <button class="mobile-map-btn" id="terrain3dBtnMobile" title="3D terrain on/off" style="display:none;">3D</button>
+    <button class="mobile-map-btn" id="fullscreenBtnMobile" title="Fullscreen on/off" style="display: none;">⛶</button>
   </div>
 
   <!-- Desktop control panel - hidden on mobile -->
@@ -860,6 +1181,32 @@
     }
     
     function initializeApp() {
+      // Scale UI panels on large screens — gentle zoom to match Cmd++ equivalent
+      if (!isActualMobile()) {
+        const zoomDelta = CONFIG.getDefaultZoom() - 4.65;
+        const uiScale = 1 + (zoomDelta * 0.15); // ~1.1x on BenQ
+        if (uiScale > 1.01) {
+          const playlistWrapper = document.getElementById('playlistWrapper');
+          const controlPanel = document.querySelector('.control-panel');
+          if (playlistWrapper) playlistWrapper.style.zoom = uiScale;
+          if (controlPanel) controlPanel.style.zoom = uiScale;
+        }
+      }
+
+      // Add custom attribution link
+      setTimeout(() => {
+        const attrib = document.querySelector('.mapboxgl-ctrl-attrib-inner');
+        if (attrib) {
+          const link = document.createElement('a');
+          link.href = 'https://thomasmkelly.com';
+          link.target = '_blank';
+          link.rel = 'noopener noreferrer';
+          link.textContent = '© Thomas Kelly';
+          link.style.cssText = 'margin-right: 4px;';
+          attrib.insertBefore(link, attrib.firstChild);
+        }
+      }, 1000);
+
       // Initialize controllers after DOM is ready
       audioController = new AudioController();
       atmosphereController = new AtmosphereController();

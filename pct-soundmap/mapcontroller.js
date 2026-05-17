@@ -4,6 +4,8 @@ class MapController {
        this.audioData = [];
        this.originalAudioData = [];
        this.currentPopup = null;
+       this.previewPopup = null;
+       this.previewPopupTrackIndex = -1;
        this.minimizedPopup = null; // Store minimized orange mini box (State 2 for non-tight clusters)
        this.userPreferredPopupState = 'full'; // States: 'mini' (State 2), 'full' (State 3), 'full-with-notes' (State 4) - default State 3
        this.isPositioning = false;
@@ -47,6 +49,42 @@ class MapController {
         return parseFloat(mileStr);
       }
 
+      // Attaches real-time play/pause icon swapping to an icon element.
+      // iconEl: the container div that holds the icon (triangle or bars)
+      // audio: the HTMLAudioElement to listen to
+      // isOrange: true for orange play icon color (minimized popup), false for #333
+      // Returns a cleanup function to remove listeners.
+      _attachPlayPauseIcon(iconEl, audio, isOrange = false) {
+        const color = isOrange ? '#ff6b35' : '#333';
+
+        const renderIcon = () => {
+          // Guard: don't update if element is no longer in DOM
+          if (!iconEl.isConnected) return;
+          iconEl.innerHTML = '';
+          if (audio.paused) {
+            iconEl.style.cssText = `display:block;width:0;height:0;border-left:8px solid ${color};border-top:5px solid transparent;border-bottom:5px solid transparent;flex-shrink:0;cursor:pointer;`;
+          } else {
+            iconEl.style.cssText = 'display:inline-flex;align-items:center;gap:2px;flex-shrink:0;cursor:pointer;width:auto;height:auto;border:none;';
+            const b1 = document.createElement('div');
+            b1.style.cssText = `width:3px;height:10px;background:${color};border-radius:1px;`;
+            const b2 = document.createElement('div');
+            b2.style.cssText = `width:3px;height:10px;background:${color};border-radius:1px;`;
+            iconEl.appendChild(b1);
+            iconEl.appendChild(b2);
+          }
+        };
+
+        audio.addEventListener('play', renderIcon);
+        audio.addEventListener('pause', renderIcon);
+
+        setTimeout(renderIcon, 50);
+
+        return () => {
+          audio.removeEventListener('play', renderIcon);
+          audio.removeEventListener('pause', renderIcon);
+        };
+      }
+
       setupMap() {
         mapboxgl.accessToken = CONFIG.MAPBOX_TOKEN;
         
@@ -59,7 +97,8 @@ class MapController {
           touchZoomRotate: true,
           touchPitch: false, // Keep pitch locked on mobile
           // Initially disable drag rotate (will be enabled in 3D mode on desktop)
-          dragRotate: false
+          dragRotate: false,
+          respectPrefersReducedMotion: false
         });
 
         // Disable drag rotation initially
@@ -95,12 +134,17 @@ class MapController {
 
 
       setupMapLayers() {
+        // Scale factor for cluster visuals — keeps circles and grouping consistent across screen sizes
+        // Mobile uses a fixed scale of 1 (MBA reference) regardless of zoom
+        const _clusterScale = uiController.isMobile ? 1 : Math.pow(2, CONFIG.getDefaultZoom() - 4.65);
+        const _r = (n) => Math.round(n * _clusterScale);
+
         map.addSource('audio', {
           type: 'geojson',
           data: { type: 'FeatureCollection', features: [] },
           cluster: true,
-          clusterMaxZoom: 14,
-          clusterRadius: 45
+          clusterMaxZoom: 11,
+          clusterRadius: _r(45)
         });
 
         map.addLayer({
@@ -117,9 +161,9 @@ class MapController {
             'circle-radius': [
               'step',
               ['get', 'point_count'],
-              18, 3, 22, 5, 26, 6, 30, 7, 34, 8, 36,
-              10, 38, 15, 40, 18, 42, 22, 44, 25, 46,
-              30, 48, 35, 50, 40, 52, 50, 54, 100, 56
+              _r(18), 3, _r(22), 5, _r(26), 6, _r(30), 7, _r(34), 8, _r(36),
+              10, _r(38), 15, _r(40), 18, _r(42), 22, _r(44), 25, _r(46),
+              30, _r(48), 35, _r(50), 40, _r(52), 50, _r(54), 100, _r(56)
             ]
           }
         });
@@ -132,7 +176,7 @@ class MapController {
           layout: {
             'text-field': '{point_count_abbreviated}',
             'text-font': ['Open Sans Semibold', 'Arial Unicode MS Bold'],
-            'text-size': 12
+            'text-size': Math.round(12 * (1 + ((_clusterScale - 1) * 0.15)))
           }
         });
 
@@ -185,6 +229,38 @@ class MapController {
             
             // If tight cluster, show picker instead of breaking
             if (isTightCluster) {
+              // Picker is 2D only — in 3D mode, break cluster normally
+              if (uiController.is3DEnabled) {
+                map.getSource('audio').getClusterExpansionZoom(clusterId, (err, zoom) => {
+                  if (err) return;
+                  map.flyTo({ center: firstCoords, zoom: zoom + 1 });
+                });
+                return;
+              }
+              // Block if a track from this cluster is currently in full popup
+              if (this.currentPopup) {
+                const popupTrackIndex = parseInt(this.currentPopup._container?.dataset?.trackIndex);
+                const clusterIndices = leaves.map(leaf => 
+                  this.audioData.findIndex(t => t.originalIndex === parseInt(leaf.properties.originalIndex))
+                );
+                if (clusterIndices.includes(popupTrackIndex)) return;
+              }
+
+              // Toggle: if picker already open for THIS cluster, close it
+              if (this.clusterPicker && this.clusterPickerTracks) {
+                const theseIndices = leaves.map(leaf =>
+                  this.audioData.findIndex(t => t.originalIndex === parseInt(leaf.properties.originalIndex))
+                );
+                const isSameCluster = theseIndices.every(i => this.clusterPickerTracks.includes(i)) &&
+                  theseIndices.length === this.clusterPickerTracks.length;
+                if (isSameCluster) {
+                  if (this.clusterPicker._moveHandler) map.off('move', this.clusterPicker._moveHandler);
+                  this.clusterPicker.remove();
+                  this.clusterPicker = null;
+                  this.clusterPickerTracks = null;
+                  return;
+                }
+              }
               this.showClusterPicker(e.point, leaves, audioController.currentIndex);
               return;
             }
@@ -193,6 +269,12 @@ class MapController {
             map.getSource('audio').getClusterExpansionZoom(clusterId, (err, zoom) => {
               if (err) return;
               
+              // Cancel any in-flight playAudio setTimeout to prevent stale showMiniInfoBoxes
+              if (this.animationTimeout) {
+                clearTimeout(this.animationTimeout);
+                this.animationTimeout = null;
+              }
+
               const bounds = new mapboxgl.LngLatBounds();
               leaves.forEach(leaf => bounds.extend(leaf.geometry.coordinates));
               
@@ -234,6 +316,11 @@ class MapController {
           if (this.currentPopup && this.currentPopup.updatePosition) {
             this.currentPopup.updatePosition();
           }
+
+          // Update preview popup position if it exists
+          if (this.previewPopup && this.previewPopup.updatePosition) {
+            this.previewPopup.updatePosition();
+          }
           
           // Update minimized popup position if it exists
           if (this.minimizedPopup && this.minimizedPopup._updatePosition) {
@@ -261,44 +348,28 @@ class MapController {
         });
 
         map.on('moveend', () => {
-          // Small delay to ensure points are fully rendered after cluster breaks
-          setTimeout(() => {
-            if (this.isPositioning) return; // Skip during playback positioning
-            
-            const visiblePoints = map.queryRenderedFeatures({ layers: ['unclustered-point'] });
-            const currentPointCount = visiblePoints.length;
-            
-            // Close picker only if zoomed out so far that its points are now clustered
-            if (this.clusterPicker && this.clusterPickerTracks) {
-              const allPickerPointsHidden = this.clusterPickerTracks.every(trackIndex => {
-                const track = this.audioData[trackIndex];
-                if (!track) return true;
-                return !visiblePoints.some(p => parseInt(p.properties.originalIndex) === track.originalIndex);
-              });
-              
-              if (allPickerPointsHidden) {
-                if (this.clusterPicker._moveHandler) {
-                  map.off('move', this.clusterPicker._moveHandler);
-                }
-                this.clusterPicker.remove();
-                this.clusterPicker = null;
-                this.clusterPickerTracks = null;
-              }
-            }
-            
-            const existingBoxCount = uiController.miniInfoBoxes.length;
-            
-            if (currentPointCount === 0) {
-              uiController.clearMiniInfoBoxes();
-            } else if (currentPointCount >= 50) {
-              uiController.clearMiniInfoBoxes();
-            } else if (currentPointCount !== existingBoxCount) {
-              uiController.clearMiniInfoBoxes();
-              uiController.showMiniInfoBoxes(null, this.audioData);
-            } else {
-              uiController.updateMiniInfoBoxPositions();
-            }
-          }, 150); // Increased delay for rendering
+          // On moveend, just update positions — don't query features yet
+          // State decisions happen in idle when map is truly stable
+          if (this.isPositioning) return;
+          uiController.updateMiniInfoBoxPositions();
+          if (this.currentPopup?.updatePosition) this.currentPopup.updatePosition();
+          if (this.previewPopup?.updatePosition) this.previewPopup.updatePosition();
+          if (this.minimizedPopup?._updatePosition) this.minimizedPopup._updatePosition();
+          if (this.clusterPicker?._updatePosition) this.clusterPicker._updatePosition();
+          this.updateBadgeVisibility();
+        });
+
+        // Track when user interaction ends (not starts) for accurate settling detection
+        map.on('mousedown', () => { this._interactionActive = true; });
+        map.on('touchstart', () => { this._interactionActive = true; });
+        map.on('mouseup', () => { this._interactionActive = false; });
+        map.on('touchend', () => { this._interactionActive = false; });
+        map.on('wheel', () => { this._interactionActive = false; });
+
+        map.on('idle', () => {
+          if (this.isPositioning) return;
+          if (this._interactionActive) return;
+          this.updateMapUI();
         });
 
         document.addEventListener('fullscreenchange', () => {
@@ -361,7 +432,6 @@ class MapController {
                   const firstItem = data[0];
                   const hasRequiredFields = firstItem.lat && firstItem.lng && firstItem.audioUrl;
                   if (!hasRequiredFields) {
-                    console.warn('Data missing required fields');
                   }
                 }
                 
@@ -387,17 +457,14 @@ class MapController {
                 }, 100);
                 
               } catch (parseError) {
-                console.error('JSON Parse Error:', parseError);
                 throw new Error(`Invalid JSON response: ${parseError.message}`);
               }
             })
             .catch(e => {
-              console.error('Load Error:', e);
               const errorMsg = e.message || 'Unknown error occurred';
               
               // Retry logic for intermittent failures
               if (retryCount < 3) {
-                console.log(`Retrying... attempt ${retryCount + 1} of 3`);
                 hideNotification();
                 setTimeout(() => {
                   showNotification(`Connection issue, retrying... (${retryCount + 1}/3)`);
@@ -563,6 +630,16 @@ class MapController {
           const displayMile = this.getDisplayMile(track);
           const mile = displayMile !== null && displayMile.toString().trim().toLowerCase() !== 'n/a' ? `mi.${displayMile}` : '';
           trackMile.textContent = mile;
+
+          // Mile marker click — fly to location without triggering playback
+          if (mile) {
+            trackMile.title = 'Fly to location';
+            trackMile.addEventListener('click', (e) => {
+              e.stopPropagation();
+              const coords = [parseFloat(track.lng), parseFloat(track.lat)];
+              this.positionMapForTrack(track, index);
+            });
+          }
           
           div.appendChild(trackInfo);
           div.appendChild(trackMile);
@@ -626,10 +703,9 @@ class MapController {
           }
         }
 
-     playAudio(index, fromAutoPlay = false, fromMap = false) {
+     playAudio(index, fromAutoPlay = false, fromMap = false, fromMiniPill = false) {
        const track = this.audioData[index];
        if (!track) {
-         console.error('No track found at index:', index);
          return;
        }
 
@@ -644,18 +720,75 @@ class MapController {
         this.moveTimeout = null;
       }
       
+      // Stop any in-progress map animation only if we were mid-flyTo
+      // On iOS Safari, unconditional map.stop() can prevent subsequent flyTo from firing
+      if (this.isPositioning) {
+        map.stop();
+      }
+
       // Force reset positioning flag to allow new movement
       this.isPositioning = false;
-      
-      // Stop any in-progress map animation
-      map.stop();
 
-        // Use user's preferred popup state (defaults to 'full' on first play)
-        const shouldMinimize = this.userPreferredPopupState === 'mini';
 
-        // Clean up any minimized popup
+        // If navigating to a track that was in a picker but picker is no longer active,
+        // treat as a fresh play — show full popup regardless of userPreferredPopupState
+        const trackWasInClosedPicker = !this.clusterPicker && 
+          this.clusterPickerTracks && 
+          this.clusterPickerTracks.includes(index);
+
+        const shouldMinimize = fromMiniPill || this.userPreferredPopupState === 'mini';
+
+        // Demote any existing minimized popup back to a regular white mini box
         if (this.minimizedPopup) {
-          this.minimizedPopup.remove();
+          const oldMin = this.minimizedPopup;
+          // Clean up icon listener and move handler
+          if (oldMin._cleanupIcon) { oldMin._cleanupIcon(); oldMin._cleanupIcon = null; }
+          if (oldMin._updatePosition) { map.off('move', oldMin._updatePosition); oldMin._updatePosition = null; }
+          // Strip orange state
+          oldMin.classList.remove('minimized-popup');
+          // Reset pill to static play icon and rewire click to play that track
+          const oldTrackIndex = parseInt(oldMin.dataset.trackIndex);
+          const oldTrack = this.audioData[oldTrackIndex];
+          const oldPill = oldMin.querySelector('.mini-infobox-pill');
+          if (oldPill && oldTrack) {
+            const newPill = oldPill.cloneNode(true);
+            oldPill.parentNode.replaceChild(newPill, oldPill);
+            const pillIcon = newPill.querySelector('.play-icon');
+            if (pillIcon) { pillIcon.innerHTML = ''; pillIcon.style.cssText = ''; pillIcon.className = 'play-icon'; }
+            newPill.addEventListener('click', (e) => {
+              e.stopPropagation();
+              mapController.playAudio(oldTrackIndex, false, true, true);
+            });
+          }
+          // Rewire chevron to expand
+          const oldChevron = oldMin.querySelector('.mini-infobox-chevron');
+          if (oldChevron && oldTrack) {
+            const newChevron = oldChevron.cloneNode(true);
+            oldChevron.parentNode.replaceChild(newChevron, oldChevron);
+            newChevron.addEventListener('click', (e) => {
+              e.stopPropagation();
+              const coords = [parseFloat(oldTrack.lng), parseFloat(oldTrack.lat)];
+              oldMin.remove();
+              uiController.miniInfoBoxes = uiController.miniInfoBoxes.filter(b => b !== oldMin);
+              mapController.showPopup(coords, oldTrack, audioController.currentAudio, oldTrackIndex, false, true);
+            });
+          }
+          // Reattach move handler using index-order slot
+          const oldCoords = oldTrack ? [parseFloat(oldTrack.lng), parseFloat(oldTrack.lat)] : null;
+          if (oldCoords) {
+            const moveHandler = () => {
+              const newPx = map.project(oldCoords);
+              const bh = oldMin.offsetHeight || 32;
+              const slot = uiController.getStackSlot(oldTrackIndex, mapController.audioData);
+              oldMin.style.left = `${newPx.x + 10}px`;
+              oldMin.style.top  = `${newPx.y - (bh / 2) + (slot * (bh + 3))}px`;
+            };
+            map.on('move', moveHandler);
+            oldMin._updatePosition = moveHandler;
+          }
+          oldMin._manuallyCreated = false;
+          // Hand back to miniInfoBoxes so it's managed normally
+          uiController.miniInfoBoxes.push(oldMin);
           this.minimizedPopup = null;
         }
 
@@ -670,9 +803,9 @@ class MapController {
               const trackRect = trackElement.getBoundingClientRect();
               const playlistRect = playlist.getBoundingClientRect();
               const isVisible = trackRect.top >= playlistRect.top && trackRect.bottom <= playlistRect.bottom;
-              this.updateActiveTrack(index, !isVisible); // Only scroll if not visible
+              this.updateActiveTrack(index, !isVisible, audio); // Only scroll if not visible
             } else {
-              this.updateActiveTrack(index, true); // Scroll if can't determine visibility
+              this.updateActiveTrack(index, true, audio); // Scroll if can't determine visibility
             }
           } else {
             // For manual clicks: scroll if from map click AND track not visible
@@ -689,80 +822,121 @@ class MapController {
                 shouldScroll = true;
               }
             }
-            this.updateActiveTrack(index, shouldScroll);
+            this.updateActiveTrack(index, shouldScroll, audio);
           }
         }, 50);  // 50ms delay - just enough for DOM to settle
 
         // Save old track index BEFORE audioController.play changes it
         const oldTrackIndex = audioController.currentIndex;
+        // Snapshot picker tracks before async operations — updateMapUI may clear them during flyTo
+        // Also check picker DOM directly in case clusterPickerTracks was already cleared
+        const pickerTracksSnapshot = this.clusterPickerTracks ? [...this.clusterPickerTracks] :
+          this.clusterPicker ? Array.from(this.clusterPicker.querySelectorAll('[data-track-index]')).map(el => parseInt(el.dataset.trackIndex)) : null;
 
-        const audio = audioController.play(index, this.audioData);
+        // Fade out on manual navigation (not autoplay, not mini pill, not same track)
+        const withFade = !fromAutoPlay && !fromMiniPill && audioController.currentIndex !== index;
+        const audio = audioController.play(index, this.audioData, withFade);
 
           // Always update badge when audio plays (visibility is controlled inside updateHeaderBadge)
-          this.updateHeaderBadge(track);
+          this.updateHeaderBadge(track, audio);
         
-        // If currently in State 3/4 (popup showing), collapse to State 1 (mini box) before flyTo
-        // This gives clean visual transition without clearing OTHER mini boxes
+        // If currently in State 3/4 (popup showing), collapse before flyTo
+        // Let updateMapUI handle creating the mini box naturally
         if (this.currentPopup && oldTrackIndex >= 0) {
-          const currentTrack = this.audioData[oldTrackIndex];
-          if (currentTrack) {
-            // Collapse current popup to mini box
+          this.currentPopup.remove();
+          this.currentPopup = null;
+          // If leaving a picker track, restore any hidden picker boxes
+          if (this.clusterPicker && this.clusterPickerTracks && this.clusterPickerTracks.includes(oldTrackIndex)) {
+            this.clusterPicker.querySelectorAll('[data-track-index]').forEach(box => {
+              box.style.display = '';
+            });
+          }
+        }
+        
+        // If playing a track within the current cluster picker, skip flyTo and keep picker
+        // UNLESS user was in full popup state — state should persist through picker tracks
+        const isInCurrentPicker = this.clusterPicker && 
+          this.clusterPickerTracks && 
+          this.clusterPickerTracks.includes(index) &&
+          this.userPreferredPopupState !== 'full';
+
+        if (isInCurrentPicker) {
+          // Close any open popup — picker and popup can't coexist
+          if (this.currentPopup) {
             this.currentPopup.remove();
             this.currentPopup = null;
-            
-            // Create mini box for the track we're leaving (OLD track)
-            const coords = [parseFloat(currentTrack.lng), parseFloat(currentTrack.lat)];
-            const pixelCoords = map.project(coords);
-            
-            const miniBox = document.createElement('div');
-            miniBox.className = 'mini-infobox';
-            miniBox.dataset.trackIndex = oldTrackIndex; // Use OLD index
-            
-            const playIcon = document.createElement('div');
-            playIcon.className = 'play-icon';
-            // NOT orange - this is no longer the playing track
-            
-            const title = document.createElement('span');
-            title.className = 'mini-infobox-title';
-            title.textContent = currentTrack.name.replace(/^[^\s]+\s+-\s+/, '');
-            
-            miniBox.appendChild(playIcon);
-            miniBox.appendChild(title);
-            
-            miniBox.style.position = 'absolute';
-            miniBox.style.left = `${pixelCoords.x + 10}px`;
-            miniBox.style.top = `${pixelCoords.y - 20}px`;
-            
-            map.getContainer().appendChild(miniBox);
-            
-            // Remove any existing mini box for this track before adding new one
-            const stale = uiController.miniInfoBoxes.find(b => parseInt(b.dataset.trackIndex) === oldTrackIndex);
-            if (stale) {
-              stale.remove();
-              uiController.miniInfoBoxes = uiController.miniInfoBoxes.filter(b => b !== stale);
-            }
+          }
+          // Update isPlaying state and orange/white styling on all picker boxes
+          this.clusterPicker.querySelectorAll('[data-track-index]').forEach(box => {
+            const boxIndex = parseInt(box.dataset.trackIndex);
+            const isPlaying = boxIndex === index;
+            box.dataset.isPlaying = isPlaying ? 'true' : 'false';
+            box.classList.toggle('minimized-popup', isPlaying);
 
-            // Add to mini boxes array so it gets updated during map movement
-            uiController.miniInfoBoxes.push(miniBox);
+            // Rewire pill icon for newly active box
+            const pillIcon = box.querySelector('.play-icon');
+            if (pillIcon) {
+              if (isPlaying && audio) {
+                pillIcon.innerHTML = '';
+                pillIcon.style.cssText = '';
+                if (box._cleanupIcon) { box._cleanupIcon(); box._cleanupIcon = null; }
+                const cleanup = mapController._attachPlayPauseIcon(pillIcon, audio, false);
+                box._cleanupIcon = cleanup;
+              } else {
+                // Reset to static play triangle for non-playing boxes
+                if (box._cleanupIcon) { box._cleanupIcon(); box._cleanupIcon = null; }
+                pillIcon.innerHTML = '';
+                pillIcon.style.cssText = '';
+                pillIcon.className = 'play-icon';
+              }
+            }
+          });
+
+          // Create mini box for the old track if there was one playing
+          if (oldTrackIndex >= 0 && oldTrackIndex !== index) {
+            const oldTrack = this.audioData[oldTrackIndex];
+            const oldTrackInPicker = this.clusterPickerTracks && this.clusterPickerTracks.includes(oldTrackIndex);
+            // Let updateMapUI handle creating mini box for old track naturally
           }
+
+          this.updateHeaderBadge(track, audio);
+          setTimeout(() => { this.updateActiveTrack(index, false, audio); }, 50);
+          return;
         }
-        
-        // Clean up picker if it exists
+
+        // Clean up picker only if explicitly playing from outside — but keep it visible
+        // The picker stays until the user explicitly dismisses it (toggle or expand)
         if (this.clusterPicker) {
-          if (this.clusterPicker._moveHandler) {
-            map.off('move', this.clusterPicker._moveHandler);
-          }
-          this.clusterPicker.remove();
-          this.clusterPicker = null;
-          this.clusterPickerTracks = null;
+          // Update picker highlight to show nothing playing within it
+          this.clusterPicker.querySelectorAll('[data-track-index]').forEach(box => {
+            box.dataset.isPlaying = 'false';
+            box.classList.remove('minimized-popup');
+            // Reset pill icon to static play triangle
+            const pillIcon = box.querySelector('.play-icon');
+            if (pillIcon) {
+              if (box._cleanupIcon) { box._cleanupIcon(); box._cleanupIcon = null; }
+              pillIcon.innerHTML = '';
+              pillIcon.style.cssText = '';
+              pillIcon.className = 'play-icon';
+            }
+          });
         }
         
+        // In 3D mode always flyTo — camera pitch makes 2D visibility checks unreliable
+        // In 2D mode skip flyTo only if point is comfortably visible at a reasonable zoom
+        const is3DMode = uiController.is3DEnabled;
+        const pointComfortablyVisible = !is3DMode &&
+          this.isPointComfortablyVisible(track) && 
+          map.getZoom() >= 12;
+
           // Add delay before positioning to prevent conflicts
         this.animationTimeout = setTimeout(() => {
-          this.positionMapForTrack(track, index, fromAutoPlay);
+          if (!pointComfortablyVisible) {
+            this.positionMapForTrack(track, index, fromAutoPlay);
+          }
           
-          // Get the flyto duration and delay popup creation until after it completes
-          const duration = this.getMovementDuration(track);
+          // Get the flyto duration (0 if no flyto needed)
+          const duration = pointComfortablyVisible ? 0 : this.getMovementDuration(track);
           
           // Apply atmospheric lighting DURING flyTo (ONLY in 3D mode)
           // Start halfway through flyTo for smooth, gradual transition
@@ -783,159 +957,234 @@ class MapController {
           setTimeout(() => {
             const coords = [parseFloat(track.lng), parseFloat(track.lat)];
             
-            // Check if track is in existing picker
-            const isInPicker = this.clusterPickerTracks && this.clusterPickerTracks.includes(index);
+            // Check if track is in existing picker or known picker tracks (use snapshot to survive updateMapUI)
+            const isInPicker = pickerTracksSnapshot && pickerTracksSnapshot.includes(index) &&
+              this.userPreferredPopupState !== 'full';
             
             if (isInPicker) {
-              // Track is in picker - just update highlight, don't create new UI
+              // Close any open popup — picker and popup can't coexist
+              if (this.currentPopup) {
+                this.currentPopup.remove();
+                this.currentPopup = null;
+              }
+              // Track is in active picker - just update highlight, don't create new UI
               this.updateClusterPickerHighlight(index);
               // Don't clear mini boxes - they should stay visible
               this.updateBadgeVisibility();
             } else {
-              // Remove the mini box for THIS track before creating popup (prevents duplicates)
-              const existingMiniBox = uiController.miniInfoBoxes.find(box => 
+              // Find existing mini box for this track
+              const existingMiniBox = uiController.miniInfoBoxes.find(box =>
                 parseInt(box.dataset.trackIndex) === index
               );
-              if (existingMiniBox) {
-                existingMiniBox.remove();
+
+              if (shouldMinimize && existingMiniBox) {
+                // Update in place — no refresh needed, everything is already correct
                 uiController.miniInfoBoxes = uiController.miniInfoBoxes.filter(box => box !== existingMiniBox);
-              }
-              
-              // Check if in tight cluster (any size)
-              const nearbyTrackIndices = this.getTracksInTightCluster(index);
-              
-              if (nearbyTrackIndices.length > 0 && shouldMinimize) {
-                // State 2: Show picker with all tracks in tight cluster
-                const leaves = [
-                  { 
-                    geometry: { coordinates: coords },
-                    properties: { originalIndex: track.originalIndex }
-                  },
-                  ...nearbyTrackIndices.map(nearbyIndex => {
-                    const nearbyTrack = this.audioData[nearbyIndex];
-                    return {
-                      geometry: { coordinates: [parseFloat(nearbyTrack.lng), parseFloat(nearbyTrack.lat)] },
-                      properties: { originalIndex: nearbyTrack.originalIndex }
-                    };
-                  })
-                ];
-                this.showClusterPicker({ x: 0, y: 0 }, leaves, index);
-                uiController.showMiniInfoBoxes(null, this.audioData);
+                this.minimizePopup(track, index, existingMiniBox);
                 this.updateBadgeVisibility();
               } else {
-                // State 3/4 or no tight cluster: Show normal popup
+                // Remove existing mini box before creating full popup
+                if (existingMiniBox) {
+                  existingMiniBox.remove();
+                  uiController.miniInfoBoxes = uiController.miniInfoBoxes.filter(box => box !== existingMiniBox);
+                }
+                // Show normal popup
                 this.showPopup(coords, track, audio, index, shouldMinimize);
-                uiController.showMiniInfoBoxes(null, this.audioData);
+                this.refreshMiniBoxes();
                 this.updateBadgeVisibility();
               }
             }
           }, duration + 200); // 200ms additional delay after flyto completes
-        }, 100);
+        }, uiController.isMobile ? 300 : 100);
       }
 
-        minimizePopup(track, index) {
+        minimizePopup(track, index, existingBox = null) {
           // User explicitly minimized - save this preference
           this.userPreferredPopupState = 'mini';
-          
-          // Just remove the popup - audio lives in document.body and keeps playing
+
+          const wasPreview = this.currentPopup?._preview === true;
+          const clusterLeaves = this.currentPopup?._clusterLeaves || null;
+
+          // Remove the popup
           if (this.currentPopup) {
             this.currentPopup.remove();
             this.currentPopup = null;
           }
-          
-          // Hide the audio element (it's still playing in the background)
+
+          // Hide the audio element
           if (audioController.currentAudio) {
             audioController.currentAudio.style.display = 'none';
           }
-          
-          const coords = [parseFloat(track.lng), parseFloat(track.lat)];
-          
-          // Check if in tight cluster - if so, show picker instead of mini box
-          const nearbyTrackIndices = this.getTracksInTightCluster(index);
-          
-          if (nearbyTrackIndices.length > 0) {
-            // Show picker for tight cluster with all nearby tracks
-            const leaves = [
-              { 
-                geometry: { coordinates: coords },
-                properties: { originalIndex: track.originalIndex }
-              },
-              ...nearbyTrackIndices.map(nearbyIndex => {
-                const nearbyTrack = this.audioData[nearbyIndex];
-                return {
-                  geometry: { coordinates: [parseFloat(nearbyTrack.lng), parseFloat(nearbyTrack.lat)] },
-                  properties: { originalIndex: nearbyTrack.originalIndex }
-                };
-              })
-            ];
-            this.showClusterPicker({ x: 0, y: 0 }, leaves, index);
-            uiController.showMiniInfoBoxes(null, this.audioData);
-            return; // Don't create regular mini box
+
+          // If picker is open and this track's box was hidden, restore it
+          if (this.clusterPicker && this.clusterPickerTracks && this.clusterPickerTracks.includes(index)) {
+            this.clusterPicker.querySelectorAll('[data-track-index]').forEach(box => {
+              box.style.display = '';
+            });
+            this.updateClusterPickerHighlight(index);
+            this.refreshMiniBoxes();
+            return;
           }
-          
-          // Not in tight cluster - create regular mini box
+
+          // If popup came from a cluster picker, always restore the picker
+          // (covers both playing and preview cases)
+          if (clusterLeaves) {
+            this.showClusterPicker({ x: 0, y: 0 }, clusterLeaves, audioController.currentIndex);
+            this.refreshMiniBoxes();
+            return;
+          }
+
+          // Preview popup (non-cluster): just redraw mini boxes naturally
+          if (wasPreview) {
+            this.refreshMiniBoxes();
+            return;
+          }
+
+          const coords = [parseFloat(track.lng), parseFloat(track.lat)];
+          const audio = audioController.currentAudio;
+          const isActiveTrack = audioController.currentIndex === index;
+
+          // If an existing box was passed in, update it in place — no position change
+          if (existingBox) {
+            // Clean up any previous icon listener
+            if (existingBox._cleanupIcon) { existingBox._cleanupIcon(); existingBox._cleanupIcon = null; }
+
+            // Apply orange state
+            if (isActiveTrack) existingBox.classList.add('minimized-popup');
+
+            // Rewire pill click to play/pause
+            const pill = existingBox.querySelector('.mini-infobox-pill');
+            if (pill) {
+              const newPill = pill.cloneNode(true); // Remove old listeners
+              pill.parentNode.replaceChild(newPill, pill);
+              newPill.addEventListener('click', (e) => {
+                e.stopPropagation();
+                if (audio) audio.paused ? audio.play() : audio.pause();
+              });
+              if (audio) {
+                const pillIcon = newPill.querySelector('.play-icon');
+                if (pillIcon) {
+                  const cleanup = mapController._attachPlayPauseIcon(pillIcon, audio, false);
+                  existingBox._cleanupIcon = cleanup;
+                }
+                const updatePillTitle = () => { newPill.title = audio.paused ? 'Play sound' : 'Pause sound'; };
+                updatePillTitle();
+                audio.addEventListener('play', updatePillTitle);
+                audio.addEventListener('pause', updatePillTitle);
+              }
+            }
+
+            // Rewire chevron click to expand
+            const chevron = existingBox.querySelector('.mini-infobox-chevron');
+            if (chevron) {
+              const newChevron = chevron.cloneNode(true);
+              chevron.parentNode.replaceChild(newChevron, chevron);
+              newChevron.addEventListener('click', (e) => {
+                e.stopPropagation();
+                if (existingBox._cleanupIcon) existingBox._cleanupIcon();
+                if (existingBox._updatePosition) map.off('move', existingBox._updatePosition);
+                existingBox.remove();
+                this.minimizedPopup = null;
+                this.userPreferredPopupState = 'full';
+                this.showPopup(coords, track, audioController.currentAudio, index);
+                setTimeout(() => {
+                  this.updateHeaderBadge(audioController.currentIndex >= 0 ? this.audioData[audioController.currentIndex] : null);
+                }, 50);
+              });
+            }
+
+            existingBox._manuallyCreated = true;
+            existingBox._stackOffset = uiController.getStackSlot(index, this.audioData);
+            this.minimizedPopup = existingBox;
+
+            // Attach move handler using index-order slot — always stable
+            if (existingBox._updatePosition) map.off('move', existingBox._updatePosition);
+            const updatePosition = () => {
+              const newPx = map.project(coords);
+              const bh = existingBox.offsetHeight || 32;
+              const slot = uiController.getStackSlot(index, mapController.audioData);
+              existingBox.style.left = `${newPx.x + 10}px`;
+              existingBox.style.top  = `${newPx.y - (bh / 2) + (slot * (bh + 3))}px`;
+            };
+            map.on('move', updatePosition);
+            existingBox._updatePosition = updatePosition;
+
+            this.updateHeaderBadge(track);
+            return;
+          }
+
+          // No existing box — create a new one (e.g. minimize button clicked on full popup)
           const pixelCoords = map.project(coords);
-          
-          const miniBox = document.createElement('div');
-          miniBox.className = 'mini-infobox minimized-popup';
-          miniBox.dataset.trackIndex = index;
-          miniBox.style.position = 'absolute';
-          
-          const playIcon = document.createElement('div');
-          playIcon.className = 'play-icon';
-          playIcon.style.borderLeftColor = '#ff6b35';
-          
-          const title = document.createElement('span');
-          title.className = 'mini-infobox-title';
-          title.textContent = track.name.replace(/^[^\s]+\s+-\s+/, '');
-          
-            miniBox.addEventListener('click', (e) => {
-              e.stopPropagation();
+
+          const miniBox = uiController._createMiniInfoBox(track, index, {
+            onPillClick: () => {
+              if (audio) audio.paused ? audio.play() : audio.pause();
+            },
+            onBodyClick: () => {
+              if (miniBox._cleanupIcon) miniBox._cleanupIcon();
+              if (miniBox._updatePosition) map.off('move', miniBox._updatePosition);
               miniBox.remove();
               this.minimizedPopup = null;
-              
-              // User explicitly expanded - save this preference
               this.userPreferredPopupState = 'full';
-              
-              // Restore popup with the audio from audioController
               this.showPopup(coords, track, audioController.currentAudio, index);
-              
-              // Update badge AFTER popup is shown
               setTimeout(() => {
                 this.updateHeaderBadge(audioController.currentIndex >= 0 ? this.audioData[audioController.currentIndex] : null);
               }, 50);
-            });
-          
-          miniBox.appendChild(playIcon);
-          miniBox.appendChild(title);
-          
-          // Position the mini box
+            },
+            isPlaying: isActiveTrack,
+            audio: isActiveTrack ? audio : null
+          });
+
+          // Only apply orange state if this is the active track
+          if (isActiveTrack) {
+            miniBox.classList.add('minimized-popup');
+          }
+
+          // Dynamic Play/Pause tooltip on orange box pill
+          if (audio) {
+            const pill = miniBox.querySelector('.mini-infobox-pill');
+            if (pill) {
+              const updatePillTitle = () => { pill.title = audio.paused ? 'Play sound' : 'Pause sound'; };
+              updatePillTitle();
+              audio.addEventListener('play', updatePillTitle);
+              audio.addEventListener('pause', updatePillTitle);
+            }
+          }
+
+          miniBox.style.position = 'absolute';
           miniBox.style.left = `${pixelCoords.x + 10}px`;
-          miniBox.style.top = `${pixelCoords.y - 20}px`;
-          
-          document.body.appendChild(miniBox); // Append to body, not map container
-          
+          miniBox.style.top  = `${pixelCoords.y - 20}px`;
+
+          document.body.appendChild(miniBox);
+
+          // Slot is determined by track index order — always stable
+          const boxHeight = miniBox.offsetHeight || 32;
+          const stackOffset = uiController.getStackSlot(index, this.audioData);
+          miniBox.style.top = `${pixelCoords.y - (boxHeight / 2) + (stackOffset * (boxHeight + 3))}px`;
+          miniBox._manuallyCreated = true;
+          miniBox._stackOffset = stackOffset;
           this.minimizedPopup = miniBox;
-          
-          // Update position when map moves
+
+          // Update position when map moves — use index-order slot
           const updatePosition = () => {
-            const newCoords = map.project(coords);
-            miniBox.style.left = `${newCoords.x + 10}px`;
-            miniBox.style.top = `${newCoords.y - 20}px`;
+            const newPx = map.project(coords);
+            const bh = miniBox.offsetHeight || 32;
+            const slot = uiController.getStackSlot(index, mapController.audioData);
+            miniBox.style.left = `${newPx.x + 10}px`;
+            miniBox.style.top  = `${newPx.y - (bh / 2) + (slot * (bh + 3))}px`;
           };
           map.on('move', updatePosition);
-          
           miniBox._updatePosition = updatePosition;
-            
-        // Add header badge only if playlist is collapsed
+
           this.updateHeaderBadge(track);
         }
         
         // New helper method - add this RIGHT AFTER minimizePopup() closes
-              updateHeaderBadge(track) {
+              updateHeaderBadge(track, audio = null) {
         // Remove existing badge and clean up listeners
         const existingBadge = document.getElementById('playing-badge');
         if (existingBadge) {
+          if (existingBadge._cleanupBadgeIcon) existingBadge._cleanupBadgeIcon();
           if (existingBadge._updateTimeHandler && existingBadge._audioElement) {
             existingBadge._audioElement.removeEventListener('timeupdate', existingBadge._updateTimeHandler);
             existingBadge._audioElement.removeEventListener('play', existingBadge._updateTimeHandler);
@@ -946,10 +1195,39 @@ class MapController {
         if (track) {
           const badge = document.createElement('div');
           badge.id = 'playing-badge';
-          badge.title = 'Return to sound';
+          badge.title = '';
+
+          // Pill — play/pause
+          const pill = document.createElement('div');
+          pill.className = 'badge-pill';
 
           const triangle = document.createElement('span');
           triangle.className = 'badge-triangle';
+          pill.appendChild(triangle);
+
+          const audioEl = audio || audioController.currentAudio;
+          if (audioEl) {
+            const cleanupBadgeIcon = this._attachPlayPauseIcon(triangle, audioEl, false);
+            badge._cleanupBadgeIcon = cleanupBadgeIcon;
+            // Dynamic tooltip reflecting current state
+            const updatePillTitle = () => {
+              pill.title = audioEl.paused ? 'Play sound' : 'Pause sound';
+            };
+            updatePillTitle();
+            audioEl.addEventListener('play', updatePillTitle);
+            audioEl.addEventListener('pause', updatePillTitle);
+          }
+
+          pill.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const a = audioController.currentAudio;
+            if (a) a.paused ? a.play() : a.pause();
+          });
+
+          // Body — title + time, click flies to track
+          const body = document.createElement('div');
+          body.className = 'badge-body';
+          body.title = 'Return to sound';
 
           const titleSpan = document.createElement('span');
           titleSpan.className = 'badge-title';
@@ -959,61 +1237,48 @@ class MapController {
           timeSpan.className = 'badge-time';
           timeSpan.textContent = '0:00';
 
-          badge.appendChild(triangle);
-          badge.appendChild(titleSpan);
-          badge.appendChild(timeSpan);
-            
-          badge.addEventListener('click', () => {
+          body.appendChild(titleSpan);
+          body.appendChild(timeSpan);
+
+          body.addEventListener('click', () => {
             const coords = [parseFloat(track.lng), parseFloat(track.lat)];
             const trackIndex = audioController.currentIndex;
-            uiController.clearMiniInfoBoxes();
             this.positionMapForTrack(track, trackIndex);
             const movementDuration = this.getMovementDuration(track);
             setTimeout(() => {
-              const audio = audioController.currentAudio;
+              const a = audioController.currentAudio;
               const shouldMinimize = this.userPreferredPopupState === 'mini';
-              const nearbyTrackIndices = this.getTracksInTightCluster(trackIndex);
-              if (nearbyTrackIndices.length > 0 && shouldMinimize) {
-                const leaves = [
-                  { geometry: { coordinates: coords }, properties: { originalIndex: track.originalIndex } },
-                  ...nearbyTrackIndices.map(nearbyIndex => {
-                    const t = this.audioData[nearbyIndex];
-                    return { geometry: { coordinates: [parseFloat(t.lng), parseFloat(t.lat)] }, properties: { originalIndex: t.originalIndex } };
-                  })
-                ];
-                this.showClusterPicker({ x: 0, y: 0 }, leaves, trackIndex);
-              } else {
-                this.showPopup(coords, track, audio, trackIndex, shouldMinimize);
-              }
-              const visiblePoints = map.queryRenderedFeatures({ layers: ['unclustered-point'] });
-              if (visiblePoints.length > 0 && visiblePoints.length < 50) {
-                uiController.showMiniInfoBoxes(null, this.audioData);
-              }
+              this.showPopup(coords, track, a, trackIndex, shouldMinimize);
+              this.refreshMiniBoxes();
             }, movementDuration + 100);
           });
-            
+
+          badge.appendChild(pill);
+          badge.appendChild(body);
+
           document.body.appendChild(badge);
-            
-          if (audioController.currentAudio) {
-            const audio = audioController.currentAudio;
+
+          const audioForTime = audio || audioController.currentAudio;
+          if (audioForTime) {
             const updateBadgeTime = () => {
-              if (!audio.paused) {
-                const s = Math.floor(audio.currentTime);
-                timeSpan.textContent = `${Math.floor(s/60)}:${String(s%60).padStart(2,'0')}`;
-              }
+              const cur = Math.floor(audioForTime.currentTime);
+              const dur = Math.floor(audioForTime.duration) || 0;
+              const fmt = (s) => `${Math.floor(s/60)}:${String(s%60).padStart(2,'0')}`;
+              timeSpan.textContent = `${fmt(cur)} / ${fmt(dur)}`;
             };
-            audio.addEventListener('timeupdate', updateBadgeTime);
-            audio.addEventListener('play', updateBadgeTime);
+            audioForTime.addEventListener('timeupdate', updateBadgeTime);
+            audioForTime.addEventListener('play', updateBadgeTime);
+            audioForTime.addEventListener('loadedmetadata', updateBadgeTime);
             updateBadgeTime();
             badge._updateTimeHandler = updateBadgeTime;
-            badge._audioElement = audio;
+            badge._audioElement = audioForTime;
           }
             
           this.updateBadgeVisibility();
         }
       }
 
-      updateActiveTrack(index, shouldScrollPlaylist = false) {
+      updateActiveTrack(index, shouldScrollPlaylist = false, audio = null) {
           document.querySelectorAll('.track').forEach(el => el.classList.remove('active-track'));
           const activeTrack = document.querySelector(`.track[data-id="${index}"]`);
           if (activeTrack) {
@@ -1023,20 +1288,25 @@ class MapController {
             activeTrack.style.backgroundColor = 'rgba(255, 235, 220, 0.5)'; // Warm beige
             activeTrack.style.fontWeight = '600'; // Bold
             
-          // Add play indicator if not already there
+          // Add play/pause indicator if not already there
           const trackInfo = activeTrack.querySelector('.track-info');
           if (trackInfo && !trackInfo.querySelector('.play-indicator')) {
             const indicator = document.createElement('span');
             indicator.className = 'play-indicator';
-            indicator.style.display = 'inline-block';
-            indicator.style.marginRight = '6px';
-            indicator.style.width = '0';
-            indicator.style.height = '0';
-            indicator.style.borderLeft = '8px solid #333';
-            indicator.style.borderTop = '5px solid transparent';
-            indicator.style.borderBottom = '5px solid transparent';
-            indicator.style.verticalAlign = 'middle';
+            indicator.style.cssText = 'display:inline-flex;align-items:center;margin-right:6px;flex-shrink:0;';
+
+            // Inner element for the icon — _attachPlayPauseIcon sets cssText on this
+            // so the container's margin-right is never overwritten
+            const iconEl = document.createElement('span');
+            indicator.appendChild(iconEl);
             trackInfo.insertBefore(indicator, trackInfo.firstChild);
+
+            // Wire real-time play/pause
+            const audioEl = audio || audioController.currentAudio;
+            if (audioEl) {
+              const cleanup = this._attachPlayPauseIcon(iconEl, audioEl, false);
+              indicator._cleanupIcon = cleanup;
+            }
           }
             
             // Only scroll if explicitly requested (for auto-play next)
@@ -1061,16 +1331,16 @@ class MapController {
             }
           }
           
-          // Remove play triangle from inactive tracks and reset styling
           document.querySelectorAll('.track:not(.active-track)').forEach(el => {
             el.style.backgroundColor = '';
             el.style.fontWeight = '';
-           const trackInfo = el.querySelector('.track-info');
-           const indicator = trackInfo?.querySelector('.play-indicator');
-           if (indicator) {
-             indicator.remove();
-           }
-           });
+            const trackInfo = el.querySelector('.track-info');
+            const indicator = trackInfo?.querySelector('.play-indicator');
+            if (indicator) {
+              if (indicator._cleanupIcon) indicator._cleanupIcon();
+              indicator.remove();
+            }
+          });
          }
 
       positionMapForTrack(track, index, fromAutoPlay = false) {
@@ -1105,32 +1375,44 @@ class MapController {
         const is3D = uiController.is3DEnabled;
         const targetZoom = is3D ? CONFIG.ZOOM_3D : CONFIG.ZOOM_2D;
         const currentZoom = map.getZoom();
-        
+
+        // Per-point camera overrides from spreadsheet (3D only)
+        const hasCustomCamera = is3D && track.camera_lat && track.camera_lng;
+        const customCenter = hasCustomCamera
+          ? [parseFloat(track.camera_lng), parseFloat(track.camera_lat)]
+          : coords;
+        const customZoom = is3D && track.zoom ? parseFloat(track.zoom) : null;
+        const customBearing = is3D && track.bearing !== '' && track.bearing != null ? parseFloat(track.bearing) : null;
+        const customPitch = is3D && track.pitch !== '' && track.pitch != null ? parseFloat(track.pitch) : null;
+        const customCurve = is3D && track.curve !== '' && track.curve != null ? parseFloat(track.curve) : null;
+
         // Zoom logic:
-        // - For autoplay: Use at least zoom 15 to ensure clusters break (clusterMaxZoom is 14)
+        // - Custom zoom from spreadsheet takes priority
+        // - For autoplay: Use at least zoom 12 to ensure clusters break (clusterMaxZoom is 11)
         // - For manual clicks: Only zoom if currently zoomed out (don't zoom out if already close)
         let useZoom;
-        if (fromAutoPlay) {
-          useZoom = Math.max(targetZoom, 15); // Ensure clusters break
+        if (customZoom) {
+          useZoom = customZoom;
+        } else if (fromAutoPlay) {
+          useZoom = Math.max(targetZoom, 12);
         } else {
-          useZoom = currentZoom < targetZoom ? targetZoom : currentZoom;
+          useZoom = currentZoom < 12 ? 12 : currentZoom;
         }
 
         const flyToOptions = {
-          center: coords,
+          center: customCenter,
           zoom: useZoom,
           duration,
           easing: smoothLandingEasing
         };
-        
-        // Add 3D properties for smoother rainbow arc
+
+        // Add 3D properties — use per-point overrides if available, fall back to defaults
         if (is3D) {
-          flyToOptions.pitch = 82; // More immersive angle
-          flyToOptions.bearing = map.getBearing();
-          // Higher curve for ultra-smooth rainbow effect in 3D
-          flyToOptions.curve = 2.5; // Even higher curve = smoother, more elevated arc
+          flyToOptions.pitch = customPitch !== null ? customPitch : 82;
+          flyToOptions.bearing = customBearing !== null ? customBearing : map.getBearing();
+          flyToOptions.curve = customCurve !== null ? customCurve : 2.5;
         }
-        
+
         map.flyTo(flyToOptions);
         setTimeout(resetPositioning, duration + 200);
       }
@@ -1146,30 +1428,159 @@ class MapController {
       }
       
       // Check if track is in a tight cluster - returns array of nearby track indices (or empty array)
-      getTracksInTightCluster(trackIndex) {
-        const track = this.audioData[trackIndex];
-        if (!track) return [];
-        
-        const trackLat = parseFloat(track.lat);
-        const trackLng = parseFloat(track.lng);
-        
-        // Find all tracks within 50m
-        const nearbyTracks = [];
-        
-        this.audioData.forEach((otherTrack, otherIndex) => {
-          if (otherIndex === trackIndex) return;
-          
-          const otherLat = parseFloat(otherTrack.lat);
-          const otherLng = parseFloat(otherTrack.lng);
-          const distance = this.calculateDistance(trackLat, trackLng, otherLat, otherLng);
-          
-          if (distance < 50) {
-            nearbyTracks.push(otherIndex);
-          }
+
+      // Single source of truth for all map UI state.
+      // Called from idle (map fully stable, safe to query features).
+      updateMapUI() {
+        const currentZoom = map.getZoom();
+        const lastZoom = this._lastZoom ?? currentZoom;
+        const zoomDelta = Math.abs(currentZoom - lastZoom);
+        this._lastZoom = currentZoom;
+
+        const raw = map.queryRenderedFeatures({ layers: ['unclustered-point'] });
+        const seen = new Set();
+        const points = raw.filter(p => {
+          const origIdx = parseInt(p.properties.originalIndex);
+          if (seen.has(origIdx)) return false;
+          seen.add(origIdx);
+          return true;
         });
-        
-        return nearbyTracks;
+
+        const count = points.length;
+
+        // ── Step 1: Determine picker state ──────────────────────────────────
+
+        if (this.clusterPicker && this.clusterPickerTracks) {
+
+          // Protect picker if zoom hasn't changed meaningfully — pan only, no closure checks
+          if (zoomDelta < 0.5) {
+            uiController.showMiniInfoBoxes(null, this.audioData, points);
+            this.updateBadgeVisibility();
+            uiController.releaseManualBoxes();
+            return;
+          }
+
+          const pickerTracks = this.clusterPickerTracks.map(i => this.audioData[i]).filter(Boolean);
+          const pickerOriginalIndices = pickerTracks.map(t => t.originalIndex);
+
+          const closePicker = () => {
+            if (this.clusterPicker._moveHandler) map.off('move', this.clusterPicker._moveHandler);
+            this.clusterPicker.remove();
+            this.clusterPicker = null;
+            this.clusterPickerTracks = null;
+          };
+
+          const zoomedIn = currentZoom > lastZoom;
+          const zoomedOutEnough = currentZoom < 12;
+
+          // No dissolution — picker persists until explicit close or zoom-out recluster
+          if (zoomedIn) {
+            uiController.showMiniInfoBoxes(null, this.audioData, points);
+            this.updateBadgeVisibility();
+            uiController.releaseManualBoxes();
+            return;
+          } else if (zoomedOutEnough) {
+            // Zoomed out past threshold — async check if absorbed into cluster
+            const anchorTrack = pickerTracks[0];
+            if (anchorTrack) {
+              const px = map.project([parseFloat(anchorTrack.lng), parseFloat(anchorTrack.lat)]);
+              const pad = 60;
+              const nearbyClusters = map.queryRenderedFeatures(
+                [[px.x - pad, px.y - pad], [px.x + pad, px.y + pad]],
+                { layers: ['clusters'] }
+              );
+              if (nearbyClusters.length > 0) {
+                const cluster = nearbyClusters[0];
+                map.getSource('audio').getClusterLeaves(
+                  cluster.properties.cluster_id,
+                  cluster.properties.point_count,
+                  0,
+                  (err, leaves) => {
+                    if (err || !leaves || !this.clusterPicker) return;
+                    const leafOriginals = leaves.map(l => parseInt(l.properties.originalIndex));
+                    const pickerInCluster = pickerOriginalIndices.every(oi => leafOriginals.includes(oi));
+                    if (pickerInCluster) {
+                      closePicker();
+                      this.updateMapUI();
+                    }
+                  }
+                );
+              }
+            }
+            // Picker stays open pending async confirmation
+            uiController.showMiniInfoBoxes(null, this.audioData, points);
+            this.updateBadgeVisibility();
+            uiController.releaseManualBoxes();
+            return;
+          } else {
+            // Zoomed out but not past threshold — persist picker
+            uiController.showMiniInfoBoxes(null, this.audioData, points);
+            this.updateBadgeVisibility();
+            uiController.releaseManualBoxes();
+            return;
+          }
+        }
+
+        // ── Step 2: Draw mini boxes ──────────────────────────────────────────
+
+        if (count === 0 || count >= 50) {
+          uiController.clearMiniInfoBoxes();
+          this.updateBadgeVisibility();
+          return;
+        }
+
+        if (this.clusterPicker) {
+          // Picker open — draw mini boxes for non-picker points only
+          uiController.showMiniInfoBoxes(null, this.audioData, points);
+          this.updateBadgeVisibility();
+          uiController.releaseManualBoxes();
+          return;
+        }
+
+        // No picker — draw all visible points as mini boxes
+        this.clusterPickerTracks = null;
+        uiController.showMiniInfoBoxes(null, this.audioData, points);
+
+        this.updateBadgeVisibility();
+        uiController.releaseManualBoxes();
+
+        // Safety net: if any visible unclustered points have no mini box or picker box,
+        // schedule one more pass after a short delay to catch queryRenderedFeatures misses
+        if (!this._safetyNetPending) {
+          this._safetyNetPending = true;
+          setTimeout(() => {
+            this._safetyNetPending = false;
+            const raw = map.queryRenderedFeatures({ layers: ['unclustered-point'] });
+            const seen = new Set();
+            const visiblePoints = raw.filter(p => {
+              const idx = parseInt(p.properties.originalIndex);
+              if (seen.has(idx)) return false;
+              seen.add(idx);
+              return true;
+            });
+            const coveredIndices = new Set([
+              ...uiController.miniInfoBoxes.map(b => parseInt(b.dataset.trackIndex)),
+              ...(this.clusterPickerTracks || []),
+              audioController.currentIndex
+            ]);
+            const missed = visiblePoints.filter(p => {
+              const origIdx = parseInt(p.properties.originalIndex);
+              const idx = this.audioData.findIndex(t => t.originalIndex === origIdx);
+              return idx !== -1 && !coveredIndices.has(idx);
+            });
+            if (missed.length > 0) {
+              this.updateMapUI();
+            }
+          }, 250);
+        }
       }
+
+      // Thin wrapper — calls updateMapUI for backwards compatibility
+      refreshMiniBoxes() {
+        this.updateMapUI();
+      }
+
+
 
       updateClusterPickerHighlight(playingIndex) {
         if (!this.clusterPicker) return;
@@ -1187,7 +1598,10 @@ class MapController {
           this.clusterPicker = null;
         }
         
-        const coords = leaves[0].geometry.coordinates;
+        // Compute centroid of all picker points for positioning
+        const centroidLng = leaves.reduce((sum, l) => sum + l.geometry.coordinates[0], 0) / leaves.length;
+        const centroidLat = leaves.reduce((sum, l) => sum + l.geometry.coordinates[1], 0) / leaves.length;
+        const coords = [centroidLng, centroidLat];
         
         this.clusterPickerTracks = leaves.map(leaf => {
           const originalIndex = parseInt(leaf.properties.originalIndex);
@@ -1196,12 +1610,17 @@ class MapController {
         
         const picker = document.createElement('div');
         picker.id = 'cluster-picker';
-        picker.style.cssText = 'position:absolute;z-index:1000;display:flex;flex-direction:column;';
+        picker.style.cssText = 'position:absolute;z-index:1000;display:flex;flex-direction:column;gap:3px;';
         
         const updatePickerPosition = () => {
           const px = map.project(coords);
+          // Sanity check — don't position if projected coords are wildly off screen
+          if (px.x < -500 || px.x > window.innerWidth + 500 || 
+              px.y < -500 || px.y > window.innerHeight + 500) return;
           picker.style.left = `${px.x + 10}px`;
-          picker.style.top  = `${px.y - 20}px`;
+          // Vertically center picker on its anchor point after DOM renders height
+          const h = picker.offsetHeight || 0;
+          picker.style.top  = `${px.y - (h / 2)}px`;
         };
         updatePickerPosition();
         picker._updatePosition = updatePickerPosition;
@@ -1212,9 +1631,14 @@ class MapController {
           const getNum = (leaf) => {
             const t = this.audioData.find(t => t.originalIndex === parseInt(leaf.properties.originalIndex));
             const m = t?.name.match(/(\d+)$/);
-            return m ? parseInt(m[1]) : 0;
+            return m ? parseInt(m[1]) : null;
           };
-          return getNum(a) - getNum(b);
+          const numA = getNum(a);
+          const numB = getNum(b);
+          // If both have trailing numbers, sort by those
+          if (numA !== null && numB !== null) return numA - numB;
+          // Otherwise sort by originalIndex for stable consistent order
+          return parseInt(a.properties.originalIndex) - parseInt(b.properties.originalIndex);
         });
         
         sortedLeaves.forEach((leaf) => {
@@ -1224,63 +1648,165 @@ class MapController {
           
           const currentIndex = this.audioData.findIndex(t => t.originalIndex === originalIndex);
           const isPlaying = playingTrackIndex !== null && currentIndex === playingTrackIndex;
-          
-          const box = document.createElement('div');
-          box.className = 'cluster-box' + (isPlaying ? ' playing' : '');
-          box.dataset.trackIndex = currentIndex;
-          box.dataset.isPlaying = isPlaying ? 'true' : 'false';
+          const audio = isPlaying ? audioController.currentAudio : null;
 
-          const playIcon = document.createElement('div');
-          playIcon.className = 'cluster-play-icon';
-          box.appendChild(playIcon);
-          
-          const trackName = document.createElement('span');
-          trackName.className = 'cluster-box-name';
-          trackName.textContent = track.name.replace(/^[^\s]+\s+-\s+/, '');
-          box.appendChild(trackName);
-          
-          box.addEventListener('click', () => {
-            if (currentIndex < 0) return;
-            if (box.dataset.isPlaying === 'true') {
+          const box = uiController._createMiniInfoBox(track, currentIndex, {
+            onPillClick: () => {
+              if (box.dataset.isPlaying === 'true') {
+                // Toggle play/pause for active track
+                const a = audioController.currentAudio;
+                if (a) a.paused ? a.play() : a.pause();
+              } else {
+                this.playAudio(currentIndex, false, true, true);
+              }
+            },
+            onBodyClick: () => {
+              // Store cluster context before removing picker
+              const clusterLeaves = sortedLeaves;
+              const clusterCoords = coords;
+
+              // Always remove picker when expanding to full popup
               if (this.clusterPicker._moveHandler) map.off('move', this.clusterPicker._moveHandler);
               this.clusterPicker.remove();
               this.clusterPicker = null;
               this.clusterPickerTracks = null;
               const trackCoords = [parseFloat(track.lng), parseFloat(track.lat)];
-              this.showPopup(trackCoords, track, audioController.currentAudio, currentIndex, false);
-              if (this.userPreferredPopupState === 'mini') this.userPreferredPopupState = 'full';
-              this.updateBadgeVisibility();
-            } else {
-              this.playAudio(currentIndex, false, true);
-            }
+              if (box.dataset.isPlaying === 'true') {
+                // Playing track — expand to full popup
+                this.userPreferredPopupState = 'full';
+                this.showPopup(trackCoords, track, audioController.currentAudio, currentIndex, false, false, clusterLeaves);
+                this.updateBadgeVisibility();
+              } else {
+                // Non-playing track — preview popup
+                this.showPopup(trackCoords, track, audioController.currentAudio, currentIndex, false, true, clusterLeaves);
+              }
+            },
+            isPlaying,
+            audio
           });
+
+          if (isPlaying) box.classList.add('minimized-popup');
+          box.dataset.isPlaying = isPlaying ? 'true' : 'false';
           
           picker.appendChild(box);
         });
         
-        const moveHandler = () => { if (picker.parentNode) updatePickerPosition(); };
-        map.on('move', moveHandler);
-        picker._moveHandler = moveHandler;
-        
         this.clusterPicker = picker;
         document.body.appendChild(picker);
+        // Re-position now that height is known for accurate vertical centering
+        updatePickerPosition();
         this.updateBadgeVisibility();
       }
 
-          showPopup(coords, track, audio, index, shouldMinimize = false) {
-            if (audioController.currentIndex === -1) return;
+
+          showPopup(coords, track, audio, index, shouldMinimize = false, preview = false, clusterLeaves = null) {
+            // Block if no audio playing, UNLESS it's a preview (chevron click on white box)
+            if (audioController.currentIndex === -1 && !preview) return;
               
-            if (this.currentPopup) {
-              this.currentPopup.remove();
-              this.currentPopup = null;
+            // Close/demote any existing preview popup — only when opening another preview,
+            // never when opening a full playing popup (those are fully independent)
+            if (preview && this.previewPopup) {
+              const prevIdx = this.previewPopup._container
+                ? parseInt(this.previewPopup._container.dataset.trackIndex)
+                : -1;
+              this.previewPopup.remove();
+              this.previewPopup = null;
+              this.previewPopupTrackIndex = -1;
+              // Demote old preview track back to mini box if it's not the new track
+              if (prevIdx !== -1 && prevIdx !== index) {
+                const oldTrack = this.audioData[prevIdx];
+                if (oldTrack) {
+                  const oldCoords = [parseFloat(oldTrack.lng), parseFloat(oldTrack.lat)];
+                  const oldPx = map.project(oldCoords);
+                  const slot = uiController.getStackSlot(prevIdx, this.audioData);
+                  const restoredBox = uiController._createMiniInfoBox(oldTrack, prevIdx, {
+                    onPillClick: () => mapController.playAudio(prevIdx, false, true, true),
+                    onBodyClick: () => {
+                      if (restoredBox.parentNode) restoredBox.parentNode.removeChild(restoredBox);
+                      uiController.miniInfoBoxes = uiController.miniInfoBoxes.filter(b => b !== restoredBox);
+                      mapController.showPopup(oldCoords, oldTrack, audioController.currentAudio, prevIdx, false, true);
+                    },
+                    isPlaying: false,
+                    audio: null
+                  });
+                  restoredBox.style.position = 'absolute';
+                  const bh = 32;
+                  restoredBox.style.left = `${oldPx.x + 10}px`;
+                  restoredBox.style.top  = `${oldPx.y - (bh / 2) + (slot * (bh + 3))}px`;
+                  restoredBox._stackOffset = slot;
+                  const moveHandler = () => {
+                    const newPx = map.project(oldCoords);
+                    const h = restoredBox.offsetHeight || 32;
+                    const s = uiController.getStackSlot(prevIdx, mapController.audioData);
+                    restoredBox.style.left = `${newPx.x + 10}px`;
+                    restoredBox.style.top  = `${newPx.y - (h / 2) + (s * (h + 3))}px`;
+                  };
+                  map.on('move', moveHandler);
+                  restoredBox._updatePosition = moveHandler;
+                  document.body.appendChild(restoredBox);
+                  uiController.miniInfoBoxes.push(restoredBox);
+                }
+              }
+            }
+
+            // If incoming is a preview and a full playing popup exists, don't replace it
+            const keepCurrentPopup = preview && this.currentPopup && !this.currentPopup._preview;
+
+            if (this.currentPopup && !keepCurrentPopup) {
+              // If we're opening a full popup and currentPopup is a preview for a different track,
+              // rescue it into previewPopup instead of destroying it
+              const currentIsPreviewForDifferentTrack = !preview &&
+                this.currentPopup._preview === true &&
+                parseInt(this.currentPopup._container?.dataset?.trackIndex) !== index;
+              if (currentIsPreviewForDifferentTrack) {
+                // Move existing preview to previewPopup slot — don't destroy it
+                this.previewPopup = this.currentPopup;
+                this.previewPopupTrackIndex = parseInt(this.currentPopup._container?.dataset?.trackIndex);
+                this.currentPopup = null;
+              } else {
+                this.currentPopup.remove();
+                this.currentPopup = null;
+              }
+            }
+
+            // If opening a full popup for a picker track, keep picker but hide this track's box
+            if (!shouldMinimize && !preview && this.clusterPicker && this.clusterPickerTracks &&
+                this.clusterPickerTracks.includes(index)) {
+              // Hide the playing track's picker box — popup is its representation
+              this.clusterPicker.querySelectorAll('[data-track-index]').forEach(box => {
+                if (parseInt(box.dataset.trackIndex) === index) {
+                  box.style.display = 'none';
+                } else {
+                  box.style.display = '';
+                  box.dataset.isPlaying = 'false';
+                  box.classList.remove('minimized-popup');
+                  const pillIcon = box.querySelector('.play-icon');
+                  if (pillIcon) {
+                    if (box._cleanupIcon) { box._cleanupIcon(); box._cleanupIcon = null; }
+                    pillIcon.innerHTML = '';
+                    pillIcon.style.cssText = '';
+                    pillIcon.className = 'play-icon';
+                  }
+                }
+              });
+            }
+
+            // Clean up any existing mini box for this track
+            const existingBox = uiController.miniInfoBoxes.find(b => parseInt(b.dataset.trackIndex) === index);
+            if (existingBox) {
+              if (existingBox._chevron && existingBox._chevron.parentNode) existingBox._chevron.parentNode.removeChild(existingBox._chevron);
+              if (existingBox.parentNode) existingBox.parentNode.removeChild(existingBox);
+              uiController.miniInfoBoxes = uiController.miniInfoBoxes.filter(b => b !== existingBox);
             }
         
             const container = document.createElement('div');
-            container.className = 'custom-popup';
+            container.className = preview ? 'custom-popup' : 'custom-popup playing-popup';
             container.style.position = 'absolute';
             container.style.width = '320px';
-            container.style.zIndex = '10';
+            container.style.zIndex = '1001';
             container._coords = coords;
+            container.dataset.trackIndex = index;
+            container.dataset.originalIndex = track.originalIndex;
         
             // Minimize button — styled via .popup-minimize CSS class
             const minimizeBtn = document.createElement('button');
@@ -1292,14 +1818,57 @@ class MapController {
             minimizeBtn.addEventListener('click', (e) => {
               e.preventDefault();
               e.stopPropagation();
-              this.minimizePopup(track, index);
+              // Preview popup — just close it and restore mini box, don't touch playing state
+              if (this.previewPopup && this.previewPopup._container === container) {
+                this.previewPopup.remove();
+                this.previewPopup = null;
+                this.previewPopupTrackIndex = -1;
+                // Restore mini box for this track
+                const restoreCoords = [parseFloat(track.lng), parseFloat(track.lat)];
+                const restorePx = map.project(restoreCoords);
+                const slot = uiController.getStackSlot(index, this.audioData);
+                const restoredBox = uiController._createMiniInfoBox(track, index, {
+                  onPillClick: () => mapController.playAudio(index, false, true, true),
+                  onBodyClick: () => {
+                    if (restoredBox.parentNode) restoredBox.parentNode.removeChild(restoredBox);
+                    uiController.miniInfoBoxes = uiController.miniInfoBoxes.filter(b => b !== restoredBox);
+                    mapController.showPopup(restoreCoords, track, audioController.currentAudio, index, false, true);
+                  },
+                  isPlaying: false,
+                  audio: null
+                });
+                restoredBox.style.position = 'absolute';
+                const bh = restoredBox.offsetHeight || 32;
+                restoredBox.style.left = `${restorePx.x + 10}px`;
+                restoredBox.style.top  = `${restorePx.y - (bh / 2) + (slot * (bh + 3))}px`;
+                restoredBox._stackOffset = slot;
+                const moveHandler = () => {
+                  const newPx = map.project(restoreCoords);
+                  const h = restoredBox.offsetHeight || 32;
+                  const s = uiController.getStackSlot(index, mapController.audioData);
+                  restoredBox.style.left = `${newPx.x + 10}px`;
+                  restoredBox.style.top  = `${newPx.y - (h / 2) + (s * (h + 3))}px`;
+                };
+                map.on('move', moveHandler);
+                restoredBox._updatePosition = moveHandler;
+                document.body.appendChild(restoredBox);
+                uiController.miniInfoBoxes.push(restoredBox);
+              } else {
+                // Full playing popup — normal minimize
+                this.minimizePopup(track, index);
+              }
             });
             container.appendChild(minimizeBtn);
         
-            // Title
+            // Title — click to fly back to this sound's location
             const title = document.createElement('h3');
             title.className = 'popup-title';
             title.textContent = track.name;
+            title.style.cursor = 'pointer';
+            title.title = 'Re-center on this sound';
+            title.addEventListener('click', () => {
+              this.positionMapForTrack(track, index);
+            });
             container.appendChild(title);
         
             // Meta line: timestamp · mile · elevation · section
@@ -1355,38 +1924,50 @@ class MapController {
             const prevBtn = document.createElement('button');
             prevBtn.className = 'popup-nav-btn';
             prevBtn.textContent = '‹ prev';
-            prevBtn.disabled = audioController.playMode === 'random'
+            prevBtn.disabled = preview || (audioController.playMode === 'random'
               ? audioController.playHistory.length === 0
-              : index === 0;
+              : index === 0);
             prevBtn.addEventListener('click', () => audioController.playPrevious(this.audioData));
             controls.appendChild(prevBtn);
         
             // Play/Pause button
-            if (audio) {
+            const audioForControls = audio || audioController.currentAudio;
+            if (audioForControls) {
               const playPauseBtn = document.createElement('button');
               playPauseBtn.className = 'popup-playpause-btn';
-        
-              const updateButton = () => {
-                playPauseBtn.innerHTML = '';
-                if (audio.paused) {
-                  const t = document.createElement('div');
-                  t.className = 'play-triangle-lg';
-                  playPauseBtn.appendChild(t);
-                } else {
-                  const b1 = document.createElement('div');
-                  b1.className = 'pause-bar';
-                  const b2 = document.createElement('div');
-                  b2.className = 'pause-bar';
-                  playPauseBtn.appendChild(b1);
-                  playPauseBtn.appendChild(b2);
-                }
-              };
-              updateButton();
-              audio.addEventListener('play', updateButton);
-              audio.addEventListener('pause', updateButton);
-              playPauseBtn.addEventListener('click', () => {
-                audio.paused ? audio.play() : audio.pause();
-              });
+
+              if (preview) {
+                // Preview mode: button always shows play, clicking starts this track
+                const t = document.createElement('div');
+                t.className = 'play-triangle-lg';
+                playPauseBtn.appendChild(t);
+                playPauseBtn.addEventListener('click', () => {
+                  this.playAudio(index, false, true);
+                });
+              } else {
+                // Normal mode: toggle current audio
+                const updateButton = () => {
+                  playPauseBtn.innerHTML = '';
+                  if (audioForControls.paused) {
+                    const t = document.createElement('div');
+                    t.className = 'play-triangle-lg';
+                    playPauseBtn.appendChild(t);
+                  } else {
+                    const b1 = document.createElement('div');
+                    b1.className = 'pause-bar';
+                    const b2 = document.createElement('div');
+                    b2.className = 'pause-bar';
+                    playPauseBtn.appendChild(b1);
+                    playPauseBtn.appendChild(b2);
+                  }
+                };
+                updateButton();
+                audioForControls.addEventListener('play', updateButton);
+                audioForControls.addEventListener('pause', updateButton);
+                playPauseBtn.addEventListener('click', () => {
+                  audioForControls.paused ? audioForControls.play() : audioForControls.pause();
+                });
+              }
               controls.appendChild(playPauseBtn);
             }
         
@@ -1394,12 +1975,14 @@ class MapController {
             const nextBtn = document.createElement('button');
             nextBtn.className = 'popup-nav-btn';
             nextBtn.textContent = 'next ›';
-            nextBtn.disabled = index === this.audioData.length - 1;
-            nextBtn.addEventListener('click', () => audioController.playNext(this.audioData));
+            nextBtn.disabled = preview || index === this.audioData.length - 1;
+            nextBtn.addEventListener('click', () => audioController.playNext(this.audioData, true));
             controls.appendChild(nextBtn);
         
             // Time display
-            if (audio) {
+            const audioForDisplay = audio || audioController.currentAudio;
+            if (audioForDisplay && !preview) {
+              // Normal mode — wire to current audio element
               const timeDisplay = document.createElement('div');
               timeDisplay.className = 'popup-time-display';
               const formatTime = (secs) => {
@@ -1408,13 +1991,41 @@ class MapController {
                 return `${m}:${String(s).padStart(2, '0')}`;
               };
               const updateTime = () => {
-                const cur = Math.floor(audio.currentTime);
-                const dur = Math.floor(audio.duration) || 0;
+                const cur = Math.floor(audioForDisplay.currentTime);
+                const dur = isFinite(audioForDisplay.duration) ? Math.floor(audioForDisplay.duration) : 0;
+                if (dur > 0 && !track._cachedDuration) track._cachedDuration = dur;
                 timeDisplay.textContent = `${formatTime(cur)} / ${formatTime(dur)}`;
               };
-              audio.addEventListener('timeupdate', updateTime);
-              audio.addEventListener('loadedmetadata', updateTime);
+              audioForDisplay.addEventListener('timeupdate', updateTime);
+              audioForDisplay.addEventListener('loadedmetadata', updateTime);
+              audioForDisplay.addEventListener('durationchange', updateTime);
               updateTime();
+              setTimeout(updateTime, 200);
+              controls.appendChild(timeDisplay);
+            } else if (preview && track.audioUrl) {
+              // Preview mode — use cached duration if available, else fetch metadata only
+              const timeDisplay = document.createElement('div');
+              timeDisplay.className = 'popup-time-display';
+              const formatTime = (secs) => {
+                const m = Math.floor(secs / 60);
+                const s = secs % 60;
+                return `${m}:${String(s).padStart(2, '0')}`;
+              };
+              if (track._cachedDuration) {
+                timeDisplay.textContent = `0:00 / ${formatTime(track._cachedDuration)}`;
+              } else {
+                timeDisplay.textContent = '0:00 / --:--';
+                const tempAudio = new Audio();
+                tempAudio.preload = 'metadata';
+                tempAudio.addEventListener('loadedmetadata', () => {
+                  if (isFinite(tempAudio.duration)) {
+                    track._cachedDuration = Math.floor(tempAudio.duration);
+                    timeDisplay.textContent = `0:00 / ${formatTime(track._cachedDuration)}`;
+                  }
+                  tempAudio.src = '';
+                });
+                tempAudio.src = track.audioUrl;
+              }
               controls.appendChild(timeDisplay);
             }
         
@@ -1427,9 +2038,11 @@ class MapController {
             container.style.left = `${pixelCoords.x - (popupWidth / 2)}px`;
             container.style.top  = `${pixelCoords.y - container.offsetHeight - 20}px`;
         
-            this.currentPopup = {
+            const popupObj = {
               _container: container,
               _coords: coords,
+              _preview: preview,
+              _clusterLeaves: clusterLeaves,
               remove: () => { if (container.parentNode) container.parentNode.removeChild(container); },
               updatePosition: () => {
                 const px = map.project(coords);
@@ -1438,10 +2051,18 @@ class MapController {
                 container.style.top  = `${px.y - container.offsetHeight - 20}px`;
               }
             };
+
+            // Route to previewPopup slot if a full playing popup is already open
+            if (keepCurrentPopup) {
+              this.previewPopup = popupObj;
+              this.previewPopupTrackIndex = index;
+            } else {
+              this.currentPopup = popupObj;
+            }
+
+            setTimeout(() => popupObj.updatePosition(), 10);
         
-            setTimeout(() => this.currentPopup.updatePosition(), 10);
-        
-          if (shouldMinimize) {
+          if (shouldMinimize && !preview) {
             this.minimizePopup(track, index);
           }
           
@@ -1496,14 +2117,10 @@ class MapController {
             : null;
 
           if (currentTrack) {
-            map.flyTo({
-              center: [parseFloat(currentTrack.lng), parseFloat(currentTrack.lat)],
-              zoom: CONFIG.ZOOM_3D,
-              pitch: 82,
-              bearing: 0,
-              duration: 2500,
-              easing: t => 1 - Math.pow(1 - t, 3)
-            });
+            map.stop();
+            this.isPositioning = false;
+            if (this.animationTimeout) { clearTimeout(this.animationTimeout); this.animationTimeout = null; }
+            this.positionMapForTrack(currentTrack, audioController.currentIndex);
             atmosphereController.applyAtmosphere(currentTrack);
           } else {
             map.flyTo({ pitch: 82, zoom: Math.max(map.getZoom(), CONFIG.ZOOM_3D), duration: 2000 });
@@ -1520,7 +2137,22 @@ class MapController {
 
         map.setTerrain(null);
         if (typeof map.setLight === 'function') map.setLight(null);
-        map.flyTo({ pitch: 0, bearing: 0, duration: 1500 });
+
+        // Fly back to current track in 2D if one is playing, otherwise just reset pitch/bearing
+        const currentTrack = audioController.currentIndex >= 0
+          ? this.audioData[audioController.currentIndex]
+          : null;
+        if (currentTrack) {
+          map.flyTo({
+            center: [parseFloat(currentTrack.lng), parseFloat(currentTrack.lat)],
+            zoom: CONFIG.ZOOM_2D,
+            pitch: 0,
+            bearing: 0,
+            duration: 1500
+          });
+        } else {
+          map.flyTo({ pitch: 0, bearing: 0, duration: 1500 });
+        }
 
         setTimeout(() => {
           if (map.getSource('mapbox-dem')) map.removeSource('mapbox-dem');
@@ -1557,12 +2189,17 @@ class MapController {
             this.currentPopup.remove();
             this.currentPopup = null;
           }
+
+          if (this.previewPopup) {
+            this.previewPopup.remove();
+            this.previewPopup = null;
+            this.previewPopupTrackIndex = -1;
+          }
           
           // Clean up minimized popup if it exists
           if (this.minimizedPopup) {
-            if (this.minimizedPopup._updatePosition) {
-              map.off('move', this.minimizedPopup._updatePosition);
-            }
+            if (this.minimizedPopup._cleanupIcon) this.minimizedPopup._cleanupIcon();
+            if (this.minimizedPopup._updatePosition) map.off('move', this.minimizedPopup._updatePosition);
             this.minimizedPopup.remove();
             this.minimizedPopup = null;
           }
@@ -1605,6 +2242,19 @@ class MapController {
         showNotification('Map reset to default view', 2000);
         }
 
+      // Returns true if point is within the inner 70% of the viewport — comfortably visible
+      isPointComfortablyVisible(track) {
+        const coords = [parseFloat(track.lng), parseFloat(track.lat)];
+        const px = map.project(coords);
+        const canvas = map.getCanvas();
+        const w = canvas.offsetWidth;
+        const h = canvas.offsetHeight;
+        const marginX = w * 0.15; // 15% margin on each side = inner 70%
+        const marginY = h * 0.15;
+        return px.x > marginX && px.x < w - marginX &&
+               px.y > marginY && px.y < h - marginY;
+      }
+
       getMovementDuration(track) {
         // Calculate the same duration logic used in positionMapForTrack
         const coords = [parseFloat(track.lng), parseFloat(track.lat)];
@@ -1616,8 +2266,10 @@ class MapController {
         
         const distanceKm = distance / 1000;
         let duration;
-        if (distanceKm < 5) {
-          duration = 2200;
+        if (distanceKm < 0.5) {
+          duration = 1400;
+        } else if (distanceKm < 5) {
+          duration = 1400 + ((distanceKm - 0.5) / 4.5) * 800;
         } else if (distanceKm < 50) {
           duration = 2200 + ((distanceKm - 5) / 45) * 1800;
         } else {
@@ -1667,6 +2319,12 @@ class MapController {
 
       // Update badge visibility based on playlist state and point visibility  
       updateBadgeVisibility() {
+        // Don't show badge during flyTo — map is in transit, not settled
+        if (this.isPositioning) {
+          const badge = document.getElementById('playing-badge');
+          if (badge) badge.style.display = 'none';
+          return;
+        }
         const badge = document.getElementById('playing-badge');
         if (!badge) return;
         
@@ -1676,7 +2334,7 @@ class MapController {
         const pointVisible = this.isCurrentPointVisible();
         
         if (playlistCollapsed && !pointVisible && audioController.currentIndex >= 0) {
-          badge.style.display = 'block';
+          badge.style.display = 'flex';
         } else {
           badge.style.display = 'none';
         }
