@@ -121,14 +121,38 @@
     cursor: default;
   }
 
+  .playlist-header {
+    flex-shrink: 0;
+    border-bottom: 1px solid rgba(0,0,0,0.08);
+  }
+
   .playlist-title {
     font-size: 11px;
     color: #888;
     letter-spacing: 0.04em;
     text-align: center;
-    padding: 2px 8px 5px;
+    padding: 8px 8px 4px;
     user-select: none;
     pointer-events: none;
+  }
+
+  .playlist-footer {
+    flex-shrink: 0;
+    text-align: center;
+    padding: 8px;
+    border-top: 1px solid rgba(0,0,0,0.08);
+  }
+
+  .support-link {
+    font-size: 11px;
+    color: #888;
+    text-decoration: none;
+    letter-spacing: 0.04em;
+  }
+
+  .support-link:hover {
+    color: #5c3a2e;
+    text-decoration: underline;
   }
 
 
@@ -784,6 +808,8 @@
 
   body.is-mobile .playlist-wrapper .playlist-toggle { display: none; }
   body.is-mobile .playlist-wrapper .mobile-controls { display: block !important; }
+  body.is-mobile .playlist-header { display: block !important; }
+  body.is-mobile .playlist-footer { display: block !important; }
   body.is-mobile .playlist-wrapper .playlist { max-height: none; flex: 1; overflow-y: auto; margin-top: 0; }
   body.is-mobile .playlist-wrapper .scroll-arrow { display: none !important; }
 
@@ -837,22 +863,10 @@
     z-index: 9999 !important;
   }
 
-  /* On actual mobile devices — shrink to icon only */
-  body.is-mobile .floatingchat-container-wrap-mobi .floating-chat-kofi-button-text,
-  body.is-mobile .floatingchat-container-wrap .floating-chat-kofi-button-text {
+  /* Hide Ko-fi floating widget on mobile — support link is in playlist footer instead */
+  body.is-mobile .floatingchat-container-wrap-mobi,
+  body.is-mobile .floatingchat-container-wrap {
     display: none !important;
-  }
-
-  body.is-mobile .floatingchat-container-mobi,
-  body.is-mobile .floatingchat-container {
-    min-width: 44px !important;
-    width: 44px !important;
-    height: 44px !important;
-    border-radius: 50% !important;
-    padding: 0 !important;
-    display: flex !important;
-    align-items: center !important;
-    justify-content: center !important;
   }
 
   /* Mobile notification */
@@ -1055,26 +1069,32 @@
     <button class="playlist-toggle" id="playlistToggle" title="Collapse playlist">◀</button>
     <!-- Mobile close button (X) -->
     <button class="mobile-menu-close" id="mobileMenuClose" aria-label="Close menu"></button>
-    <!-- Track list - primary content, comes first -->
+    <!-- Playlist header: title + sort controls -->
+    <div class="playlist-header">
+      <div class="playlist-title">a sound map of the pacific crest trail, 2023, by stereo</div>
+      <div class="mobile-controls">
+        <div class="sort-controls">
+          <button class="control-btn sort-btn active" id="sortNoboMobile" title="Northbound playlist">NOBO</button>
+          <button class="control-btn sort-btn" id="sortSoboMobile" title="Southbound playlist">SOBO</button>
+          <button class="control-btn sort-btn" id="sortDateMobile" title="Chronological playlist">STEREO</button>
+          <div class="random-control">
+            <span class="random-label">Random</span>
+            <div class="toggle-switch" id="randomToggleMobile" title="Random on/off">
+              <div class="toggle-slider"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <!-- Track list -->
     <div class="scroll-arrow up" id="scrollUp" title="Scroll up">▲</div>
-    <div class="playlist-title">a sound map of the pacific crest trail, 2023, by stereo</div>
     <div class="playlist" id="playlist">
       <div class="loading-placeholder">loading recordings...</div>
     </div>
     <div class="scroll-arrow down" id="scrollDown" title="Scroll down">▼</div>
-    <!-- Mobile sort footer - compact, at bottom -->
-    <div class="mobile-controls" style="display: none;">
-      <div class="sort-controls">
-        <button class="control-btn sort-btn active" id="sortNoboMobile" title="Northbound playlist">NOBO</button>
-        <button class="control-btn sort-btn" id="sortSoboMobile" title="Southbound playlist">SOBO</button>
-        <button class="control-btn sort-btn" id="sortDateMobile" title="Chronological playlist">STEREO</button>
-        <div class="random-control">
-          <span class="random-label">Random</span>
-          <div class="toggle-switch" id="randomToggleMobile" title="Random on/off">
-            <div class="toggle-slider"></div>
-          </div>
-        </div>
-      </div>
+    <!-- Playlist footer: support link -->
+    <div class="playlist-footer">
+      <a href="https://ko-fi.com/thmkly" target="_blank" rel="noopener noreferrer" class="support-link">support this project</a>
     </div>
   </div>
 
