@@ -637,9 +637,13 @@ class MapController {
           // Mile marker click — fly to location without triggering playback (desktop only)
           if (mile && !uiController.isMobile) {
             trackMile.title = 'Fly to location';
-            trackMileZone.addEventListener('click', (e) => {
+            trackMile.style.cursor = 'pointer';
+            trackMile.addEventListener('click', (e) => {
               e.stopPropagation();
+              e.preventDefault();
               this.positionMapForTrack(track, index);
+              // Re-apply active track highlight in case flyTo disturbs it
+              setTimeout(() => this.updateActiveTrack(audioController.currentIndex, false, audioController.currentAudio), 50);
             });
           }
 
