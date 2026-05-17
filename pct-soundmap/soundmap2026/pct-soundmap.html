@@ -171,7 +171,7 @@
   }
 
   .track:hover {
-    background-color: #f0f0f0;
+    background-color: rgba(255, 242, 232, 0.85);
   }
 
   .track:has(.track-mile-zone:hover) {
@@ -179,7 +179,7 @@
   }
 
   .active-track {
-    background-color: #f0f0f0;
+    background-color: rgba(255, 242, 232, 0.85);
   }
 
   .track-info {
@@ -582,6 +582,10 @@
   }
   
   /* Custom popup (outside map container) - State 3 full popup */
+  .mapboxgl-popup {
+    z-index: 500;
+  }
+
   .custom-popup {
     background-color: rgba(255, 255, 255, 0.75);
     color: #000000;

@@ -1299,7 +1299,7 @@ class MapController {
             activeTrack.classList.add('active-track');
             
             // Enhanced styling for active track
-            activeTrack.style.backgroundColor = '#f0f0f0'; // Match hover color
+            activeTrack.style.backgroundColor = 'rgba(255, 242, 232, 0.85)'; // Match hover color
             activeTrack.style.fontWeight = '600'; // Bold
             
           // Add play/pause indicator if not already there
