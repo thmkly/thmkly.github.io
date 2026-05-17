@@ -725,13 +725,14 @@
     backdrop-filter: blur(10px);
     -webkit-backdrop-filter: blur(10px);
     z-index: 10000;
-    border-radius: 12px 0 0 12px;
-    box-shadow: -4px 0 20px rgba(0, 0, 0, 0.3);
+    border-radius: 0;
+    box-shadow: -2px 0 12px rgba(0, 0, 0, 0.2);
     transition: transform 0.3s ease;
     display: flex;
     flex-direction: column;
     opacity: 1;
     pointer-events: auto;
+    overflow: hidden;
   }
 
   body.is-mobile .playlist-wrapper.mobile-expanded {
