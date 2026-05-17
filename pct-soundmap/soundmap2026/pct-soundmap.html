@@ -131,6 +131,16 @@
     pointer-events: none;
   }
 
+  .playlist-copyright {
+    font-size: 10px;
+    color: #aaa;
+    text-align: center;
+    padding: 4px 8px 6px;
+    user-select: none;
+    pointer-events: none;
+    letter-spacing: 0.03em;
+  }
+
   .track {
     cursor: pointer;
     padding: 5px;
@@ -558,15 +568,6 @@
     border-top: 10px solid rgba(255, 255, 255, 0.75);
   }
 
-  /* Playing state — warm orange tint on main infobox */
-  .custom-popup.playing-popup {
-    background-color: rgba(255, 235, 220, 0.75);
-  }
-
-  .custom-popup.playing-popup::after {
-    border-top-color: rgba(255, 235, 220, 0.75);
-  }
-
 
   .loading-placeholder {
     text-align: center;
@@ -882,10 +883,6 @@
     padding-right: 30px;
   }
 
-  .popup-title:hover {
-    text-decoration: underline;
-  }
-
   .popup-meta {
     font-size: 13px;
     color: #666;
@@ -1073,6 +1070,7 @@
       <div class="loading-placeholder">loading recordings...</div>
     </div>
     <div class="scroll-arrow down" id="scrollDown" title="Scroll down">▼</div>
+    <div class="playlist-copyright">© Thomas Kelly, 2023</div>
     <!-- Mobile sort footer - compact, at bottom -->
     <div class="mobile-controls" style="display: none;">
       <div class="sort-controls">
