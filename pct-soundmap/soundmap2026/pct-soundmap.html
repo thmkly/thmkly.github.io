@@ -131,15 +131,6 @@
     pointer-events: none;
   }
 
-  .playlist-copyright {
-    font-size: 10px;
-    color: #aaa;
-    text-align: center;
-    padding: 4px 8px 6px;
-    user-select: none;
-    pointer-events: none;
-    letter-spacing: 0.03em;
-  }
 
   .track {
     cursor: pointer;
@@ -1028,6 +1019,11 @@
     outline: none;
   }
 
+  /* Custom map attribution */
+  .mapboxgl-ctrl-attrib-inner::before {
+    content: '© Thomas Kelly · ';
+  }
+
   /* Play/Pause button styling */
   .play-pause-btn {
     font-family: helvetica, sans-serif !important;
@@ -1070,7 +1066,6 @@
       <div class="loading-placeholder">loading recordings...</div>
     </div>
     <div class="scroll-arrow down" id="scrollDown" title="Scroll down">▼</div>
-    <div class="playlist-copyright">© Thomas Kelly, 2023</div>
     <!-- Mobile sort footer - compact, at bottom -->
     <div class="mobile-controls" style="display: none;">
       <div class="sort-controls">
