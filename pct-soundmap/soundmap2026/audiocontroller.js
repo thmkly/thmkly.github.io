@@ -74,7 +74,7 @@ class AudioController {
       const startTime = performance.now();
       const tick = (now) => {
         const progress = Math.min((now - startTime) / duration, 1);
-        audio.volume = startVolume * (1 - progress);
+        audio.volume = startVolume * (1 - (progress * progress));
         if (progress < 1) {
           this._fadeRaf = requestAnimationFrame(tick);
         } else {
