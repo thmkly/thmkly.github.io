@@ -1299,7 +1299,7 @@ class MapController {
             activeTrack.classList.add('active-track');
             
             // Enhanced styling for active track
-            activeTrack.style.backgroundColor = 'rgba(255, 235, 220, 0.5)'; // Warm beige
+            activeTrack.style.backgroundColor = '#f0f0f0'; // Match hover color
             activeTrack.style.fontWeight = '600'; // Bold
             
           // Add play/pause indicator if not already there
@@ -1825,6 +1825,9 @@ class MapController {
             container.style.position = 'absolute';
             container.style.width = '320px';
             container.style.zIndex = '500';
+            // Also set on the parent mapboxgl-popup element
+            const popupEl = container.closest('.mapboxgl-popup');
+            if (popupEl) popupEl.style.zIndex = '500';
             container._coords = coords;
             container.dataset.trackIndex = index;
             container.dataset.originalIndex = track.originalIndex;
