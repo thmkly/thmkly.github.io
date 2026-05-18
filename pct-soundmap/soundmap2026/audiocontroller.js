@@ -96,6 +96,13 @@ class AudioController {
       title: track.name || 'unknown',
       artist: 'stereo',
       album: 'a sound map of the pacific crest trail, 2023',
+      artwork: [
+        {
+          src: 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512"><rect width="512" height="512" fill="%23f5f0eb"/><text x="50%25" y="50%25" font-family="helvetica" font-size="48" fill="%23888" text-anchor="middle" dominant-baseline="middle">stereo</text></svg>',
+          sizes: '512x512',
+          type: 'image/svg+xml'
+        }
+      ]
     });
 
     navigator.mediaSession.setActionHandler('play', () => {
