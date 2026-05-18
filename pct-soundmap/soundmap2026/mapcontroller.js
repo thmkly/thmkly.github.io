@@ -1217,8 +1217,9 @@ class MapController {
         
         // New helper method - add this RIGHT AFTER minimizePopup() closes
               updateHeaderBadge(track, audio = null) {
-        // Never show badge while flying to a location
-        if (this.isFlying) return;
+        // On mobile: show badge immediately during flyTo as loading feedback
+        // On desktop: suppress during flyTo since popup appears at destination
+        if (this.isFlying && !uiController.isMobile) return;
         // Remove existing badge and clean up listeners
         const existingBadge = document.getElementById('playing-badge');
         if (existingBadge) {
