@@ -89,6 +89,43 @@ class AudioController {
     });
   }
 
+  updateMediaSession(track) {
+    if (!('mediaSession' in navigator)) return;
+
+    navigator.mediaSession.metadata = new MediaMetadata({
+      title: track.name || 'unknown',
+      artist: 'stereo',
+      album: 'a sound map of the pacific crest trail, 2023',
+    });
+
+    navigator.mediaSession.setActionHandler('play', () => {
+      this.currentAudio.play();
+      this.isPlaying = true;
+      navigator.mediaSession.playbackState = 'playing';
+    });
+
+    navigator.mediaSession.setActionHandler('pause', () => {
+      this.currentAudio.pause();
+      this.isPlaying = false;
+      navigator.mediaSession.playbackState = 'paused';
+    });
+
+    navigator.mediaSession.setActionHandler('previoustrack', () => {
+      if (window.mapController) {
+        this.playPrevious(window.mapController.audioData);
+      }
+    });
+
+    navigator.mediaSession.setActionHandler('nexttrack', () => {
+      if (window.mapController) {
+        this.playNext(window.mapController.audioData, true);
+      }
+    });
+
+    // Update playback state
+    navigator.mediaSession.playbackState = 'playing';
+  }
+
   play(index, audioData, withFade = false) {
     const track = audioData[index];
     if (!track) return;
@@ -114,7 +151,9 @@ class AudioController {
       this.currentAudio.volume = 1;
       const playPromise = this.currentAudio.play();
       if (playPromise !== undefined) {
-        playPromise.catch(error => {
+        playPromise.then(() => {
+          this.updateMediaSession(track);
+        }).catch(error => {
           console.log('Playback prevented (autoplay policy):', error);
         });
       }
