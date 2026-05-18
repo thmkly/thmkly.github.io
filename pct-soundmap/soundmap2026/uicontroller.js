@@ -95,16 +95,7 @@ class UIController {
             e.preventDefault();
           }
         }, { passive: false });
-        scrollUp.addEventListener('click', () => {
-          if (!scrollUp.classList.contains('disabled')) {
-            playlist.scrollBy({ top: -100, behavior: 'smooth' });
-          }
-        });
-        scrollDown.addEventListener('click', () => {
-          if (!scrollDown.classList.contains('disabled')) {
-            playlist.scrollBy({ top: 100, behavior: 'smooth' });
-          }
-        });
+        // Scroll arrows are visual indicators only — no click interaction
 
         // Initialize scroll arrows state on load
         setTimeout(() => this.updateScrollArrows(), 100);
