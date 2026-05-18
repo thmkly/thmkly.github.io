@@ -651,6 +651,26 @@ class MapController {
           div.appendChild(trackInfo);
           div.appendChild(trackMileZone);
           
+          // Touch feedback — flash highlight on tap, clear on scroll
+          if (uiController.isMobile) {
+            let touchMoved = false;
+            div.addEventListener('touchstart', () => {
+              touchMoved = false;
+              div.classList.add('touch-active');
+            }, { passive: true });
+            div.addEventListener('touchmove', () => {
+              touchMoved = true;
+              div.classList.remove('touch-active');
+            }, { passive: true });
+            div.addEventListener('touchend', () => {
+              if (touchMoved) {
+                div.classList.remove('touch-active');
+              } else {
+                setTimeout(() => div.classList.remove('touch-active'), 150);
+              }
+            }, { passive: true });
+          }
+
           div.addEventListener('click', (e) => {
             // If clicking the currently playing track, toggle pause/play
             if (index === audioController.currentIndex && audioController.currentAudio) {
