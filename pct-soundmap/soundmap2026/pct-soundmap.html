@@ -26,7 +26,15 @@
 
   /* ADDED: Persistent audio player - hidden for iOS background playback support */
   #persistent-audio {
-    display: none; /* Hidden but functional for iOS */
+    /* Visually hidden but kept in DOM with non-zero dimensions
+       so iOS Safari recognizes it for MediaSession metadata display */
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    width: 1px;
+    height: 1px;
+    opacity: 0;
+    pointer-events: none;
   }
 
   /* Playlist Styles */
