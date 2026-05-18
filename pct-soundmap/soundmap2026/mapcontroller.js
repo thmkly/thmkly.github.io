@@ -659,6 +659,8 @@ class MapController {
               } else {
                 audioController.currentAudio.pause();
               }
+              // Ensure active track highlight stays after pause/play
+              div.style.backgroundColor = 'rgba(255, 215, 175, 0.72)';
               return; // Don't restart the track
             }
             
