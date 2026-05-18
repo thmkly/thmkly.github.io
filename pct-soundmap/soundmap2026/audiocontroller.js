@@ -149,11 +149,11 @@ class AudioController {
       this.currentAudio.src = track.audioUrl;
       this.currentAudio.load();
       this.currentAudio.volume = 1;
+      // Set metadata before play so iOS lock screen picks it up immediately
+      this.updateMediaSession(track);
       const playPromise = this.currentAudio.play();
       if (playPromise !== undefined) {
-        playPromise.then(() => {
-          this.updateMediaSession(track);
-        }).catch(error => {
+        playPromise.catch(error => {
           console.log('Playback prevented (autoplay policy):', error);
         });
       }
