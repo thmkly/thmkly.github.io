@@ -874,8 +874,9 @@
   body.is-mobile .playlist-footer { display: block !important; }
   body.is-mobile .playlist-title { display: none; }
   body.is-mobile .playlist-wrapper #playlist { max-height: none; flex: 1; overflow-y: auto; margin: 0 !important; padding: 0 !important; background-color: transparent !important; }
-  body.is-mobile .playlist-wrapper .track { background-color: transparent !important; margin-bottom: 0 !important; -webkit-tap-highlight-color: transparent; }
+  body.is-mobile .playlist-wrapper .track { background-color: transparent !important; margin-bottom: 0 !important; -webkit-tap-highlight-color: transparent; user-select: none; }
   body.is-mobile .playlist-wrapper .track:active { background-color: transparent !important; }
+  body.is-mobile #playlist { -webkit-overflow-scrolling: touch; }
   body.is-mobile .playlist-wrapper .playlist .track:last-child { border-bottom: none; margin-bottom: 0 !important; padding-bottom: 5px !important; }
   body.is-mobile .playlist-wrapper .track:hover { background-color: rgba(0,0,0,0.05) !important; }
   body.is-mobile .playlist-wrapper .scroll-arrow {
@@ -1347,14 +1348,12 @@
         
         // Close menu when clicking outside on mobile
         document.addEventListener('click', (e) => {
-          if (window.innerWidth <= 768 && 
+          if (uiController.isMobile && 
+              uiController.mobilePlaylistExpanded &&
               hamburgerMenu && 
               !hamburgerMenu.contains(e.target) && 
-              !playlistWrapper.contains(e.target) &&
-              playlistWrapper.classList.contains('mobile-expanded')) {
-            playlistWrapper.classList.remove('mobile-expanded');
-            document.body.classList.remove('mobile-menu-open');
-            uiController.mobilePlaylistExpanded = false;
+              !playlistWrapper.contains(e.target)) {
+            uiController.collapseMobileMenu();
           }
         });
 
