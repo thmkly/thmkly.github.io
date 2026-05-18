@@ -2369,8 +2369,8 @@ class MapController {
 
       // Update badge visibility based on playlist state and point visibility  
       updateBadgeVisibility() {
-        // Don't show badge during flyTo — map is in transit, not settled
-        if (this.isFlying) {
+        // On desktop: hide badge during flyTo. On mobile: allow it as loading feedback
+        if (this.isFlying && !uiController.isMobile) {
           const badge = document.getElementById('playing-badge');
           if (badge) badge.style.display = 'none';
           return;
