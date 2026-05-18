@@ -153,10 +153,12 @@ class UIController {
           if (this.mobilePlaylistExpanded) {
             wrapper.classList.add('mobile-expanded');
             document.body.classList.add('mobile-menu-open');
+            document.body.style.overflow = 'hidden';
             if (hamburger) hamburger.classList.add('open');
           } else {
             wrapper.classList.remove('mobile-expanded');
             document.body.classList.remove('mobile-menu-open');
+            document.body.style.overflow = '';
             if (hamburger) hamburger.classList.remove('open');
           }
         }
@@ -169,6 +171,7 @@ class UIController {
           this.mobilePlaylistExpanded = false;
           wrapper.classList.remove('mobile-expanded');
           document.body.classList.remove('mobile-menu-open');
+          document.body.style.overflow = '';
           if (hamburger) hamburger.classList.remove('open');
         }
 
