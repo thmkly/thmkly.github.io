@@ -147,11 +147,6 @@
     pointer-events: none;
   }
 
-  body.is-mobile .playlist-footer {
-    border-top: 1px solid rgba(0,0,0,0.08);
-    padding: 6px 8px 8px;
-  }
-
   .playlist-footer {
     flex-shrink: 0;
     text-align: center;
@@ -834,7 +829,8 @@
   /* Sort footer */
   body.is-mobile .mobile-controls {
     display: block;
-    padding: 7px 8px 4px;
+    padding: 4px 8px 8px;
+    border-bottom: 1px solid rgba(0,0,0,0.08);
     background: transparent;
     flex-shrink: 0;
   }
@@ -889,21 +885,13 @@
   body.is-mobile .playlist-title { display: none; }
 
   body.is-mobile .playlist-title-mobile {
-    display: flex;
-    flex-direction: column;
-    padding: 8px 44px 8px 8px;
-  }
-
-  body.is-mobile .playlist-title-line1 {
+    display: block;
     font-size: 11px;
     color: #000;
     letter-spacing: 0.04em;
-  }
-
-  body.is-mobile .playlist-title-line2 {
-    font-size: 11px;
-    color: #888;
-    letter-spacing: 0.04em;
+    padding: 8px 44px 4px 8px;
+    user-select: none;
+    pointer-events: none;
   }
   body.is-mobile .playlist-wrapper #playlist { max-height: none; flex: 1; overflow-y: auto; margin: 0 !important; padding: 0 !important; background-color: transparent !important; }
   body.is-mobile .playlist-wrapper .track { background-color: transparent; margin-bottom: 0 !important; }
@@ -1214,11 +1202,16 @@
     <button class="playlist-toggle" id="playlistToggle" title="Collapse playlist">◀</button>
     <!-- Playlist header: sort controls + close button -->
     <div class="playlist-header">
-      <div class="playlist-title-mobile">
-        <div class="playlist-title-line1">a sound map of the pacific crest trail</div>
-        <div class="playlist-title-line2">by stereo, 2023</div>
-      </div>
+      <div class="playlist-title-mobile">a sound map of the pacific crest trail, 2023, by stereo</div>
       <button class="mobile-menu-close" id="mobileMenuClose" aria-label="Close menu"></button>
+      <div class="mobile-controls">
+        <div class="sort-controls">
+          <button class="control-btn sort-btn active" id="sortNoboMobile" title="Northbound playlist">NOBO</button>
+          <button class="control-btn sort-btn" id="sortSoboMobile" title="Southbound playlist">SOBO</button>
+          <button class="control-btn sort-btn" id="sortDateMobile" title="Chronological playlist">STEREO</button>
+          <button class="control-btn sort-btn" id="sortRandomMobile" title="Random playback">RANDOM</button>
+        </div>
+      </div>
     </div>
     <!-- Track list -->
     <div class="scroll-arrow up" id="scrollUp" title="Scroll up">▲</div>
@@ -1228,14 +1221,6 @@
     <div class="scroll-arrow down" id="scrollDown" title="Scroll down">▼</div>
     <!-- Playlist footer: support link -->
     <div class="playlist-footer">
-      <div class="mobile-controls">
-        <div class="sort-controls">
-          <button class="control-btn sort-btn active" id="sortNoboMobile" title="Northbound playlist">NOBO</button>
-          <button class="control-btn sort-btn" id="sortSoboMobile" title="Southbound playlist">SOBO</button>
-          <button class="control-btn sort-btn" id="sortDateMobile" title="Chronological playlist">STEREO</button>
-          <button class="control-btn sort-btn" id="sortRandomMobile" title="Random playback">RANDOM</button>
-        </div>
-      </div>
       <a href="https://ko-fi.com/thmkly" target="_blank" rel="noopener noreferrer" class="support-link">support this project + my future work &#10084;&#xFE0E;</a>
     </div>
   </div>
