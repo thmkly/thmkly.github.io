@@ -141,7 +141,7 @@
     font-size: 11px;
     color: #000;
     letter-spacing: 0.04em;
-    text-align: left;
+    text-align: center;
     padding: 8px 40px 8px 8px;
     user-select: none;
     pointer-events: none;
@@ -880,8 +880,11 @@
 
   body.is-mobile .playlist-wrapper .playlist-toggle { display: none; }
   body.is-mobile .playlist-wrapper .mobile-controls { display: block !important; }
-  body.is-mobile .playlist-header { display: block !important; }
-  body.is-mobile .playlist-footer { display: block !important; }
+  body.is-mobile .playlist-header { display: block !important; order: 3; }
+  body.is-mobile .playlist-footer { display: block !important; order: 1; }
+  body.is-mobile #playlist { order: 2; }
+  body.is-mobile #scrollUp { order: 2; }
+  body.is-mobile #scrollDown { order: 2; }
   body.is-mobile .playlist-title { display: none; }
   body.is-mobile .playlist-wrapper #playlist { max-height: none; flex: 1; overflow-y: auto; margin: 0 !important; padding: 0 !important; background-color: transparent !important; }
   body.is-mobile .playlist-wrapper .track { background-color: transparent; margin-bottom: 0 !important; }
