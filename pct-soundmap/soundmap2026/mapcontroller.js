@@ -454,11 +454,15 @@ class MapController {
                 // Show playlist wrapper again with flex display
                 playlistWrapper.style.display = 'flex';
                 
-                // Hide loading notification and show success message
-                hideNotification();
-                setTimeout(() => {
-                  showNotification(`${data.length} recordings loaded`, 3000);
-                }, 100);
+                // Hide loading notification only when map is actually idle (data rendered)
+                const onIdle = () => {
+                  map.off('idle', onIdle);
+                  hideNotification();
+                  setTimeout(() => {
+                    showNotification(`${data.length} recordings loaded`, 3000);
+                  }, 100);
+                };
+                map.once('idle', onIdle);
                 
               } catch (parseError) {
                 throw new Error(`Invalid JSON response: ${parseError.message}`);
