@@ -104,6 +104,10 @@ class MapController {
         // Disable drag rotation initially
         map.on('load', () => {
           map.dragRotate.disable();
+          // Disable two-finger rotation on mobile (keep pinch-to-zoom)
+          if (uiController.isMobile) {
+            map.touchZoomRotate.disableRotation();
+          }
           
           // Check for API availability before using
           if (typeof map.setSky === 'function') {
