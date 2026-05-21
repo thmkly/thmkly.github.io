@@ -394,8 +394,8 @@ class MapController {
           // Playlist wrapper is already hidden via CSS
           const playlistWrapper = document.getElementById('playlistWrapper');
           
-          // Show persistent loading notification (no duration = stays visible)
-          showNotification('loading recordings...');
+          // Show persistent loading notification (duration 0 = stays until hidden)
+          showNotification('loading recordings...', 0);
           
           const url = `${CONFIG.GOOGLE_SCRIPT_URL}?nocache=${Date.now()}`;
           
