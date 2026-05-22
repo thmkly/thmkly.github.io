@@ -976,7 +976,15 @@ class MapController {
           // Add delay before positioning to prevent conflicts
         this.animationTimeout = setTimeout(() => {
           if (!pointComfortablyVisible) {
-            if (!fromLockScreen) this.positionMapForTrack(track, index, fromAutoPlay);
+            if (fromLockScreen) {
+          // Lock screen nav: jump instantly to track location, no animation
+          const coords = [parseFloat(track.lng), parseFloat(track.lat)];
+          if (!isNaN(coords[0]) && !isNaN(coords[1])) {
+            map.jumpTo({ center: coords });
+          }
+        } else {
+          this.positionMapForTrack(track, index, fromAutoPlay);
+        }
           }
           
           // Get the flyto duration (0 if no flyto needed)

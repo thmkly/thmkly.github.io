@@ -132,19 +132,22 @@ class AudioController {
 
     navigator.mediaSession.setActionHandler('previoustrack', () => {
       if (window.mapController && window.mapController.audioData) {
-        let prevIndex = this.currentIndex - 1;
-        if (prevIndex < 0) prevIndex = window.mapController.audioData.length - 1;
-        // Update map state without flyTo, then update metadata
-        window.mapController.playAudio(prevIndex, false, false, false, true);
+        // Use playPrevious to respect playMode (random, sequential etc)
+        // Override playAudio to use fromLockScreen=true to skip flyTo
+        const origPlayAudio = window.mapController.playAudio.bind(window.mapController);
+        window.mapController.playAudio = (idx, a, b, c) => origPlayAudio(idx, a, b, c, true);
+        this.playPrevious(window.mapController.audioData);
+        window.mapController.playAudio = origPlayAudio;
       }
     });
 
     navigator.mediaSession.setActionHandler('nexttrack', () => {
       if (window.mapController && window.mapController.audioData) {
-        let nextIndex = this.currentIndex + 1;
-        if (nextIndex >= window.mapController.audioData.length) nextIndex = 0;
-        // Update map state without flyTo, then update metadata
-        window.mapController.playAudio(nextIndex, false, false, false, true);
+        // Use playNext to respect playMode (random, sequential etc)
+        const origPlayAudio = window.mapController.playAudio.bind(window.mapController);
+        window.mapController.playAudio = (idx, a, b, c) => origPlayAudio(idx, a, b, c, true);
+        this.playNext(window.mapController.audioData, true);
+        window.mapController.playAudio = origPlayAudio;
       }
     });
 
