@@ -139,10 +139,10 @@
 
   .playlist-title {
     font-size: 11px;
-    color: #999;
+    color: #000;
     letter-spacing: 0.04em;
     text-align: center;
-    padding: 4px 8px 2px;
+    padding: 8px 8px 4px;
     user-select: none;
     pointer-events: none;
   }
@@ -251,10 +251,15 @@
     font-style: italic;
     font-family: Georgia, serif;
     color: #333;
-    display: flex;
+    display: none;
     align-items: center;
     justify-content: center;
     user-select: none;
+  }
+
+  /* Desktop info button shown in control panel */
+  #infoBtnDesktop {
+    display: flex;
   }
 
   .info-btn:hover {
@@ -1277,7 +1282,7 @@
     <button class="playlist-toggle" id="playlistToggle" title="Collapse playlist">◀</button>
     <!-- Playlist header: sort controls + close button -->
     <div class="playlist-header">
-      <div class="playlist-title-mobile">a sound map of the pacific crest trail, 2023, by stereo</div>
+      <div class="playlist-title">a sound map of the pacific crest trail, 2023, by stereo</div>
       <button class="mobile-menu-close" id="mobileMenuClose" aria-label="Close menu"></button>
       <div class="mobile-controls">
         <div class="sort-controls">
