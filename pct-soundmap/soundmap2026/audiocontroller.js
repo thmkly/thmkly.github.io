@@ -51,18 +51,7 @@ class AudioController {
       }
     });
 
-    // Keep MediaSession playback state in sync with actual audio element state
-    this.currentAudio.addEventListener('play', () => {
-      if ('mediaSession' in navigator) {
-        navigator.mediaSession.playbackState = 'playing';
-      }
-    });
 
-    this.currentAudio.addEventListener('pause', () => {
-      if ('mediaSession' in navigator) {
-        navigator.mediaSession.playbackState = 'paused';
-      }
-    });
     
     this.currentAudio.addEventListener('error', () => {
       if (this.currentIndex >= 0 && window.mapController && window.mapController.audioData) {
@@ -109,13 +98,6 @@ class AudioController {
       title: track.name || 'unknown',
       artist: 'tom kelly',
       album: 'a sound map of the pacific crest trail, 2023',
-      artwork: [
-        {
-          src: 'https://www.thomasmkelly.com/favicon-sierra.png',
-          sizes: '512x512',
-          type: 'image/png'
-        }
-      ]
     });
 
     navigator.mediaSession.setActionHandler('play', () => {
