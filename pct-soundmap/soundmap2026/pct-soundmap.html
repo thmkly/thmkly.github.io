@@ -261,9 +261,10 @@
   #infoBtnDesktop {
     display: flex;
     position: absolute;
-    top: 112px;
+    top: 25px; /* updated dynamically by JS */
     right: 25px;
     z-index: 2;
+    visibility: hidden; /* hidden until positioned */
   }
 
   body.is-mobile #infoBtnDesktop { display: none !important; }
@@ -1475,6 +1476,19 @@
         const infoOverlay = document.getElementById('infoOverlay');
         const infoDialogClose = document.getElementById('infoDialogClose');
         const infoBtnDesktop = document.getElementById('infoBtnDesktop');
+
+        // Position info button below control panel dynamically
+        const positionInfoBtn = () => {
+          if (!infoBtnDesktop || uiController.isMobile) return;
+          const panel = document.querySelector('.control-panel');
+          if (!panel) return;
+          const rect = panel.getBoundingClientRect();
+          infoBtnDesktop.style.top = `${rect.bottom + 8}px`;
+          infoBtnDesktop.style.visibility = 'visible';
+        };
+        // Run after initial render and after any resize
+        setTimeout(positionInfoBtn, 200);
+        window.addEventListener('resize', positionInfoBtn);
         const infoBtnMobile = document.getElementById('infoBtnMobile');
 
         const openInfo = () => infoOverlay.classList.add('visible');
