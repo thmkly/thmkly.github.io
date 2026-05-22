@@ -96,7 +96,7 @@ class AudioController {
 
     navigator.mediaSession.metadata = new MediaMetadata({
       title: track.name || 'unknown',
-      artist: 'tom kelly',
+      artist: 'stereo',
       album: 'a sound map of the pacific crest trail, 2023',
       artwork: [
         {
@@ -121,22 +121,13 @@ class AudioController {
 
     navigator.mediaSession.setActionHandler('previoustrack', () => {
       if (window.mapController && window.mapController.audioData) {
-        // Use playPrevious to respect playMode (random, sequential etc)
-        // Override playAudio to use fromLockScreen=true to skip flyTo
-        const origPlayAudio = window.mapController.playAudio.bind(window.mapController);
-        window.mapController.playAudio = (idx, a, b, c) => origPlayAudio(idx, a, b, c, true);
         this.playPrevious(window.mapController.audioData);
-        window.mapController.playAudio = origPlayAudio;
       }
     });
 
     navigator.mediaSession.setActionHandler('nexttrack', () => {
       if (window.mapController && window.mapController.audioData) {
-        // Use playNext to respect playMode (random, sequential etc)
-        const origPlayAudio = window.mapController.playAudio.bind(window.mapController);
-        window.mapController.playAudio = (idx, a, b, c) => origPlayAudio(idx, a, b, c, true);
         this.playNext(window.mapController.audioData, true);
-        window.mapController.playAudio = origPlayAudio;
       }
     });
 
