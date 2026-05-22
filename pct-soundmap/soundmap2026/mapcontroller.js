@@ -743,7 +743,7 @@ class MapController {
           }
         }
 
-     playAudio(index, fromAutoPlay = false, fromMap = false, fromMiniPill = false) {
+     playAudio(index, fromAutoPlay = false, fromMap = false, fromMiniPill = false, fromLockScreen = false) {
        const track = this.audioData[index];
        if (!track) {
          return;
@@ -976,7 +976,7 @@ class MapController {
           // Add delay before positioning to prevent conflicts
         this.animationTimeout = setTimeout(() => {
           if (!pointComfortablyVisible) {
-            this.positionMapForTrack(track, index, fromAutoPlay);
+            if (!fromLockScreen) this.positionMapForTrack(track, index, fromAutoPlay);
           }
           
           // Get the flyto duration (0 if no flyto needed)

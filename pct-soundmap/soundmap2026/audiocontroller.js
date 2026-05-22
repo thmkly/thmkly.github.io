@@ -132,21 +132,19 @@ class AudioController {
 
     navigator.mediaSession.setActionHandler('previoustrack', () => {
       if (window.mapController && window.mapController.audioData) {
-        // Play previous audio only — no flyTo from lock screen
         let prevIndex = this.currentIndex - 1;
         if (prevIndex < 0) prevIndex = window.mapController.audioData.length - 1;
-        this.play(prevIndex, window.mapController.audioData);
-        this.updateMediaSession(window.mapController.audioData[prevIndex]);
+        // Update map state without flyTo, then update metadata
+        window.mapController.playAudio(prevIndex, false, false, false, true);
       }
     });
 
     navigator.mediaSession.setActionHandler('nexttrack', () => {
       if (window.mapController && window.mapController.audioData) {
-        // Play next audio only — no flyTo from lock screen
         let nextIndex = this.currentIndex + 1;
         if (nextIndex >= window.mapController.audioData.length) nextIndex = 0;
-        this.play(nextIndex, window.mapController.audioData);
-        this.updateMediaSession(window.mapController.audioData[nextIndex]);
+        // Update map state without flyTo, then update metadata
+        window.mapController.playAudio(nextIndex, false, false, false, true);
       }
     });
 
