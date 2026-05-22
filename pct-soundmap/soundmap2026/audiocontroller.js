@@ -50,6 +50,19 @@ class AudioController {
         this.playNext(window.mapController.audioData);
       }
     });
+
+    // Keep MediaSession playback state in sync with actual audio element state
+    this.currentAudio.addEventListener('play', () => {
+      if ('mediaSession' in navigator) {
+        navigator.mediaSession.playbackState = 'playing';
+      }
+    });
+
+    this.currentAudio.addEventListener('pause', () => {
+      if ('mediaSession' in navigator) {
+        navigator.mediaSession.playbackState = 'paused';
+      }
+    });
     
     this.currentAudio.addEventListener('error', () => {
       if (this.currentIndex >= 0 && window.mapController && window.mapController.audioData) {
@@ -94,7 +107,7 @@ class AudioController {
 
     navigator.mediaSession.metadata = new MediaMetadata({
       title: track.name || 'unknown',
-      artist: 'stereo',
+      artist: 'tom kelly',
       album: 'a sound map of the pacific crest trail, 2023',
       artwork: [
         {
@@ -118,14 +131,22 @@ class AudioController {
     });
 
     navigator.mediaSession.setActionHandler('previoustrack', () => {
-      if (window.mapController) {
-        this.playPrevious(window.mapController.audioData);
+      if (window.mapController && window.mapController.audioData) {
+        // Play previous audio only — no flyTo from lock screen
+        let prevIndex = this.currentIndex - 1;
+        if (prevIndex < 0) prevIndex = window.mapController.audioData.length - 1;
+        this.play(prevIndex, window.mapController.audioData);
+        this.updateMediaSession(window.mapController.audioData[prevIndex]);
       }
     });
 
     navigator.mediaSession.setActionHandler('nexttrack', () => {
-      if (window.mapController) {
-        this.playNext(window.mapController.audioData, true);
+      if (window.mapController && window.mapController.audioData) {
+        // Play next audio only — no flyTo from lock screen
+        let nextIndex = this.currentIndex + 1;
+        if (nextIndex >= window.mapController.audioData.length) nextIndex = 0;
+        this.play(nextIndex, window.mapController.audioData);
+        this.updateMediaSession(window.mapController.audioData[nextIndex]);
       }
     });
 
