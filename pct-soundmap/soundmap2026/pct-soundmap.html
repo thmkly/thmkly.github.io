@@ -1482,12 +1482,15 @@
           if (!infoBtnDesktop || uiController.isMobile) return;
           const panel = document.querySelector('.control-panel');
           if (!panel) return;
-          // Use offsetTop + offsetHeight to get position relative to parent
-          infoBtnDesktop.style.top = `${panel.offsetTop + panel.offsetHeight + 8}px`;
+          // getBoundingClientRect accounts for CSS zoom scaling
+          // offsetParent is BODY so viewport top = document top
+          const rect = panel.getBoundingClientRect();
+          const scrollY = window.scrollY || document.documentElement.scrollTop;
+          infoBtnDesktop.style.top = `${rect.bottom + scrollY + 8}px`;
           infoBtnDesktop.style.visibility = 'visible';
         };
         // Run after initial render and after any resize
-        setTimeout(positionInfoBtn, 200);
+        setTimeout(positionInfoBtn, 500);
         window.addEventListener('resize', positionInfoBtn);
         const infoBtnMobile = document.getElementById('infoBtnMobile');
 
