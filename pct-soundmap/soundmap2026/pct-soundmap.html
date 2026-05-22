@@ -139,10 +139,10 @@
 
   .playlist-title {
     font-size: 11px;
-    color: #000;
+    color: #999;
     letter-spacing: 0.04em;
     text-align: center;
-    padding: 8px;
+    padding: 4px 8px 2px;
     user-select: none;
     pointer-events: none;
   }
@@ -237,6 +237,77 @@
   .track-mile:hover {
     color: #5c3a2e;
     text-decoration: underline;
+  }
+
+  /* Info button */
+  .info-btn {
+    width: 36px;
+    height: 36px;
+    background: rgba(255, 255, 255, 0.9);
+    border: 1px solid #bbb;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 15px;
+    font-style: italic;
+    font-family: Georgia, serif;
+    color: #333;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    user-select: none;
+  }
+
+  .info-btn:hover {
+    background: rgba(255, 255, 255, 1);
+  }
+
+  /* Info dialog */
+  .info-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.35);
+    z-index: 50000;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .info-overlay.visible {
+    display: flex;
+  }
+
+  .info-dialog {
+    width: min(500px, 90vw);
+    max-height: 80vh;
+    background: rgba(255, 255, 255, 0.90);
+    border-radius: 8px;
+    padding: 28px;
+    overflow-y: auto;
+    position: relative;
+    box-shadow: 0 4px 24px rgba(0, 0, 0, 0.15);
+  }
+
+  .info-dialog-close {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    width: 28px;
+    height: 28px;
+    background: transparent;
+    border: 1px solid #bbb;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 18px;
+    line-height: 1;
+    color: #333;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0 0 2px 0;
+  }
+
+  .info-dialog-close:hover {
+    background: #f0f0f0;
   }
 
   /* Control Panel */
@@ -764,6 +835,9 @@
   /* ── Mobile layout — gated on device detection, not window width ── */
 
   body.is-mobile .control-panel { display: none; }
+  body.is-mobile .info-btn { position: fixed; top: 62px; right: 15px; z-index: 1001; display: none; }
+  body.is-mobile.mobile-menu-open .info-btn { display: none !important; }
+  body.is-mobile:not(.mobile-menu-open) .info-btn { display: flex; }
 
   body.is-mobile .hamburger-menu { display: flex; }
   body.is-mobile.mobile-menu-open .hamburger-menu { display: none; }
@@ -1197,6 +1271,7 @@
     <span></span>
     <span></span>
   </button>
+  <button class="info-btn" id="infoBtnMobile" title="About this map">i</button>
 
   <div class="playlist-wrapper" id="playlistWrapper">
     <button class="playlist-toggle" id="playlistToggle" title="Collapse playlist">◀</button>
@@ -1245,11 +1320,22 @@
       <button class="control-btn sort-btn" id="sortDate" title="Chronological playlist">STEREO</button>
       <button class="control-btn sort-btn" id="sortRandom" title="Random playback">RANDOM</button>
     </div>
+    <div style="display:flex; justify-content:flex-end; margin-top:4px;">
+      <button class="info-btn" id="infoBtnDesktop" title="About this map">i</button>
+    </div>
   </div>
 
   <div class="notification" id="notification"></div>
 
   <script src="https://api.mapbox.com/mapbox-gl-js/v3.8.0/mapbox-gl.js"></script>
+  <!-- Info/About dialog -->
+  <div class="info-overlay" id="infoOverlay">
+    <div class="info-dialog" id="infoDialog">
+      <button class="info-dialog-close" id="infoDialogClose">−</button>
+      <p style="color:#888; font-size:13px; margin:0;">(content coming soon)</p>
+    </div>
+  </div>
+
   <script src="config.js"></script>
   <script src="audiocontroller.js"></script>
   <script src="atmospherecontroller.js"></script>
@@ -1374,6 +1460,22 @@
               !playlistWrapper.contains(e.target)) {
             uiController.collapseMobileMenu();
           }
+        });
+
+        // Info button handlers
+        const infoOverlay = document.getElementById('infoOverlay');
+        const infoDialogClose = document.getElementById('infoDialogClose');
+        const infoBtnDesktop = document.getElementById('infoBtnDesktop');
+        const infoBtnMobile = document.getElementById('infoBtnMobile');
+
+        const openInfo = () => infoOverlay.classList.add('visible');
+        const closeInfo = () => infoOverlay.classList.remove('visible');
+
+        if (infoBtnDesktop) infoBtnDesktop.addEventListener('click', openInfo);
+        if (infoBtnMobile) infoBtnMobile.addEventListener('click', openInfo);
+        if (infoDialogClose) infoDialogClose.addEventListener('click', closeInfo);
+        if (infoOverlay) infoOverlay.addEventListener('click', (e) => {
+          if (e.target === infoOverlay) closeInfo();
         });
 
         // Sync reset buttons - call function directly, don't click desktop button
