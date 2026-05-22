@@ -1482,8 +1482,8 @@
           if (!infoBtnDesktop || uiController.isMobile) return;
           const panel = document.querySelector('.control-panel');
           if (!panel) return;
-          const rect = panel.getBoundingClientRect();
-          infoBtnDesktop.style.top = `${rect.bottom + 8}px`;
+          // Use offsetTop + offsetHeight to get position relative to parent
+          infoBtnDesktop.style.top = `${panel.offsetTop + panel.offsetHeight + 8}px`;
           infoBtnDesktop.style.visibility = 'visible';
         };
         // Run after initial render and after any resize
