@@ -257,14 +257,16 @@
     user-select: none;
   }
 
-  /* Desktop info button — standalone below control panel */
+  /* Desktop info button — standalone below control panel, right-aligned with sort controls */
   #infoBtnDesktop {
     display: flex;
     position: absolute;
-    top: 115px; /* below control panel */
+    top: 112px;
     right: 25px;
     z-index: 2;
   }
+
+  body.is-mobile #infoBtnDesktop { display: none !important; }
 
   .info-btn:hover {
     background: rgba(255, 255, 255, 1);
