@@ -257,9 +257,13 @@
     user-select: none;
   }
 
-  /* Desktop info button shown in control panel */
+  /* Desktop info button — standalone below control panel */
   #infoBtnDesktop {
     display: flex;
+    position: absolute;
+    top: 115px; /* below control panel */
+    right: 25px;
+    z-index: 2;
   }
 
   .info-btn:hover {
@@ -840,7 +844,7 @@
   /* ── Mobile layout — gated on device detection, not window width ── */
 
   body.is-mobile .control-panel { display: none; }
-  body.is-mobile .info-btn { position: fixed; top: 62px; right: 15px; z-index: 1001; display: none; }
+  body.is-mobile .info-btn { position: fixed; top: 62px; right: 15px; z-index: 1001; display: none; background: rgba(255, 255, 255, 0.5); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2); }
   body.is-mobile.mobile-menu-open .info-btn { display: none !important; }
   body.is-mobile:not(.mobile-menu-open) .info-btn { display: flex; }
 
@@ -1325,11 +1329,9 @@
       <button class="control-btn sort-btn" id="sortDate" title="Chronological playlist">STEREO</button>
       <button class="control-btn sort-btn" id="sortRandom" title="Random playback">RANDOM</button>
     </div>
-    <div style="display:flex; justify-content:flex-end; margin-top:4px;">
-      <button class="info-btn" id="infoBtnDesktop" title="About this map">i</button>
-    </div>
   </div>
 
+  <button class="info-btn" id="infoBtnDesktop" title="About this map">i</button>
   <div class="notification" id="notification"></div>
 
   <script src="https://api.mapbox.com/mapbox-gl-js/v3.8.0/mapbox-gl.js"></script>
