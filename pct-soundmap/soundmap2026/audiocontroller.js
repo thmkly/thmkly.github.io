@@ -111,9 +111,9 @@ class AudioController {
       album: 'a sound map of the pacific crest trail, 2023',
       artwork: [
         {
-          src: 'https://www.thomasmkelly.com/images/index-bg.jpg',
-          sizes: '1024x1024',
-          type: 'image/jpeg'
+          src: 'https://www.thomasmkelly.com/favicon-sierra.png',
+          sizes: '512x512',
+          type: 'image/png'
         }
       ]
     });
