@@ -258,12 +258,32 @@
     user-select: none;
   }
 
-  /* Desktop info button — inside control-panel-container, right-aligned */
-  #infoBtnDesktop {
+  /* Desktop info button — inline in sort controls row */
+  .info-btn-inline {
+    width: 24px;
+    height: 24px;
+    background: transparent;
+    border: 1px solid #bbb;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 12px;
+    font-style: italic;
+    font-family: Georgia, serif;
+    color: #666;
     display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-left: auto;
+    flex-shrink: 0;
+    user-select: none;
   }
 
-  body.is-mobile #infoBtnDesktop { display: none !important; }
+  .info-btn-inline:hover {
+    background: rgba(0,0,0,0.05);
+    color: #333;
+  }
+
+  body.is-mobile .info-btn-inline { display: none !important; }
 
   .info-btn:hover {
     background: rgba(255, 255, 255, 1);
@@ -370,7 +390,6 @@
     display: flex;
     gap: 4px;
     align-items: center;
-    justify-content: space-between;
   }
 
   .sort-btn {
@@ -1343,10 +1362,8 @@
         <button class="control-btn sort-btn" id="sortSobo" title="Southbound playlist">SOBO</button>
         <button class="control-btn sort-btn" id="sortDate" title="Chronological playlist">STEREO</button>
         <button class="control-btn sort-btn" id="sortRandom" title="Random playback">RANDOM</button>
+        <button class="info-btn-inline" id="infoBtnDesktop" title="About this map">i</button>
       </div>
-    </div>
-    <div style="display: flex; justify-content: flex-end;">
-      <button class="info-btn" id="infoBtnDesktop" title="About this map">i</button>
     </div>
   </div>
   <div class="notification" id="notification"></div>
