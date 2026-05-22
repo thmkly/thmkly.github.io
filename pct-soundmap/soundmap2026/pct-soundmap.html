@@ -257,14 +257,9 @@
     user-select: none;
   }
 
-  /* Desktop info button — standalone below control panel, right-aligned with sort controls */
+  /* Desktop info button — inside control-panel-container, right-aligned */
   #infoBtnDesktop {
     display: flex;
-    position: absolute;
-    top: 25px; /* updated dynamically by JS */
-    right: 25px;
-    z-index: 2;
-    visibility: hidden; /* hidden until positioned */
   }
 
   body.is-mobile #infoBtnDesktop { display: none !important; }
@@ -323,15 +318,22 @@
   }
 
   /* Control Panel */
-  .control-panel {
+  .control-panel-container {
     position: absolute;
     top: 25px;
     right: 25px;
+    z-index: 2;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    align-items: flex-end;
+  }
+
+  .control-panel {
     background-color: rgba(255, 255, 255, 0.9);
     border-radius: 5px;
     box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
     padding: 10px;
-    z-index: 2;
     display: flex;
     flex-direction: column;
     gap: 8px;
@@ -846,7 +848,7 @@
 
   /* ── Mobile layout — gated on device detection, not window width ── */
 
-  body.is-mobile .control-panel { display: none; }
+  body.is-mobile .control-panel-container { display: none; }
   body.is-mobile .info-btn { position: fixed; top: 62px; right: 15px; z-index: 1001; display: none; background: rgba(255, 255, 255, 0.5); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2); }
   body.is-mobile.mobile-menu-open .info-btn { display: none !important; }
   body.is-mobile:not(.mobile-menu-open) .info-btn { display: flex; }
@@ -1320,21 +1322,24 @@
   </div>
 
   <!-- Desktop control panel - hidden on mobile -->
-  <div class="control-panel">
-    <div class="control-row">
-      <button class="control-btn" id="resetMapBtn" title="Reset view and stop playback">Reset Map</button>
-      <button class="control-btn" id="fullscreenBtn" title="Fullscreen on/off">Fullscreen</button>
-      <button class="control-btn" id="terrain3dBtn" title="3D terrain on/off">3D Terrain</button>
+  <div class="control-panel-container">
+    <div class="control-panel">
+      <div class="control-row">
+        <button class="control-btn" id="resetMapBtn" title="Reset view and stop playback">Reset Map</button>
+        <button class="control-btn" id="fullscreenBtn" title="Fullscreen on/off">Fullscreen</button>
+        <button class="control-btn" id="terrain3dBtn" title="3D terrain on/off">3D Terrain</button>
+      </div>
+      <div class="sort-controls">
+        <button class="control-btn sort-btn active" id="sortNobo" title="Northbound playlist">NOBO</button>
+        <button class="control-btn sort-btn" id="sortSobo" title="Southbound playlist">SOBO</button>
+        <button class="control-btn sort-btn" id="sortDate" title="Chronological playlist">STEREO</button>
+        <button class="control-btn sort-btn" id="sortRandom" title="Random playback">RANDOM</button>
+      </div>
     </div>
-    <div class="sort-controls">
-      <button class="control-btn sort-btn active" id="sortNobo" title="Northbound playlist">NOBO</button>
-      <button class="control-btn sort-btn" id="sortSobo" title="Southbound playlist">SOBO</button>
-      <button class="control-btn sort-btn" id="sortDate" title="Chronological playlist">STEREO</button>
-      <button class="control-btn sort-btn" id="sortRandom" title="Random playback">RANDOM</button>
+    <div style="display: flex; justify-content: flex-end;">
+      <button class="info-btn" id="infoBtnDesktop" title="About this map">i</button>
     </div>
   </div>
-
-  <button class="info-btn" id="infoBtnDesktop" title="About this map">i</button>
   <div class="notification" id="notification"></div>
 
   <script src="https://api.mapbox.com/mapbox-gl-js/v3.8.0/mapbox-gl.js"></script>
@@ -1373,9 +1378,9 @@
         const uiScale = 1 + (zoomDelta * 0.15); // ~1.1x on BenQ
         if (uiScale > 1.01) {
           const playlistWrapper = document.getElementById('playlistWrapper');
-          const controlPanel = document.querySelector('.control-panel');
+          const controlPanelContainer = document.querySelector('.control-panel-container');
           if (playlistWrapper) playlistWrapper.style.zoom = uiScale;
-          if (controlPanel) controlPanel.style.zoom = uiScale;
+          if (controlPanelContainer) controlPanelContainer.style.zoom = uiScale;
         }
       }
 
@@ -1477,21 +1482,6 @@
         const infoDialogClose = document.getElementById('infoDialogClose');
         const infoBtnDesktop = document.getElementById('infoBtnDesktop');
 
-        // Position info button below control panel dynamically
-        const positionInfoBtn = () => {
-          if (!infoBtnDesktop || uiController.isMobile) return;
-          const panel = document.querySelector('.control-panel');
-          if (!panel) return;
-          // getBoundingClientRect accounts for CSS zoom scaling
-          // offsetParent is BODY so viewport top = document top
-          const rect = panel.getBoundingClientRect();
-          const scrollY = window.scrollY || document.documentElement.scrollTop;
-          infoBtnDesktop.style.top = `${rect.bottom + scrollY + 8}px`;
-          infoBtnDesktop.style.visibility = 'visible';
-        };
-        // Run after initial render and after any resize
-        setTimeout(positionInfoBtn, 500);
-        window.addEventListener('resize', positionInfoBtn);
         const infoBtnMobile = document.getElementById('infoBtnMobile');
 
         const openInfo = () => infoOverlay.classList.add('visible');
