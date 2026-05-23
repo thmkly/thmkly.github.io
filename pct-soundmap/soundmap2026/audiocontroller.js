@@ -7,12 +7,12 @@ class AudioController {
     this.isPlaying = false;
     this.playMode = 'sequential';
     this.sortMode = 'nobo';
-    this.playQueue = [];
     this.lastPlayNext = 0;
     this.playHistory = []; // Track play history for random mode
     this.isNavigatingBack = false; // ADDED: Flag to prevent history corruption during backward navigation
     this.setupAudioElement(); // CHANGED: Setup persistent audio element first
     this.setupWakeLock();
+    this.setupMediaSession();
   }
 
   async setupWakeLock() {
@@ -51,8 +51,6 @@ class AudioController {
       }
     });
 
-
-    
     this.currentAudio.addEventListener('error', () => {
       if (this.currentIndex >= 0 && window.mapController && window.mapController.audioData) {
         const track = window.mapController.audioData[this.currentIndex];
@@ -91,21 +89,9 @@ class AudioController {
     });
   }
 
-  updateMediaSession(track) {
+  setupMediaSession() {
+    // Register action handlers once — not per track
     if (!('mediaSession' in navigator)) return;
-
-    navigator.mediaSession.metadata = new MediaMetadata({
-      title: track.name || 'unknown',
-      artist: 'tom kelly',
-      album: 'a sound map of the pacific crest trail, 2023',
-      artwork: [
-        {
-          src: 'https://www.thomasmkelly.com/images/soundmap-web-player-image.jpg',
-          sizes: '1024x1024',
-          type: 'image/jpeg'
-        }
-      ]
-    });
 
     navigator.mediaSession.setActionHandler('play', () => {
       this.currentAudio.play();
@@ -130,8 +116,25 @@ class AudioController {
         this.playNext(window.mapController.audioData, true);
       }
     });
+  }
 
-    // Update playback state
+  updateMediaSession(track) {
+    // Update metadata per track
+    if (!('mediaSession' in navigator)) return;
+
+    navigator.mediaSession.metadata = new MediaMetadata({
+      title: track.name || 'unknown',
+      artist: 'tom kelly',
+      album: 'a sound map of the pacific crest trail, 2023',
+      artwork: [
+        {
+          src: 'https://www.thomasmkelly.com/images/soundmap-web-player-image.jpg',
+          sizes: '1024x1024',
+          type: 'image/jpeg'
+        }
+      ]
+    });
+
     navigator.mediaSession.playbackState = 'playing';
   }
 
