@@ -225,11 +225,28 @@ class UIController {
           }
         }
 
+      isActiveTrackVisible() {
+        const activeTrack = document.querySelector('.track.active-track');
+        if (!activeTrack) return false;
+        const playlist = document.getElementById('playlist');
+        if (!playlist) return false;
+        const trackTop = activeTrack.offsetTop;
+        const trackBottom = trackTop + activeTrack.offsetHeight;
+        const scrollTop = playlist.scrollTop;
+        const scrollBottom = scrollTop + playlist.clientHeight;
+        return trackTop >= scrollTop && trackBottom <= scrollBottom;
+      }
+
       scrollActiveTrackIntoView() {
         const activeTrack = document.querySelector('.track.active-track');
         if (!activeTrack) return;
         const playlist = document.getElementById('playlist');
         if (!playlist) return;
+        // Only scroll if track is not visible
+        if (this.isActiveTrackVisible()) {
+          audioController.scrollToActiveOnOpen = false;
+          return;
+        }
         const trackTop = activeTrack.offsetTop;
         const trackH = activeTrack.offsetHeight;
         const playlistH = playlist.clientHeight;

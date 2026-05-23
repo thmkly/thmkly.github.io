@@ -749,16 +749,10 @@ class MapController {
           audioController.scrollToActiveOnOpen = true;
         }
 
-        // If playlist is already open, scroll immediately after track updates
-        setTimeout(() => {
-          if (audioController.scrollToActiveOnOpen) {
-            const isDesktopOpen = !uiController.isMobile && uiController.playlistExpanded;
-            const isMobileOpen = uiController.isMobile && uiController.mobilePlaylistExpanded;
-            if (isDesktopOpen || isMobileOpen) {
-              uiController.scrollActiveTrackIntoView();
-            }
-          }
-        }, 100);
+        // If playlist is already open on desktop, scroll after track updates
+        if (!uiController.isMobile && uiController.playlistExpanded) {
+          setTimeout(() => uiController.scrollActiveTrackIntoView(), 150);
+        }
        const track = this.audioData[index];
        if (!track) {
          return;

@@ -206,8 +206,7 @@ class AudioController {
     }
     this.lastPlayNext = now;
 
-    // Manual navigation — scroll active track into view when playlist opens
-    if (fromUser) this.scrollToActiveOnOpen = true;
+
 
     let nextIndex;
     
@@ -234,9 +233,6 @@ class AudioController {
   }
 
   playPrevious(audioData) {
-    // Manual navigation — scroll active track into view when playlist opens
-    this.scrollToActiveOnOpen = true;
-
     let prevIndex;
     
     if (this.playMode === 'random') {
