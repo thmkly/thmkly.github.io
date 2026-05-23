@@ -100,7 +100,7 @@ class AudioController {
       album: 'a sound map of the pacific crest trail, 2023',
       artwork: [
         {
-          src: 'https://www.thomasmkelly.com/images/index-bg.jpg',
+          src: 'https://www.thomasmkelly.com/images/soundmap-web-player-image.jpg',
           sizes: '1024x1024',
           type: 'image/jpeg'
         }
