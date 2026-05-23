@@ -96,13 +96,13 @@ class AudioController {
 
     navigator.mediaSession.metadata = new MediaMetadata({
       title: track.name || 'unknown',
-      artist: 'stereo',
+      artist: 'tom kelly',
       album: 'a sound map of the pacific crest trail, 2023',
       artwork: [
         {
-          src: 'https://www.thomasmkelly.com/favicon-sierra.png',
-          sizes: '512x512',
-          type: 'image/png'
+          src: 'https://www.thomasmkelly.com/images/index-bg.jpg',
+          sizes: '1024x1024',
+          type: 'image/jpeg'
         }
       ]
     });
