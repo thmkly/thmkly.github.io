@@ -119,6 +119,11 @@ class UIController {
             if (existingBadge) {
               existingBadge.remove();
             }
+
+            // Scroll active track into view if navigation came from map/lock screen
+            if (audioController.scrollToActiveOnOpen) {
+              setTimeout(() => this.scrollActiveTrackIntoView(), 50);
+            }
           } else {
             wrapper.classList.add('collapsed');
             toggle.textContent = '▶';
@@ -146,6 +151,11 @@ class UIController {
             document.body.classList.add('mobile-menu-open');
             document.body.style.overflow = 'hidden';
             if (hamburger) hamburger.classList.add('open');
+
+            // Scroll active track into view if navigation came from map/lock screen
+            if (audioController.scrollToActiveOnOpen) {
+              setTimeout(() => this.scrollActiveTrackIntoView(), 100);
+            }
           } else {
             wrapper.classList.remove('mobile-expanded');
             document.body.classList.remove('mobile-menu-open');
@@ -214,6 +224,18 @@ class UIController {
             scrollDown.style.bottom = `${footerH + (lastVisibleTrackH / 2) - (scrollDown.offsetHeight / 2) - 1}px`;
           }
         }
+
+      scrollActiveTrackIntoView() {
+        const activeTrack = document.querySelector('.track.active-track');
+        if (!activeTrack) return;
+        const playlist = document.getElementById('playlist');
+        if (!playlist) return;
+        const trackTop = activeTrack.offsetTop;
+        const trackH = activeTrack.offsetHeight;
+        const playlistH = playlist.clientHeight;
+        playlist.scrollTop = trackTop - (playlistH / 2) + (trackH / 2);
+        audioController.scrollToActiveOnOpen = false;
+      }
 
       _detectMobile() {
         return /iphone|ipad|ipod|android|mobile|blackberry|iemobile|wpdesktop/i.test(navigator.userAgent);

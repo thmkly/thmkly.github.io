@@ -744,6 +744,21 @@ class MapController {
         }
 
      playAudio(index, fromAutoPlay = false, fromMap = false, fromMiniPill = false, fromLockScreen = false) {
+        // Flag active track scroll when navigating from map, mini pill, or lock screen
+        if (fromMap || fromMiniPill || fromLockScreen) {
+          audioController.scrollToActiveOnOpen = true;
+        }
+
+        // If playlist is already open, scroll immediately after track updates
+        setTimeout(() => {
+          if (audioController.scrollToActiveOnOpen) {
+            const isDesktopOpen = !uiController.isMobile && uiController.playlistExpanded;
+            const isMobileOpen = uiController.isMobile && uiController.mobilePlaylistExpanded;
+            if (isDesktopOpen || isMobileOpen) {
+              uiController.scrollActiveTrackIntoView();
+            }
+          }
+        }, 100);
        const track = this.audioData[index];
        if (!track) {
          return;

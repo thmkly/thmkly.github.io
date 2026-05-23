@@ -10,6 +10,7 @@ class AudioController {
     this.lastPlayNext = 0;
     this.playHistory = []; // Track play history for random mode
     this.isNavigatingBack = false; // ADDED: Flag to prevent history corruption during backward navigation
+    this.scrollToActiveOnOpen = false; // Flag to scroll active track into view when playlist opens
     this.setupAudioElement(); // CHANGED: Setup persistent audio element first
     this.setupWakeLock();
     this.setupMediaSession();
@@ -205,6 +206,9 @@ class AudioController {
     }
     this.lastPlayNext = now;
 
+    // Manual navigation — scroll active track into view when playlist opens
+    if (fromUser) this.scrollToActiveOnOpen = true;
+
     let nextIndex;
     
     if (this.playMode === 'random') {
@@ -230,6 +234,9 @@ class AudioController {
   }
 
   playPrevious(audioData) {
+    // Manual navigation — scroll active track into view when playlist opens
+    this.scrollToActiveOnOpen = true;
+
     let prevIndex;
     
     if (this.playMode === 'random') {
