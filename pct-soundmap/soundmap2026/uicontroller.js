@@ -95,16 +95,18 @@ class UIController {
             e.preventDefault();
           }
         }, { passive: false });
-        // Desktop scroll arrows — clickable
+        // Desktop scroll arrows — clickable, always fetch fresh playlist reference
         if (!this.isMobile) {
           scrollUp.addEventListener('click', () => {
-            if (!scrollUp.classList.contains('disabled')) {
-              playlist.scrollBy({ top: -100, behavior: 'smooth' });
+            const pl = document.getElementById('playlist');
+            if (!scrollUp.classList.contains('disabled') && pl) {
+              pl.scrollBy({ top: -150, behavior: 'smooth' });
             }
           });
           scrollDown.addEventListener('click', () => {
-            if (!scrollDown.classList.contains('disabled')) {
-              playlist.scrollBy({ top: 100, behavior: 'smooth' });
+            const pl = document.getElementById('playlist');
+            if (!scrollDown.classList.contains('disabled') && pl) {
+              pl.scrollBy({ top: 150, behavior: 'smooth' });
             }
           });
         }
