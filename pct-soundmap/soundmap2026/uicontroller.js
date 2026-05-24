@@ -95,7 +95,19 @@ class UIController {
             e.preventDefault();
           }
         }, { passive: false });
-        // Scroll arrows are visual indicators only — no click interaction
+        // Desktop scroll arrows — clickable
+        if (!this.isMobile) {
+          scrollUp.addEventListener('click', () => {
+            if (!scrollUp.classList.contains('disabled')) {
+              playlist.scrollBy({ top: -100, behavior: 'smooth' });
+            }
+          });
+          scrollDown.addEventListener('click', () => {
+            if (!scrollDown.classList.contains('disabled')) {
+              playlist.scrollBy({ top: 100, behavior: 'smooth' });
+            }
+          });
+        }
 
         // Initialize scroll arrows state on load
         setTimeout(() => this.updateScrollArrows(), 100);
@@ -250,7 +262,8 @@ class UIController {
         const trackTop = activeTrack.offsetTop;
         const trackH = activeTrack.offsetHeight;
         const playlistH = playlist.clientHeight;
-        playlist.scrollTop = trackTop - (playlistH / 2) + (trackH / 2);
+        const targetScroll = trackTop - (playlistH / 2) + (trackH / 2);
+        playlist.scrollTo({ top: targetScroll, behavior: 'smooth' });
         audioController.scrollToActiveOnOpen = false;
       }
 

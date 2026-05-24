@@ -118,10 +118,13 @@
     color: black;
     padding: 4px 0;
     user-select: none;
-    cursor: default;
-    pointer-events: none;
-    display: block; /* Always visible */
+    cursor: pointer;
+    display: block;
     transition: opacity 0.2s, color 0.2s;
+  }
+
+  .scroll-arrow:hover {
+    color: #555;
   }
 
   .scroll-arrow.disabled {
@@ -965,6 +968,8 @@
     background: transparent;
     padding: 2px;
     text-align: center;
+    cursor: default;
+    pointer-events: none;
   }
   body.is-mobile .playlist-wrapper.mobile-expanded .scroll-arrow { display: block; }
   /* scroll arrow positions set dynamically by sizeMobilePlaylist() */

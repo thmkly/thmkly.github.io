@@ -694,7 +694,7 @@ class MapController {
             if (uiController.isMobile && uiController.mobilePlaylistExpanded) {
               uiController.collapseMobileMenu();
             }
-            this.playAudio(index, false, false);
+            this.playAudio(index, false, false, false, false, true);
           });
           
           playlist.appendChild(div);
@@ -743,9 +743,9 @@ class MapController {
           }
         }
 
-     playAudio(index, fromAutoPlay = false, fromMap = false, fromMiniPill = false, fromLockScreen = false) {
-        // Flag active track scroll when navigating from map, mini pill, or lock screen
-        if (fromMap || fromMiniPill || fromLockScreen) {
+     playAudio(index, fromAutoPlay = false, fromMap = false, fromMiniPill = false, fromLockScreen = false, fromPlaylist = false) {
+        // Set scroll flag for any navigation that didn't come from the playlist itself
+        if (!fromPlaylist) {
           audioController.scrollToActiveOnOpen = true;
         }
 
