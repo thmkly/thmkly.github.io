@@ -100,35 +100,39 @@ class UIController {
           const setupArrow = (btn, direction) => {
             let interval = null;
             let timeout = null;
+            let holding = false;
 
-            const doScroll = () => {
+            btn.addEventListener('click', () => {
+              if (holding) return; // suppress click after hold
               const pl = document.getElementById('playlist');
               if (!btn.classList.contains('disabled') && pl) {
                 pl.scrollBy({ top: direction * 150, behavior: 'smooth' });
               }
-            };
-
-            btn.addEventListener('click', doScroll);
+            });
 
             btn.addEventListener('mousedown', () => {
+              holding = false;
               timeout = setTimeout(() => {
-                interval = setInterval(doScroll, 300);
+                holding = true;
+                interval = setInterval(() => {
+                  const pl = document.getElementById('playlist');
+                  if (!btn.classList.contains('disabled') && pl) {
+                    pl.scrollTop += direction * 30;
+                  }
+                }, 16); // ~60fps, instant movement
               }, 400);
             });
 
-            btn.addEventListener('mouseup', () => {
+            const stop = () => {
               clearTimeout(timeout);
               clearInterval(interval);
               timeout = null;
               interval = null;
-            });
+              setTimeout(() => { holding = false; }, 50);
+            };
 
-            btn.addEventListener('mouseleave', () => {
-              clearTimeout(timeout);
-              clearInterval(interval);
-              timeout = null;
-              interval = null;
-            });
+            btn.addEventListener('mouseup', stop);
+            btn.addEventListener('mouseleave', stop);
           };
 
           setupArrow(scrollUp, -1);
@@ -272,7 +276,34 @@ class UIController {
         const trackBottom = trackTop + activeTrack.offsetHeight;
         const scrollTop = playlist.scrollTop;
         const scrollBottom = scrollTop + playlist.clientHeight;
-        return trackTop >= scrollTop && trackBottom <= scrollBottom;
+
+        // Not visible at all
+        if (trackBottom <= scrollTop || trackTop >= scrollBottom) return false;
+
+        // Check if it's the first or last visible track
+        const tracks = Array.from(playlist.querySelectorAll('.track'));
+        const visibleTracks = tracks.filter(t => {
+          const top = t.offsetTop;
+          const bottom = top + t.offsetHeight;
+          return bottom > scrollTop && top < scrollBottom;
+        });
+
+        if (visibleTracks.length === 0) return false;
+
+        const isFirst = visibleTracks[0] === activeTrack;
+        const isLast = visibleTracks[visibleTracks.length - 1] === activeTrack;
+
+        if (!isFirst && !isLast) return true; // safely in the middle
+
+        // If at edge, check if there's room to scroll in that direction
+        if (isFirst) {
+          return playlist.scrollTop <= 0; // no room to scroll up — already at top, don't scroll
+        }
+        if (isLast) {
+          return (playlist.scrollTop + playlist.clientHeight) >= playlist.scrollHeight - 2; // at bottom, don't scroll
+        }
+
+        return false;
       }
 
       scrollActiveTrackIntoView() {
