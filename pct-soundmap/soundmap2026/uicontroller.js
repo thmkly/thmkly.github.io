@@ -95,20 +95,44 @@ class UIController {
             e.preventDefault();
           }
         }, { passive: false });
-        // Desktop scroll arrows — clickable, always fetch fresh playlist reference
+        // Desktop scroll arrows — click and hold to scroll
         if (!this.isMobile) {
-          scrollUp.addEventListener('click', () => {
-            const pl = document.getElementById('playlist');
-            if (!scrollUp.classList.contains('disabled') && pl) {
-              pl.scrollBy({ top: -150, behavior: 'smooth' });
-            }
-          });
-          scrollDown.addEventListener('click', () => {
-            const pl = document.getElementById('playlist');
-            if (!scrollDown.classList.contains('disabled') && pl) {
-              pl.scrollBy({ top: 150, behavior: 'smooth' });
-            }
-          });
+          const setupArrow = (btn, direction) => {
+            let interval = null;
+            let timeout = null;
+
+            const doScroll = () => {
+              const pl = document.getElementById('playlist');
+              if (!btn.classList.contains('disabled') && pl) {
+                pl.scrollBy({ top: direction * 150, behavior: 'smooth' });
+              }
+            };
+
+            btn.addEventListener('click', doScroll);
+
+            btn.addEventListener('mousedown', () => {
+              timeout = setTimeout(() => {
+                interval = setInterval(doScroll, 300);
+              }, 400);
+            });
+
+            btn.addEventListener('mouseup', () => {
+              clearTimeout(timeout);
+              clearInterval(interval);
+              timeout = null;
+              interval = null;
+            });
+
+            btn.addEventListener('mouseleave', () => {
+              clearTimeout(timeout);
+              clearInterval(interval);
+              timeout = null;
+              interval = null;
+            });
+          };
+
+          setupArrow(scrollUp, -1);
+          setupArrow(scrollDown, 1);
         }
 
         // Initialize scroll arrows state on load
