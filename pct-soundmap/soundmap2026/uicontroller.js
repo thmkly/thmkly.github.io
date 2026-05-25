@@ -267,20 +267,22 @@ class UIController {
           }
         }
 
-      isActiveTrackVisible() {
+      shouldScrollToActive() {
+        // Returns true if the active track should be centered in the playlist
         const activeTrack = document.querySelector('.track.active-track');
         if (!activeTrack) return false;
         const playlist = document.getElementById('playlist');
         if (!playlist) return false;
-        const trackTop = activeTrack.offsetTop;
-        const trackBottom = trackTop + activeTrack.offsetHeight;
+
         const scrollTop = playlist.scrollTop;
         const scrollBottom = scrollTop + playlist.clientHeight;
+        const trackTop = activeTrack.offsetTop;
+        const trackBottom = trackTop + activeTrack.offsetHeight;
 
-        // Not visible at all
-        if (trackBottom <= scrollTop || trackTop >= scrollBottom) return false;
+        // Not visible at all — scroll
+        if (trackBottom <= scrollTop || trackTop >= scrollBottom) return true;
 
-        // Check if it's the first or last visible track
+        // Find first and last fully or partially visible tracks
         const tracks = Array.from(playlist.querySelectorAll('.track'));
         const visibleTracks = tracks.filter(t => {
           const top = t.offsetTop;
@@ -288,22 +290,12 @@ class UIController {
           return bottom > scrollTop && top < scrollBottom;
         });
 
-        if (visibleTracks.length === 0) return false;
+        if (visibleTracks.length === 0) return true;
 
-        const isFirst = visibleTracks[0] === activeTrack;
-        const isLast = visibleTracks[visibleTracks.length - 1] === activeTrack;
-
-        if (!isFirst && !isLast) return true; // safely in the middle
-
-        // If at edge, check if there's room to scroll in that direction
-        if (isFirst) {
-          return playlist.scrollTop <= 0; // no room to scroll up — already at top, don't scroll
-        }
-        if (isLast) {
-          return (playlist.scrollTop + playlist.clientHeight) >= playlist.scrollHeight - 2; // at bottom, don't scroll
-        }
-
-        return false;
+        // If active track is the topmost or bottommost visible — scroll
+        const isEdge = visibleTracks[0] === activeTrack || 
+                       visibleTracks[visibleTracks.length - 1] === activeTrack;
+        return isEdge;
       }
 
       scrollActiveTrackIntoView() {
@@ -311,17 +303,14 @@ class UIController {
         if (!activeTrack) return;
         const playlist = document.getElementById('playlist');
         if (!playlist) return;
-        // Only scroll if track is not visible
-        if (this.isActiveTrackVisible()) {
-          audioController.scrollToActiveOnOpen = false;
-          return;
-        }
+        audioController.scrollToActiveOnOpen = false;
+        // Only scroll if track needs centering
+        if (!this.shouldScrollToActive()) return;
         const trackTop = activeTrack.offsetTop;
         const trackH = activeTrack.offsetHeight;
         const playlistH = playlist.clientHeight;
         const targetScroll = trackTop - (playlistH / 2) + (trackH / 2);
         playlist.scrollTo({ top: targetScroll, behavior: 'smooth' });
-        audioController.scrollToActiveOnOpen = false;
       }
 
       _detectMobile() {
