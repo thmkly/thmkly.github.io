@@ -146,6 +146,18 @@ class AudioController {
     });
 
     navigator.mediaSession.playbackState = 'playing';
+
+    // Set position state so iOS knows track duration and position
+    // This helps iOS show prev/next instead of seek controls
+    try {
+      if (this.currentAudio && !isNaN(this.currentAudio.duration)) {
+        navigator.mediaSession.setPositionState({
+          duration: this.currentAudio.duration,
+          playbackRate: 1,
+          position: this.currentAudio.currentTime
+        });
+      }
+    } catch(e) {}
   }
 
   play(index, audioData, withFade = false) {
