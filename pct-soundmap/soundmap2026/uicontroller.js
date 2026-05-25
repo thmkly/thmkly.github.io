@@ -196,7 +196,8 @@ class UIController {
 
             // Scroll active track into view if navigation came from map/lock screen
             if (audioController.scrollToActiveOnOpen) {
-              setTimeout(() => this.scrollActiveTrackIntoView(), 100);
+              // Longer delay on mobile to allow playlist layout to settle after expand
+              setTimeout(() => this.scrollActiveTrackIntoView(), 350);
             }
           } else {
             wrapper.classList.remove('mobile-expanded');
