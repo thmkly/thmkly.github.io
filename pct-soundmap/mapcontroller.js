@@ -104,6 +104,10 @@ class MapController {
         // Disable drag rotation initially
         map.on('load', () => {
           map.dragRotate.disable();
+          // Disable two-finger rotation on mobile (keep pinch-to-zoom)
+          if (uiController.isMobile) {
+            map.touchZoomRotate.disableRotation();
+          }
           
           // Check for API availability before using
           if (typeof map.setSky === 'function') {
@@ -390,8 +394,8 @@ class MapController {
           // Playlist wrapper is already hidden via CSS
           const playlistWrapper = document.getElementById('playlistWrapper');
           
-          // Show persistent loading notification (no duration = stays visible)
-          showNotification('loading recordings...');
+          // Show persistent loading notification (duration 0 = stays until hidden)
+          showNotification('loading recordings...', 0);
           
           const url = `${CONFIG.GOOGLE_SCRIPT_URL}?nocache=${Date.now()}`;
           
@@ -450,11 +454,15 @@ class MapController {
                 // Show playlist wrapper again with flex display
                 playlistWrapper.style.display = 'flex';
                 
-                // Hide loading notification and show success message
-                hideNotification();
-                setTimeout(() => {
-                  showNotification(`${data.length} recordings loaded`, 3000);
-                }, 100);
+                // Hide loading notification only when map is actually idle (data rendered)
+                const onIdle = () => {
+                  map.off('idle', onIdle);
+                  hideNotification();
+                  setTimeout(() => {
+                    showNotification(`${data.length} recordings loaded`, 3000);
+                  }, 100);
+                };
+                map.once('idle', onIdle);
                 
               } catch (parseError) {
                 throw new Error(`Invalid JSON response: ${parseError.message}`);
@@ -625,25 +633,52 @@ class MapController {
           trackInfo.className = 'track-info';
           trackInfo.textContent = track.name.replace(/^[^\s]+\s+-\s+/, '');
           
+          const trackMileZone = document.createElement('div');
+          trackMileZone.className = 'track-mile-zone';
+
           const trackMile = document.createElement('div');
           trackMile.className = 'track-mile';
           const displayMile = this.getDisplayMile(track);
           const mile = displayMile !== null && displayMile.toString().trim().toLowerCase() !== 'n/a' ? `mi.${displayMile}` : '';
           trackMile.textContent = mile;
 
-          // Mile marker click — fly to location without triggering playback
-          if (mile) {
+          // Mile marker click — fly to location without triggering playback (desktop only)
+          if (mile && !uiController.isMobile) {
             trackMile.title = 'Fly to location';
+            trackMile.style.cursor = 'pointer';
             trackMile.addEventListener('click', (e) => {
               e.stopPropagation();
-              const coords = [parseFloat(track.lng), parseFloat(track.lat)];
+              e.preventDefault();
               this.positionMapForTrack(track, index);
+              // Re-apply active track highlight in case flyTo disturbs it
+              setTimeout(() => this.updateActiveTrack(audioController.currentIndex, false, audioController.currentAudio), 50);
             });
           }
-          
+
+          trackMileZone.appendChild(trackMile);
           div.appendChild(trackInfo);
-          div.appendChild(trackMile);
+          div.appendChild(trackMileZone);
           
+          // Touch feedback — flash highlight on tap, clear on scroll
+          if (uiController.isMobile) {
+            let touchMoved = false;
+            div.addEventListener('touchstart', () => {
+              touchMoved = false;
+              div.classList.add('touch-active');
+            }, { passive: true });
+            div.addEventListener('touchmove', () => {
+              touchMoved = true;
+              div.classList.remove('touch-active');
+            }, { passive: true });
+            div.addEventListener('touchend', () => {
+              if (touchMoved) {
+                div.classList.remove('touch-active');
+              } else {
+                setTimeout(() => div.classList.remove('touch-active'), 150);
+              }
+            }, { passive: true });
+          }
+
           div.addEventListener('click', (e) => {
             // If clicking the currently playing track, toggle pause/play
             if (index === audioController.currentIndex && audioController.currentAudio) {
@@ -659,12 +694,17 @@ class MapController {
             if (uiController.isMobile && uiController.mobilePlaylistExpanded) {
               uiController.collapseMobileMenu();
             }
-            this.playAudio(index, false, false);
+            this.playAudio(index, false, false, false, false, true);
           });
           
           playlist.appendChild(div);
         });
         
+        // Dynamically size the mobile playlist to fit content
+        if (uiController.isMobile) {
+          setTimeout(() => uiController.sizeMobilePlaylist(), 50);
+        }
+
         // Show collapse arrow now that playlist is rendered
         const toggleBtn = document.getElementById('playlistToggle');
         if (toggleBtn) {
@@ -703,7 +743,14 @@ class MapController {
           }
         }
 
-     playAudio(index, fromAutoPlay = false, fromMap = false, fromMiniPill = false) {
+     playAudio(index, fromAutoPlay = false, fromMap = false, fromMiniPill = false, fromLockScreen = false, fromPlaylist = false) {
+        // Always attempt scroll — shouldScrollToActive() decides based on track position
+        audioController.scrollToActiveOnOpen = true;
+
+        // If playlist is already open on desktop, scroll after track updates
+        if (!uiController.isMobile && uiController.playlistExpanded) {
+          setTimeout(() => uiController.scrollActiveTrackIntoView(), 150);
+        }
        const track = this.audioData[index];
        if (!track) {
          return;
@@ -837,6 +884,9 @@ class MapController {
         const withFade = !fromAutoPlay && !fromMiniPill && audioController.currentIndex !== index;
         const audio = audioController.play(index, this.audioData, withFade);
 
+        // Mark as flying immediately so badge is suppressed from the start
+        this.isFlying = true;
+
           // Always update badge when audio plays (visibility is controlled inside updateHeaderBadge)
           this.updateHeaderBadge(track, audio);
         
@@ -926,13 +976,22 @@ class MapController {
         // In 2D mode skip flyTo only if point is comfortably visible at a reasonable zoom
         const is3DMode = uiController.is3DEnabled;
         const pointComfortablyVisible = !is3DMode &&
+          !uiController.isMobile &&
           this.isPointComfortablyVisible(track) && 
           map.getZoom() >= 12;
 
           // Add delay before positioning to prevent conflicts
         this.animationTimeout = setTimeout(() => {
           if (!pointComfortablyVisible) {
-            this.positionMapForTrack(track, index, fromAutoPlay);
+            if (fromLockScreen) {
+          // Lock screen nav: jump instantly to track location, no animation
+          const coords = [parseFloat(track.lng), parseFloat(track.lat)];
+          if (!isNaN(coords[0]) && !isNaN(coords[1])) {
+            map.jumpTo({ center: coords });
+          }
+        } else {
+          this.positionMapForTrack(track, index, fromAutoPlay);
+        }
           }
           
           // Get the flyto duration (0 if no flyto needed)
@@ -1181,6 +1240,8 @@ class MapController {
         
         // New helper method - add this RIGHT AFTER minimizePopup() closes
               updateHeaderBadge(track, audio = null) {
+        // Never show badge while flying to a location
+        if (this.isFlying) return;
         // Remove existing badge and clean up listeners
         const existingBadge = document.getElementById('playing-badge');
         if (existingBadge) {
@@ -1256,6 +1317,7 @@ class MapController {
           badge.appendChild(pill);
           badge.appendChild(body);
 
+          badge.style.display = 'none'; // hidden by default, shown by updateBadgeVisibility
           document.body.appendChild(badge);
 
           const audioForTime = audio || audioController.currentAudio;
@@ -1285,7 +1347,7 @@ class MapController {
             activeTrack.classList.add('active-track');
             
             // Enhanced styling for active track
-            activeTrack.style.backgroundColor = 'rgba(255, 235, 220, 0.5)'; // Warm beige
+            activeTrack.style.backgroundColor = 'rgba(255, 215, 175, 0.72)'; // Mid orange for active track
             activeTrack.style.fontWeight = '600'; // Bold
             
           // Add play/pause indicator if not already there
@@ -1413,7 +1475,14 @@ class MapController {
           flyToOptions.curve = customCurve !== null ? customCurve : 2.5;
         }
 
+        this.isFlying = true;
         map.flyTo(flyToOptions);
+        setTimeout(() => {
+          this.isFlying = false;
+          // Now that we've landed, create badge if needed
+          const currentTrack = audioController.currentIndex >= 0 ? this.audioData[audioController.currentIndex] : null;
+          if (currentTrack) this.updateHeaderBadge(currentTrack, audioController.currentAudio);
+        }, duration + 300);
         setTimeout(resetPositioning, duration + 200);
       }
 
@@ -1803,7 +1872,10 @@ class MapController {
             container.className = preview ? 'custom-popup' : 'custom-popup playing-popup';
             container.style.position = 'absolute';
             container.style.width = '320px';
-            container.style.zIndex = '1001';
+            container.style.zIndex = '500';
+            // Also set on the parent mapboxgl-popup element
+            const popupEl = container.closest('.mapboxgl-popup');
+            if (popupEl) popupEl.style.zIndex = '500';
             container._coords = coords;
             container.dataset.trackIndex = index;
             container.dataset.originalIndex = track.originalIndex;
@@ -2320,7 +2392,7 @@ class MapController {
       // Update badge visibility based on playlist state and point visibility  
       updateBadgeVisibility() {
         // Don't show badge during flyTo — map is in transit, not settled
-        if (this.isPositioning) {
+        if (this.isFlying) {
           const badge = document.getElementById('playing-badge');
           if (badge) badge.style.display = 'none';
           return;
