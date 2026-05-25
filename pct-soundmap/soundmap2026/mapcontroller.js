@@ -744,14 +744,12 @@ class MapController {
         }
 
      playAudio(index, fromAutoPlay = false, fromMap = false, fromMiniPill = false, fromLockScreen = false, fromPlaylist = false) {
-        // Set scroll flag for any navigation that didn't come from the playlist itself
-        if (!fromPlaylist) {
-          audioController.scrollToActiveOnOpen = true;
-        }
+        // Always attempt scroll — shouldScrollToActive() decides based on track position
+        audioController.scrollToActiveOnOpen = true;
 
-        // If playlist is already open on desktop and navigation came from outside playlist, scroll
-        if (!uiController.isMobile && uiController.playlistExpanded && !fromPlaylist) {
-          setTimeout(() => uiController.scrollActiveTrackIntoView(), 150);
+        // If playlist is already open on desktop, scroll after track updates
+        if (!uiController.isMobile && uiController.playlistExpanded) {
+          setTimeout(() => uiController.scrollActiveTrackIntoView(), 300);
         }
        const track = this.audioData[index];
        if (!track) {
