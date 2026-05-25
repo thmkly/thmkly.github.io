@@ -314,15 +314,19 @@ class UIController {
         audioController.scrollToActiveOnOpen = false;
         // Only scroll if track needs centering
         if (!this.shouldScrollToActive()) return;
-        // Use getBoundingClientRect to find current position, convert to scroll target
-        const playlistRect = playlist.getBoundingClientRect();
-        const activeRect = activeTrack.getBoundingClientRect();
-        const currentScrollTop = playlist.scrollTop;
-        const trackOffsetFromPlaylistTop = activeRect.top - playlistRect.top;
-        const targetScroll = currentScrollTop + trackOffsetFromPlaylistTop - (playlist.clientHeight / 2) + (activeTrack.offsetHeight / 2);
+        const trackH = activeTrack.offsetHeight;
+        const playlistH = playlist.clientHeight;
         if (this.isMobile) {
-          playlist.scrollTop = Math.max(0, targetScroll);
+          // iOS Safari doesn't support scrollTo with behavior:smooth reliably
+          // Use offsetTop directly for consistent mobile scrolling
+          const trackTop = activeTrack.offsetTop - playlist.offsetTop;
+          playlist.scrollTop = Math.max(0, trackTop - (playlistH / 2) + (trackH / 2));
         } else {
+          const playlistRect = playlist.getBoundingClientRect();
+          const activeRect = activeTrack.getBoundingClientRect();
+          const currentScrollTop = playlist.scrollTop;
+          const trackOffsetFromPlaylistTop = activeRect.top - playlistRect.top;
+          const targetScroll = currentScrollTop + trackOffsetFromPlaylistTop - (playlistH / 2) + (trackH / 2);
           playlist.scrollTo({ top: targetScroll, behavior: 'smooth' });
         }
       }
