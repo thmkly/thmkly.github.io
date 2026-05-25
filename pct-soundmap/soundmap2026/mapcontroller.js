@@ -694,7 +694,7 @@ class MapController {
             if (uiController.isMobile && uiController.mobilePlaylistExpanded) {
               uiController.collapseMobileMenu();
             }
-            this.playAudio(index, false, false, false, false, true);
+            this.playAudio(index, false, false);
           });
           
           playlist.appendChild(div);
@@ -743,17 +743,13 @@ class MapController {
           }
         }
 
-     playAudio(index, fromAutoPlay = false, fromMap = false, fromMiniPill = false, fromLockScreen = false, fromPlaylist = false) {
+     playAudio(index, fromAutoPlay = false, fromMap = false, fromMiniPill = false, fromLockScreen = false) {
         // Always attempt scroll — shouldScrollToActive() decides based on track position
         audioController.scrollToActiveOnOpen = true;
 
         // If playlist is already open on desktop, scroll after track updates
         if (!uiController.isMobile && uiController.playlistExpanded) {
-          console.log('scheduling scrollActiveTrackIntoView');
-          setTimeout(() => {
-            console.log('scrollActiveTrackIntoView timeout fired');
-            uiController.scrollActiveTrackIntoView();
-          }, 300);
+          setTimeout(() => uiController.scrollActiveTrackIntoView(), 300);
         }
        const track = this.audioData[index];
        if (!track) {
