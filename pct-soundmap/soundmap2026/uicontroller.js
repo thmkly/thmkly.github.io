@@ -269,28 +269,23 @@ class UIController {
 
       shouldScrollToActive() {
         // Returns true if the active track should be centered in the playlist
+        // Uses getBoundingClientRect for live viewport-relative coordinates
         const activeTrack = document.querySelector('.track.active-track');
         if (!activeTrack) return false;
         const playlist = document.getElementById('playlist');
         if (!playlist) return false;
 
-        // offsetTop is relative to playlistWrapper, so subtract playlist's offsetTop
-        const playlistOffset = playlist.offsetTop;
-        const scrollTop = playlist.scrollTop;
-        const scrollBottom = scrollTop + playlist.clientHeight;
-
-        const trackTop = activeTrack.offsetTop - playlistOffset;
-        const trackBottom = trackTop + activeTrack.offsetHeight;
+        const playlistRect = playlist.getBoundingClientRect();
+        const activeRect = activeTrack.getBoundingClientRect();
 
         // Not visible at all — scroll
-        if (trackBottom <= scrollTop || trackTop >= scrollBottom) return true;
+        if (activeRect.bottom <= playlistRect.top || activeRect.top >= playlistRect.bottom) return true;
 
-        // Find first and last fully or partially visible tracks
+        // Find all tracks and their viewport positions
         const tracks = Array.from(playlist.querySelectorAll('.track'));
         const visibleTracks = tracks.filter(t => {
-          const top = t.offsetTop - playlistOffset;
-          const bottom = top + t.offsetHeight;
-          return bottom > scrollTop && top < scrollBottom;
+          const r = t.getBoundingClientRect();
+          return r.bottom > playlistRect.top && r.top < playlistRect.bottom;
         });
 
         if (visibleTracks.length === 0) return true;
@@ -309,11 +304,12 @@ class UIController {
         audioController.scrollToActiveOnOpen = false;
         // Only scroll if track needs centering
         if (!this.shouldScrollToActive()) return;
-        const playlistOffset = playlist.offsetTop;
-        const trackTop = activeTrack.offsetTop - playlistOffset;
-        const trackH = activeTrack.offsetHeight;
-        const playlistH = playlist.clientHeight;
-        const targetScroll = trackTop - (playlistH / 2) + (trackH / 2);
+        // Use getBoundingClientRect to find current position, convert to scroll target
+        const playlistRect = playlist.getBoundingClientRect();
+        const activeRect = activeTrack.getBoundingClientRect();
+        const currentScrollTop = playlist.scrollTop;
+        const trackOffsetFromPlaylistTop = activeRect.top - playlistRect.top;
+        const targetScroll = currentScrollTop + trackOffsetFromPlaylistTop - (playlist.clientHeight / 2) + (activeTrack.offsetHeight / 2);
         playlist.scrollTo({ top: targetScroll, behavior: 'smooth' });
       }
 
