@@ -196,8 +196,18 @@ class UIController {
 
             // Scroll active track into view if navigation came from map/lock screen
             if (audioController.scrollToActiveOnOpen) {
-              // Longer delay on mobile to allow playlist layout to settle after expand
-              setTimeout(() => this.scrollActiveTrackIntoView(), 350);
+              // On mobile opening from closed state — skip visibility check, always center
+              setTimeout(() => {
+                const activeTrack = document.querySelector('.track.active-track');
+                const playlist = document.getElementById('playlist');
+                if (!activeTrack || !playlist) return;
+                audioController.scrollToActiveOnOpen = false;
+                const trackTop = activeTrack.offsetTop - playlist.offsetTop;
+                const trackH = activeTrack.offsetHeight;
+                const playlistH = playlist.clientHeight;
+                const targetScroll = trackTop - (playlistH / 2) + (trackH / 2);
+                playlist.scrollTo({ top: Math.max(0, targetScroll), behavior: 'smooth' });
+              }, 350);
             }
           } else {
             wrapper.classList.remove('mobile-expanded');
