@@ -274,9 +274,12 @@ class UIController {
         const playlist = document.getElementById('playlist');
         if (!playlist) return false;
 
+        // offsetTop is relative to playlistWrapper, so subtract playlist's offsetTop
+        const playlistOffset = playlist.offsetTop;
         const scrollTop = playlist.scrollTop;
         const scrollBottom = scrollTop + playlist.clientHeight;
-        const trackTop = activeTrack.offsetTop;
+
+        const trackTop = activeTrack.offsetTop - playlistOffset;
         const trackBottom = trackTop + activeTrack.offsetHeight;
 
         // Not visible at all — scroll
@@ -285,7 +288,7 @@ class UIController {
         // Find first and last fully or partially visible tracks
         const tracks = Array.from(playlist.querySelectorAll('.track'));
         const visibleTracks = tracks.filter(t => {
-          const top = t.offsetTop;
+          const top = t.offsetTop - playlistOffset;
           const bottom = top + t.offsetHeight;
           return bottom > scrollTop && top < scrollBottom;
         });
@@ -306,7 +309,8 @@ class UIController {
         audioController.scrollToActiveOnOpen = false;
         // Only scroll if track needs centering
         if (!this.shouldScrollToActive()) return;
-        const trackTop = activeTrack.offsetTop;
+        const playlistOffset = playlist.offsetTop;
+        const trackTop = activeTrack.offsetTop - playlistOffset;
         const trackH = activeTrack.offsetHeight;
         const playlistH = playlist.clientHeight;
         const targetScroll = trackTop - (playlistH / 2) + (trackH / 2);
