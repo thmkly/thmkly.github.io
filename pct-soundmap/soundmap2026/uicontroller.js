@@ -320,7 +320,7 @@ class UIController {
         const currentScrollTop = playlist.scrollTop;
         const trackOffsetFromPlaylistTop = activeRect.top - playlistRect.top;
         const targetScroll = currentScrollTop + trackOffsetFromPlaylistTop - (playlist.clientHeight / 2) + (activeTrack.offsetHeight / 2);
-        if (uiController.isMobile) {
+        if (this.isMobile) {
           playlist.scrollTop = Math.max(0, targetScroll);
         } else {
           playlist.scrollTo({ top: targetScroll, behavior: 'smooth' });
