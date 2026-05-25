@@ -269,7 +269,6 @@ class UIController {
 
       shouldScrollToActive() {
         // Returns true if the active track should be centered in the playlist
-        // Uses getBoundingClientRect for live viewport-relative coordinates
         const activeTrack = document.querySelector('.track.active-track');
         if (!activeTrack) return false;
         const playlist = document.getElementById('playlist');
@@ -278,22 +277,22 @@ class UIController {
         const playlistRect = playlist.getBoundingClientRect();
         const activeRect = activeTrack.getBoundingClientRect();
 
-        // Not visible at all — scroll
+        // Case 1: Not visible at all
         if (activeRect.bottom <= playlistRect.top || activeRect.top >= playlistRect.bottom) return true;
 
-        // Find all tracks and their viewport positions
+        // Case 2: Partially visible (cut off at top or bottom)
+        if (activeRect.top < playlistRect.top || activeRect.bottom > playlistRect.bottom) return true;
+
+        // Case 3: Fully visible — check if it's the topmost or bottommost fully visible track
         const tracks = Array.from(playlist.querySelectorAll('.track'));
-        const visibleTracks = tracks.filter(t => {
+        const fullyVisible = tracks.filter(t => {
           const r = t.getBoundingClientRect();
-          return r.bottom > playlistRect.top && r.top < playlistRect.bottom;
+          return r.top >= playlistRect.top && r.bottom <= playlistRect.bottom;
         });
 
-        if (visibleTracks.length === 0) return true;
+        if (fullyVisible.length === 0) return true;
 
-        // If active track is the topmost or bottommost visible — scroll
-        const isEdge = visibleTracks[0] === activeTrack || 
-                       visibleTracks[visibleTracks.length - 1] === activeTrack;
-        return isEdge;
+        return fullyVisible[0] === activeTrack || fullyVisible[fullyVisible.length - 1] === activeTrack;
       }
 
       scrollActiveTrackIntoView() {
