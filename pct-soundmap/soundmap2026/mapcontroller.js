@@ -749,7 +749,11 @@ class MapController {
 
         // If playlist is already open on desktop, scroll after track updates
         if (!uiController.isMobile && uiController.playlistExpanded) {
-          setTimeout(() => uiController.scrollActiveTrackIntoView(), 300);
+          console.log('scheduling scrollActiveTrackIntoView');
+          setTimeout(() => {
+            console.log('scrollActiveTrackIntoView timeout fired');
+            uiController.scrollActiveTrackIntoView();
+          }, 300);
         }
        const track = this.audioData[index];
        if (!track) {
