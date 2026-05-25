@@ -13,7 +13,6 @@ class AudioController {
     this.scrollToActiveOnOpen = false; // Flag to scroll active track into view when playlist opens
     this.setupAudioElement(); // CHANGED: Setup persistent audio element first
     this.setupWakeLock();
-    this.setupMediaSession();
   }
 
   async setupWakeLock() {
@@ -90,11 +89,24 @@ class AudioController {
     });
   }
 
-  setupMediaSession() {
-    // Register action handlers once — not per track
+  updateMediaSession(track) {
+    // Register handlers and update metadata per track — timing matters for iOS session context
     if (!('mediaSession' in navigator)) return;
 
-    // Disable seek controls first so iOS shows prev/next
+    navigator.mediaSession.metadata = new MediaMetadata({
+      title: track.name || 'unknown',
+      artist: 'tom kelly',
+      album: 'a sound map of the pacific crest trail, 2023',
+      artwork: [
+        {
+          src: 'https://www.thomasmkelly.com/images/soundmap-web-player-image.jpg',
+          sizes: '1024x1024',
+          type: 'image/jpeg'
+        }
+      ]
+    });
+
+    // Disable seek controls so iOS shows prev/next
     try {
       navigator.mediaSession.setActionHandler('seekbackward', null);
       navigator.mediaSession.setActionHandler('seekforward', null);
@@ -125,39 +137,7 @@ class AudioController {
       }
     });
 
-
-  }
-
-  updateMediaSession(track) {
-    // Update metadata per track
-    if (!('mediaSession' in navigator)) return;
-
-    navigator.mediaSession.metadata = new MediaMetadata({
-      title: track.name || 'unknown',
-      artist: 'tom kelly',
-      album: 'a sound map of the pacific crest trail, 2023',
-      artwork: [
-        {
-          src: 'https://www.thomasmkelly.com/images/soundmap-web-player-image.jpg',
-          sizes: '1024x1024',
-          type: 'image/jpeg'
-        }
-      ]
-    });
-
     navigator.mediaSession.playbackState = 'playing';
-
-    // Set position state so iOS knows track duration and position
-    // This helps iOS show prev/next instead of seek controls
-    try {
-      if (this.currentAudio && !isNaN(this.currentAudio.duration)) {
-        navigator.mediaSession.setPositionState({
-          duration: this.currentAudio.duration,
-          playbackRate: 1,
-          position: this.currentAudio.currentTime
-        });
-      }
-    } catch(e) {}
   }
 
   play(index, audioData, withFade = false) {
