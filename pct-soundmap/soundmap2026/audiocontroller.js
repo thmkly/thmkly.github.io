@@ -94,6 +94,13 @@ class AudioController {
     // Register action handlers once — not per track
     if (!('mediaSession' in navigator)) return;
 
+    // Disable seek controls first so iOS shows prev/next
+    try {
+      navigator.mediaSession.setActionHandler('seekbackward', null);
+      navigator.mediaSession.setActionHandler('seekforward', null);
+      navigator.mediaSession.setActionHandler('seekto', null);
+    } catch(e) {}
+
     navigator.mediaSession.setActionHandler('play', () => {
       this.currentAudio.play();
       this.isPlaying = true;
@@ -118,12 +125,7 @@ class AudioController {
       }
     });
 
-    // Explicitly disable seek controls so iOS shows prev/next instead
-    try {
-      navigator.mediaSession.setActionHandler('seekbackward', null);
-      navigator.mediaSession.setActionHandler('seekforward', null);
-      navigator.mediaSession.setActionHandler('seekto', null);
-    } catch(e) {}
+
   }
 
   updateMediaSession(track) {
