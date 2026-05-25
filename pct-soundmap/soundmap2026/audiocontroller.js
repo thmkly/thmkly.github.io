@@ -117,6 +117,13 @@ class AudioController {
         this.playNext(window.mapController.audioData, true);
       }
     });
+
+    // Explicitly disable seek controls so iOS shows prev/next instead
+    try {
+      navigator.mediaSession.setActionHandler('seekbackward', null);
+      navigator.mediaSession.setActionHandler('seekforward', null);
+      navigator.mediaSession.setActionHandler('seekto', null);
+    } catch(e) {}
   }
 
   updateMediaSession(track) {
