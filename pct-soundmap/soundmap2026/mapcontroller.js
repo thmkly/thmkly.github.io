@@ -749,8 +749,8 @@ class MapController {
           audioController.scrollToActiveOnOpen = true;
         }
 
-        // If playlist is already open on desktop, scroll after track updates
-        if (!uiController.isMobile && uiController.playlistExpanded) {
+        // If playlist is already open on desktop and navigation came from outside playlist, scroll
+        if (!uiController.isMobile && uiController.playlistExpanded && !fromPlaylist) {
           setTimeout(() => uiController.scrollActiveTrackIntoView(), 150);
         }
        const track = this.audioData[index];
