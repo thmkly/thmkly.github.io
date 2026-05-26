@@ -2198,8 +2198,8 @@ class MapController {
             atmosphereController.applyAtmosphere(currentTrack);
           } else {
             map.flyTo({
-              center: [-122.51238177776403, 41.30761483805384],
-              zoom: 14.710828168410748,
+              center: [-122.51405579303847, 41.31319925651451],
+              zoom: 13.980798647405392,
               pitch: 72.5,
               bearing: 21.6,
               duration: 2000
