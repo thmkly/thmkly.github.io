@@ -2197,7 +2197,13 @@ class MapController {
             this.positionMapForTrack(currentTrack, audioController.currentIndex);
             atmosphereController.applyAtmosphere(currentTrack);
           } else {
-            map.flyTo({ pitch: 82, zoom: Math.max(map.getZoom(), CONFIG.ZOOM_3D), duration: 2000 });
+            map.flyTo({
+              center: [-122.51238177776403, 41.30761483805384],
+              zoom: 14.710828168410748,
+              pitch: 72.5,
+              bearing: 21.6,
+              duration: 2000
+            });
           }
         }, 300);
       }
