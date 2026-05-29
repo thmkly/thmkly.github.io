@@ -2312,13 +2312,13 @@ class MapController {
           atmosphereController.resetToDefault();
         }
         
-        // Reset to default position — static center, dynamic zoom, clear any accumulated padding
+        // Reset to default position — explicitly clear padding first, then fly
+        map.setPadding({ left: 0, top: 0, right: 0, bottom: 0 });
         map.flyTo({
           center: uiController.isMobile ? CONFIG.DEFAULT_CENTER_MOBILE : [-122.50276, 41.31727],
           zoom: CONFIG.getDefaultZoom(),
           pitch: 0,
           bearing: 0,
-          padding: { left: 0, top: 0, right: 0, bottom: 0 },
           duration: 2000
         });
         
