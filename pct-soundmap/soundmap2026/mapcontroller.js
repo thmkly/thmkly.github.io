@@ -2312,14 +2312,14 @@ class MapController {
           atmosphereController.resetToDefault();
         }
         
-        // Reset to default position - use flyTo like 3D mode does
+        // Reset to default position — static center, dynamic zoom, clear any accumulated padding
         map.flyTo({
-          center: uiController.isMobile ? CONFIG.DEFAULT_CENTER_MOBILE : CONFIG.DEFAULT_CENTER,
+          center: uiController.isMobile ? CONFIG.DEFAULT_CENTER_MOBILE : [-122.50276, 41.31727],
           zoom: CONFIG.getDefaultZoom(),
           pitch: 0,
           bearing: 0,
-          duration: 2000,
-          padding: uiController.isMobile ? 0 : { left: this.getLeftPadding(), top: 0, right: 0, bottom: 0 }
+          padding: { left: 0, top: 0, right: 0, bottom: 0 },
+          duration: 2000
         });
         
           // Clear active track highlighting and reset styling
