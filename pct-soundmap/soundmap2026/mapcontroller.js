@@ -2204,6 +2204,19 @@ class MapController {
               bearing: 21.6,
               duration: 2000
             });
+            // Apply 10pm night atmosphere for the easter egg view
+            setTimeout(() => {
+              const nightConditions = atmosphereController.getAtmosphericConditions({
+                timestamp: '2023-07-15 22:00:00',
+                lat: 41.31319925651451,
+                lng: -122.51405579303847,
+                elevation: 5000,
+                mile: 1600
+              });
+              atmosphereController.applyEnhancedSky(nightConditions);
+              atmosphereController.applyEnhancedFog(nightConditions);
+              atmosphereController.applyEnhanced3DEffects(nightConditions);
+            }, 500);
           }
         }, 300);
       }
