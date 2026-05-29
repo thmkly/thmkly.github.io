@@ -2318,7 +2318,8 @@ class MapController {
           zoom: CONFIG.getDefaultZoom(),
           pitch: 0,
           bearing: 0,
-          duration: 2000
+          duration: 2000,
+          padding: uiController.isMobile ? 0 : { left: this.getLeftPadding(), top: 0, right: 0, bottom: 0 }
         });
         
           // Clear active track highlighting and reset styling
