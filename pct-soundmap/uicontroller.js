@@ -1,0 +1,716 @@
+// UI Controller Class
+class UIController {
+    constructor() {
+      this.playlistExpanded = true;
+      this.isFullscreen = false;
+      this.is3DEnabled = false;
+      this.miniInfoBoxes = [];
+      this.clusterPlaylist = null;
+      this.isMobile = this._detectMobile();
+      document.body.classList.toggle('is-mobile', this.isMobile);
+      
+      // Cache DOM references
+      this.playlist = document.getElementById('playlist');
+      this.playlistWrapper = document.getElementById('playlistWrapper');
+      this.playlistToggle = document.getElementById('playlistToggle');
+      this.scrollUp = document.getElementById('scrollUp');
+      this.scrollDown = document.getElementById('scrollDown');
+      
+      this.setupEventListeners();
+      this.setupResizeListener();
+    }
+
+      setupEventListeners() {
+        // Playlist toggle (desktop)
+        document.getElementById('playlistToggle').addEventListener('click', () => {
+          this.togglePlaylist();
+        });
+
+        // Hamburger menu for mobile
+        const hamburgerMenu = document.getElementById('hamburgerMenu');
+        if (hamburgerMenu) {
+          hamburgerMenu.addEventListener('click', () => {
+            this.toggleMobileMenu();
+          });
+        }
+
+        // Sort buttons (excluding RANDOM which has its own handler)
+        document.querySelectorAll('.sort-btn:not(#sortRandom):not(#sortRandomMobile)').forEach(btn => {
+          btn.addEventListener('click', (e) => {
+            this.handleSortChange(e.target.id);
+          });
+        });
+
+        // RANDOM as sort button
+        const sortRandomBtn = document.getElementById('sortRandom');
+        if (sortRandomBtn) {
+          sortRandomBtn.addEventListener('click', () => {
+            document.querySelectorAll('.sort-btn').forEach(btn => btn.classList.remove('active'));
+            sortRandomBtn.classList.add('active');
+            const sortRandomMobile = document.getElementById('sortRandomMobile');
+            if (sortRandomMobile) sortRandomMobile.classList.add('active');
+            audioController.playMode = 'random';
+          });
+        }
+
+        document.getElementById('resetMapBtn').addEventListener('click', () => {
+          mapController.resetMap();
+        });
+
+        document.getElementById('fullscreenBtn').addEventListener('click', () => {
+          this.toggleFullscreen();
+        });
+
+        document.getElementById('terrain3dBtn').addEventListener('click', () => {
+          this.toggle3D();
+        });
+
+        // Global spacebar handler - prevent focus on audio elements
+        document.addEventListener('keydown', (e) => {
+          if (e.code === 'Space' && audioController.currentAudio) {
+            e.preventDefault();
+            audioController.togglePlayPause();
+            // Blur any focused audio elements
+            if (document.activeElement.tagName === 'AUDIO') {
+              document.activeElement.blur();
+            }
+          }
+        });
+          
+        // Scroll arrows (use cached references)
+        const playlist = this.playlist;
+        const scrollUp = this.scrollUp;
+        const scrollDown = this.scrollDown;
+
+        playlist.addEventListener('scroll', () => this.updateScrollArrows());
+
+        // Prevent scroll chaining — stop wheel events from reaching the page
+        // when the playlist is at its scroll limits
+        playlist.addEventListener('wheel', (e) => {
+          const atTop = playlist.scrollTop === 0;
+          const atBottom = (playlist.scrollTop + playlist.clientHeight) >= playlist.scrollHeight - 1;
+          const scrollingUp = e.deltaY < 0;
+          const scrollingDown = e.deltaY > 0;
+          if ((atTop && scrollingUp) || (atBottom && scrollingDown)) {
+            e.preventDefault();
+          }
+        }, { passive: false });
+        // Desktop scroll arrows — click and hold to scroll
+        if (!this.isMobile) {
+          const setupArrow = (btn, direction) => {
+            let interval = null;
+            let timeout = null;
+            let holding = false;
+
+            btn.addEventListener('click', () => {
+              if (holding) return; // suppress click after hold
+              const pl = document.getElementById('playlist');
+              if (!btn.classList.contains('disabled') && pl) {
+                pl.scrollBy({ top: direction * 150, behavior: 'smooth' });
+              }
+            });
+
+            btn.addEventListener('mousedown', () => {
+              holding = false;
+              timeout = setTimeout(() => {
+                holding = true;
+                interval = setInterval(() => {
+                  const pl = document.getElementById('playlist');
+                  if (!btn.classList.contains('disabled') && pl) {
+                    pl.scrollTop += direction * 30;
+                  }
+                }, 16); // ~60fps, instant movement
+              }, 400);
+            });
+
+            const stop = () => {
+              clearTimeout(timeout);
+              clearInterval(interval);
+              timeout = null;
+              interval = null;
+              setTimeout(() => { holding = false; }, 50);
+            };
+
+            btn.addEventListener('mouseup', stop);
+            btn.addEventListener('mouseleave', stop);
+          };
+
+          setupArrow(scrollUp, -1);
+          setupArrow(scrollDown, 1);
+        }
+
+        // Initialize scroll arrows state on load
+        setTimeout(() => this.updateScrollArrows(), 100);
+
+        this.setupPlaylistDrag();
+      }
+
+         togglePlaylist() {
+          const wrapper = document.getElementById('playlistWrapper');
+          const toggle = document.getElementById('playlistToggle');
+          
+          this.playlistExpanded = !this.playlistExpanded;
+          
+          if (this.playlistExpanded) {
+            wrapper.classList.remove('collapsed');
+            toggle.textContent = '◀';
+            toggle.title = 'Collapse playlist';
+            
+            // Remove header badge when playlist is expanded
+            const existingBadge = document.getElementById('playing-badge');
+            if (existingBadge) {
+              existingBadge.remove();
+            }
+
+            // Scroll active track into view if navigation came from map/lock screen
+            if (audioController.scrollToActiveOnOpen) {
+              setTimeout(() => this.scrollActiveTrackIntoView(), 50);
+            }
+          } else {
+            wrapper.classList.add('collapsed');
+            toggle.textContent = '▶';
+            toggle.title = 'Expand playlist';
+            
+            // Show header badge when playlist is collapsed (if something is playing)
+            if (audioController.currentIndex >= 0) {
+              const currentTrack = mapController.audioData[audioController.currentIndex];
+              if (currentTrack) {
+                mapController.updateHeaderBadge(currentTrack);
+              }
+            }
+          }
+        }
+
+        toggleMobileMenu() {
+          if (!this.isMobile) return;
+          
+          const wrapper = document.getElementById('playlistWrapper');
+          const hamburger = document.querySelector('.hamburger-menu');
+          this.mobilePlaylistExpanded = !this.mobilePlaylistExpanded;
+          
+          if (this.mobilePlaylistExpanded) {
+            wrapper.classList.add('mobile-expanded');
+            document.body.classList.add('mobile-menu-open');
+            document.body.style.overflow = 'hidden';
+            if (hamburger) hamburger.classList.add('open');
+
+            // Scroll active track into view if navigation came from map/lock screen
+            if (audioController.scrollToActiveOnOpen) {
+              // Force center on mobile open — always center regardless of position
+              setTimeout(() => this.scrollActiveTrackIntoView(true), 350);
+            }
+          } else {
+            wrapper.classList.remove('mobile-expanded');
+            document.body.classList.remove('mobile-menu-open');
+            document.body.style.overflow = '';
+            if (hamburger) hamburger.classList.remove('open');
+          }
+        }
+
+        collapseMobileMenu() {
+          if (!this.isMobile) return;
+          
+          const wrapper = document.getElementById('playlistWrapper');
+          const hamburger = document.querySelector('.hamburger-menu');
+          this.mobilePlaylistExpanded = false;
+          wrapper.classList.remove('mobile-expanded');
+          document.body.classList.remove('mobile-menu-open');
+          document.body.style.overflow = '';
+          if (hamburger) hamburger.classList.remove('open');
+        }
+
+        sizeMobilePlaylist() {
+          if (!this.isMobile) return;
+          const wrapper = document.getElementById('playlistWrapper');
+          const header = wrapper.querySelector('.playlist-header');
+          const playlist = wrapper.querySelector('#playlist');
+          const footer = wrapper.querySelector('.playlist-footer');
+          const scrollUp = document.getElementById('scrollUp');
+          const scrollDown = document.getElementById('scrollDown');
+          if (!header || !playlist || !footer) return;
+
+          const headerH = header.offsetHeight;
+          const footerH = footer.offsetHeight;
+
+          // Measure total track height
+          const tracks = playlist.querySelectorAll('.track');
+          let trackH = 0;
+          tracks.forEach(t => { trackH += t.offsetHeight; });
+
+          const totalH = headerH + trackH + footerH;
+          const topMargin = 20;
+          const maxH = window.innerHeight - topMargin - 20;
+          const finalH = Math.min(totalH, maxH);
+          wrapper.style.bottom = `${window.innerHeight - topMargin - finalH}px`;
+
+          // Position scroll arrows dynamically
+          const firstTrack = tracks[0];
+          if (firstTrack && scrollUp) {
+            const firstTrackH = firstTrack.offsetHeight;
+            // Center arrow with first track: header bottom + half track height - half arrow height
+            scrollUp.style.top = `${headerH + (firstTrackH / 2) - (scrollUp.offsetHeight / 2) + 1}px`;
+          }
+
+          if (scrollDown) {
+            // Find last fully visible track (bottom of track < playlist area bottom)
+            const playlistAreaH = finalH - headerH - footerH;
+            let accum = 0;
+            let lastVisibleTrackH = firstTrack ? firstTrack.offsetHeight : 33;
+            tracks.forEach(t => {
+              const h = t.offsetHeight;
+              if (accum + h <= playlistAreaH) {
+                lastVisibleTrackH = h;
+                accum += h;
+              }
+            });
+            // Center arrow with last visible track from bottom of wrapper
+            scrollDown.style.bottom = `${footerH + (lastVisibleTrackH / 2) - (scrollDown.offsetHeight / 2) - 1}px`;
+          }
+        }
+
+      shouldScrollToActive() {
+        // Returns true if the active track should be centered in the playlist
+        const activeTrack = document.querySelector('.track.active-track');
+        if (!activeTrack) return false;
+        const playlist = document.getElementById('playlist');
+        if (!playlist) return false;
+
+        const playlistRect = playlist.getBoundingClientRect();
+        const activeRect = activeTrack.getBoundingClientRect();
+
+        // Case 1: Not visible at all
+        if (activeRect.bottom <= playlistRect.top || activeRect.top >= playlistRect.bottom) return true;
+
+        // Case 2: Partially visible (cut off at top or bottom)
+        if (activeRect.top < playlistRect.top || activeRect.bottom > playlistRect.bottom) return true;
+
+        // Case 3: Fully visible — check if it's the topmost or bottommost fully visible track
+        const tracks = Array.from(playlist.querySelectorAll('.track'));
+        const fullyVisible = tracks.filter(t => {
+          const r = t.getBoundingClientRect();
+          return r.top >= playlistRect.top && r.bottom <= playlistRect.bottom;
+        });
+
+        if (fullyVisible.length === 0) return true;
+
+        return fullyVisible[0] === activeTrack || fullyVisible[fullyVisible.length - 1] === activeTrack;
+      }
+
+      scrollActiveTrackIntoView(force = false) {
+        const activeTrack = document.querySelector('.track.active-track');
+        if (!activeTrack) return;
+        const playlist = document.getElementById('playlist');
+        if (!playlist) return;
+        audioController.scrollToActiveOnOpen = false;
+        // Only scroll if track needs centering (unless forced)
+        if (!force && !this.shouldScrollToActive()) return;
+        const trackH = activeTrack.offsetHeight;
+        const playlistH = playlist.clientHeight;
+        if (this.isMobile) {
+          // iOS Safari doesn't support scrollTo with behavior:smooth reliably
+          // Use offsetTop directly for consistent mobile scrolling
+          const trackTop = activeTrack.offsetTop - playlist.offsetTop;
+          playlist.scrollTop = Math.max(0, trackTop - (playlistH / 2) + (trackH / 2));
+        } else {
+          const playlistRect = playlist.getBoundingClientRect();
+          const activeRect = activeTrack.getBoundingClientRect();
+          const currentScrollTop = playlist.scrollTop;
+          const trackOffsetFromPlaylistTop = activeRect.top - playlistRect.top;
+          const targetScroll = currentScrollTop + trackOffsetFromPlaylistTop - (playlistH / 2) + (trackH / 2);
+          playlist.scrollTo({ top: targetScroll, behavior: 'smooth' });
+        }
+      }
+
+      _detectMobile() {
+        return /iphone|ipad|ipod|android|mobile|blackberry|iemobile|wpdesktop/i.test(navigator.userAgent);
+      }
+
+      setupResizeListener() {
+        // isMobile is device-based, not window-width-based — no layout switching on resize.
+        // Only update scroll arrows if needed.
+        window.addEventListener('resize', () => {
+          setTimeout(() => this.updateScrollArrows(), 100);
+        });
+      }
+
+      handleSortChange(sortId) {
+        document.querySelectorAll('.sort-btn').forEach(btn => btn.classList.remove('active'));
+        document.getElementById(sortId).classList.add('active');
+
+        const sortMap = {
+          'sortNobo': 'nobo',
+          'sortSobo': 'sobo',
+          'sortDate': 'date'
+        };
+
+        // Switching to a non-random sort resets random playMode
+        audioController.playMode = 'sequential';
+        audioController.sortMode = sortMap[sortId];
+        mapController.sortAndUpdatePlaylist();
+      }
+
+      toggleFullscreen() {
+        const body = document.body;
+        
+        if (!this.isFullscreen) {
+          if (body.requestFullscreen) {
+            body.requestFullscreen();
+          } else if (body.webkitRequestFullscreen) {
+            body.webkitRequestFullscreen();
+          } else if (body.msRequestFullscreen) {
+            body.msRequestFullscreen();
+          }
+        } else {
+          if (document.exitFullscreen) {
+            document.exitFullscreen();
+          } else if (document.webkitExitFullscreen) {
+            document.webkitExitFullscreen();
+          } else if (document.msExitFullscreen) {
+            document.msExitFullscreen();
+          }
+        }
+      }
+
+      toggle3D() {
+        this.is3DEnabled = !this.is3DEnabled;
+        const btn = document.getElementById('terrain3dBtn');
+        const btnMobile = document.getElementById('terrain3dBtnMobile');
+        if (btn) btn.classList.toggle('active', this.is3DEnabled);
+        if (btnMobile) btnMobile.classList.toggle('active', this.is3DEnabled);
+
+        if (this.is3DEnabled) {
+          // Close picker when entering 3D — picker is a 2D-only UI element
+          if (mapController.clusterPicker) {
+            if (mapController.clusterPicker._moveHandler) map.off('move', mapController.clusterPicker._moveHandler);
+            mapController.clusterPicker.remove();
+            mapController.clusterPicker = null;
+            mapController.clusterPickerTracks = null;
+          }
+          mapController.enable3D();
+        } else {
+          mapController.disable3D();
+        }
+      }
+
+        updateScrollArrows() {
+          const playlist = this.playlist;
+          const scrollUp = this.scrollUp;
+          const scrollDown = this.scrollDown;
+        
+        // Always show arrows, but disable when can't scroll
+        const canScrollUp = playlist.scrollTop > 0;
+        const canScrollDown = (playlist.scrollTop + playlist.clientHeight) < playlist.scrollHeight - 1; // -1 for rounding
+        
+        if (canScrollUp) {
+          scrollUp.classList.remove('disabled');
+        } else {
+          scrollUp.classList.add('disabled');
+        }
+        
+        if (canScrollDown) {
+          scrollDown.classList.remove('disabled');
+        } else {
+          scrollDown.classList.add('disabled');
+        }
+      }
+
+      setupPlaylistDrag() {
+        const playlist = document.getElementById('playlist');
+        let dragging = false, startY, scrollStart, vel = 0, lastY = 0, lastTime = 0, raf;
+        let dragStarted = false, preventClick = false;
+
+        playlist.addEventListener('mousedown', e => {
+          dragging = true;
+          dragStarted = false;
+          playlist.classList.add('dragging');
+          startY = e.pageY;
+          scrollStart = playlist.scrollTop;
+          vel = 0;
+          lastY = e.pageY;
+          lastTime = Date.now();
+          if (raf) cancelAnimationFrame(raf);
+        });
+
+        playlist.addEventListener('mousemove', e => {
+          if (!dragging) return;
+          e.preventDefault();
+          const now = Date.now();
+          const dy = e.pageY - lastY;
+          const dt = now - lastTime;
+          if (dt > 0) vel = dy / dt * 16;
+          playlist.scrollTop = scrollStart - (e.pageY - startY);
+          lastY = e.pageY;
+          lastTime = now;
+          this.updateScrollArrows();
+
+          if (!dragStarted && Math.abs(e.pageY - startY) > 5) {
+            dragStarted = true;
+            preventClick = true;
+          }
+        });
+
+        ['mouseup', 'mouseleave'].forEach(ev => {
+          playlist.addEventListener(ev, () => {
+            if (!dragging) return;
+            dragging = false;
+            playlist.classList.remove('dragging');
+            
+            const momentum = () => {
+              if (Math.abs(vel) < 0.5) return;
+              playlist.scrollTop -= vel;
+              vel *= 0.95;
+              raf = requestAnimationFrame(momentum);
+              this.updateScrollArrows();
+            };
+            momentum();
+
+            if (preventClick) {
+              setTimeout(() => { preventClick = false; }, 100);
+            }
+          });
+        });
+
+        playlist.addEventListener('click', e => {
+          if (preventClick) {
+            e.preventDefault();
+            e.stopPropagation();
+          }
+        }, true);
+      }
+
+      showMiniInfoBoxes(currentTrack, audioData, precomputedPoints = null) {
+        this.clearMiniInfoBoxes();
+
+        const visiblePoints = precomputedPoints || (() => {
+          const raw = map.queryRenderedFeatures({ layers: ['unclustered-point'] });
+          const seen = new Set();
+          return raw.filter(p => {
+            const origIdx = parseInt(p.properties.originalIndex);
+            if (seen.has(origIdx)) return false;
+            seen.add(origIdx);
+            return true;
+          });
+        })();
+
+        visiblePoints.forEach(point => {
+          const originalIndex = parseInt(point.properties.originalIndex);
+          
+          const currentIndex = audioData.findIndex(track => track.originalIndex === originalIndex);
+          if (currentIndex === -1) return;
+          
+          if (mapController.clusterPickerTracks && mapController.clusterPickerTracks.includes(currentIndex)) return;
+
+          // Skip the active track entirely — its state is managed by minimizePopup/showPopup
+          if (currentIndex === audioController.currentIndex) return;
+
+          // Skip if this track has a popup open
+          const hasPopup = mapController.currentPopup &&
+            mapController.currentPopup._container &&
+            parseInt(mapController.currentPopup._container.dataset?.trackIndex) === currentIndex;
+          if (hasPopup) return;
+
+          // Skip if this track is currently in the minimized popup
+          if (mapController.minimizedPopup &&
+              parseInt(mapController.minimizedPopup.dataset?.trackIndex) === currentIndex) return;
+
+          // Skip if this track has a preview popup open
+          if (mapController.previewPopupTrackIndex === currentIndex) {
+            return;
+          }
+          
+          // Skip if a mini box already exists for this track
+          const alreadyHasBox = this.miniInfoBoxes.some(b => parseInt(b.dataset.trackIndex) === currentIndex);
+          if (alreadyHasBox) {
+            return;
+          }
+
+          const track = audioData[currentIndex];
+          if (!track) return;
+
+          const coords = point.geometry.coordinates;
+          const pixelCoords = map.project(coords);
+
+          const infoBox = this._createMiniInfoBox(track, currentIndex, {
+            onPillClick: () => mapController.playAudio(currentIndex, false, true, false),
+            onBodyClick: () => {
+              if (infoBox.parentNode) infoBox.parentNode.removeChild(infoBox);
+              this.miniInfoBoxes = this.miniInfoBoxes.filter(b => b !== infoBox);
+              const trackCoords = [parseFloat(track.lng), parseFloat(track.lat)];
+              mapController.showPopup(trackCoords, track, audioController.currentAudio, currentIndex, false, true);
+            },
+            isPlaying: false,
+            audio: null
+          });
+
+          infoBox.style.position = 'absolute';
+          infoBox.style.left = `${pixelCoords.x + 10}px`;
+          infoBox.style.top  = `${pixelCoords.y - 20}px`;
+
+          document.body.appendChild(infoBox);
+
+          // Slot is determined by track index order among all tracks at same coords — always stable
+          const boxHeight = infoBox.offsetHeight || 32;
+          const stackOffset = this.getStackSlot(currentIndex, audioData);
+          infoBox.style.top = `${pixelCoords.y - (boxHeight / 2) + (stackOffset * (boxHeight + 3))}px`;
+          infoBox._stackOffset = stackOffset;
+          this.miniInfoBoxes.push(infoBox);
+        });
+      }
+
+      // Builds a mini infobox with main+chevron structure
+      // opts: { onPillClick, onBodyClick, isPlaying, audio }
+      _createMiniInfoBox(track, trackIndex, opts) {
+        const infoBox = document.createElement('div');
+        infoBox.className = 'mini-infobox';
+        infoBox.dataset.trackIndex = trackIndex;
+
+        // Main zone — play/pause icon + title, tap to play/pause
+        const pill = document.createElement('div');
+        pill.className = 'mini-infobox-pill';
+        pill.title = 'Play sound';
+
+        const pillIcon = document.createElement('div');
+        pillIcon.className = 'play-icon';
+        pill.appendChild(pillIcon);
+
+        const title = document.createElement('span');
+        title.className = 'mini-infobox-title';
+        title.textContent = track.name.replace(/^[^\s]+\s+-\s+/, '');
+        pill.appendChild(title);
+
+        pill.addEventListener('click', (e) => {
+          e.stopPropagation();
+          opts.onPillClick();
+        });
+
+        // Chevron — standalone expand tap target
+        const chevron = document.createElement('div');
+        chevron.className = 'mini-infobox-chevron';
+        chevron.textContent = '›';
+        chevron.title = 'Expand player';
+
+        chevron.addEventListener('click', (e) => {
+          e.stopPropagation();
+          opts.onBodyClick();
+        });
+
+        infoBox.appendChild(pill);
+        infoBox.appendChild(chevron);
+
+        // Wire play/pause icon to audio if provided (orange/playing state)
+        if (opts.audio) {
+          pillIcon.innerHTML = '';
+          pillIcon.style.cssText = '';
+          const cleanup = mapController._attachPlayPauseIcon(pillIcon, opts.audio, false);
+          infoBox._cleanupIcon = cleanup;
+        }
+
+        return infoBox;
+      }
+
+
+      // Returns the vertical stack slot for a track at shared coords, based on sorted track index order.
+      // Includes the minimized popup track in the sort so slots are consistent across all box types.
+      getStackSlot(trackIndex, audioData) {
+        const track = audioData[trackIndex];
+        if (!track) return 0;
+        const sameLng = parseFloat(track.lng);
+        const sameLat = parseFloat(track.lat);
+        // Gather all track indices at this coord, including the minimized popup's track
+        const allIndices = audioData
+          .map((t, i) => ({ i, lng: parseFloat(t.lng), lat: parseFloat(t.lat) }))
+          .filter(t => t.lng === sameLng && t.lat === sameLat)
+          .map(t => t.i);
+        allIndices.sort((a, b) => a - b);
+        return allIndices.indexOf(trackIndex);
+      }
+
+      updateMiniInfoBoxPositions() {
+        // Reproject each box to new pixel coords, using index-order slot for stable positioning
+        this.miniInfoBoxes.forEach(infoBox => {
+          const trackIndex = parseInt(infoBox.dataset.trackIndex);
+          const track = mapController.audioData[trackIndex];
+          if (track) {
+            const coords = [parseFloat(track.lng), parseFloat(track.lat)];
+            const px = map.project(coords);
+            const boxHeight = infoBox.offsetHeight || 32;
+            const stackOffset = this.getStackSlot(trackIndex, mapController.audioData);
+            infoBox.style.left = `${px.x + 10}px`;
+            infoBox.style.top  = `${px.y - (boxHeight / 2) + (stackOffset * (boxHeight + 3))}px`;
+          }
+        });
+      }
+
+      // Clear _manuallyCreated flag after one updateMapUI cycle so boxes get managed normally
+      releaseManualBoxes() {
+        this.miniInfoBoxes.forEach(box => {
+          if (box._manuallyCreated) box._manuallyCreated = false;
+        });
+      }
+
+      clearMiniInfoBoxes() {
+        this.miniInfoBoxes = this.miniInfoBoxes.filter(box => {
+          if (box._manuallyCreated) return true; // Preserve manually-created boxes
+          if (box._cleanupIcon) box._cleanupIcon();
+          if (box.parentNode) box.parentNode.removeChild(box);
+          return false;
+        });
+      }
+
+      showClusterPlaylist(e, leaves) {
+        this.hideClusterPlaylist();
+
+        const playlist = document.createElement('div');
+        playlist.className = 'cluster-playlist';
+        
+        leaves.forEach(leaf => {
+          const item = document.createElement('div');
+          item.className = 'cluster-item';
+          
+          const playIcon = document.createElement('div');
+          playIcon.className = 'play-icon';
+          
+          const title = document.createElement('span');
+          title.className = 'cluster-item-title';
+          title.textContent = leaf.properties.name.replace(/^[^\s]+\s+-\s+/, '');
+          
+          item.appendChild(playIcon);
+          item.appendChild(title);
+          
+          item.addEventListener('click', () => {
+            mapController.playAudio(parseInt(leaf.properties.id));
+            this.hideClusterPlaylist();
+          });
+          
+          item.addEventListener('mouseleave', () => {
+            // Small delay to allow moving between items
+            setTimeout(() => {
+              if (!playlist.matches(':hover')) {
+                this.hideClusterPlaylist();
+              }
+            }, 100);
+          });
+          
+          playlist.appendChild(item);
+        });
+
+        // Position the playlist
+        playlist.style.left = `${e.point.x + 10}px`;
+        playlist.style.top = `${e.point.y - 10}px`;
+        
+        // Handle playlist mouse leave
+        playlist.addEventListener('mouseleave', () => {
+          this.hideClusterPlaylist();
+        });
+        
+        map.getContainer().appendChild(playlist);
+        this.clusterPlaylist = playlist;
+      }
+
+      hideClusterPlaylist() {
+        if (this.clusterPlaylist) {
+          this.clusterPlaylist.remove();
+          this.clusterPlaylist = null;
+        }
+      }
+    }
