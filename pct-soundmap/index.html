@@ -966,7 +966,12 @@
     padding: 8px 40px 4px 8px;
   }
 
-  body.is-mobile .playlist-title-byline {
+  .playlist-title-byline::before {
+    content: ', ';
+  }
+  body.is-mobile .playlist-title-byline::before {
+    content: '';
+  }
     display: block;
     font-size: 13px;
     color: #333;
