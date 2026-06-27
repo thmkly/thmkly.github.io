@@ -193,7 +193,6 @@ class UIController {
             document.body.classList.add('mobile-menu-open');
             document.body.style.overflow = 'hidden';
             if (hamburger) hamburger.classList.add('open');
-            setTimeout(() => this.sizeMobilePlaylist(), 50);
 
             // Scroll active track into view if navigation came from map/lock screen
             if (audioController.scrollToActiveOnOpen) {
