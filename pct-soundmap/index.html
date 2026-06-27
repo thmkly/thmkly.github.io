@@ -174,7 +174,7 @@
   }
 
   body.is-mobile .playlist-footer-byline {
-    display: block;
+    display: none;
   }
 
   .support-link {
@@ -967,7 +967,11 @@
   }
 
   body.is-mobile .playlist-title-byline {
-    display: none;
+    display: block;
+    font-size: 11px;
+    color: #555;
+    letter-spacing: 0.04em;
+    margin-top: 2px;
   }
 
   body.is-mobile .playlist-wrapper #playlist { max-height: none; flex: 1; overflow-y: auto; margin: 0 !important; padding: 0 !important; background-color: transparent !important; }
@@ -1282,7 +1286,7 @@
     <button class="playlist-toggle" id="playlistToggle" title="Collapse playlist">◀</button>
     <!-- Playlist header: sort controls + close button -->
     <div class="playlist-header">
-      <div class="playlist-title">a sound map of the pacific crest trail, 2023<span class="playlist-title-byline">, by stereo</span></div>
+      <div class="playlist-title">a sound map of the pacific crest trail, 2023<span class="playlist-title-byline">by stereo</span></div>
       <button class="mobile-menu-close" id="mobileMenuClose" aria-label="Close menu"></button>
       <div class="mobile-controls">
         <div class="sort-controls">
