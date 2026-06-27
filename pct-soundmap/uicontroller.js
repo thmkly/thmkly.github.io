@@ -238,22 +238,10 @@ class UIController {
           let trackH = 0;
           tracks.forEach(t => { trackH += t.offsetHeight; });
 
+          const totalH = headerH + trackH + footerH;
           const topMargin = 20;
-          const availableH = window.innerHeight - topMargin;
-          const availablePlaylistH = availableH - headerH - footerH;
-
-          // Count only complete tracks that fit
-          let accumulatedH = 0;
-          let completeTracksH = 0;
-          tracks.forEach(t => {
-            const h = t.offsetHeight;
-            if (accumulatedH + h <= availablePlaylistH) {
-              accumulatedH += h;
-              completeTracksH = accumulatedH;
-            }
-          });
-
-          const finalH = headerH + completeTracksH + footerH;
+          const maxH = window.innerHeight - topMargin - 20;
+          const finalH = Math.min(totalH, maxH);
           wrapper.style.bottom = `${window.innerHeight - topMargin - finalH}px`;
 
           // Position scroll arrows dynamically
