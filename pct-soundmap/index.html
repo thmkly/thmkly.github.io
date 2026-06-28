@@ -313,6 +313,33 @@
     margin-top: 24px !important;
   }
 
+  .info-nav {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    position: absolute;
+    top: 14px;
+    left: 16px;
+  }
+  .info-nav-link {
+    font-size: 12px;
+    color: #888;
+    cursor: pointer;
+    text-decoration: none;
+    letter-spacing: 0.03em;
+  }
+  .info-nav-link:hover {
+    color: #333;
+  }
+  .info-nav-link.active {
+    color: #333;
+    font-weight: 500;
+  }
+  .info-nav-sep {
+    font-size: 12px;
+    color: #ccc;
+  }
+
   /* Info dialog */
   .info-overlay {
     display: none;
@@ -1362,11 +1389,29 @@
   <div class="info-overlay" id="infoOverlay">
     <div class="info-dialog" id="infoDialog">
       <button class="info-dialog-close" id="infoDialogClose">−</button>
-      <p class="info-dedication">For all hikers, all hikers in spirit, and for anyone with a curiosity to listen more closely to the world around them.</p>
-      <p>In 2023 I thru-hiked the Pacific Crest Trail, carrying microphones with me and recording soundscapes along the way. I've been recording sounds in nature for years, but it wasn't until my time on the PCT that I began to understand how deep the experience of time, place, and self could be by letting the act of listening guide me on a 5-6 month journey across the country.</p>
-      <p>Field recording is a time-based practice that requires stillness within a space over a period of time, while thru-hiking a long trail requires constant forward motion. The natural tension this creates influenced my daily pace, the timing of town days, who I would cross paths with, and the balance of time spent alone versus with my friends.</p>
-      <p>I hope this soundmap connects you to these spaces in a way that a more visually-oriented medium is unable to. I hope it evokes memory for those who have been out there, inspires those who aspire to hike the PCT in their lifetime, and provides meaningful access for those who may never be able to.</p>
-      <p>From start to finish, this project was a massive undertaking, and pursuing it continues to be one of the most rewarding experiences of my life. It has deepened my relationship to myself, others, and the natural world in ways I cannot express using language.</p>
+      <nav class="info-nav">
+        <a class="info-nav-link active" data-page="about">about</a>
+        <span class="info-nav-sep">|</span>
+        <a class="info-nav-link" data-page="support">support</a>
+        <span class="info-nav-sep">|</span>
+        <a class="info-nav-link" data-page="contact">contact</a>
+      </nav>
+
+      <div class="info-page" id="info-page-about">
+        <p class="info-dedication">For all hikers, all hikers in spirit, and for anyone with a curiosity to listen more closely to the world around them.</p>
+        <p>In 2023 I thru-hiked the Pacific Crest Trail, carrying microphones with me and recording soundscapes along the way. I've been recording sounds in nature for years, but it wasn't until my time on the PCT that I began to understand how deep the experience of time, place, and self could be by letting the act of listening guide me on a 5-6 month journey across the country.</p>
+        <p>Field recording is a time-based practice that requires stillness within a space over a period of time, while thru-hiking a long trail requires constant forward motion. The natural tension this creates influenced my daily pace, the timing of town days, who I would cross paths with, and the balance of time spent alone versus with my friends.</p>
+        <p>I hope this soundmap connects you to these spaces in a way that a more visually-oriented medium is unable to. I hope it evokes memory for those who have been out there, inspires those who aspire to hike the PCT in their lifetime, and provides meaningful access for those who may never be able to.</p>
+        <p>From start to finish, this project was a massive undertaking, and pursuing it continues to be one of the most rewarding experiences of my life. It has deepened my relationship to myself, others, and the natural world in ways I cannot express using language.</p>
+      </div>
+
+      <div class="info-page" id="info-page-support" style="display:none;">
+        <p>Support content coming soon.</p>
+      </div>
+
+      <div class="info-page" id="info-page-contact" style="display:none;">
+        <p>Contact content coming soon.</p>
+      </div>
     </div>
   </div>
 
@@ -1511,6 +1556,17 @@
         if (infoDialogClose) infoDialogClose.addEventListener('click', closeInfo);
         if (infoOverlay) infoOverlay.addEventListener('click', (e) => {
           if (e.target === infoOverlay) closeInfo();
+        });
+
+        // Info nav tab switching
+        document.querySelectorAll('.info-nav-link').forEach(link => {
+          link.addEventListener('click', () => {
+            const page = link.dataset.page;
+            document.querySelectorAll('.info-nav-link').forEach(l => l.classList.remove('active'));
+            link.classList.add('active');
+            document.querySelectorAll('.info-page').forEach(p => p.style.display = 'none');
+            document.getElementById('info-page-' + page).style.display = 'block';
+          });
         });
 
         // Sync reset buttons - call function directly, don't click desktop button
