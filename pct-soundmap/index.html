@@ -310,16 +310,12 @@
     font-style: italic;
     color: #666 !important;
     margin-bottom: 20px !important;
-    margin-top: 24px !important;
   }
 
   .info-nav {
     display: flex;
     align-items: center;
     gap: 6px;
-    position: absolute;
-    top: 14px;
-    left: 16px;
   }
   .info-nav-link {
     font-size: 12px;
@@ -361,24 +357,39 @@
     max-height: 80vh;
     background: rgba(255, 255, 255, 0.95);
     border-radius: 8px;
-    padding: 20px 28px 28px;
-    overflow-y: auto;
-    overscroll-behavior: contain;
+    padding: 0;
+    overflow: hidden;
     position: relative;
     box-shadow: 0 4px 24px rgba(0, 0, 0, 0.15);
+    display: flex;
+    flex-direction: column;
+  }
+  .info-dialog-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 16px;
+    border-bottom: 1px solid rgba(0,0,0,0.08);
+    flex-shrink: 0;
+    background: inherit;
+  }
+  .info-dialog-body {
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    padding: 20px 28px 28px;
+    flex: 1;
   }
 
   body.is-mobile .info-dialog {
     width: 85vw;
     max-height: 65vh;
-    padding: 16px 18px 20px;
     background: rgba(255, 255, 255, 0.90);
+  }
+  body.is-mobile .info-dialog-body {
+    padding: 16px 18px 20px;
   }
 
   .info-dialog-close {
-    position: absolute;
-    top: 12px;
-    right: 12px;
     width: 28px;
     height: 28px;
     background: transparent;
@@ -392,6 +403,7 @@
     align-items: center;
     justify-content: center;
     padding: 0 0 2px 0;
+    flex-shrink: 0;
   }
 
   .info-dialog-close:hover {
@@ -1398,29 +1410,30 @@
   <!-- Info/About dialog -->
   <div class="info-overlay" id="infoOverlay">
     <div class="info-dialog" id="infoDialog">
-      <button class="info-dialog-close" id="infoDialogClose">−</button>
-      <nav class="info-nav">
-        <a class="info-nav-link active" data-page="about">about</a>
-        <span class="info-nav-sep">|</span>
-        <a class="info-nav-link" data-page="support">support</a>
-        <span class="info-nav-sep">|</span>
-        <a class="info-nav-link" data-page="contact">contact</a>
-      </nav>
-
-      <div class="info-page" id="info-page-about">
-        <p class="info-dedication">For all hikers, all hikers in spirit, and for anyone with a curiosity to listen more closely to the world around them.</p>
-        <p>In 2023 I thru-hiked the Pacific Crest Trail, carrying microphones with me and recording soundscapes along the way. I've been recording sound in nature for years, but it wasn't until my time on the PCT that I began to understand how deep the experience of time, place, and self could be by letting the act of listening guide me on a 5-6 month journey across the country.</p>
-        <p>Field recording is a time-based practice that requires stillness within a space over a period of time, while thru-hiking a long trail requires constant forward motion. The natural tension this creates influenced my daily pace, the timing of town days, who I would cross paths with, and the balance of time spent alone versus with my friends.</p>
-        <p>I hope this soundmap connects you to these spaces in a way that a more visually-oriented medium is unable to. I hope it evokes memory for those who have been out there, inspires those who aspire to hike the PCT in their lifetime, and provides meaningful access for those who may never be able to set foot on trail.</p>
-        <p>From start to finish, this project was a massive undertaking, and pursuing it continues to be one of the most rewarding experiences of my life. It has deepened my relationship to myself, others, and the natural world in ways I cannot express using language. May some of what I found out there find its way to you through these recordings.</p>
+      <div class="info-dialog-header">
+        <nav class="info-nav">
+          <a class="info-nav-link active" data-page="about">about</a>
+          <span class="info-nav-sep">|</span>
+          <a class="info-nav-link" data-page="support">support</a>
+          <span class="info-nav-sep">|</span>
+          <a class="info-nav-link" data-page="contact">contact</a>
+        </nav>
+        <button class="info-dialog-close" id="infoDialogClose">−</button>
       </div>
-
-      <div class="info-page" id="info-page-support" style="display:none;">
-        <p>Support content coming soon.</p>
-      </div>
-
-      <div class="info-page" id="info-page-contact" style="display:none;">
-        <p>Contact content coming soon.</p>
+      <div class="info-dialog-body">
+        <div class="info-page" id="info-page-about">
+          <p class="info-dedication">For all hikers, all hikers in spirit, and for anyone with a curiosity to listen more closely to the world around them.</p>
+          <p>In 2023 I thru-hiked the Pacific Crest Trail, carrying microphones with me and recording soundscapes along the way. I've been recording sound in nature for years, but it wasn't until my time on the PCT that I began to understand how deep the experience of time, place, and self could be by letting the act of listening guide me on a 5-6 month journey across the country.</p>
+          <p>Field recording is a time-based practice that requires stillness within a space over a period of time, while thru-hiking a long trail requires constant forward motion. The natural tension this creates influenced my daily pace, the timing of town days, who I would cross paths with, and the balance of time spent alone versus with my friends.</p>
+          <p>I hope this soundmap connects you to these spaces in a way that a more visually-oriented medium is unable to. I hope it evokes memory for those who have been out there, inspires those who aspire to hike the PCT in their lifetime, and provides meaningful access for those who may never be able to set foot on trail.</p>
+          <p>From start to finish, this project was a massive undertaking, and pursuing it continues to be one of the most rewarding experiences of my life. It has deepened my relationship to myself, others, and the natural world in ways I cannot express using language. May some of what I found out there find its way to you through these recordings.</p>
+        </div>
+        <div class="info-page" id="info-page-support" style="display:none;">
+          <p>Support content coming soon.</p>
+        </div>
+        <div class="info-page" id="info-page-contact" style="display:none;">
+          <p>Contact content coming soon.</p>
+        </div>
       </div>
     </div>
   </div>
