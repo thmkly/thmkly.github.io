@@ -368,7 +368,7 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 12px 16px;
+    padding: 8px 12px;
     border-bottom: 1px solid rgba(0,0,0,0.08);
     flex-shrink: 0;
     background: inherit;
@@ -378,6 +378,7 @@
     overscroll-behavior: contain;
     padding: 20px 28px 28px;
     flex: 1;
+    position: relative;
   }
 
   body.is-mobile .info-dialog {
@@ -400,16 +401,16 @@
     text-align: center;
     cursor: default;
     pointer-events: none;
-    z-index: 2;
+    z-index: 10;
   }
   body.is-mobile .info-scroll-arrow.visible {
     display: block;
   }
   body.is-mobile .info-scroll-up {
-    top: 8px;
+    top: 6px;
   }
   body.is-mobile .info-scroll-down {
-    bottom: 8px;
+    bottom: 6px;
   }
 
   .info-dialog-close {
