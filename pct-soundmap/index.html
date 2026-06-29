@@ -401,7 +401,7 @@
     background: rgba(255, 255, 255, 0.90);
   }
   body.is-mobile .info-dialog-body {
-    padding: 20px 14px 24px;
+    padding: 0 14px;
     flex: 1;
     overflow-y: auto;
     overscroll-behavior: contain;
@@ -1463,6 +1463,7 @@
       <div class="info-body-wrapper">
         <div class="info-scroll-arrow info-scroll-up" id="infoScrollUp">▲</div>
         <div class="info-dialog-body" id="infoDialogBody">
+          <div style="height: 12px; flex-shrink: 0;"></div>
           <div class="info-page" id="info-page-about">
           <p class="info-dedication">For all hikers, all hikers in spirit, and for anyone with a curiosity to listen more closely to the world around them.</p>
           <p>In 2023 I thru-hiked the Pacific Crest Trail, carrying microphones with me and recording soundscapes along the way. I've been recording sound in nature for years, but it wasn't until my time on the PCT that I began to understand how deep the experience of time, place, and self could be by letting the act of listening guide me on a 5-6 month journey across the country.</p>
@@ -1476,6 +1477,7 @@
         <div class="info-page" id="info-page-contact" style="display:none;">
           <p>Contact content coming soon.</p>
         </div>
+        <div style="height: 20px; flex-shrink: 0;"></div>
       </div>
         <div class="info-scroll-arrow info-scroll-down" id="infoScrollDown">▼</div>
       </div>
