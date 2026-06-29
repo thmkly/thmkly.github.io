@@ -389,7 +389,7 @@
   }
 
   .info-page {
-    min-height: 500px;
+    min-height: unset;
   }
   .info-dialog-body {
     overflow-y: auto;
@@ -1657,13 +1657,22 @@
           infoScrollDown.classList.toggle('visible', !atBottom);
         }
 
+        function lockInfoDialogHeight() {
+          if (window.uiController?.isMobile) return;
+          const aboutPage = document.getElementById('info-page-about');
+          if (aboutPage && infoBody) {
+            const h = aboutPage.scrollHeight;
+            infoBody.style.minHeight = h + 'px';
+          }
+        }
+
         if (infoBody) {
           infoBody.addEventListener('scroll', updateInfoScrollArrows);
         }
 
         // Update arrows when dialog opens
         const origOpenInfo = openInfo;
-        const openInfoWithArrows = () => { origOpenInfo(); setTimeout(updateInfoScrollArrows, 50); };
+        const openInfoWithArrows = () => { origOpenInfo(); setTimeout(() => { updateInfoScrollArrows(); lockInfoDialogHeight(); }, 50); };
         if (infoBtnDesktop) infoBtnDesktop.removeEventListener('click', origOpenInfo);
         if (infoBtnMobile) infoBtnMobile.removeEventListener('click', origOpenInfo);
         if (infoBtnDesktop) infoBtnDesktop.addEventListener('click', openInfoWithArrows);
