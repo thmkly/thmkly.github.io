@@ -389,6 +389,29 @@
     padding: 16px 18px 20px;
   }
 
+  body.is-mobile .info-scroll-arrow {
+    display: none;
+    position: absolute;
+    right: 6px;
+    width: 20px;
+    font-size: 13px;
+    color: #333;
+    background: transparent;
+    text-align: center;
+    cursor: default;
+    pointer-events: none;
+    z-index: 2;
+  }
+  body.is-mobile .info-scroll-arrow.visible {
+    display: block;
+  }
+  body.is-mobile .info-scroll-up {
+    top: 8px;
+  }
+  body.is-mobile .info-scroll-down {
+    bottom: 8px;
+  }
+
   .info-dialog-close {
     width: 28px;
     height: 28px;
@@ -1420,7 +1443,9 @@
         </nav>
         <button class="info-dialog-close" id="infoDialogClose">−</button>
       </div>
-      <div class="info-dialog-body">
+      <div class="info-dialog-body" id="infoDialogBody">
+        <div class="info-scroll-arrow info-scroll-up" id="infoScrollUp">▲</div>
+        <div class="info-scroll-arrow info-scroll-down" id="infoScrollDown">▼</div>
         <div class="info-page" id="info-page-about">
           <p class="info-dedication">For all hikers, all hikers in spirit, and for anyone with a curiosity to listen more closely to the world around them.</p>
           <p>In 2023 I thru-hiked the Pacific Crest Trail, carrying microphones with me and recording soundscapes along the way. I've been recording sound in nature for years, but it wasn't until my time on the PCT that I began to understand how deep the experience of time, place, and self could be by letting the act of listening guide me on a 5-6 month journey across the country.</p>
@@ -1589,8 +1614,34 @@
             link.classList.add('active');
             document.querySelectorAll('.info-page').forEach(p => p.style.display = 'none');
             document.getElementById('info-page-' + page).style.display = 'block';
+            updateInfoScrollArrows();
           });
         });
+
+        // Info dialog scroll arrows
+        const infoBody = document.getElementById('infoDialogBody');
+        const infoScrollUp = document.getElementById('infoScrollUp');
+        const infoScrollDown = document.getElementById('infoScrollDown');
+
+        function updateInfoScrollArrows() {
+          if (!infoBody || !window.uiController?.isMobile) return;
+          const atTop = infoBody.scrollTop <= 2;
+          const atBottom = infoBody.scrollTop + infoBody.clientHeight >= infoBody.scrollHeight - 2;
+          infoScrollUp.classList.toggle('visible', !atTop);
+          infoScrollDown.classList.toggle('visible', !atBottom);
+        }
+
+        if (infoBody) {
+          infoBody.addEventListener('scroll', updateInfoScrollArrows);
+        }
+
+        // Update arrows when dialog opens
+        const origOpenInfo = openInfo;
+        const openInfoWithArrows = () => { origOpenInfo(); setTimeout(updateInfoScrollArrows, 50); };
+        if (infoBtnDesktop) infoBtnDesktop.removeEventListener('click', origOpenInfo);
+        if (infoBtnMobile) infoBtnMobile.removeEventListener('click', origOpenInfo);
+        if (infoBtnDesktop) infoBtnDesktop.addEventListener('click', openInfoWithArrows);
+        if (infoBtnMobile) infoBtnMobile.addEventListener('click', openInfoWithArrows);
 
         // Sync reset buttons - call function directly, don't click desktop button
         const resetBtnMobile = document.getElementById('resetMapBtnMobile');
