@@ -388,8 +388,12 @@
     position: relative;
   }
 
-  .info-page {
-    min-height: unset;
+  .info-dialog a {
+    color: #333;
+    text-decoration: underline;
+  }
+  .info-dialog a:hover {
+    color: #000;
   }
   .info-dialog-body {
     overflow-y: auto;
@@ -1661,10 +1665,23 @@
         function lockInfoDialogHeight() {
           if (window.uiController?.isMobile) return;
           const aboutPage = document.getElementById('info-page-about');
-          if (aboutPage && infoBody) {
-            const h = aboutPage.scrollHeight;
-            infoBody.style.minHeight = h + 'px';
+          const supportPage = document.getElementById('info-page-support');
+          const contactPage = document.getElementById('info-page-contact');
+          if (!aboutPage || !infoBody) return;
+          // Temporarily show all pages to measure natural height
+          const pages = [aboutPage, supportPage, contactPage];
+          const prevDisplay = pages.map(p => p.style.display);
+          pages.forEach(p => p.style.display = 'block');
+          const h = infoBody.scrollHeight;
+          pages.forEach((p, i) => p.style.display = prevDisplay[i]);
+          // Restore active page
+          const active = document.querySelector('.info-nav-link.active');
+          if (active) {
+            pages.forEach(p => p.style.display = 'none');
+            const activePage = document.getElementById('info-page-' + active.dataset.page);
+            if (activePage) activePage.style.display = 'block';
           }
+          infoBody.style.minHeight = h + 'px';
         }
 
         if (infoBody) {
