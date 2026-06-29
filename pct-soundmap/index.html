@@ -1631,7 +1631,12 @@
         const infoBtnMobile = document.getElementById('infoBtnMobile');
 
         const openInfo = () => infoOverlay.classList.add('visible');
-        const closeInfo = () => infoOverlay.classList.remove('visible');
+        const closeInfo = () => {
+          infoOverlay.classList.remove('visible');
+          const dialog = document.getElementById('infoDialog');
+          if (dialog) { dialog.style.height = ''; dialog.style.maxHeight = ''; }
+          if (infoBody) infoBody.style.minHeight = '';
+        };
 
         if (infoBtnDesktop) infoBtnDesktop.addEventListener('click', openInfo);
         if (infoBtnMobile) infoBtnMobile.addEventListener('click', openInfo);
@@ -1670,7 +1675,8 @@
           const aboutPage = document.getElementById('info-page-about');
           const supportPage = document.getElementById('info-page-support');
           const contactPage = document.getElementById('info-page-contact');
-          if (!aboutPage || !infoBody) return;
+          const dialog = document.getElementById('infoDialog');
+          if (!aboutPage || !infoBody || !dialog) return;
           // Temporarily show all pages to measure natural height
           const pages = [aboutPage, supportPage, contactPage];
           const prevDisplay = pages.map(p => p.style.display);
@@ -1685,6 +1691,10 @@
             if (activePage) activePage.style.display = 'block';
           }
           infoBody.style.minHeight = h + 'px';
+          // Lock dialog to current pixel height so fullscreen doesn't resize it
+          const dialogH = dialog.getBoundingClientRect().height;
+          dialog.style.height = dialogH + 'px';
+          dialog.style.maxHeight = dialogH + 'px';
         }
 
         if (infoBody) {
