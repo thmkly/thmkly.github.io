@@ -349,6 +349,7 @@
     z-index: 50000;
     align-items: center;
     justify-content: center;
+    touch-action: none;
   }
 
   .info-overlay.visible {
@@ -358,10 +359,11 @@
   .info-dialog {
     width: min(500px, 90vw);
     max-height: 80vh;
-    background: rgba(255, 255, 255, 0.90);
+    background: rgba(255, 255, 255, 0.95);
     border-radius: 8px;
     padding: 20px 28px 28px;
     overflow-y: auto;
+    overscroll-behavior: contain;
     position: relative;
     box-shadow: 0 4px 24px rgba(0, 0, 0, 0.15);
   }
