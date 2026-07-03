@@ -1691,11 +1691,17 @@
             if (activePage) activePage.style.display = 'block';
           }
           infoBody.style.minHeight = h + 'px';
-          // Lock dialog to current pixel height so fullscreen doesn't resize it
-          const dialogH = dialog.getBoundingClientRect().height;
-          dialog.style.height = dialogH + 'px';
-          dialog.style.maxHeight = dialogH + 'px';
         }
+
+        // Reset dialog height when fullscreen changes so CSS max-height takes over
+        document.addEventListener('fullscreenchange', () => {
+          const dialog = document.getElementById('infoDialog');
+          if (dialog) { dialog.style.height = ''; dialog.style.maxHeight = ''; }
+          if (infoBody) infoBody.style.minHeight = '';
+          if (infoOverlay && infoOverlay.classList.contains('visible')) {
+            setTimeout(lockInfoDialogHeight, 50);
+          }
+        });
 
         if (infoBody) {
           infoBody.addEventListener('scroll', updateInfoScrollArrows);
