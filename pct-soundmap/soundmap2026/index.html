@@ -155,7 +155,7 @@
   .playlist-footer {
     flex-shrink: 0;
     text-align: center;
-    padding: 5px 8px;
+    padding: 5px 8px 9px;
     border-top: 1px solid rgba(0,0,0,0.08);
     background: transparent;
     display: none;
@@ -297,15 +297,51 @@
 
   body.is-mobile .info-btn-inline { display: none !important; }
 
+  .info-dialog p {
+    font-size: 13px;
+    line-height: 1.65;
+    color: #333;
+    margin: 0 0 14px 0;
+  }
+  .info-dialog p:last-child {
+    margin-bottom: 0;
+  }
+  .info-dedication {
+    font-style: italic;
+    color: #666 !important;
+    margin-bottom: 20px !important;
+  }
+
+  .info-nav {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .info-nav-link {
+    font-size: 12px;
+    color: #888;
+    cursor: pointer;
+    text-decoration: none;
+    letter-spacing: 0.03em;
+  }
+  .info-nav-link:hover {
+    color: #333;
+  }
+  .info-nav-sep {
+    font-size: 12px;
+    color: #ccc;
+  }
+
   /* Info dialog */
   .info-overlay {
     display: none;
     position: fixed;
     inset: 0;
-    background: rgba(0, 0, 0, 0.35);
+    background: rgba(0, 0, 0, 0.20);
     z-index: 50000;
     align-items: center;
     justify-content: center;
+    touch-action: none;
   }
 
   .info-overlay.visible {
@@ -313,20 +349,100 @@
   }
 
   .info-dialog {
-    width: min(500px, 90vw);
-    max-height: 80vh;
-    background: rgba(255, 255, 255, 0.90);
+    width: min(560px, 92vw);
+    max-height: 85vh;
+    background: rgba(255, 255, 255, 0.95);
     border-radius: 8px;
-    padding: 28px;
-    overflow-y: auto;
+    padding: 0;
+    overflow: hidden;
     position: relative;
     box-shadow: 0 4px 24px rgba(0, 0, 0, 0.15);
+    display: flex;
+    flex-direction: column;
+  }
+  .info-dialog-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 12px;
+    border-bottom: 1px solid rgba(0,0,0,0.08);
+    flex-shrink: 0;
+    background: inherit;
+  }
+  body.is-mobile .info-dialog-header {
+    padding: 5px 10px;
+    background: rgba(245, 245, 245, 0.90);
+  }
+  .info-scroll-arrow {
+    display: none;
+  }
+  .info-body-wrapper {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    position: relative;
+  }
+
+  .info-divider {
+    border: none;
+    border-top: 1px solid rgba(0,0,0,0.08);
+    margin: 20px 0;
+  }
+  .info-nav-link {
+    text-decoration: none;
+  }
+  .info-dialog a {
+    color: #333;
+    text-decoration: underline;
+  }
+  .info-dialog a:hover {
+    color: #000;
+  }
+  .info-dialog-body {
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    padding: 6px 28px 12px;
+    flex: 1;
+    position: relative;
+    min-height: 480px;
+  }
+  body.is-mobile .info-dialog {
+    width: 90vw;
+    height: 65vh;
+    max-height: 65vh;
+    background: rgba(255, 255, 255, 0.90);
+  }
+  body.is-mobile .info-dialog-body {
+    padding: 8px 14px 0;
+    flex: 1;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+  }
+  body.is-mobile .info-scroll-arrow {
+    display: none;
+    position: absolute;
+    right: 6px;
+    width: 20px;
+    font-size: 13px;
+    color: #333;
+    background: transparent;
+    text-align: center;
+    cursor: default;
+    pointer-events: none;
+    z-index: 10;
+  }
+  body.is-mobile .info-scroll-arrow.visible {
+    display: block;
+  }
+  body.is-mobile .info-scroll-up {
+    top: 6px;
+  }
+  body.is-mobile .info-scroll-down {
+    bottom: 6px;
   }
 
   .info-dialog-close {
-    position: absolute;
-    top: 12px;
-    right: 12px;
     width: 28px;
     height: 28px;
     background: transparent;
@@ -340,6 +456,7 @@
     align-items: center;
     justify-content: center;
     padding: 0 0 2px 0;
+    flex-shrink: 0;
   }
 
   .info-dialog-close:hover {
@@ -858,7 +975,7 @@
     width: calc(100vw - 50px);
     max-width: 350px;
     height: auto;
-    background-color: rgba(255, 255, 255, 0.92);
+    background-color: rgba(255, 255, 255, 0.90);
     backdrop-filter: none;
     -webkit-backdrop-filter: none;
     z-index: 10000;
@@ -966,10 +1083,16 @@
     padding: 8px 40px 4px 8px;
   }
 
+  .playlist-title-byline::before {
+    content: ', ';
+  }
+  body.is-mobile .playlist-title-byline::before {
+    content: '';
+  }
   body.is-mobile .playlist-title-byline {
     display: block;
-    font-size: 11px;
-    color: #555;
+    font-size: 13px;
+    color: #333;
     letter-spacing: 0.04em;
     margin-top: 2px;
   }
@@ -1313,7 +1436,7 @@
   <!-- Mobile map action buttons - float on map, hidden on desktop -->
   <div class="mobile-map-actions" id="mobileMapActions">
 
-    <button class="mobile-map-btn" id="terrain3dBtnMobile" title="3D terrain on/off" style="display:none;">3D</button>
+    <button class="mobile-map-btn" id="terrain3dBtnMobile" title="Immersive 3D on/off" style="display:none;">3D</button>
     <button class="mobile-map-btn" id="fullscreenBtnMobile" title="Fullscreen on/off" style="display: none;">⛶</button>
   </div>
 
@@ -1323,7 +1446,7 @@
       <div class="control-row">
         <button class="control-btn" id="resetMapBtn" title="Reset view and stop playback">Reset Map</button>
         <button class="control-btn" id="fullscreenBtn" title="Fullscreen on/off">Fullscreen</button>
-        <button class="control-btn" id="terrain3dBtn" title="3D terrain on/off">3D Terrain</button>
+        <button class="control-btn" id="terrain3dBtn" title="Immersive 3D on/off">Immersive 3D</button>
       </div>
       <div class="sort-controls">
         <button class="control-btn sort-btn active" id="sortNobo" title="Northbound playlist">NOBO</button>
@@ -1340,8 +1463,41 @@
   <!-- Info/About dialog -->
   <div class="info-overlay" id="infoOverlay">
     <div class="info-dialog" id="infoDialog">
-      <button class="info-dialog-close" id="infoDialogClose">−</button>
-      <p style="color:#888; font-size:13px; margin:0;">(content coming soon)</p>
+      <div class="info-dialog-header">
+        <nav class="info-nav">
+          <a class="info-nav-link" href="#info-about">about</a>
+          <span class="info-nav-sep">|</span>
+          <a class="info-nav-link" href="#info-support">support</a>
+          <span class="info-nav-sep">|</span>
+          <a class="info-nav-link" href="#info-contact">contact</a>
+        </nav>
+        <button class="info-dialog-close" id="infoDialogClose">−</button>
+      </div>
+      <div class="info-body-wrapper">
+        <div class="info-scroll-arrow info-scroll-up" id="infoScrollUp">▲</div>
+        <div class="info-dialog-body" id="infoDialogBody">
+          <div id="info-about">
+            <p class="info-dedication">For all hikers, all hikers in spirit, and for anyone with a curiosity to listen more closely to the world around them.</p>
+            <p>In 2023 I thru-hiked the Pacific Crest Trail, carrying microphones with me and recording soundscapes along the way. I've been recording sound in nature for years, but it wasn't until my time on the PCT that I began to understand how deep the experience of time, place, and self could be by letting the act of listening guide me on a 5-6 month journey across the country.</p>
+            <p>Field recording is a time-based practice that requires stillness within a space over a period of time, while thru-hiking a long trail requires constant forward motion. The natural tension this creates influenced my daily pace, the timing of town days, the relationships I built along the way, and the balance of time spent alone versus with my friends.</p>
+            <p>I hope this soundmap connects you to these spaces in a way that a more visually-oriented medium is unable to. I hope it evokes memory for those who have been out there, inspires those who aspire to hike the PCT in their lifetime, and provides meaningful access for those who may never be able to set foot on trail.</p>
+            <p>From start to finish, this project was a massive undertaking, and pursuing it continues to be one of the most rewarding experiences of my life. It has deepened my relationship to myself, others, and the natural world in ways I cannot express using language. May some of what I found out there find its way to you through these recordings.</p>
+            <br>
+            <p>— stereo</p>
+          </div>
+          <hr class="info-divider">
+          <div id="info-support">
+            <p><strong>Want to support my work?</strong></p>
+            <p>Enjoy this soundmap online for personal listening at no charge. Consider donating <a href="https://ko-fi.com/thmkly" target="_blank" rel="noopener">here</a> if you feel called and able, it supports me and my work.</p>
+          </div>
+          <hr class="info-divider">
+          <div id="info-contact">
+            <p>For all inquiries contact me <a href="mailto:thmkly@proton.me">here</a>.</p>
+          </div>
+          <div style="height:20px;"></div>
+        </div>
+        <div class="info-scroll-arrow info-scroll-down" id="infoScrollDown">▼</div>
+      </div>
     </div>
   </div>
 
@@ -1479,13 +1635,41 @@
         const infoBtnMobile = document.getElementById('infoBtnMobile');
 
         const openInfo = () => infoOverlay.classList.add('visible');
-        const closeInfo = () => infoOverlay.classList.remove('visible');
+        const closeInfo = () => {
+          infoOverlay.classList.remove('visible');
+        };
 
-        if (infoBtnDesktop) infoBtnDesktop.addEventListener('click', openInfo);
-        if (infoBtnMobile) infoBtnMobile.addEventListener('click', openInfo);
+        // Info dialog elements
+        const infoBody = document.getElementById('infoDialogBody');
+        const infoScrollUp = document.getElementById('infoScrollUp');
+        const infoScrollDown = document.getElementById('infoScrollDown');
+
+        function updateInfoScrollArrows() {
+          if (!infoBody || !window.uiController?.isMobile) return;
+          const atTop = infoBody.scrollTop <= 2;
+          const atBottom = infoBody.scrollTop + infoBody.clientHeight >= infoBody.scrollHeight - 2;
+          infoScrollUp.classList.toggle('visible', !atTop);
+          infoScrollDown.classList.toggle('visible', !atBottom);
+        }
+
+        if (infoBody) infoBody.addEventListener('scroll', updateInfoScrollArrows);
+
+        if (infoBtnDesktop) infoBtnDesktop.addEventListener('click', () => { openInfo(); setTimeout(updateInfoScrollArrows, 50); });
+        if (infoBtnMobile) infoBtnMobile.addEventListener('click', () => { openInfo(); setTimeout(updateInfoScrollArrows, 50); });
         if (infoDialogClose) infoDialogClose.addEventListener('click', closeInfo);
         if (infoOverlay) infoOverlay.addEventListener('click', (e) => {
           if (e.target === infoOverlay) closeInfo();
+        });
+
+        // Info nav anchor links — scroll to section within body
+        document.querySelectorAll('.info-nav-link').forEach(link => {
+          link.addEventListener('click', (e) => {
+            e.preventDefault();
+            const target = document.querySelector(link.getAttribute('href'));
+            if (target && infoBody) {
+              infoBody.scrollTo({ top: target.offsetTop - 8, behavior: 'smooth' });
+            }
+          });
         });
 
         // Sync reset buttons - call function directly, don't click desktop button
