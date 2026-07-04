@@ -1694,7 +1694,19 @@
           infoBody.addEventListener('scroll', updateInfoScrollArrows);
         }
 
-        if (infoBtnDesktop) infoBtnDesktop.addEventListener('click', () => { openInfo(); setTimeout(updateInfoScrollArrows, 50); });
+        if (infoBtnDesktop) infoBtnDesktop.addEventListener('click', () => { 
+          openInfo(); 
+          setTimeout(() => {
+            updateInfoScrollArrows();
+            if (!window.uiController?.isMobile) {
+              const aboutPage = document.getElementById('info-page-about');
+              const container = document.querySelector('.info-pages-container');
+              if (aboutPage && container) {
+                container.style.minHeight = aboutPage.offsetHeight + 'px';
+              }
+            }
+          }, 50); 
+        });
         if (infoBtnMobile) infoBtnMobile.addEventListener('click', () => { openInfo(); setTimeout(updateInfoScrollArrows, 50); });
 
         // Sync reset buttons - call function directly, don't click desktop button
