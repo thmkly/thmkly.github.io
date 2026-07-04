@@ -1639,8 +1639,23 @@
           infoOverlay.classList.remove('visible');
         };
 
-        if (infoBtnDesktop) infoBtnDesktop.addEventListener('click', openInfo);
-        if (infoBtnMobile) infoBtnMobile.addEventListener('click', openInfo);
+        // Info dialog elements
+        const infoBody = document.getElementById('infoDialogBody');
+        const infoScrollUp = document.getElementById('infoScrollUp');
+        const infoScrollDown = document.getElementById('infoScrollDown');
+
+        function updateInfoScrollArrows() {
+          if (!infoBody || !window.uiController?.isMobile) return;
+          const atTop = infoBody.scrollTop <= 2;
+          const atBottom = infoBody.scrollTop + infoBody.clientHeight >= infoBody.scrollHeight - 2;
+          infoScrollUp.classList.toggle('visible', !atTop);
+          infoScrollDown.classList.toggle('visible', !atBottom);
+        }
+
+        if (infoBody) infoBody.addEventListener('scroll', updateInfoScrollArrows);
+
+        if (infoBtnDesktop) infoBtnDesktop.addEventListener('click', () => { openInfo(); setTimeout(updateInfoScrollArrows, 50); });
+        if (infoBtnMobile) infoBtnMobile.addEventListener('click', () => { openInfo(); setTimeout(updateInfoScrollArrows, 50); });
         if (infoDialogClose) infoDialogClose.addEventListener('click', closeInfo);
         if (infoOverlay) infoOverlay.addEventListener('click', (e) => {
           if (e.target === infoOverlay) closeInfo();
@@ -1656,26 +1671,6 @@
             }
           });
         });
-
-        // Info dialog scroll arrows (mobile only)
-        const infoBody = document.getElementById('infoDialogBody');
-        const infoScrollUp = document.getElementById('infoScrollUp');
-        const infoScrollDown = document.getElementById('infoScrollDown');
-
-        function updateInfoScrollArrows() {
-          if (!infoBody || !window.uiController?.isMobile) return;
-          const atTop = infoBody.scrollTop <= 2;
-          const atBottom = infoBody.scrollTop + infoBody.clientHeight >= infoBody.scrollHeight - 2;
-          infoScrollUp.classList.toggle('visible', !atTop);
-          infoScrollDown.classList.toggle('visible', !atBottom);
-        }
-
-        if (infoBody) {
-          infoBody.addEventListener('scroll', updateInfoScrollArrows);
-        }
-
-        if (infoBtnDesktop) infoBtnDesktop.addEventListener('click', () => { openInfo(); setTimeout(updateInfoScrollArrows, 50); });
-        if (infoBtnMobile) infoBtnMobile.addEventListener('click', () => { openInfo(); setTimeout(updateInfoScrollArrows, 50); });
 
         // Sync reset buttons - call function directly, don't click desktop button
         const resetBtnMobile = document.getElementById('resetMapBtnMobile');
