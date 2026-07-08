@@ -52,6 +52,8 @@ const CONFIG = {
 
     if (hasUnreliableScreenData) {
       const viewportDiagonal = Math.sqrt(window.innerWidth ** 2 + window.innerHeight ** 2);
+      // Brave on 5K/high-res monitors reports reduced viewport — apply Safari-equivalent zoom
+      if (isBrave && viewportDiagonal > 2200) return 5.3;
       if (viewportDiagonal > 2800) return 4.2;   // Large desktop / high-res
       if (viewportDiagonal > 2000) return 4.95;  // 27" equivalent
       if (viewportDiagonal > 1800) return 4.45;  // 13" laptop equivalent (Brave)
