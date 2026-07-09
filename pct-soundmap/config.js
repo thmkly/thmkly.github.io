@@ -34,14 +34,12 @@ const CONFIG = {
       return isMobile ? 4.3 : 4.5;
     }
 
-    // --- Mobile fixed zoom — adjusted for viewport height ---
+    // --- Mobile fixed zoom — scaled proportionally by viewport height ---
     if (isMobile) {
       const viewportHeight = window.innerHeight;
-      if (viewportHeight < 700) {
-        // Chrome/Brave on iOS have shorter viewport due to browser chrome
-        return 4.28;
-      }
-      return 4.4181047703653835;
+      const referenceHeight = 713; // Safari on iPhone (full viewport)
+      const referenceZoom = 4.4181047703653835;
+      return referenceZoom * (viewportHeight / referenceHeight);
     }
 
     // --- Desktop zoom calculation ---
