@@ -65,7 +65,7 @@ const CONFIG = {
     // MBA 13" M3 (1470x956 scaled): diagonal 1752px → zoom 4.65
     // BenQ 27" 1440p (2560x1440):   diagonal 2939px → zoom 5.38
     const ref1 = { diagonal: 1752, zoom: 4.65 };
-    const ref2 = { diagonal: 2936, zoom: 5.38 };
+    const ref2 = { diagonal: 2910, zoom: 5.38 };
     const slope = (ref2.zoom - ref1.zoom) / (ref2.diagonal - ref1.diagonal);
 
     if (diagonalPixels <= ref1.diagonal) {
