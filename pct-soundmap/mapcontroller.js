@@ -87,6 +87,7 @@ class MapController {
 
       setupMap() {
         mapboxgl.accessToken = CONFIG.MAPBOX_TOKEN;
+        if (typeof mapboxgl.setTelemetryEnabled === 'function') mapboxgl.setTelemetryEnabled(false);
         
         window.map = new mapboxgl.Map({
           container: 'map',
