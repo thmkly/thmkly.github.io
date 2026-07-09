@@ -31,7 +31,7 @@ const CONFIG = {
 
     // --- Social WebView: conservative zoom for reduced viewport environments ---
     if (isSocialWebView) {
-      return isMobile ? 4.1 : 4.5;
+      return isMobile ? 4.3 : 4.5;
     }
 
     // --- Mobile fixed zoom ---
