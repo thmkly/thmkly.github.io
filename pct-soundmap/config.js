@@ -71,7 +71,7 @@ const CONFIG = {
     if (diagonalPixels <= ref1.diagonal) {
       return Math.max(4.0, ref1.zoom + slope * (diagonalPixels - ref1.diagonal));
     } else if (diagonalPixels >= ref2.diagonal) {
-      return Math.min(6.0, ref2.zoom + slope * (diagonalPixels - ref2.diagonal));
+      return Math.min(5.38, ref2.zoom + slope * (diagonalPixels - ref2.diagonal));
     } else {
       const ratio = (diagonalPixels - ref1.diagonal) / (ref2.diagonal - ref1.diagonal);
       return ref1.zoom + ratio * (ref2.zoom - ref1.zoom);
