@@ -37,7 +37,7 @@ const CONFIG = {
     // --- Mobile zoom — interpolated from viewport height reference points ---
     if (isMobile) {
       const viewportHeight = window.innerHeight;
-      const ref1 = { height: 674, zoom: 4.35 };  // Chrome/Brave on iPhone
+      const ref1 = { height: 674, zoom: 4.37 };  // Chrome/Brave on iPhone
       const ref2 = { height: 713, zoom: 4.4181047703653835 };  // Safari on iPhone
       if (viewportHeight <= ref1.height) {
         return ref1.zoom;
