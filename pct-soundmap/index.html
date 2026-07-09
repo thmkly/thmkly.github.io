@@ -1548,7 +1548,11 @@
         if (uiScale > 1.01) {
           const playlistWrapper = document.getElementById('playlistWrapper');
           const controlPanelContainer = document.querySelector('.control-panel-container');
-          if (playlistWrapper) playlistWrapper.style.zoom = uiScale;
+          if (playlistWrapper) {
+            playlistWrapper.style.zoom = uiScale;
+            // Compensate max-height so zoomed wrapper still fits in viewport
+            playlistWrapper.style.maxHeight = (90 / uiScale) + 'vh';
+          }
           if (controlPanelContainer) controlPanelContainer.style.zoom = uiScale;
         }
       }
