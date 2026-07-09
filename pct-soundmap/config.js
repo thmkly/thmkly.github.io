@@ -39,7 +39,7 @@ const CONFIG = {
       const viewportHeight = window.innerHeight;
       if (viewportHeight < 700) {
         // Chrome/Brave on iOS have shorter viewport due to browser chrome
-        return 4.18;
+        return 4.28;
       }
       return 4.4181047703653835;
     }
