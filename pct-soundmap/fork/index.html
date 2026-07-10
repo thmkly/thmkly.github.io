@@ -1,0 +1,1889 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>a sound map of the pacific crest trail, 2023, by stereo</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+  <meta http-equiv="Pragma" content="no-cache" />
+  <meta http-equiv="Expires" content="0" />
+  <link href="https://api.mapbox.com/mapbox-gl-js/v3.8.0/mapbox-gl.css" rel="stylesheet" />
+<style>
+  body {
+    margin: 0;
+    padding: 0;
+    font-family: helvetica, sans-serif;
+    color: #333;
+    color-scheme: light;
+  }
+
+  #map {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    width: 100%;
+  }
+
+  /* ADDED: Persistent audio player - hidden for iOS background playback support */
+  #persistent-audio {
+    /* Visually hidden but kept in DOM with non-zero dimensions
+       so iOS Safari recognizes it for MediaSession metadata display */
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    width: 1px;
+    height: 1px;
+    opacity: 0;
+    pointer-events: none;
+  }
+
+  /* Playlist Styles */
+  .playlist-wrapper {
+    position: absolute;
+    top: 30px;
+    left: 10px;
+    width: 350px;
+    max-height: 90vh;
+    border-radius: 5px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+    background-color: rgba(255, 255, 255, 0.75);
+    color: #333;
+    font-family: helvetica;
+    font-size: small;
+    display: none; /* Initially hidden to prevent flash */
+    flex-direction: column;
+    align-items: stretch;
+    z-index: 600;
+    transition: transform 0.3s ease;
+  }
+
+  .playlist-wrapper.collapsed {
+    transform: translateX(-360px);
+  }
+
+  .playlist-toggle {
+    position: absolute;
+    right: -30px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 30px;
+    height: 60px;
+    background-color: rgba(255, 255, 255, 0.75);
+    border: none;
+    border-radius: 0 5px 5px 0;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 16px;
+    color: #333;
+    box-shadow: 2px 0 5px rgba(0, 0, 0, 0.2);
+    z-index: 3;
+    transition: background-color 0.2s;
+    opacity: 0;
+    transition: opacity 0.3s ease, background-color 0.2s;
+  }
+
+  .playlist-toggle.visible {
+    opacity: 1;
+  }
+
+  .playlist-toggle:hover {
+    background-color: rgba(255, 255, 255, 0.9);
+  }
+
+  .playlist-wrapper:not(.collapsed) .playlist-toggle {
+    background-color: transparent;
+    box-shadow: none;
+  }
+
+  .playlist {
+    overflow-y: auto;
+    max-height: 85vh;
+    padding: 5px;
+    cursor: grab;
+    user-select: none;
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+  }
+
+  .playlist.dragging {
+    cursor: grabbing;
+  }
+
+  .scroll-arrow {
+    text-align: center;
+    font-size: 12px;
+    color: black;
+    padding: 4px 0;
+    user-select: none;
+    -webkit-user-select: none;
+    cursor: pointer;
+    display: block;
+    transition: opacity 0.2s, color 0.2s;
+  }
+
+  .scroll-arrow:hover {
+    color: #555;
+  }
+
+  .scroll-arrow.disabled {
+    color: #ccc;
+    opacity: 0.3;
+    cursor: default;
+  }
+
+  .playlist-header {
+    flex-shrink: 0;
+    border-bottom: 1px solid rgba(0,0,0,0.08);
+    background: transparent;
+    position: relative;
+  }
+
+  .playlist-title {
+    font-size: 11px;
+    color: #000;
+    letter-spacing: 0.04em;
+    text-align: center;
+    padding: 8px 8px 4px;
+    user-select: none;
+    pointer-events: none;
+    line-height: 1.5;
+  }
+
+  .playlist-footer {
+    flex-shrink: 0;
+    text-align: center;
+    padding: 5px 8px 9px;
+    border-top: 1px solid rgba(0,0,0,0.08);
+    background: transparent;
+    display: none;
+  }
+
+
+
+  .playlist-footer-byline {
+    display: none;
+    font-size: 11px;
+    color: #000;
+    text-align: center;
+    margin-bottom: 2px;
+    user-select: none;
+    pointer-events: none;
+  }
+
+  body.is-mobile .playlist-footer-byline {
+    display: none;
+  }
+
+  .support-link {
+    font-size: 12px;
+    color: #000;
+    text-decoration: underline;
+    letter-spacing: 0.04em;
+  }
+
+  .support-link:hover {
+    color: #5c3a2e;
+  }
+
+
+  .track {
+    cursor: pointer;
+    padding: 5px;
+    margin: 1px;
+    border-bottom: 1px solid #ccc;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    position: relative;
+  }
+
+  .track:hover {
+    background-color: rgba(255, 242, 232, 0.85);
+  }
+
+  .track:has(.track-mile-zone:hover) {
+    background-color: transparent;
+  }
+
+  .active-track {
+    background-color: rgba(255, 242, 232, 0.85);
+  }
+
+  .track-info {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    min-width: 0;
+    padding-right: 57px;
+  }
+
+  .track-mile-zone {
+    position: absolute;
+    right: 0;
+    top: 0;
+    bottom: -1px;
+    width: 52px;
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    padding-right: 5px;
+    cursor: default;
+    pointer-events: none;
+  }
+
+  .track-mile-zone .track-mile {
+    pointer-events: auto;
+  }
+
+  .track-mile {
+    font-size: 0.8em;
+    color: #666;
+    text-align: right;
+    cursor: pointer;
+    transition: color 0.15s;
+  }
+
+  .track-mile:hover {
+    color: #5c3a2e;
+    text-decoration: underline;
+  }
+
+  /* Info button */
+  /* .info-btn used for mobile floating info button */
+  .info-btn {
+    width: 36px;
+    height: 36px;
+    background: rgba(255, 255, 255, 0.9);
+    border: 1px solid #bbb;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 15px;
+    font-style: italic;
+    font-family: Georgia, serif;
+    color: #333;
+    display: none; /* shown only on mobile via mobile rule */
+    align-items: center;
+    justify-content: center;
+    user-select: none;
+  }
+
+  /* Desktop info button — inline in sort controls row */
+  .info-btn-inline {
+    width: 24px;
+    height: 24px;
+    background: transparent;
+    border: 1px solid #bbb;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 12px;
+    font-style: italic;
+    font-family: Georgia, serif;
+    color: #666;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-left: auto;
+    flex-shrink: 0;
+    user-select: none;
+  }
+
+  .info-btn-inline:hover {
+    background: rgba(0,0,0,0.05);
+    color: #333;
+  }
+
+  body.is-mobile .info-btn-inline { display: none !important; }
+
+  .info-dialog p {
+    font-size: 13px;
+    line-height: 1.65;
+    color: #333;
+    margin: 0 0 14px 0;
+  }
+  .info-dialog p:last-child {
+    margin-bottom: 0;
+  }
+  .info-dedication {
+    font-style: italic;
+    color: #666 !important;
+    margin-bottom: 20px !important;
+  }
+
+  .info-nav {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .info-nav-link {
+    font-size: 12px;
+    color: #888;
+    cursor: pointer;
+    text-decoration: none;
+    letter-spacing: 0.03em;
+  }
+  .info-nav-link:hover {
+    color: #333;
+  }
+  .info-nav-link.active {
+    color: #333;
+    font-weight: bold;
+  }
+  .info-nav-sep {
+    font-size: 12px;
+    color: #ccc;
+  }
+
+  /* Info dialog */
+  .info-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.20);
+    z-index: 50000;
+    align-items: center;
+    justify-content: center;
+    touch-action: none;
+  }
+
+  .info-overlay.visible {
+    display: flex;
+  }
+
+  .info-dialog {
+    width: min(560px, 92vw);
+    max-height: 85vh;
+    background: rgba(255, 255, 255, 0.95);
+    border-radius: 8px;
+    padding: 0;
+    overflow: hidden;
+    position: relative;
+    box-shadow: 0 4px 24px rgba(0, 0, 0, 0.15);
+    display: flex;
+    flex-direction: column;
+  }
+  .info-dialog-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 12px;
+    border-bottom: 1px solid rgba(0,0,0,0.08);
+    flex-shrink: 0;
+    background: inherit;
+  }
+  body.is-mobile .info-dialog-header {
+    padding: 5px 10px;
+    background: rgba(245, 245, 245, 0.90);
+  }
+  .info-scroll-arrow {
+    display: none;
+  }
+  .info-body-wrapper {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    position: relative;
+  }
+
+  .info-page {
+    min-height: 480px;
+  }
+  .info-pages-container {
+    position: relative;
+  }
+  .info-page {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    visibility: hidden;
+    pointer-events: none;
+  }
+  .info-page.active {
+    position: relative;
+    visibility: visible;
+    pointer-events: auto;
+  }
+  .info-dialog a {
+    color: #333;
+    text-decoration: underline;
+  }
+  .info-dialog a:hover {
+    color: #000;
+  }
+  .info-dialog-body {
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    padding: 6px 28px 12px;
+    flex: 1;
+    position: relative;
+    min-height: 480px;
+  }
+  body.is-mobile .info-dialog {
+    width: 90vw;
+    height: 65vh;
+    max-height: 65vh;
+    background: rgba(255, 255, 255, 0.90);
+  }
+  body.is-mobile .info-dialog-body {
+    padding: 8px 14px 0;
+    flex: 1;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+  }
+  body.is-mobile .info-scroll-arrow {
+    display: none;
+    position: absolute;
+    right: 6px;
+    width: 20px;
+    font-size: 13px;
+    color: #333;
+    background: transparent;
+    text-align: center;
+    cursor: default;
+    pointer-events: none;
+    z-index: 10;
+  }
+  body.is-mobile .info-scroll-arrow.visible {
+    display: block;
+  }
+  body.is-mobile .info-scroll-up {
+    top: 6px;
+  }
+  body.is-mobile .info-scroll-down {
+    bottom: 6px;
+  }
+
+  .info-dialog-close {
+    width: 28px;
+    height: 28px;
+    background: transparent;
+    border: 1px solid #bbb;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 18px;
+    line-height: 1;
+    color: #333;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0 0 2px 0;
+    flex-shrink: 0;
+  }
+
+  .info-dialog-close:hover {
+    background: #f0f0f0;
+  }
+
+  /* Control Panel */
+  .control-panel-container {
+    position: absolute;
+    top: 25px;
+    right: 25px;
+    z-index: 2;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    align-items: flex-end;
+  }
+
+  .control-panel {
+    background-color: rgba(255, 255, 255, 0.9);
+    border-radius: 5px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+    padding: 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .control-row {
+    display: flex;
+    gap: 8px;
+  }
+
+  .control-btn {
+    padding: 6px 12px;
+    border: 1px solid #ccc;
+    border-radius: 3px;
+    background-color: white;
+    color: #333;
+    cursor: pointer;
+    font-size: 12px;
+    transition: all 0.2s;
+  }
+
+  .control-btn:hover {
+    background-color: #f0f0f0;
+  }
+
+  .control-btn.active {
+    background-color: #666;
+    color: white;
+    border-color: #666;
+  }
+
+  .sort-controls {
+    display: flex;
+    gap: 4px;
+    align-items: center;
+  }
+
+  .sort-btn {
+    padding: 4px 8px;
+    font-size: 11px;
+  }
+
+  /* Mini Info Boxes */
+  /* Mini infobox — main zone (left) + chevron (right) */
+  .mini-infobox {
+    position: absolute;
+    display: inline-flex;
+    align-items: stretch;
+    font-size: 11px;
+    color: #000;
+    z-index: 1;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+    border-radius: 4px;
+    white-space: nowrap;
+    pointer-events: auto;
+  }
+
+  /* Main zone — icon + title, tap to play/pause */
+  .mini-infobox-pill {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    padding: 4px 7px 4px 6px;
+    background-color: rgba(235, 235, 235, 0.75);
+    border: 1px solid #bbb;
+    border-right: 1px solid #ddd;
+    border-radius: 4px 0 0 4px;
+    cursor: pointer;
+    transition: background-color 0.15s;
+    flex-shrink: 0;
+  }
+
+  .mini-infobox-pill:hover {
+    background-color: rgba(200, 200, 200, 0.90);
+  }
+
+  .mini-infobox-title {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    max-width: 180px;
+  }
+
+  /* Chevron — standalone expand tap target */
+  .mini-infobox-chevron {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 4px 7px 5px 7px;
+    font-size: 18px;
+    font-weight: 900;
+    color: #5c3a2e;
+    background-color: rgba(255, 255, 255, 0.80);
+    border: 1px solid #bbb;
+    border-left: none;
+    border-radius: 0 4px 4px 0;
+    cursor: pointer;
+    flex-shrink: 0;
+    line-height: 1;
+    transition: background-color 0.15s, color 0.15s;
+  }
+
+  .mini-infobox-chevron:hover {
+    background-color: rgba(190, 190, 190, 0.92);
+    color: #3d2519;
+  }
+
+  /* Orange / playing state */
+  .mini-infobox.minimized-popup .mini-infobox-pill {
+    background-color: rgba(255, 215, 175, 0.72);
+    border-color: rgba(180, 110, 60, 0.5);
+    border-right-color: rgba(200, 140, 80, 0.4);
+  }
+
+  .mini-infobox.minimized-popup .mini-infobox-pill:hover {
+    background-color: rgba(255, 190, 130, 0.90);
+  }
+
+  .mini-infobox.minimized-popup .mini-infobox-chevron {
+    background-color: rgba(255, 242, 232, 0.85);
+    border-color: rgba(180, 110, 60, 0.5);
+    border-left: none;
+  }
+
+  .mini-infobox.minimized-popup .mini-infobox-chevron:hover {
+    background-color: rgba(255, 190, 130, 0.90);
+    color: #3d2519;
+  }
+
+  /* Play icon inside pill */
+  .mini-infobox-pill .play-icon {
+    width: 0;
+    height: 0;
+    border-left: 6px solid #444;
+    border-top: 4px solid transparent;
+    border-bottom: 4px solid transparent;
+    flex-shrink: 0;
+  }
+
+/* Currently Playing Sound Badge */
+  /* ── Header badge ── */
+
+  /* Badge container — flex row, no background of its own */
+  /* ── Header badge ── */
+
+  #playing-badge {
+    display: flex;
+    align-items: stretch;
+    border-radius: 4px;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.15);
+    font-size: 13px;
+    color: #333;
+    font-family: helvetica, sans-serif;
+    position: absolute;
+    z-index: 1;
+    pointer-events: auto;
+    top: 20px;
+    left: 20px;
+    width: max-content;
+  }
+
+  .badge-pill {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    min-width: 28px;
+    background-color: rgba(255, 215, 175, 0.72);
+    border: 1px solid rgba(180, 110, 60, 0.5);
+    border-right: 1px solid rgba(200, 140, 80, 0.4);
+    border-radius: 4px 0 0 4px;
+    cursor: pointer;
+    transition: background-color 0.15s;
+    flex-shrink: 0;
+  }
+
+  .badge-pill:hover {
+    background-color: rgba(255, 190, 130, 0.90);
+  }
+
+  .badge-body {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 5px 10px;
+    background-color: rgba(255, 242, 232, 0.85);
+    border: 1px solid rgba(180, 110, 60, 0.5);
+    border-left: none;
+    border-radius: 0 4px 4px 0;
+    cursor: pointer;
+    transition: background-color 0.15s;
+  }
+
+  .badge-body:hover {
+    background-color: rgba(255, 215, 175, 0.72);
+  }
+
+  .badge-body:hover .badge-title {
+    text-decoration: underline;
+  }
+
+  .badge-title {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 300px;
+    font-weight: 500;
+  }
+
+  .badge-time {
+    font-family: monospace;
+    color: #666;
+    font-size: 11px;
+    flex-shrink: 0;
+    white-space: nowrap;
+  }
+
+  /* Triangle inside badge pill — no margin, no vertical offset, centered by flex */
+  .badge-triangle {
+    display: block;
+    width: 0;
+    height: 0;
+    border-left: 7px solid #333;
+    border-top: 5px solid transparent;
+    border-bottom: 5px solid transparent;
+  }
+
+  /* badge pill .play-icon margin override */
+  .badge-pill .play-icon {
+    margin-right: 0;
+  }
+  
+  /* Popup minimize button */
+  .popup-minimize {
+    position: absolute;
+    top: 6px;
+    right: 8px;
+    width: 28px;
+    height: 28px;
+    background: transparent;
+    border: 1px solid #bbb;
+    border-radius: 4px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 20px;
+    line-height: 1;
+    color: #000;
+    padding: 0 0 2px 0;
+    transition: background-color 0.2s;
+  }
+
+  .popup-minimize:hover {
+    background-color: #f0f0f0;
+    color: #000;
+  }
+
+  .popup-minimize:focus {
+  outline: none;
+  }
+
+  .popup-controls {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 10px;
+    margin: 8px 0;
+    position: relative;
+  }
+
+  .nav-arrow {
+    background: transparent;
+    color: #333;
+    border: 1px solid #ccc;
+    border-radius: 3px;
+    padding: 8px 12px;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: bold;
+    transition: all 0.2s;
+    min-width: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .nav-arrow:hover {
+    background: #f0f0f0;
+    color: #000;
+  }
+
+  .nav-arrow:disabled {
+    background: transparent;
+    color: #ccc;
+    border-color: #eee;
+    cursor: not-allowed;
+  }
+
+  .audio-container {
+    flex: 1;
+    margin: 0 10px;
+  }
+
+  /* Map Controls */
+  .mapboxgl-canvas {
+    cursor: grab;
+  }
+  
+  /* Custom popup (outside map container) - State 3 full popup */
+  .mapboxgl-popup {
+    z-index: 500;
+  }
+
+  .custom-popup {
+    background-color: rgba(255, 255, 255, 0.75);
+    color: #000000;
+    border-radius: 4px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+    max-width: 400px;
+    box-sizing: border-box;
+    padding: 12px;
+    font-family: helvetica, sans-serif;
+  }
+  
+  /* Mobile popup size constraint */
+  body.is-mobile .custom-popup {
+    max-width: calc(100vw - 40px);
+    min-width: 280px;
+  }
+  
+  /* Add popup arrow pointing down */
+  .custom-popup::after {
+    content: '';
+    position: absolute;
+    bottom: -10px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 0;
+    height: 0;
+    border-left: 10px solid transparent;
+    border-right: 10px solid transparent;
+    border-top: 10px solid rgba(255, 255, 255, 0.75);
+  }
+
+
+  /* Playing popup — orange tint to indicate currently playing track */
+  .custom-popup.playing-popup {
+    background-color: rgba(255, 242, 232, 0.85);
+  }
+
+  .custom-popup.playing-popup::after {
+    border-top-color: rgba(255, 242, 232, 0.85);
+  }
+
+  .loading-placeholder {
+    text-align: center;
+    color: #555;
+    padding: 8px;
+  }
+
+  /* Welcome card */
+  .welcome-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.45);
+    z-index: 60000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 1;
+    transition: opacity 0.6s ease;
+  }
+  .welcome-overlay.fade-out {
+    opacity: 0;
+    pointer-events: none;
+  }
+  .welcome-card {
+    background: rgba(255, 255, 255, 0.95);
+    border-radius: 8px;
+    padding: 36px 40px 28px;
+    max-width: 480px;
+    width: 90vw;
+    text-align: center;
+    box-shadow: 0 4px 24px rgba(0,0,0,0.15);
+  }
+  .welcome-title {
+    font-size: 13px;
+    letter-spacing: 0.04em;
+    color: #333;
+    margin: 0 0 16px 0;
+    font-family: helvetica, sans-serif;
+  }
+  .welcome-dedication {
+    font-size: 12px;
+    font-style: italic;
+    color: #666;
+    line-height: 1.65;
+    margin: 0 0 24px 0;
+  }
+  .welcome-status {
+    font-size: 11px;
+    color: #999;
+    letter-spacing: 0.03em;
+    min-height: 16px;
+  }
+  .welcome-status.loaded {
+    color: #555;
+  }
+
+  @keyframes ellipsis {
+    0%   { content: '.'; }
+    33%  { content: '..'; }
+    66%  { content: '...'; }
+    100% { content: '.'; }
+  }
+  .loading-ellipsis::after {
+    content: '.';
+    animation: ellipsis 1.2s steps(1) infinite;
+  }
+
+  /* Notification Messages */
+  .notification {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: rgba(0, 0, 0, 0.7);
+    color: white;
+    padding: 12px 20px;
+    border-radius: 6px;
+    font-size: 14px;
+    z-index: 10000;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+  }
+
+  .notification.show {
+    opacity: 1;
+  }
+
+  /* Mobile controls - hidden on desktop */
+  .mobile-controls {
+    display: none;
+  }
+
+  /* Hamburger menu button */
+  .hamburger-menu {
+    display: none;
+    position: fixed;
+    top: 20px;
+    right: 15px;
+    left: auto;
+    width: 36px;
+    height: 36px;
+    padding: 0;
+    background: rgba(255, 255, 255, 0.5);
+    backdrop-filter: blur(10px);
+    border: 1px solid #ccc;
+    border-radius: 5px;
+    cursor: pointer;
+    z-index: 1001;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+    transition: background-color 0.2s;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .hamburger-menu:hover {
+    background-color: rgba(255, 255, 255, 0.7);
+  }
+
+  .hamburger-menu span {
+    display: block;
+    width: 22px;
+    height: 2px;
+    background-color: #333;
+    transition: all 0.3s;
+  }
+
+  /* Mobile close button */
+  .mobile-menu-close {
+    display: none;
+    position: absolute;
+    top: 5px;
+    right: 6px;
+    width: 36px;
+    height: 36px;
+    padding: 0;
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    z-index: 1002;
+  }
+
+  .mobile-menu-close::before,
+  .mobile-menu-close::after {
+    content: '';
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    width: 18px;
+    height: 2px;
+    background-color: #000;
+    transform-origin: center;
+  }
+
+  .mobile-menu-close::before {
+    transform: translate(-50%, -50%) rotate(45deg);
+  }
+
+  .mobile-menu-close::after {
+    transform: translate(-50%, -50%) rotate(-45deg);
+  }
+
+  .mobile-menu-close:hover::before,
+  .mobile-menu-close:hover::after {
+    background-color: #000;
+  }
+
+  .mobile-playlist-toggle {
+    display: none;
+  }
+
+  .mobile-playlist-collapse {
+    display: none;
+  }
+
+  /* ── Mobile layout — gated on device detection, not window width ── */
+
+  body.is-mobile .control-panel-container { display: none; }
+  body.is-mobile .info-btn { position: fixed; top: 62px; right: 15px; z-index: 1001; display: none; background: rgba(255, 255, 255, 0.5); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2); }
+  body.is-mobile.mobile-menu-open .info-btn { display: none !important; }
+  body.is-mobile:not(.mobile-menu-open) .info-btn { display: flex; }
+
+  body.is-mobile .hamburger-menu { display: flex; }
+  body.is-mobile.mobile-menu-open .hamburger-menu { display: none; }
+
+  body.is-mobile .hamburger-menu.open span:nth-child(1) { transform: rotate(45deg) translate(5px, 5px); }
+  body.is-mobile .hamburger-menu.open span:nth-child(2) { opacity: 0; }
+  body.is-mobile .hamburger-menu.open span:nth-child(3) { transform: rotate(-45deg) translate(5px, -5px); }
+
+  body.is-mobile .playlist-wrapper {
+    position: fixed;
+    top: 20px;
+    bottom: 20px;
+    right: 0;
+    left: auto;
+    transform: translateX(100%);
+    width: calc(100vw - 50px);
+    max-width: 350px;
+    height: auto;
+    background-color: rgba(255, 255, 255, 0.90);
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+    z-index: 10000;
+    border-radius: 5px 0 0 5px;
+    box-shadow: none;
+    filter: none;
+    transition: transform 0.3s ease;
+    display: flex;
+    flex-direction: column;
+    opacity: 1;
+    pointer-events: auto;
+    overflow: visible;
+  }
+
+  body.is-mobile .playlist-wrapper.mobile-expanded {
+    transform: translateX(0);
+  }
+
+  body.is-mobile .mobile-menu-close {
+    display: none !important;
+    position: absolute !important;
+    top: 8px !important;
+    right: 8px !important;
+  }
+
+  body.is-mobile .playlist-wrapper.mobile-expanded .mobile-menu-close {
+    display: flex !important;
+    position: absolute !important;
+    top: 7px !important;
+    right: 6px !important;
+    height: 30px;
+    width: 30px;
+    align-items: center;
+    justify-content: center;
+    background: transparent;
+    border: 1px solid #bbb;
+    border-radius: 4px;
+    z-index: 1;
+    padding: 0;
+  }
+
+  /* No scrim on mobile — panel background is sufficient */
+
+  /* Sort footer */
+  body.is-mobile .mobile-controls {
+    display: block;
+    padding: 4px 8px 8px;
+    border-bottom: 1px solid rgba(0,0,0,0.08);
+    background: transparent;
+    flex-shrink: 0;
+  }
+
+  body.is-mobile .mobile-controls .sort-controls {
+    display: flex;
+    gap: 4px;
+    align-items: center;
+    justify-content: flex-start;
+  }
+
+  /* Map action buttons */
+  body.is-mobile .mobile-map-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    position: fixed;
+    bottom: 24px;
+    left: 12px;
+    z-index: 100;
+  }
+
+  body.is-mobile .mobile-map-btn {
+    width: 44px;
+    height: 44px;
+    background: rgba(255, 255, 255, 0.85);
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+    border: 1px solid rgba(0,0,0,0.15);
+    border-radius: 6px;
+    font-size: 11px;
+    font-weight: 600;
+    color: #333;
+    cursor: pointer;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.2);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    letter-spacing: 0.02em;
+  }
+
+  body.is-mobile .mobile-map-btn.active {
+    background-color: #5c3a2e;
+    color: white;
+    border-color: #5c3a2e;
+  }
+
+  body.is-mobile .playlist-wrapper .playlist-toggle { display: none; }
+  body.is-mobile .playlist-wrapper .mobile-controls { display: block !important; }
+  body.is-mobile .playlist-header { display: block !important; }
+  body.is-mobile .playlist-footer { display: block !important; }
+  /* playlist-title shows on mobile inside header, above sort controls */
+  body.is-mobile .playlist-title {
+    text-align: left;
+    font-size: 13px;
+    color: #333;
+    padding: 8px 40px 4px 8px;
+  }
+
+  .playlist-title-byline::before {
+    content: ', ';
+  }
+  body.is-mobile .playlist-title-byline::before {
+    content: '';
+  }
+  body.is-mobile .playlist-title-byline {
+    display: block;
+    font-size: 13px;
+    color: #333;
+    letter-spacing: 0.04em;
+    margin-top: 2px;
+  }
+
+  body.is-mobile .playlist-wrapper #playlist { max-height: none; flex: 1; overflow-y: auto; margin: 0 !important; padding: 0 !important; background-color: transparent !important; }
+  body.is-mobile .playlist-wrapper .track { background-color: transparent; margin-bottom: 0 !important; }
+  body.is-mobile #playlist { -webkit-overflow-scrolling: touch; }
+  body.is-mobile .playlist-wrapper .playlist .track:last-child { border-bottom: none; margin-bottom: 0 !important; padding-bottom: 5px !important; }
+  body.is-mobile .playlist-wrapper .track:hover { background-color: transparent; }
+  body.is-mobile .playlist-wrapper .track.touch-active { background-color: rgba(255, 242, 232, 0.85); }
+  body.is-mobile .playlist-wrapper .scroll-arrow {
+    display: none;
+    position: absolute;
+    left: -24px;
+    width: 20px;
+    font-size: 13px;
+    color: #333;
+    background: transparent;
+    padding: 2px;
+    text-align: center;
+    cursor: default;
+    pointer-events: none;
+  }
+  body.is-mobile .playlist-wrapper.mobile-expanded .scroll-arrow { display: block; }
+  /* scroll arrow positions set dynamically by sizeMobilePlaylist() */
+
+
+  /* Mini infoboxes — slightly more compact on mobile */
+  body.is-mobile .mini-infobox {
+    font-size: 12px;
+  }
+
+  body.is-mobile .mini-infobox {
+    font-size: 12px;
+  }
+
+  body.is-mobile .mini-infobox-pill {
+    padding: 5px 8px 5px 7px;
+  }
+
+  /* Play/pause button symbols */
+  body.is-mobile .play-pause-btn {
+    font-family: Arial, sans-serif !important;
+    font-weight: normal !important;
+  }
+
+  /* Badge max-width on mobile */
+  body.is-mobile #playing-badge .badge-title {
+    max-width: calc(100vw - 150px);
+  }
+
+  /* Ko-fi widget — pinned bottom-right always, both mobi and non-mobi variants */
+  .floatingchat-container-wrap,
+  .floatingchat-container-wrap[style],
+  .floatingchat-container-wrap-mobi,
+  .floatingchat-container-wrap-mobi[style] {
+    position: fixed !important;
+    bottom: 25px !important;
+    right: 20px !important;
+    left: auto !important;
+    transform: none !important;
+    margin: 0 !important;
+    z-index: 9999 !important;
+  }
+
+  /* Ko-fi popup iframe — same for both variants */
+  .floating-chat-kofi-popup-iframe,
+  .floating-chat-kofi-popup-iframe[style],
+  .floating-chat-kofi-popup-iframe-mobi,
+  .floating-chat-kofi-popup-iframe-mobi[style] {
+    right: 20px !important;
+    left: auto !important;
+    bottom: 80px !important;
+    transform: none !important;
+    z-index: 9999 !important;
+  }
+
+  /* Hide Ko-fi floating widget on mobile — support link is in playlist footer instead */
+  body.is-mobile .floatingchat-container-wrap-mobi,
+  body.is-mobile .floatingchat-container-wrap {
+    display: none !important;
+  }
+
+  /* Mobile notification */
+  body.is-mobile .notification { font-size: 16px; }
+
+  /* Mobile track items */
+  body.is-mobile .track { padding: 8px; }
+  body.is-mobile .track-mile { font-size: 13px; cursor: default; pointer-events: none; }
+  body.is-mobile .track-mile:hover { color: #666; text-decoration: none; }
+  body.is-mobile .control-btn { padding: 8px 10px; font-size: 13px; }
+  body.is-mobile .sort-btn { padding: 6px 8px; font-size: 12px; }
+
+
+
+  /* ── Popup internals ── */
+  .popup-title {
+    margin: 0 0 8px 0;
+    font-size: 15px;
+    font-weight: 600;
+    padding-right: 30px;
+    cursor: pointer;
+  }
+
+  .popup-title:hover {
+    text-decoration: underline;
+  }
+
+  .popup-meta {
+    font-size: 13px;
+    color: #666;
+    margin-bottom: 8px;
+  }
+
+  .popup-notes-toggle {
+    font-size: 12px;
+    color: #5c3a2e;
+    background: none;
+    border: none;
+    padding: 0;
+    cursor: pointer;
+    text-decoration: underline;
+    margin-bottom: 8px;
+    display: block;
+  }
+
+  .popup-notes-content {
+    display: none;
+    font-size: 13px;
+    color: #555;
+    margin-top: 4px;
+    margin-bottom: 8px;
+  }
+
+  .popup-notes-content.expanded {
+    display: block;
+  }
+
+  .popup-controls {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-top: 12px;
+    padding-top: 12px;
+    border-top: 1px solid #eee;
+  }
+
+  .popup-nav-btn {
+    font-size: 13px;
+    padding: 6px 10px;
+    cursor: pointer;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    background: white;
+    color: #333;
+  }
+
+  .popup-nav-btn:hover {
+    background: #f0f0f0;
+  }
+
+  .playing-popup .popup-nav-btn {
+    background: rgba(255, 242, 232, 0.85);
+    border-color: rgba(180, 110, 60, 0.3);
+    color: #3d2519;
+  }
+
+  .playing-popup .popup-nav-btn:hover {
+    background: rgba(255, 215, 175, 0.72);
+  }
+
+  .popup-nav-btn:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+  }
+
+  .popup-playpause-btn {
+    padding: 8px 14px;
+    cursor: pointer;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    background: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 50px;
+  }
+
+  .popup-playpause-btn:hover {
+    background: #f0f0f0;
+  }
+
+  .playing-popup .popup-playpause-btn {
+    background: rgba(255, 242, 232, 0.85);
+    border-color: rgba(180, 110, 60, 0.3);
+  }
+
+  .playing-popup .popup-playpause-btn:hover {
+    background: rgba(255, 215, 175, 0.72);
+  }
+
+  .popup-time-display {
+    font-size: 12px;
+    color: #666;
+    margin-left: auto;
+    font-family: monospace;
+  }
+
+  /* Play triangle icon (used in popup controls and badge) */
+  .play-triangle {
+    display: inline-block;
+    width: 0;
+    height: 0;
+    border-left: 8px solid #333;
+    border-top: 5px solid transparent;
+    border-bottom: 5px solid transparent;
+    vertical-align: baseline;
+    position: relative;
+    top: -1px;
+    margin-right: 6px;
+    flex-shrink: 0;
+  }
+
+  /* Larger triangle for play/pause button */
+  .play-triangle-lg {
+    width: 0;
+    height: 0;
+    border-left: 10px solid #333;
+    border-top: 7px solid transparent;
+    border-bottom: 7px solid transparent;
+  }
+
+  /* Pause bars */
+  .pause-bar {
+    width: 4px;
+    height: 14px;
+    background-color: #333;
+  }
+
+  .pause-bar + .pause-bar {
+    margin-left: 4px;
+  }
+
+  /* ── Header badge ── */
+
+  /* Cluster picker — boxes stack vertically, not absolutely positioned */
+  #cluster-picker .mini-infobox {
+    position: static;
+    box-shadow: none;
+  }
+
+  #cluster-picker {
+    filter: drop-shadow(0 2px 5px rgba(0, 0, 0, 0.2));
+  }
+
+  /* ── Minimized popup mini box (orange state) ── */
+  .minimized-box {
+    position: absolute;
+  }
+
+  /* Mobile map action buttons - hidden on desktop */
+  .mobile-map-actions {
+    display: none;
+  }
+
+  /* Fullscreen styles */
+  .fullscreen-active {
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    width: 100vw !important;
+    height: 100vh !important;
+    z-index: 9999 !important;
+  }
+
+  /* Hide audio focus outline */
+  audio:focus {
+    outline: none;
+  }
+
+
+  /* Play/Pause button styling */
+  .play-pause-btn {
+    font-family: helvetica, sans-serif !important;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    appearance: none;
+  }
+
+
+  
+</style>
+</head>
+<body>
+  <div id="map"></div>
+  
+  <!-- ADDED: Persistent audio element for iOS background playback support (hidden) -->
+  <audio id="persistent-audio" 
+         preload="auto" 
+         controls
+         controlsList="nodownload"
+         oncontextmenu="return false;">
+  </audio>
+  
+  <!-- Hamburger menu button for mobile -->
+  <button class="hamburger-menu" id="hamburgerMenu" title="Menu">
+    <span></span>
+    <span></span>
+    <span></span>
+  </button>
+  <button class="info-btn" id="infoBtnMobile" title="About this map">i</button>
+
+  <div class="playlist-wrapper" id="playlistWrapper">
+    <button class="playlist-toggle" id="playlistToggle" title="Collapse playlist">◀</button>
+    <!-- Playlist header: sort controls + close button -->
+    <div class="playlist-header">
+      <div class="playlist-title">a sound map of the pacific crest trail, 2023<span class="playlist-title-byline">by stereo</span></div>
+      <button class="mobile-menu-close" id="mobileMenuClose" aria-label="Close menu"></button>
+      <div class="mobile-controls">
+        <div class="sort-controls">
+          <button class="control-btn sort-btn active" id="sortNoboMobile" title="Northbound playlist">NOBO</button>
+          <button class="control-btn sort-btn" id="sortSoboMobile" title="Southbound playlist">SOBO</button>
+          <button class="control-btn sort-btn" id="sortDateMobile" title="Chronological playlist">STEREO</button>
+          <button class="control-btn sort-btn" id="sortRandomMobile" title="Random playback">RANDOM</button>
+        </div>
+      </div>
+    </div>
+    <!-- Track list -->
+    <div class="scroll-arrow up" id="scrollUp" title="Scroll up">▲</div>
+    <div class="playlist" id="playlist">
+      <div class="loading-placeholder">loading recordings...</div>
+    </div>
+    <div class="scroll-arrow down" id="scrollDown" title="Scroll down">▼</div>
+    <!-- Playlist footer: support link -->
+    <div class="playlist-footer">
+      <div class="playlist-footer-byline">by stereo</div>
+      <a href="https://ko-fi.com/thmkly" target="_blank" rel="noopener noreferrer" class="support-link">support this project + my future work &#10084;&#xFE0E;</a>
+    </div>
+  </div>
+
+  <!-- Mobile map action buttons - float on map, hidden on desktop -->
+  <div class="mobile-map-actions" id="mobileMapActions">
+
+    <button class="mobile-map-btn" id="terrain3dBtnMobile" title="Immersive 3D on/off" style="display:none;">3D</button>
+    <button class="mobile-map-btn" id="fullscreenBtnMobile" title="Fullscreen on/off" style="display: none;">⛶</button>
+  </div>
+
+  <!-- Desktop control panel - hidden on mobile -->
+  <div class="control-panel-container">
+    <div class="control-panel">
+      <div class="control-row">
+        <button class="control-btn" id="resetMapBtn" title="Reset view and stop playback">Reset Map</button>
+        <button class="control-btn" id="fullscreenBtn" title="Fullscreen on/off">Fullscreen</button>
+        <button class="control-btn" id="terrain3dBtn" title="Immersive 3D on/off">Immersive 3D</button>
+      </div>
+      <div class="sort-controls">
+        <button class="control-btn sort-btn active" id="sortNobo" title="Northbound playlist">NOBO</button>
+        <button class="control-btn sort-btn" id="sortSobo" title="Southbound playlist">SOBO</button>
+        <button class="control-btn sort-btn" id="sortDate" title="Chronological playlist">STEREO</button>
+        <button class="control-btn sort-btn" id="sortRandom" title="Random playback">RANDOM</button>
+        <button class="info-btn-inline" id="infoBtnDesktop" title="About this map">i</button>
+      </div>
+    </div>
+  </div>
+  <!-- Welcome card -->
+  <div class="welcome-overlay" id="welcomeOverlay">
+    <div class="welcome-card">
+      <p class="welcome-title">a sound map of the pacific crest trail, 2023, by stereo</p>
+      <p class="welcome-dedication">For all hikers, all hikers in spirit, and for anyone with a curiosity to listen more closely to the world around them.</p>
+      <p class="welcome-status" id="welcomeStatus"><span class="loading-ellipsis">loading recordings</span></p>
+    </div>
+  </div>
+  <div class="notification" id="notification"></div>
+
+  <script src="https://api.mapbox.com/mapbox-gl-js/v3.8.0/mapbox-gl.js"></script>
+  <!-- Info/About dialog -->
+  <div class="info-overlay" id="infoOverlay">
+    <div class="info-dialog" id="infoDialog">
+      <div class="info-dialog-header">
+        <nav class="info-nav">
+          <a class="info-nav-link active" data-page="about">about</a>
+          <span class="info-nav-sep">|</span>
+          <a class="info-nav-link" data-page="support">support</a>
+          <span class="info-nav-sep">|</span>
+          <a class="info-nav-link" data-page="contact">contact</a>
+        </nav>
+        <button class="info-dialog-close" id="infoDialogClose">−</button>
+      </div>
+      <div class="info-body-wrapper">
+        <div class="info-scroll-arrow info-scroll-up" id="infoScrollUp">▲</div>
+        <div class="info-dialog-body" id="infoDialogBody">
+          <div style="height: 12px; flex-shrink: 0;"></div>
+          <div class="info-pages-container">
+          <div class="info-page active" id="info-page-about">
+          <p class="info-dedication">For all hikers, all hikers in spirit, and for anyone with a curiosity to listen more closely to the world around them.</p>
+          <p>In 2023 I thru-hiked the Pacific Crest Trail, carrying microphones with me and recording soundscapes along the way. I've been recording sound in nature for years, but it wasn't until my time on the PCT that I began to understand how deep the experience of time, place, and self could be by letting the act of listening guide me on a 5-6 month journey across the country.</p>
+          <p>Field recording is a time-based practice that requires stillness within a space over a period of time, while thru-hiking a long trail requires constant forward motion. The natural tension this creates influenced my daily pace, the timing of town days, the relationships I built along the way, and the balance of time spent alone versus with my friends.</p>
+          <p>I hope this soundmap connects you to these spaces in a way that a more visually-oriented medium is unable to. I hope it evokes memory for those who have been out there, inspires those who aspire to hike the PCT in their lifetime, and provides meaningful access for those who may never be able to set foot on trail.</p>
+          <p>From start to finish, this project was a massive undertaking, and pursuing it continues to be one of the most rewarding experiences of my life. It has deepened my relationship to myself, others, and the natural world in ways I cannot express using language. May some of what I found out there find its way to you through these recordings.</p>
+          <br>
+          <p>— stereo</p>
+          <div style="height:8px;"></div>
+        </div>
+        <div class="info-page" id="info-page-support">
+          <p><strong>Want to support my work?</strong></p>
+          <p>Enjoy this soundmap online for personal listening at no charge. Consider donating <a href="https://ko-fi.com/thmkly" target="_blank" rel="noopener"><strong>here</strong></a> if you feel called and able, it supports me and my work.</p>
+          <div style="height:8px;"></div>
+        </div>
+        <div class="info-page" id="info-page-contact">
+          <p>Want to collaborate, license this work, or just say hey? Contact me <a href="mailto:thmkly@proton.me"><strong>here</strong></a>.</p>
+          <div style="height:8px;"></div>
+        </div>
+        </div><!-- end info-pages-container -->
+        <div style="height: 20px; flex-shrink: 0;"></div>
+      </div>
+        <div class="info-scroll-arrow info-scroll-down" id="infoScrollDown">▼</div>
+      </div>
+    </div>
+  </div>
+
+  <script src="config.js"></script>
+  <script src="audiocontroller.js"></script>
+  <script src="atmospherecontroller.js"></script>
+  <script src="uicontroller.js"></script>
+  <script src="mapcontroller.js"></script>
+  
+  <script>
+    // Detect if actual mobile device (not just small window)
+    function isActualMobile() {
+      const userAgent = navigator.userAgent.toLowerCase();
+      return /iphone|ipad|ipod|android|mobile|blackberry|iemobile|wpdesktop/.test(userAgent);
+    }
+    
+    // Wait for DOM to be ready before initializing controllers
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', initializeApp);
+    } else {
+      initializeApp();
+    }
+    
+    function initializeApp() {
+      // Scale UI panels on large screens — gentle zoom to match Cmd++ equivalent
+      if (!isActualMobile()) {
+        const zoomDelta = CONFIG.getDefaultZoom() - 4.65;
+        const uiScale = 1 + (zoomDelta * 0.15); // ~1.1x on BenQ
+        if (uiScale > 1.01) {
+          const playlistWrapper = document.getElementById('playlistWrapper');
+          const controlPanelContainer = document.querySelector('.control-panel-container');
+          const isSafariBrowser = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
+          if (playlistWrapper) {
+            playlistWrapper.style.zoom = uiScale;
+            // Compensate max-height for zoom on non-Safari browsers
+            if (!isSafariBrowser) {
+              playlistWrapper.style.maxHeight = (90 / uiScale) + 'vh';
+            }
+          }
+          if (controlPanelContainer) controlPanelContainer.style.zoom = uiScale;
+        }
+      }
+
+      // Add custom attribution link
+      setTimeout(() => {
+        const attrib = document.querySelector('.mapboxgl-ctrl-attrib-inner');
+        if (attrib) {
+          const link = document.createElement('a');
+          link.href = 'https://thomasmkelly.com';
+          link.target = '_blank';
+          link.rel = 'noopener noreferrer';
+          link.textContent = '© Thomas Kelly';
+          link.style.cssText = 'margin-right: 4px;';
+          attrib.insertBefore(link, attrib.firstChild);
+        }
+      }, 1000);
+
+      // Initialize controllers after DOM is ready
+      audioController = new AudioController();
+      atmosphereController = new AtmosphereController();
+      uiController = new UIController();
+      mapController = new MapController();
+      
+      // Make them available globally
+      window.audioController = audioController;
+      window.atmosphereController = atmosphereController;
+      window.uiController = uiController;
+      window.mapController = mapController;
+      window.isActualMobile = isActualMobile;
+      
+      // Enhanced Notification System
+      let currentNotificationTimeout = null;
+
+      // Welcome card logic
+      const welcomeOverlay = document.getElementById('welcomeOverlay');
+      const welcomeStatus = document.getElementById('welcomeStatus');
+
+      window.dismissWelcomeCard = function(recordingCount) {
+        if (!welcomeOverlay) return;
+        // Swap loading text to loaded text
+        welcomeStatus.innerHTML = `${recordingCount} recordings loaded from Mexico to Canada`;
+        welcomeStatus.classList.add('loaded');
+        // Dismiss after a short beat
+        setTimeout(() => {
+          welcomeOverlay.classList.add('fade-out');
+          setTimeout(() => {
+            welcomeOverlay.style.display = 'none';
+          }, 650);
+        }, 1800);
+      };
+
+      // Desktop: click anywhere to skip welcome card early
+      if (!isActualMobile()) {
+        welcomeOverlay.addEventListener('click', () => {
+          welcomeOverlay.classList.add('fade-out');
+          setTimeout(() => { welcomeOverlay.style.display = 'none'; }, 650);
+        });
+      }
+
+      window.showNotification = function(message, duration = 3000) {
+        const notification = document.getElementById('notification');
+        
+        // Clear any existing timeout
+        if (currentNotificationTimeout) {
+          clearTimeout(currentNotificationTimeout);
+          currentNotificationTimeout = null;
+        }
+        
+        notification.textContent = message;
+        notification.classList.add('show');
+        
+        // Only set timeout if duration is provided and > 0
+        if (duration > 0) {
+          currentNotificationTimeout = setTimeout(() => {
+            notification.classList.remove('show');
+            currentNotificationTimeout = null;
+          }, duration);
+        }
+      }
+
+      window.hideNotification = function() {
+        const notification = document.getElementById('notification');
+        if (currentNotificationTimeout) {
+          clearTimeout(currentNotificationTimeout);
+          currentNotificationTimeout = null;
+        }
+        notification.classList.remove('show');
+      }
+
+      // Sync mobile and desktop controls
+      function syncControls() {
+        // Show/hide fullscreen button based on actual mobile device
+        const fullscreenBtnMobile = document.getElementById('fullscreenBtnMobile');
+        if (fullscreenBtnMobile && !isActualMobile()) {
+          fullscreenBtnMobile.style.display = 'inline-block';
+        }
+        
+        // REMOVED: Hamburger menu handler - uiController already handles this via toggleMobileMenu()
+        // The uiController properly toggles open/close, so we don't need duplicate logic here
+        
+        const hamburgerMenu = document.getElementById('hamburgerMenu');
+        const playlistWrapper = document.getElementById('playlistWrapper');
+        const mobileMenuClose = document.getElementById('mobileMenuClose');
+        
+        // Mobile close button
+        if (mobileMenuClose) {
+          mobileMenuClose.addEventListener('click', () => {
+            uiController.collapseMobileMenu();
+          });
+        }
+        
+        // Close menu when clicking outside on mobile
+        document.addEventListener('click', (e) => {
+          if (uiController.isMobile && 
+              uiController.mobilePlaylistExpanded &&
+              hamburgerMenu && 
+              !hamburgerMenu.contains(e.target) && 
+              !playlistWrapper.contains(e.target)) {
+            uiController.collapseMobileMenu();
+          }
+        });
+
+        // Info button handlers
+        const infoOverlay = document.getElementById('infoOverlay');
+        const infoDialogClose = document.getElementById('infoDialogClose');
+        const infoBtnDesktop = document.getElementById('infoBtnDesktop');
+
+        const infoBtnMobile = document.getElementById('infoBtnMobile');
+
+        const openInfo = () => infoOverlay.classList.add('visible');
+        const closeInfo = () => {
+          infoOverlay.classList.remove('visible');
+        };
+
+        if (infoBtnDesktop) infoBtnDesktop.addEventListener('click', openInfo);
+        if (infoBtnMobile) infoBtnMobile.addEventListener('click', openInfo);
+        if (infoDialogClose) infoDialogClose.addEventListener('click', closeInfo);
+        if (infoOverlay) infoOverlay.addEventListener('click', (e) => {
+          if (e.target === infoOverlay) closeInfo();
+        });
+
+        // Info nav tab switching
+        document.querySelectorAll('.info-nav-link').forEach(link => {
+          link.addEventListener('click', () => {
+            const page = link.dataset.page;
+            document.querySelectorAll('.info-nav-link').forEach(l => l.classList.remove('active'));
+            link.classList.add('active');
+            document.querySelectorAll('.info-page').forEach(p => p.classList.remove('active'));
+            document.getElementById('info-page-' + page).classList.add('active');
+            updateInfoScrollArrows();
+          });
+        });
+
+        // Info dialog scroll arrows (mobile only)
+        const infoBody = document.getElementById('infoDialogBody');
+        const infoScrollUp = document.getElementById('infoScrollUp');
+        const infoScrollDown = document.getElementById('infoScrollDown');
+
+        function updateInfoScrollArrows() {
+          if (!infoBody || !window.uiController?.isMobile) return;
+          const atTop = infoBody.scrollTop <= 2;
+          const atBottom = infoBody.scrollTop + infoBody.clientHeight >= infoBody.scrollHeight - 2;
+          infoScrollUp.classList.toggle('visible', !atTop);
+          infoScrollDown.classList.toggle('visible', !atBottom);
+        }
+
+        if (infoBody) {
+          infoBody.addEventListener('scroll', updateInfoScrollArrows);
+        }
+
+        if (infoBtnDesktop) infoBtnDesktop.addEventListener('click', () => { 
+          openInfo(); 
+          setTimeout(() => {
+            updateInfoScrollArrows();
+            if (!window.uiController?.isMobile) {
+              const aboutPage = document.getElementById('info-page-about');
+              const container = document.querySelector('.info-pages-container');
+              if (aboutPage && container) {
+                container.style.minHeight = aboutPage.offsetHeight + 'px';
+              }
+            }
+          }, 50); 
+        });
+        if (infoBtnMobile) infoBtnMobile.addEventListener('click', () => { openInfo(); setTimeout(updateInfoScrollArrows, 50); });
+
+        // Sync reset buttons - call function directly, don't click desktop button
+        const resetBtnMobile = document.getElementById('resetMapBtnMobile');
+        if (resetBtnMobile) {
+          resetBtnMobile.addEventListener('click', () => {
+            mapController.resetMap();
+          });
+        }
+
+        // Sync fullscreen buttons
+        if (fullscreenBtnMobile) {
+          fullscreenBtnMobile.addEventListener('click', () => {
+            uiController.toggleFullscreen();
+          });
+        }
+
+        // Sync 3D terrain buttons
+        const terrain3dBtnMobile = document.getElementById('terrain3dBtnMobile');
+        if (terrain3dBtnMobile) {
+          terrain3dBtnMobile.addEventListener('click', () => {
+            uiController.toggle3D();
+          });
+        }
+
+        // Sync sort buttons - call function directly
+        ['Nobo', 'Sobo', 'Date'].forEach(mode => {
+          const mobileBtn = document.getElementById('sort' + mode + 'Mobile');
+          if (mobileBtn) {
+            mobileBtn.addEventListener('click', () => {
+              document.querySelectorAll('.sort-btn').forEach(btn => btn.classList.remove('active'));
+              mobileBtn.classList.add('active');
+              document.getElementById('sort' + mode).classList.add('active');
+              audioController.playMode = 'sequential';
+              const sortMap = { 'Nobo': 'nobo', 'Sobo': 'sobo', 'Date': 'date' };
+              audioController.sortMode = sortMap[mode];
+              mapController.sortAndUpdatePlaylist();
+            });
+          }
+        });
+
+        // Random as sort button
+        const sortRandomMobile = document.getElementById('sortRandomMobile');
+        if (sortRandomMobile) {
+          sortRandomMobile.addEventListener('click', () => {
+            document.querySelectorAll('.sort-btn').forEach(btn => btn.classList.remove('active'));
+            sortRandomMobile.classList.add('active');
+            const desktopRandom = document.getElementById('sortRandom');
+            if (desktopRandom) desktopRandom.classList.add('active');
+            audioController.playMode = 'random';
+          });
+        }
+      }
+
+      // Initialize controls
+      syncControls();
+
+      // Initialize map data update after first load
+      setTimeout(() => {
+        if (window.mapController) {
+          mapController.updateMapData();
+        }
+      }, 1000);
+    }
+  </script>
+
+  <script src="https://storage.ko-fi.com/cdn/scripts/overlay-widget.js"></script>
+  <script>
+    kofiWidgetOverlay.draw('thmkly', {
+      'type': 'floating-chat',
+      'floating-chat.donateButton.text': 'Support me',
+      'floating-chat.donateButton.background-color': '#ff5f5f',
+      'floating-chat.donateButton.text-color': '#fff'
+    });
+  </script>
+
+  </style>
+</body>
+</html>
