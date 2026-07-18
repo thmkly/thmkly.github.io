@@ -75,6 +75,9 @@ const CONFIG = {
       return 4.8;                                 // Smaller screens
     }
 
+    // LG 27" 1080p range (Safari private reports ~2178, non-private ~2203) — lock to same zoom
+    if (diagonalPixels >= 2170 && diagonalPixels <= 2210) return 4.934250633989705;
+
     // Reliable screen data — interpolate between reference points
     // MBA 13" M3 (1470x956 scaled): diagonal 1752px → zoom 4.65
     // BenQ 27" 5K (5120x2880 scaled): diagonal 2910px → zoom 5.38
