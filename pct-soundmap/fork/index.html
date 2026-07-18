@@ -867,9 +867,15 @@
     color: #333;
     line-height: 1;
     transition: background 0.2s;
+    width: 32px;
+    text-align: center;
   }
   .night-mode-btn:hover {
     background: rgba(0,0,0,0.06);
+  }
+  .night-mode-btn .moon-icon {
+    display: inline-block;
+    transform: rotate(45deg);
   }
   body.is-mobile .mobile-night-btn {
     position: fixed;
@@ -934,6 +940,20 @@
     color: rgba(190, 200, 215, 0.9) !important;
     border-color: rgba(255,255,255,0.15) !important;
     background-color: transparent !important;
+  }
+
+  /* Night mode fade transition */
+  .night-mode-fade {
+    position: fixed;
+    inset: 0;
+    background: black;
+    z-index: 9999;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.4s ease;
+  }
+  .night-mode-fade.active {
+    opacity: 1;
   }
 
   /* Notification Messages */
@@ -1499,7 +1519,7 @@
     <span></span>
   </button>
   <button class="info-btn" id="infoBtnMobile" title="About this map">i</button>
-  <button class="night-mode-btn mobile-night-btn" id="nightModeBtnMobile" title="Toggle night mode">☽</button>
+  <button class="night-mode-btn mobile-night-btn" id="nightModeBtnMobile" title="Night mode on/off"><span class="moon-icon">☽</span></button>
 
   <div class="playlist-wrapper" id="playlistWrapper">
     <button class="playlist-toggle" id="playlistToggle" title="Collapse playlist">◀</button>
@@ -1549,11 +1569,12 @@
         <button class="control-btn sort-btn" id="sortSobo" title="Southbound playlist">SOBO</button>
         <button class="control-btn sort-btn" id="sortDate" title="Chronological playlist">STEREO</button>
         <button class="control-btn sort-btn" id="sortRandom" title="Random playback">RANDOM</button>
-        <button class="night-mode-btn" id="nightModeBtn" title="Toggle night mode">☽</button>
+        <button class="night-mode-btn" id="nightModeBtn" title="Night mode on/off"><span class="moon-icon">☽</span></button>
         <button class="info-btn-inline" id="infoBtnDesktop" title="About this map">i</button>
       </div>
     </div>
   </div>
+  <div class="night-mode-fade" id="nightModeFade"></div>
   <div class="notification" id="notification"></div>
 
   <script src="https://api.mapbox.com/mapbox-gl-js/v3.8.0/mapbox-gl.js"></script>
