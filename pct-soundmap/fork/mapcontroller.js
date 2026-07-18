@@ -2469,36 +2469,26 @@ class MapController {
         };
 
         const applyNightMode = (night) => {
-          const fade = document.getElementById('nightModeFade');
+          isNight = night;
+          document.body.classList.toggle('night-mode', night);
 
-          // Fade to near-black
-          if (fade) fade.classList.add('active');
+          // Update button icons
+          const icon = night ? '○' : '<span class="moon-icon">☽</span>';
+          if (btnDesktop) btnDesktop.innerHTML = icon;
+          if (btnMobile) btnMobile.innerHTML = icon;
 
-          setTimeout(() => {
-            isNight = night;
-            document.body.classList.toggle('night-mode', night);
-
-            // Update button icons
-            const icon = night ? '○' : '<span class="moon-icon">☽</span>';
-            if (btnDesktop) btnDesktop.innerHTML = icon;
-            if (btnMobile) btnMobile.innerHTML = icon;
-
-            if (!uiController.is3DEnabled) {
-              map.setStyle(night ? NIGHT_STYLE : DAY_STYLE);
-              map.once('style.load', () => {
-                this.setupMapLayers();
-                applyClusterColors(night);
-                if (this._lastData && map.getSource('audio')) {
-                  map.getSource('audio').setData(this._lastData);
-                }
-                // Fade back in immediately once style is ready
-                if (fade) fade.classList.remove('active');
-              });
-            } else {
+          if (!uiController.is3DEnabled) {
+            map.setStyle(night ? NIGHT_STYLE : DAY_STYLE);
+            map.once('style.load', () => {
+              this.setupMapLayers();
               applyClusterColors(night);
-              if (fade) fade.classList.remove('active');
-            }
-          }, 300); // hold just long enough for fade to complete
+              if (this._lastData && map.getSource('audio')) {
+                map.getSource('audio').setData(this._lastData);
+              }
+            });
+          } else {
+            applyClusterColors(night);
+          }
         };
 
         if (btnDesktop) btnDesktop.addEventListener('click', () => applyNightMode(!isNight));

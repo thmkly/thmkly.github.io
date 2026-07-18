@@ -945,20 +945,6 @@
     background-color: transparent !important;
   }
 
-  /* Night mode fade transition */
-  .night-mode-fade {
-    position: fixed;
-    inset: 0;
-    background: rgba(8, 10, 14, 0.97);
-    z-index: 9999;
-    opacity: 0;
-    pointer-events: none;
-    transition: opacity 0.3s ease;
-  }
-  .night-mode-fade.active {
-    opacity: 1;
-  }
-
   /* Notification Messages */
   .notification {
     position: fixed;
@@ -1577,7 +1563,6 @@
       </div>
     </div>
   </div>
-  <div class="night-mode-fade" id="nightModeFade"></div>
   <div class="notification" id="notification"></div>
 
   <script src="https://api.mapbox.com/mapbox-gl-js/v3.8.0/mapbox-gl.js"></script>
