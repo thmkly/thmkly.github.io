@@ -189,7 +189,7 @@ class MapController {
             'text-size': Math.round(12 * (1 + ((_clusterScale - 1) * 0.15)))
           },
           paint: {
-            'text-color': '#ffffff'
+            'text-color': '#1a3a4a'
           }
         });
 
@@ -2464,7 +2464,7 @@ class MapController {
             map.setPaintProperty('clusters', 'circle-opacity', night ? 0.85 : 0.7);
           }
           if (map.getLayer('cluster-count')) {
-            map.setPaintProperty('cluster-count', 'text-color', night ? '#a8c8e8' : '#ffffff');
+            map.setPaintProperty('cluster-count', 'text-color', night ? '#c8dff0' : '#1a3a4a');
           }
         };
 
