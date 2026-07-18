@@ -2471,7 +2471,7 @@ class MapController {
         const applyNightMode = (night) => {
           const fade = document.getElementById('nightModeFade');
 
-          // Fade out
+          // Fade to near-black
           if (fade) fade.classList.add('active');
 
           setTimeout(() => {
@@ -2491,14 +2491,14 @@ class MapController {
                 if (this._lastData && map.getSource('audio')) {
                   map.getSource('audio').setData(this._lastData);
                 }
-                // Fade back in
-                setTimeout(() => { if (fade) fade.classList.remove('active'); }, 200);
+                // Fade back in immediately once style is ready
+                if (fade) fade.classList.remove('active');
               });
             } else {
               applyClusterColors(night);
-              setTimeout(() => { if (fade) fade.classList.remove('active'); }, 200);
+              if (fade) fade.classList.remove('active');
             }
-          }, 400);
+          }, 300); // hold just long enough for fade to complete
         };
 
         if (btnDesktop) btnDesktop.addEventListener('click', () => applyNightMode(!isNight));
