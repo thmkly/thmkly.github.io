@@ -856,66 +856,6 @@
     padding: 8px;
   }
 
-  /* Welcome card */
-  .welcome-overlay {
-    position: fixed;
-    inset: 0;
-    background: rgba(0, 0, 0, 0.45);
-    z-index: 60000;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    opacity: 1;
-    transition: opacity 0.6s ease;
-  }
-  .welcome-overlay.fade-out {
-    opacity: 0;
-    pointer-events: none;
-  }
-  .welcome-card {
-    background: rgba(255, 255, 255, 0.95);
-    border-radius: 8px;
-    padding: 36px 40px 28px;
-    max-width: 480px;
-    width: 90vw;
-    text-align: center;
-    box-shadow: 0 4px 24px rgba(0,0,0,0.15);
-  }
-  .welcome-title {
-    font-size: 13px;
-    letter-spacing: 0.04em;
-    color: #333;
-    margin: 0 0 16px 0;
-    font-family: helvetica, sans-serif;
-  }
-  .welcome-dedication {
-    font-size: 12px;
-    font-style: italic;
-    color: #666;
-    line-height: 1.65;
-    margin: 0 0 24px 0;
-  }
-  .welcome-status {
-    font-size: 11px;
-    color: #999;
-    letter-spacing: 0.03em;
-    min-height: 16px;
-  }
-  .welcome-status.loaded {
-    color: #555;
-  }
-
-  @keyframes ellipsis {
-    0%   { content: '.'; }
-    33%  { content: '..'; }
-    66%  { content: '...'; }
-    100% { content: '.'; }
-  }
-  .loading-ellipsis::after {
-    content: '.';
-    animation: ellipsis 1.2s steps(1) infinite;
-  }
-
   /* Notification Messages */
   .notification {
     position: fixed;
@@ -1532,14 +1472,6 @@
       </div>
     </div>
   </div>
-  <!-- Welcome card -->
-  <div class="welcome-overlay" id="welcomeOverlay">
-    <div class="welcome-card">
-      <p class="welcome-title">a sound map of the pacific crest trail, 2023, by stereo</p>
-      <p class="welcome-dedication">For all hikers, all hikers in spirit, and for anyone with a curiosity to listen more closely to the world around them.</p>
-      <p class="welcome-status" id="welcomeStatus"><span class="loading-ellipsis">loading recordings</span></p>
-    </div>
-  </div>
   <div class="notification" id="notification"></div>
 
   <script src="https://api.mapbox.com/mapbox-gl-js/v3.8.0/mapbox-gl.js"></script>
@@ -1657,32 +1589,6 @@
       
       // Enhanced Notification System
       let currentNotificationTimeout = null;
-
-      // Welcome card logic
-      const welcomeOverlay = document.getElementById('welcomeOverlay');
-      const welcomeStatus = document.getElementById('welcomeStatus');
-
-      window.dismissWelcomeCard = function(recordingCount) {
-        if (!welcomeOverlay) return;
-        // Swap loading text to loaded text
-        welcomeStatus.innerHTML = `${recordingCount} recordings loaded from Mexico to Canada`;
-        welcomeStatus.classList.add('loaded');
-        // Dismiss after a short beat
-        setTimeout(() => {
-          welcomeOverlay.classList.add('fade-out');
-          setTimeout(() => {
-            welcomeOverlay.style.display = 'none';
-          }, 650);
-        }, 1800);
-      };
-
-      // Desktop: click anywhere to skip welcome card early
-      if (!isActualMobile()) {
-        welcomeOverlay.addEventListener('click', () => {
-          welcomeOverlay.classList.add('fade-out');
-          setTimeout(() => { welcomeOverlay.style.display = 'none'; }, 650);
-        });
-      }
 
       window.showNotification = function(message, duration = 3000) {
         const notification = document.getElementById('notification');

@@ -141,15 +141,19 @@ class MapController {
       setupMapLayers() {
         // Scale factor for cluster visuals — keeps circles and grouping consistent across screen sizes
         // Mobile uses a fixed scale of 1 (MBA reference) regardless of zoom
+        // DPR correction: on DPR 1 screens, halve the cluster radius to match DPR 2 clustering
+        const dpr = window.devicePixelRatio || 1;
+        const dprCorrection = dpr >= 2 ? 1 : 0.75;
         const _clusterScale = uiController.isMobile ? 1 : Math.pow(2, CONFIG.getDefaultZoom() - 4.65);
-        const _r = (n) => Math.round(n * _clusterScale);
+        const _r = (n) => Math.round(n * _clusterScale);          // visual size — no DPR correction
+        const _cr = (n) => Math.round(n * _clusterScale * dprCorrection); // cluster grouping radius only
 
         map.addSource('audio', {
           type: 'geojson',
           data: { type: 'FeatureCollection', features: [] },
           cluster: true,
           clusterMaxZoom: 11,
-          clusterRadius: _r(45)
+          clusterRadius: _cr(45)
         });
 
         map.addLayer({
@@ -396,7 +400,7 @@ class MapController {
           const playlistWrapper = document.getElementById('playlistWrapper');
           
           // Show persistent loading notification (duration 0 = stays until hidden)
-          if (!window.dismissWelcomeCard) showNotification('loading recordings...', 0);
+          showNotification('loading recordings...', 0);
           
           const url = `${CONFIG.GOOGLE_SCRIPT_URL}?nocache=${Date.now()}`;
           
@@ -460,11 +464,7 @@ class MapController {
                   map.off('idle', onIdle);
                   hideNotification();
                   setTimeout(() => {
-                    if (typeof window.dismissWelcomeCard === 'function') {
-                      window.dismissWelcomeCard(data.length);
-                    } else {
-                      showNotification(`${data.length} recordings loaded`, 3000);
-                    }
+                    showNotification(`${data.length} recordings loaded`, 3000);
                   }, 100);
                 };
                 map.once('idle', onIdle);

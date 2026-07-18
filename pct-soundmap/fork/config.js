@@ -37,7 +37,7 @@ const CONFIG = {
     // --- Mobile zoom — interpolated from viewport height reference points ---
     if (isMobile) {
       const viewportHeight = window.innerHeight;
-      const ref1 = { height: 674, zoom: 4.37 };  // Chrome/Brave on iPhone
+      const ref1 = { height: 674, zoom: 4.32 };  // Chrome/Brave on iPhone
       const ref2 = { height: 713, zoom: 4.4181047703653835 };  // Safari on iPhone
       if (viewportHeight <= ref1.height) {
         return ref1.zoom;
@@ -64,6 +64,10 @@ const CONFIG = {
       const viewportDiagonal = Math.sqrt(window.innerWidth ** 2 + window.innerHeight ** 2);
       // Brave on 5K/high-res monitors reports reduced viewport — apply Safari-equivalent zoom
       if (isBrave && viewportDiagonal > 2200) return 5.38;
+      // Brave on 13" MBA — viewport diagonal ~1692
+      if (isBrave && viewportDiagonal > 1600 && viewportDiagonal < 1800) return 4.65095885263206;
+      // Brave on LG 27" 1080p — viewport diagonal ~2164
+      if (isBrave && viewportDiagonal >= 1800 && viewportDiagonal < 2200) return 4.93;
       if (viewportDiagonal > 2800) return 4.2;   // Large desktop / high-res
       if (viewportDiagonal > 2000) return 4.95;  // 27" equivalent
       if (viewportDiagonal > 1800) return 4.45;  // 13" laptop equivalent (Brave)
@@ -71,15 +75,18 @@ const CONFIG = {
       return 4.8;                                 // Smaller screens
     }
 
+    // LG 27" 1080p range (Safari private reports ~2178, non-private ~2203) — lock to same zoom
+    if (diagonalPixels >= 2170 && diagonalPixels <= 2210) return 4.934250633989705;
+
     // Reliable screen data — interpolate between reference points
     // MBA 13" M3 (1470x956 scaled): diagonal 1752px → zoom 4.65
-    // BenQ 27" 1440p (2560x1440):   diagonal 2939px → zoom 5.38
+    // BenQ 27" 5K (5120x2880 scaled): diagonal 2910px → zoom 5.38
     const ref1 = { diagonal: 1752, zoom: 4.65 };
     const ref2 = { diagonal: 2910, zoom: 5.38 };
     const slope = (ref2.zoom - ref1.zoom) / (ref2.diagonal - ref1.diagonal);
 
     if (diagonalPixels <= ref1.diagonal) {
-      return Math.max(4.0, ref1.zoom + slope * (diagonalPixels - ref1.diagonal));
+      return 4.65095885263206;
     } else if (diagonalPixels >= ref2.diagonal) {
       return Math.min(5.38, ref2.zoom + slope * (diagonalPixels - ref2.diagonal));
     } else {
