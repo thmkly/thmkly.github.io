@@ -2480,12 +2480,10 @@ class MapController {
 
             // Update Safari chrome color
             const themeColor = document.getElementById('themeColorMeta');
-            if (themeColor) {
-              if (night) {
-                themeColor.setAttribute('content', '#0a0e16');
-              } else {
-                themeColor.removeAttribute('content');
-              }
+            if (night) {
+              if (themeColor) themeColor.setAttribute('content', '#0a0e16');
+            } else {
+              if (themeColor) themeColor.parentNode.removeChild(themeColor);
             }
 
             // Update button icons
