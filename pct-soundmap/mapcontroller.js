@@ -145,14 +145,15 @@ class MapController {
         const dpr = window.devicePixelRatio || 1;
         const dprCorrection = dpr >= 2 ? 1 : 0.75;
         const _clusterScale = uiController.isMobile ? 1 : Math.pow(2, CONFIG.getDefaultZoom() - 4.65);
-        const _r = (n) => Math.round(n * _clusterScale * dprCorrection);
+        const _r = (n) => Math.round(n * _clusterScale);          // visual size — no DPR correction
+        const _cr = (n) => Math.round(n * _clusterScale * dprCorrection); // cluster grouping radius only
 
         map.addSource('audio', {
           type: 'geojson',
           data: { type: 'FeatureCollection', features: [] },
           cluster: true,
           clusterMaxZoom: 11,
-          clusterRadius: _r(45)
+          clusterRadius: _cr(45)
         });
 
         map.addLayer({
