@@ -81,7 +81,7 @@ const CONFIG = {
     const slope = (ref2.zoom - ref1.zoom) / (ref2.diagonal - ref1.diagonal);
 
     if (diagonalPixels <= ref1.diagonal) {
-      return Math.max(4.0, ref1.zoom + slope * (diagonalPixels - ref1.diagonal));
+      return ref1.zoom;
     } else if (diagonalPixels >= ref2.diagonal) {
       return Math.min(5.38, ref2.zoom + slope * (diagonalPixels - ref2.diagonal));
     } else {
