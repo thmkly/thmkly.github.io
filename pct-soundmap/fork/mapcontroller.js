@@ -187,6 +187,9 @@ class MapController {
             'text-field': '{point_count_abbreviated}',
             'text-font': ['Open Sans Semibold', 'Arial Unicode MS Bold'],
             'text-size': Math.round(12 * (1 + ((_clusterScale - 1) * 0.15)))
+          },
+          paint: {
+            'text-color': '#ffffff'
           }
         });
 
@@ -2458,6 +2461,10 @@ class MapController {
           if (map.getLayer('clusters')) {
             map.setPaintProperty('clusters', 'circle-color', night ? NIGHT_CLUSTER_COLOR : DAY_CLUSTER_COLOR);
             map.setPaintProperty('clusters', 'circle-stroke-color', night ? NIGHT_CLUSTER_STROKE : DAY_CLUSTER_STROKE);
+            map.setPaintProperty('clusters', 'circle-opacity', night ? 0.85 : 0.7);
+          }
+          if (map.getLayer('cluster-count')) {
+            map.setPaintProperty('cluster-count', 'text-color', night ? '#a8c8e8' : '#ffffff');
           }
         };
 
