@@ -2480,11 +2480,7 @@ class MapController {
 
             // Update Safari chrome color
             const themeColor = document.getElementById('themeColorMeta');
-            if (night) {
-              if (themeColor) themeColor.setAttribute('content', '#0a0e16');
-            } else {
-              if (themeColor) themeColor.parentNode.removeChild(themeColor);
-            }
+            if (themeColor) themeColor.setAttribute('content', night ? '#0a0e16' : '#ffffff');
 
             // Update button icons
             const icon = night ? '○' : '<span class="moon-icon">☽</span>';
