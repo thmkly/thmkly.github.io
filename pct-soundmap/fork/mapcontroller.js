@@ -2478,6 +2478,16 @@ class MapController {
             isNight = night;
             document.body.classList.toggle('night-mode', night);
 
+            // Update Safari chrome color
+            const themeColor = document.getElementById('themeColorMeta');
+            if (themeColor) {
+              if (night) {
+                themeColor.setAttribute('content', '#0a0e16');
+              } else {
+                themeColor.removeAttribute('content');
+              }
+            }
+
             // Update button icons
             const icon = night ? '○' : '<span class="moon-icon">☽</span>';
             if (btnDesktop) btnDesktop.innerHTML = icon;
