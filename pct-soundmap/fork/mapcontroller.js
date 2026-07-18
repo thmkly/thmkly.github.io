@@ -2446,13 +2446,20 @@ class MapController {
         const NIGHT_STYLE = 'mapbox://styles/thmkly/cmrqvc0rf001m01r90xo3f4u3';
         const DAY_CLUSTER_COLOR = '#51bbd6';
         const DAY_CLUSTER_STROKE = '#197991';
-        const NIGHT_CLUSTER_COLOR = '#3a7ca5';
-        const NIGHT_CLUSTER_STROKE = '#1a4a6e';
+        const NIGHT_CLUSTER_COLOR = '#0d1b2a';
+        const NIGHT_CLUSTER_STROKE = '#3a6080';
 
         let isNight = false;
 
         const btnDesktop = document.getElementById('nightModeBtn');
         const btnMobile = document.getElementById('nightModeBtnMobile');
+
+        const applyClusterColors = (night) => {
+          if (map.getLayer('clusters')) {
+            map.setPaintProperty('clusters', 'circle-color', night ? NIGHT_CLUSTER_COLOR : DAY_CLUSTER_COLOR);
+            map.setPaintProperty('clusters', 'circle-stroke-color', night ? NIGHT_CLUSTER_STROKE : DAY_CLUSTER_STROKE);
+          }
+        };
 
         const applyNightMode = (night) => {
           isNight = night;
@@ -2462,23 +2469,17 @@ class MapController {
           if (btnDesktop) btnDesktop.textContent = symbol;
           if (btnMobile) btnMobile.textContent = symbol;
 
-          // Only swap 2D style — skip if 3D is active
           if (!uiController.is3DEnabled) {
             map.setStyle(night ? NIGHT_STYLE : DAY_STYLE);
             map.once('style.load', () => {
-              // Re-add source and layers after style swap
               this.setupMapLayers();
-              // Re-add PCT trail data if already loaded
-              if (map.getSource('audio') && this._lastData) {
+              applyClusterColors(night);
+              if (this._lastData && map.getSource('audio')) {
                 map.getSource('audio').setData(this._lastData);
               }
             });
-          }
-
-          // Update cluster colors
-          if (map.getLayer('clusters')) {
-            map.setPaintProperty('clusters', 'circle-color', night ? NIGHT_CLUSTER_COLOR : DAY_CLUSTER_COLOR);
-            map.setPaintProperty('clusters', 'circle-stroke-color', night ? NIGHT_CLUSTER_STROKE : DAY_CLUSTER_STROKE);
+          } else {
+            applyClusterColors(night);
           }
         };
 
