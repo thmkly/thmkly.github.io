@@ -133,6 +133,7 @@ class MapController {
             this.setupMapLayers();
             this.setupMapEvents();
             this.loadAudioData();
+            this.setupNightMode();
 
             });
             }
@@ -145,14 +146,15 @@ class MapController {
         const dpr = window.devicePixelRatio || 1;
         const dprCorrection = dpr >= 2 ? 1 : 0.75;
         const _clusterScale = uiController.isMobile ? 1 : Math.pow(2, CONFIG.getDefaultZoom() - 4.65);
-        const _r = (n) => Math.round(n * _clusterScale * dprCorrection);
+        const _r = (n) => Math.round(n * _clusterScale);          // visual size — no DPR correction
+        const _cr = (n) => Math.round(n * _clusterScale * dprCorrection); // cluster grouping radius only
 
         map.addSource('audio', {
           type: 'geojson',
           data: { type: 'FeatureCollection', features: [] },
           cluster: true,
           clusterMaxZoom: 11,
-          clusterRadius: _r(45)
+          clusterRadius: _cr(45)
         });
 
         map.addLayer({
@@ -185,6 +187,9 @@ class MapController {
             'text-field': '{point_count_abbreviated}',
             'text-font': ['Open Sans Semibold', 'Arial Unicode MS Bold'],
             'text-size': Math.round(12 * (1 + ((_clusterScale - 1) * 0.15)))
+          },
+          paint: {
+            'text-color': '#1a3a4a'
           }
         });
 
@@ -622,6 +627,7 @@ class MapController {
         };
         
         source.setData(geojson);
+        this._lastData = geojson;
       }
 
       updatePlaylistOnly() {
@@ -2436,5 +2442,83 @@ class MapController {
         } else {
           badge.style.display = 'none';
         }
+      }
+
+      setupNightMode() {
+        const DAY_STYLE = 'mapbox://styles/thmkly/clyup637d004201ri2tkpaywq';
+        const NIGHT_STYLE = 'mapbox://styles/thmkly/cmrqvc0rf001m01r90xo3f4u3';
+        const DAY_CLUSTER_COLOR = '#51bbd6';
+        const DAY_CLUSTER_STROKE = '#197991';
+        const NIGHT_CLUSTER_COLOR = '#0d1b2a';
+        const NIGHT_CLUSTER_STROKE = '#3a6080';
+
+        let isNight = false;
+
+        // Prefetch night style on page load to warm browser cache
+        const token = CONFIG.MAPBOX_TOKEN;
+        fetch(`https://api.mapbox.com/styles/v1/thmkly/cmrqvc0rf001m01r90xo3f4u3?access_token=${token}`)
+          .catch(() => {});
+
+        const btnDesktop = document.getElementById('nightModeBtn');
+        const btnMobile = document.getElementById('nightModeBtnMobile');
+
+        // Create fade overlay
+        const fade = document.createElement('div');
+        fade.style.cssText = `
+          position: fixed; inset: 0; background: rgba(8,10,14,0.97);
+          z-index: 9999; opacity: 0; pointer-events: none;
+          transition: opacity 0.35s ease;
+        `;
+        document.body.appendChild(fade);
+
+        const fadeIn = () => new Promise(resolve => {
+          fade.style.opacity = '1';
+          setTimeout(resolve, 350);
+        });
+
+        const fadeOut = () => { fade.style.opacity = '0'; };
+
+        const applyClusterColors = (night) => {
+          if (map.getLayer('clusters')) {
+            map.setPaintProperty('clusters', 'circle-color', night ? NIGHT_CLUSTER_COLOR : DAY_CLUSTER_COLOR);
+            map.setPaintProperty('clusters', 'circle-stroke-color', night ? NIGHT_CLUSTER_STROKE : DAY_CLUSTER_STROKE);
+            map.setPaintProperty('clusters', 'circle-opacity', night ? 0.85 : 0.7);
+          }
+          if (map.getLayer('cluster-count')) {
+            map.setPaintProperty('cluster-count', 'text-color', night ? '#c8dff0' : '#1a3a4a');
+          }
+        };
+
+        const applyNightMode = async (night) => {
+          await fadeIn();
+
+          isNight = night;
+          document.body.classList.toggle('night-mode', night);
+
+          const icon = night ? '○' : '<span class="moon-icon">☽</span>';
+          if (btnDesktop) btnDesktop.innerHTML = icon;
+          if (btnMobile) btnMobile.innerHTML = icon;
+
+          if (!uiController.is3DEnabled) {
+            map.setStyle(night ? NIGHT_STYLE : DAY_STYLE);
+            map.once('style.load', () => {
+              this.setupMapLayers();
+              applyClusterColors(night);
+              if (this._lastData && map.getSource('audio')) {
+                map.getSource('audio').setData(this._lastData);
+              }
+              requestAnimationFrame(() => requestAnimationFrame(fadeOut));
+            });
+          } else {
+            applyClusterColors(night);
+            fadeOut();
+          }
+        };
+
+        if (btnDesktop) btnDesktop.addEventListener('click', () => applyNightMode(!isNight));
+        if (btnMobile) btnMobile.addEventListener('click', () => applyNightMode(!isNight));
+
+        this.isNightMode = () => isNight;
+        this.applyNightModeStyle = () => { if (isNight) applyNightMode(true); };
       }
     }
