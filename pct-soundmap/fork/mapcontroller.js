@@ -2454,8 +2454,29 @@ class MapController {
 
         let isNight = false;
 
+        // Prefetch night style on page load to warm browser cache
+        const token = CONFIG.MAPBOX_TOKEN;
+        fetch(`https://api.mapbox.com/styles/v1/thmkly/cmrqvc0rf001m01r90xo3f4u3?access_token=${token}`)
+          .catch(() => {});
+
         const btnDesktop = document.getElementById('nightModeBtn');
         const btnMobile = document.getElementById('nightModeBtnMobile');
+
+        // Create fade overlay
+        const fade = document.createElement('div');
+        fade.style.cssText = `
+          position: fixed; inset: 0; background: rgba(8,10,14,0.97);
+          z-index: 9999; opacity: 0; pointer-events: none;
+          transition: opacity 0.35s ease;
+        `;
+        document.body.appendChild(fade);
+
+        const fadeIn = () => new Promise(resolve => {
+          fade.style.opacity = '1';
+          setTimeout(resolve, 350);
+        });
+
+        const fadeOut = () => { fade.style.opacity = '0'; };
 
         const applyClusterColors = (night) => {
           if (map.getLayer('clusters')) {
@@ -2468,11 +2489,12 @@ class MapController {
           }
         };
 
-        const applyNightMode = (night) => {
+        const applyNightMode = async (night) => {
+          await fadeIn();
+
           isNight = night;
           document.body.classList.toggle('night-mode', night);
 
-          // Update button icons
           const icon = night ? '○' : '<span class="moon-icon">☽</span>';
           if (btnDesktop) btnDesktop.innerHTML = icon;
           if (btnMobile) btnMobile.innerHTML = icon;
@@ -2485,16 +2507,17 @@ class MapController {
               if (this._lastData && map.getSource('audio')) {
                 map.getSource('audio').setData(this._lastData);
               }
+              requestAnimationFrame(() => requestAnimationFrame(fadeOut));
             });
           } else {
             applyClusterColors(night);
+            fadeOut();
           }
         };
 
         if (btnDesktop) btnDesktop.addEventListener('click', () => applyNightMode(!isNight));
         if (btnMobile) btnMobile.addEventListener('click', () => applyNightMode(!isNight));
 
-        // Expose for 3D mode to call when returning to 2D
         this.isNightMode = () => isNight;
         this.applyNightModeStyle = () => { if (isNight) applyNightMode(true); };
       }
