@@ -2495,8 +2495,21 @@ class MapController {
         };
 
         const applyNightMode = async (night) => {
+          // Create fade overlay with direction-appropriate color
+          // Dark fade going in sets Safari chrome to dark
+          // White fade going out — remove night-mode class while white is showing
+          // so Safari commits to white chrome before seeing light elements
+          fade.style.background = night ? 'rgba(8,10,14,0.97)' : 'rgba(255,255,255,0.97)';
+          await fadeIn();
+
+          if (!night) {
+            // Remove night-mode while white fade covers everything
+            document.body.classList.remove('night-mode');
+            await new Promise(r => setTimeout(r, 50));
+          }
+
           isNight = night;
-          document.body.classList.toggle('night-mode', night);
+          if (night) document.body.classList.add('night-mode');
 
           const icon = night ? '○' : '<span class="moon-icon">☽</span>';
           if (btnDesktop) btnDesktop.innerHTML = icon;
@@ -2512,10 +2525,12 @@ class MapController {
               requestAnimationFrame(() => {
                 if (map.getLayer('clusters')) map.setLayoutProperty('clusters', 'visibility', 'visible');
                 if (map.getLayer('cluster-count')) map.setLayoutProperty('cluster-count', 'visibility', 'visible');
+                requestAnimationFrame(fadeOut);
               });
             });
           } else {
             applyClusterColors(night);
+            fadeOut();
           }
         };
 
