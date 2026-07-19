@@ -2470,7 +2470,7 @@ class MapController {
         // Create fade overlay
         const fade = document.createElement('div');
         fade.style.cssText = `
-          position: fixed; inset: 0; background: rgba(255,255,255,0.97);
+          position: fixed; inset: 0; background: rgba(8,10,14,0.97);
           z-index: 9999; opacity: 0; pointer-events: none;
           transition: opacity 0.2s ease;
         `;
@@ -2495,6 +2495,8 @@ class MapController {
         };
 
         const applyNightMode = async (night) => {
+          // Set fade color based on direction
+          fade.style.background = night ? 'rgba(8,10,14,0.97)' : 'rgba(255,255,255,0.97)';
           await fadeIn();
 
           isNight = night;
@@ -2510,20 +2512,6 @@ class MapController {
               this.setupMapLayers(night);
               if (this._lastData && map.getSource('audio')) {
                 map.getSource('audio').setData(this._lastData);
-              }
-              // Flash info overlay invisibly to trigger Safari chrome color re-read
-              if (!night) {
-                const overlay = document.getElementById('infoOverlay');
-                if (overlay) {
-                  overlay.style.opacity = '0';
-                  overlay.style.pointerEvents = 'none';
-                  overlay.classList.add('visible');
-                  requestAnimationFrame(() => {
-                    overlay.classList.remove('visible');
-                    overlay.style.opacity = '';
-                    overlay.style.pointerEvents = '';
-                  });
-                }
               }
               requestAnimationFrame(() => {
                 if (map.getLayer('clusters')) map.setLayoutProperty('clusters', 'visibility', 'visible');
