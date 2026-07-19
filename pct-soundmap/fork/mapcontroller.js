@@ -55,11 +55,15 @@ class MapController {
       // isOrange: true for orange play icon color (minimized popup), false for #333
       // Returns a cleanup function to remove listeners.
       _attachPlayPauseIcon(iconEl, audio, isOrange = false) {
-        const color = isOrange ? '#ff6b35' : '#333';
+        const getColor = () => {
+          if (isOrange) return '#ff6b35';
+          return document.body.classList.contains('night-mode') ? 'rgba(190, 200, 215, 0.9)' : '#333';
+        };
 
         const renderIcon = () => {
           // Guard: don't update if element is no longer in DOM
           if (!iconEl.isConnected) return;
+          const color = getColor();
           iconEl.innerHTML = '';
           if (audio.paused) {
             iconEl.style.cssText = `display:block;width:0;height:0;border-left:8px solid ${color};border-top:5px solid transparent;border-bottom:5px solid transparent;flex-shrink:0;cursor:pointer;`;
@@ -2495,15 +2499,11 @@ class MapController {
         };
 
         const applyNightMode = async (night) => {
-          // Create fade overlay with direction-appropriate color
-          // Dark fade going in sets Safari chrome to dark
-          // White fade going out — remove night-mode class while white is showing
-          // so Safari commits to white chrome before seeing light elements
+          // Set fade color based on direction — Safari reads this for chrome tinting
           fade.style.background = night ? 'rgba(8,10,14,0.97)' : 'rgba(255,255,255,0.97)';
           await fadeIn();
 
           if (!night) {
-            // Remove night-mode while white fade covers everything
             document.body.classList.remove('night-mode');
             await new Promise(r => setTimeout(r, 50));
           }
