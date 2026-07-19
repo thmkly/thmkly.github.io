@@ -940,7 +940,47 @@
   body.night-mode .info-divider {
     border-top-color: rgba(255,255,255,0.08) !important;
   }
-  /* Player infobox controls */
+  /* Player infobox — all text matches title color */
+  body.night-mode .custom-popup .popup-title,
+  body.night-mode .custom-popup .popup-meta,
+  body.night-mode .custom-popup .popup-notes-toggle,
+  body.night-mode .custom-popup .popup-notes-content {
+    color: rgba(190, 200, 215, 0.9) !important;
+  }
+  /* Player infobox buttons — inverted */
+  body.night-mode .popup-nav-btn,
+  body.night-mode .popup-playpause-btn {
+    background: rgba(190, 200, 215, 0.18) !important;
+    border-color: rgba(255,255,255,0.15) !important;
+    color: rgba(190, 200, 215, 0.9) !important;
+  }
+  body.night-mode .popup-nav-btn:hover,
+  body.night-mode .popup-playpause-btn:hover {
+    background: rgba(190, 200, 215, 0.28) !important;
+    color: rgba(220, 230, 245, 1) !important;
+  }
+  body.night-mode .popup-controls {
+    border-top-color: rgba(255,255,255,0.08) !important;
+  }
+  /* Badge play/pause lighter */
+  body.night-mode .badge-triangle {
+    border-left-color: rgba(190, 200, 215, 0.9) !important;
+  }
+  /* Playlist track hover and active — flip colors */
+  body.night-mode .track:hover {
+    background-color: rgba(190, 200, 215, 0.85) !important;
+  }
+  body.night-mode .track:hover .track-name,
+  body.night-mode .track:hover .track-mile {
+    color: rgba(20, 22, 28, 1) !important;
+  }
+  body.night-mode .active-track {
+    background-color: rgba(140, 160, 185, 0.7) !important;
+  }
+  body.night-mode .active-track .track-name,
+  body.night-mode .active-track .track-mile {
+    color: rgba(20, 22, 28, 1) !important;
+  }
   body.night-mode .popup-minimize {
     color: rgba(190, 200, 215, 0.9) !important;
     border-color: rgba(255,255,255,0.15) !important;
@@ -1007,21 +1047,6 @@
   body.night-mode .badge-time {
     color: rgba(140, 160, 185, 0.8) !important;
   }
-  body.night-mode .badge-triangle {
-    border-left-color: rgba(190, 200, 215, 0.9) !important;
-  }
-  /* Playlist track hover and active */
-  body.night-mode .track:hover {
-    background-color: rgba(190, 200, 215, 0.15) !important;
-    color: rgba(20, 22, 28, 1) !important;
-  }
-  body.night-mode .track:hover .track-name,
-  body.night-mode .track:hover .track-mile {
-    color: rgba(20, 22, 28, 1) !important;
-  }
-  body.night-mode .active-track {
-    background-color: rgba(190, 200, 215, 0.1) !important;
-  }
   /* Scroll arrows */
   body.night-mode .scroll-arrow {
     color: rgba(190, 200, 215, 0.9) !important;
@@ -1029,17 +1054,16 @@
   body.night-mode .scroll-arrow.disabled {
     color: rgba(190, 200, 215, 0.2) !important;
   }
-  /* Playlist collapse toggle tab */
+  /* Playlist collapse toggle tab — dark bg only when collapsed */
   body.night-mode .playlist-toggle {
-    background-color: rgba(20, 22, 28, 0.92) !important;
     color: rgba(190, 200, 215, 0.9) !important;
-  }
-  body.night-mode .playlist-toggle:hover {
-    background-color: rgba(35, 40, 52, 0.95) !important;
+    background-color: transparent !important;
+    box-shadow: none !important;
   }
   body.night-mode .playlist-wrapper.collapsed .playlist-toggle {
     background-color: rgba(20, 22, 28, 0.92) !important;
     color: rgba(190, 200, 215, 0.9) !important;
+    box-shadow: 2px 0 5px rgba(0, 0, 0, 0.4) !important;
   }
   body.night-mode .custom-popup {
     background-color: rgba(20, 22, 28, 0.92) !important;
