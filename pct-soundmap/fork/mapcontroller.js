@@ -2495,10 +2495,6 @@ class MapController {
         };
 
         const applyNightMode = async (night) => {
-          // Set fade color based on direction
-          fade.style.background = night ? 'rgba(8,10,14,0.97)' : 'rgba(255,255,255,0.97)';
-          await fadeIn();
-
           isNight = night;
           document.body.classList.toggle('night-mode', night);
 
@@ -2516,12 +2512,10 @@ class MapController {
               requestAnimationFrame(() => {
                 if (map.getLayer('clusters')) map.setLayoutProperty('clusters', 'visibility', 'visible');
                 if (map.getLayer('cluster-count')) map.setLayoutProperty('cluster-count', 'visibility', 'visible');
-                requestAnimationFrame(fadeOut);
               });
             });
           } else {
             applyClusterColors(night);
-            fadeOut();
           }
         };
 
