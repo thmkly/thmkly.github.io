@@ -906,6 +906,67 @@
   }
 
   /* Night mode global overrides */
+  /* Info dialog */
+  body.night-mode .info-dialog {
+    background: rgba(20, 22, 28, 0.95) !important;
+  }
+  body.night-mode .info-dialog p,
+  body.night-mode .info-dedication,
+  body.night-mode .info-dialog a,
+  body.night-mode .welcome-title,
+  body.night-mode .welcome-dedication,
+  body.night-mode .welcome-status {
+    color: rgba(190, 200, 215, 0.9) !important;
+  }
+  body.night-mode .info-dialog-header {
+    background: rgba(28, 30, 38, 0.95) !important;
+    border-bottom-color: rgba(255,255,255,0.08) !important;
+  }
+  body.night-mode .info-nav-link {
+    color: rgba(140, 160, 185, 0.8) !important;
+  }
+  body.night-mode .info-nav-link:hover,
+  body.night-mode .info-nav-link.active {
+    color: rgba(190, 200, 215, 0.9) !important;
+  }
+  body.night-mode .info-nav-sep {
+    color: rgba(255,255,255,0.15) !important;
+  }
+  body.night-mode .info-dialog-close {
+    color: rgba(190, 200, 215, 0.9) !important;
+    border-color: rgba(255,255,255,0.15) !important;
+    background: transparent !important;
+  }
+  body.night-mode .info-divider {
+    border-top-color: rgba(255,255,255,0.08) !important;
+  }
+  /* Player popup and mini infobox */
+  body.night-mode .custom-popup {
+    background-color: rgba(20, 22, 28, 0.92) !important;
+    color: rgba(190, 200, 215, 0.9) !important;
+  }
+  body.night-mode .custom-popup::after {
+    border-top-color: rgba(20, 22, 28, 0.92) !important;
+  }
+  body.night-mode .custom-popup.playing-popup {
+    background-color: rgba(28, 32, 42, 0.92) !important;
+  }
+  body.night-mode .custom-popup.playing-popup::after {
+    border-top-color: rgba(28, 32, 42, 0.92) !important;
+  }
+  body.night-mode .mini-infobox-pill {
+    background-color: rgba(20, 22, 28, 0.92) !important;
+    color: rgba(190, 200, 215, 0.9) !important;
+  }
+  body.night-mode .mini-infobox-pill:hover {
+    background-color: rgba(35, 40, 52, 0.95) !important;
+  }
+  /* Playing badge */
+  body.night-mode #playing-badge {
+    background-color: rgba(20, 22, 28, 0.92) !important;
+    color: rgba(190, 200, 215, 0.9) !important;
+  }
+
   body.night-mode .playlist-wrapper {
     background-color: rgba(20, 22, 28, 0.95) !important;
   }
@@ -927,9 +988,16 @@
     background: rgba(20, 22, 28, 0.85) !important;
     border-color: rgba(255,255,255,0.15) !important;
     color: rgba(190, 200, 215, 0.9) !important;
+    width: 36px !important;
+    height: 36px !important;
   }
   body.night-mode.is-mobile .hamburger-menu span {
     background-color: rgba(190, 200, 215, 0.9) !important;
+  }
+  body.night-mode .mapboxgl-ctrl-attrib-button,
+  body.night-mode .mapboxgl-ctrl-attrib-inner a,
+  body.night-mode .mapboxgl-ctrl-attrib {
+    filter: invert(0.7) !important;
   }
   body.night-mode .control-panel {
     background-color: rgba(20, 22, 28, 0.95) !important;
