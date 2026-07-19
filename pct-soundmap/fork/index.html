@@ -882,7 +882,7 @@
   }
   body.is-mobile .mobile-night-btn {
     position: fixed;
-    top: 108px;
+    top: 62px;
     right: 15px;
     z-index: 1001;
     display: none;
@@ -892,7 +892,8 @@
     box-shadow: 0 2px 10px rgba(0,0,0,0.2);
     width: 36px;
     height: 36px;
-    border-radius: 50%;
+    border-radius: 5px;
+    border: 1px solid #ccc;
     align-items: center;
     justify-content: center;
     font-size: 16px;
@@ -907,6 +908,28 @@
   /* Night mode global overrides */
   body.night-mode .playlist-wrapper {
     background-color: rgba(20, 22, 28, 0.95) !important;
+  }
+  body.night-mode .playlist-title-byline {
+    color: rgba(190, 200, 215, 0.9) !important;
+  }
+  body.night-mode .playlist-footer,
+  body.night-mode .playlist-footer-byline,
+  body.night-mode .support-link {
+    color: rgba(190, 200, 215, 0.9) !important;
+  }
+  body.night-mode .mobile-menu-close::before,
+  body.night-mode .mobile-menu-close::after {
+    background-color: rgba(190, 200, 215, 0.9) !important;
+  }
+  body.night-mode.is-mobile .hamburger-menu,
+  body.night-mode.is-mobile .info-btn,
+  body.night-mode.is-mobile .mobile-night-btn {
+    background: rgba(20, 22, 28, 0.85) !important;
+    border-color: rgba(255,255,255,0.15) !important;
+    color: rgba(190, 200, 215, 0.9) !important;
+  }
+  body.night-mode.is-mobile .hamburger-menu span {
+    background-color: rgba(190, 200, 215, 0.9) !important;
   }
   body.night-mode .control-panel {
     background-color: rgba(20, 22, 28, 0.95) !important;
@@ -1058,7 +1081,7 @@
   /* ── Mobile layout — gated on device detection, not window width ── */
 
   body.is-mobile .control-panel-container { display: none; }
-  body.is-mobile .info-btn { position: fixed; top: 62px; right: 15px; z-index: 1001; display: none; background: rgba(255, 255, 255, 0.5); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2); }
+  body.is-mobile .info-btn { position: fixed; top: 104px; right: 15px; z-index: 1001; display: none; background: rgba(255, 255, 255, 0.5); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2); }
   body.is-mobile.mobile-menu-open .info-btn { display: none !important; }
   body.is-mobile:not(.mobile-menu-open) .info-btn { display: flex; }
 
