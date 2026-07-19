@@ -139,15 +139,20 @@ class MapController {
             }
 
 
-      setupMapLayers() {
+      setupMapLayers(night = false) {
         // Scale factor for cluster visuals — keeps circles and grouping consistent across screen sizes
         // Mobile uses a fixed scale of 1 (MBA reference) regardless of zoom
         // DPR correction: on DPR 1 screens, halve the cluster radius to match DPR 2 clustering
         const dpr = window.devicePixelRatio || 1;
         const dprCorrection = dpr >= 2 ? 1 : 0.75;
         const _clusterScale = uiController.isMobile ? 1 : Math.pow(2, CONFIG.getDefaultZoom() - 4.65);
-        const _r = (n) => Math.round(n * _clusterScale);          // visual size — no DPR correction
-        const _cr = (n) => Math.round(n * _clusterScale * dprCorrection); // cluster grouping radius only
+        const _r = (n) => Math.round(n * _clusterScale);
+        const _cr = (n) => Math.round(n * _clusterScale * dprCorrection);
+
+        const clusterColor = night ? '#0d1b2a' : '#51bbd6';
+        const clusterStroke = night ? '#3a6080' : '#197991';
+        const clusterOpacity = night ? 0.85 : 0.7;
+        const textColor = night ? '#c8dff0' : '#1a3a4a';
 
         map.addSource('audio', {
           type: 'geojson',
@@ -163,10 +168,10 @@ class MapController {
           source: 'audio',
           filter: ['has', 'point_count'],
           paint: {
-            'circle-color': '#51bbd6',
-            'circle-opacity': 0.7,
+            'circle-color': clusterColor,
+            'circle-opacity': clusterOpacity,
             'circle-stroke-width': 1,
-            'circle-stroke-color': '#197991',
+            'circle-stroke-color': clusterStroke,
             'circle-stroke-opacity': 0.75,
             'circle-radius': [
               'step',
@@ -189,7 +194,7 @@ class MapController {
             'text-size': Math.round(12 * (1 + ((_clusterScale - 1) * 0.15)))
           },
           paint: {
-            'text-color': '#1a3a4a'
+            'text-color': textColor
           }
         });
 
@@ -2494,6 +2499,10 @@ class MapController {
 
           isNight = night;
           document.body.classList.toggle('night-mode', night);
+          // Force Safari to re-read color-scheme on toggle
+          document.body.style.display = 'none';
+          document.body.offsetHeight; // trigger reflow
+          document.body.style.display = '';
 
           const icon = night ? '○' : '<span class="moon-icon">☽</span>';
           if (btnDesktop) btnDesktop.innerHTML = icon;
@@ -2502,11 +2511,7 @@ class MapController {
           if (!uiController.is3DEnabled) {
             map.setStyle(night ? NIGHT_STYLE : DAY_STYLE);
             map.once('style.load', () => {
-              this.setupMapLayers();
-              // Hide clusters briefly to prevent color flash
-              if (map.getLayer('clusters')) map.setLayoutProperty('clusters', 'visibility', 'none');
-              if (map.getLayer('cluster-count')) map.setLayoutProperty('cluster-count', 'visibility', 'none');
-              applyClusterColors(night);
+              this.setupMapLayers(night);
               if (this._lastData && map.getSource('audio')) {
                 map.getSource('audio').setData(this._lastData);
               }
