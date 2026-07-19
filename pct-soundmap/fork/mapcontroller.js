@@ -2467,13 +2467,13 @@ class MapController {
         fade.style.cssText = `
           position: fixed; inset: 0; background: rgba(8,10,14,0.97);
           z-index: 9999; opacity: 0; pointer-events: none;
-          transition: opacity 0.35s ease;
+          transition: opacity 0.2s ease;
         `;
         document.body.appendChild(fade);
 
         const fadeIn = () => new Promise(resolve => {
           fade.style.opacity = '1';
-          setTimeout(resolve, 350);
+          setTimeout(resolve, 200);
         });
 
         const fadeOut = () => { fade.style.opacity = '0'; };
@@ -2503,11 +2503,18 @@ class MapController {
             map.setStyle(night ? NIGHT_STYLE : DAY_STYLE);
             map.once('style.load', () => {
               this.setupMapLayers();
+              // Hide clusters briefly to prevent color flash
+              if (map.getLayer('clusters')) map.setLayoutProperty('clusters', 'visibility', 'none');
+              if (map.getLayer('cluster-count')) map.setLayoutProperty('cluster-count', 'visibility', 'none');
               applyClusterColors(night);
               if (this._lastData && map.getSource('audio')) {
                 map.getSource('audio').setData(this._lastData);
               }
-              requestAnimationFrame(() => requestAnimationFrame(fadeOut));
+              requestAnimationFrame(() => {
+                if (map.getLayer('clusters')) map.setLayoutProperty('clusters', 'visibility', 'visible');
+                if (map.getLayer('cluster-count')) map.setLayoutProperty('cluster-count', 'visibility', 'visible');
+                requestAnimationFrame(fadeOut);
+              });
             });
           } else {
             applyClusterColors(night);
