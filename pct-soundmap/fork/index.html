@@ -989,16 +989,8 @@
   body.night-mode .track:hover {
     background-color: rgba(190, 200, 215, 0.85) !important;
   }
-  body.night-mode .track:hover .track-name,
-  body.night-mode .track:hover .track-mile {
-    color: rgba(14, 18, 28, 1) !important;
-  }
   body.night-mode .active-track {
     background-color: rgba(140, 160, 185, 0.55) !important;
-  }
-  body.night-mode .active-track .track-name,
-  body.night-mode .active-track .track-mile {
-    color: rgba(14, 18, 28, 1) !important;
   }
   body.night-mode .popup-minimize {
     color: rgba(190, 200, 215, 0.9) !important;
@@ -1152,8 +1144,21 @@
   body.night-mode .track-mile {
     color: rgba(190, 200, 215, 0.9) !important;
   }
+  body.night-mode .track:hover .track-name,
+  body.night-mode .track:hover .track-mile,
+  body.night-mode .active-track .track-name,
+  body.night-mode .active-track .track-mile {
+    color: rgba(14, 18, 28, 1) !important;
+  }
   body.night-mode .track {
     border-bottom-color: rgba(255,255,255,0.07) !important;
+  }
+  body.night-mode .track:has(.track-mile-zone:hover) {
+    background-color: transparent !important;
+  }
+  body.night-mode .track-mile:hover {
+    color: rgba(190, 200, 215, 0.9) !important;
+    text-decoration: underline;
   }
   body.night-mode .control-panel-container {
     background-color: transparent !important;
