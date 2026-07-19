@@ -2499,10 +2499,6 @@ class MapController {
 
           isNight = night;
           document.body.classList.toggle('night-mode', night);
-          // Force Safari to re-read color-scheme on toggle
-          document.body.style.display = 'none';
-          document.body.offsetHeight; // trigger reflow
-          document.body.style.display = '';
 
           const icon = night ? '○' : '<span class="moon-icon">☽</span>';
           if (btnDesktop) btnDesktop.innerHTML = icon;
