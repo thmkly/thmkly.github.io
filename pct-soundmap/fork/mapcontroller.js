@@ -2538,14 +2538,20 @@ class MapController {
             });
           } else {
             applyClusterColors(night);
-            // In 3D mode — re-apply day atmosphere when returning to day
-            if (!night && typeof atmosphereController !== 'undefined' && atmosphereController.currentConditions) {
-              atmosphereController.applyEnhancedSky(atmosphereController.currentConditions);
-              atmosphereController.applyEnhancedFog(atmosphereController.currentConditions);
-              atmosphereController.applyEnhanced3DEffects(atmosphereController.currentConditions);
-              atmosphereController.applyFallbackAtmosphere(atmosphereController.currentConditions);
+            if (!night) {
+              // In 3D mode returning to day — swap style and re-enable 3D after load
+              map.setStyle(DAY_STYLE);
+              map.once('style.load', () => {
+                this.setupMapLayers(false);
+                if (this._lastData && map.getSource('audio')) {
+                  map.getSource('audio').setData(this._lastData);
+                }
+                this.enable3D();
+                requestAnimationFrame(fadeOut);
+              });
+            } else {
+              fadeOut();
             }
-            fadeOut();
           }
         };
 
