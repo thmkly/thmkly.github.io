@@ -2538,6 +2538,13 @@ class MapController {
             });
           } else {
             applyClusterColors(night);
+            // In 3D mode — re-apply day atmosphere when returning to day
+            if (!night && typeof atmosphereController !== 'undefined' && atmosphereController.currentConditions) {
+              atmosphereController.applyEnhancedSky(atmosphereController.currentConditions);
+              atmosphereController.applyEnhancedFog(atmosphereController.currentConditions);
+              atmosphereController.applyEnhanced3DEffects(atmosphereController.currentConditions);
+              atmosphereController.applyFallbackAtmosphere(atmosphereController.currentConditions);
+            }
             fadeOut();
           }
         };
