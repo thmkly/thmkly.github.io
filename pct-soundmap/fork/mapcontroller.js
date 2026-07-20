@@ -2515,6 +2515,14 @@ class MapController {
           if (btnDesktop) btnDesktop.innerHTML = icon;
           if (btnMobile) btnMobile.innerHTML = icon;
 
+          // Re-render active track play/pause icon with new mode color
+          const activeIndicatorIcon = document.querySelector('.play-indicator span');
+          if (activeIndicatorIcon && audioController.currentAudio) {
+            activeIndicatorIcon.innerHTML = '';
+            activeIndicatorIcon.style.cssText = '';
+            this._attachPlayPauseIcon(activeIndicatorIcon, audioController.currentAudio, false);
+          }
+
           if (!uiController.is3DEnabled) {
             map.setStyle(night ? NIGHT_STYLE : DAY_STYLE);
             map.once('style.load', () => {
