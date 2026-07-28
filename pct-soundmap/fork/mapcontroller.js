@@ -2511,7 +2511,7 @@ class MapController {
           isNight = night;
           if (night) document.body.classList.add('night-mode');
 
-          const icon = night ? '☀' : '<span class="moon-icon">☽</span>';
+          const icon = night ? '<span class="sun-icon">☼</span>' : '<span class="moon-icon">☽</span>';
           if (btnDesktop) btnDesktop.innerHTML = icon;
           if (btnMobile) btnMobile.innerHTML = icon;
 
