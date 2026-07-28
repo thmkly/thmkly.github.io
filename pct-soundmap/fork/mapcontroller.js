@@ -2511,7 +2511,7 @@ class MapController {
           isNight = night;
           if (night) document.body.classList.add('night-mode');
 
-          const icon = night ? '○' : '<span class="moon-icon">☽</span>';
+          const icon = night ? '☀' : '<span class="moon-icon">☽</span>';
           if (btnDesktop) btnDesktop.innerHTML = icon;
           if (btnMobile) btnMobile.innerHTML = icon;
 
@@ -2537,21 +2537,17 @@ class MapController {
               });
             });
           } else {
+            // In 3D mode — swap style in both directions, then re-enable 3D after load
             applyClusterColors(night);
-            if (!night) {
-              // In 3D mode returning to day — swap style and re-enable 3D after load
-              map.setStyle(DAY_STYLE);
-              map.once('style.load', () => {
-                this.setupMapLayers(false);
-                if (this._lastData && map.getSource('audio')) {
-                  map.getSource('audio').setData(this._lastData);
-                }
-                this.enable3D();
-                requestAnimationFrame(fadeOut);
-              });
-            } else {
-              fadeOut();
-            }
+            map.setStyle(night ? NIGHT_STYLE : DAY_STYLE);
+            map.once('style.load', () => {
+              this.setupMapLayers(night);
+              if (this._lastData && map.getSource('audio')) {
+                map.getSource('audio').setData(this._lastData);
+              }
+              this.enable3D();
+              requestAnimationFrame(fadeOut);
+            });
           }
         };
 
