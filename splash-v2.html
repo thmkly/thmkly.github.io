@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Tom Kelly</title>
+  <meta name="description" content="Field recordist, composer, photographer, and long-distance hiker based in Los Angeles." />
+  <meta property="og:title" content="Tom Kelly" />
+  <meta property="og:description" content="Field recordist, composer, photographer, and long-distance hiker based in Los Angeles." />
+  <meta property="og:image" content="https://thomasmkelly.com/images/OG-2D-overview.png" />
+  <meta property="og:url" content="https://thomasmkelly.com" />
+  <meta property="og:type" content="website" />
+  <link rel="icon" type="image/x-icon" href="favicon-sierra.ico?v=1" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400&display=swap" rel="stylesheet" />
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Inter', sans-serif;
+      font-weight: 300;
+      color: white;
+      min-height: 100vh;
+      background: url('/images/texture-bg.png') center/cover no-repeat;
+      display: flex;
+      align-items: flex-start;
+      position: relative;
+    }
+    .layout {
+      display: flex;
+      width: 100%;
+      min-height: 100vh;
+      padding: 0 5%;
+      align-items: flex-start;
+      justify-content: space-between;
+    }
+    .text-col {
+      flex: 1;
+      padding-top: 30%;
+      padding-right: 5%;
+      max-width: 480px;
+      display: flex;
+      flex-direction: column;
+      gap: 1.25rem;
+    }
+    .text-col p {
+      font-size: 0.95rem;
+      line-height: 1.8;
+      color: rgba(255,255,255,0.9);
+    }
+    .text-col a {
+      color: white;
+      text-decoration: underline;
+      font-size: 0.95rem;
+      letter-spacing: 0.02em;
+    }
+    .text-col a:hover { text-decoration: none; }
+    .divider {
+      border: none;
+      border-top: 1px solid rgba(255,255,255,0.2);
+    }
+    .socials {
+      font-size: 0.78rem;
+      color: rgba(255,255,255,0.5);
+      line-height: 1.9;
+    }
+    .socials a { color: rgba(255,255,255,0.5); text-decoration: none; }
+    .socials a:hover { color: white; }
+    .more { font-size: 0.72rem; color: rgba(255,255,255,0.3); }
+    .photo-col {
+      width: 38%;
+      padding-top: 30%;
+      flex-shrink: 0;
+    }
+    .photo-col img {
+      width: 100%;
+      display: block;
+    }
+    @media (max-width: 700px) {
+      .layout { flex-direction: column; padding: 0 6%; }
+      .text-col { padding-top: 15%; padding-right: 0; max-width: 100%; }
+      .photo-col { width: 70%; padding-top: 2rem; align-self: flex-end; }
+    }
+  </style>
+</head>
+<body>
+  <div class="layout">
+    <div class="text-col">
+      <p>Hi! I'm Tom — a field recordist, composer, photographer, and long-distance hiker based in Los Angeles, California.</p>
+      <a href="/pct-soundmap/">a sound map of the pacific crest trail, 2023 →</a>
+      <hr class="divider" />
+      <div class="socials">
+        Find me here:<br>
+        <a href="mailto:thmkly@proton.me">E-mail</a> &nbsp;|&nbsp;
+        <a href="https://www.youtube.com/@thmkly">Youtube</a> &nbsp;|&nbsp;
+        <a href="https://instagram.com/___tomk">Instagram</a> &nbsp;|&nbsp;
+        <a href="https://bsky.app/profile/thmkly.bsky.social">BlueSky</a> &nbsp;|&nbsp;
+        <a href="https://earth.fm/artists/tom-kelly/">Earth.fm</a> &nbsp;|&nbsp;
+        <a href="https://substack.com/@thmkly">Substack</a>
+      </div>
+      <p class="more">More to come soon.</p>
+    </div>
+    <div class="photo-col">
+      <img src="/images/1X5A5038.JPG" alt="Tom Kelly" />
+    </div>
+  </div>
+</body>
+</html>
