@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <title>Tom Kelly</title>
   <meta name="description" content="field recordist, composer, photographer, and long-distance hiker based in los angeles" />
   <meta property="og:title" content="tom kelly" />
@@ -19,11 +19,15 @@
       font-weight: 300;
       color: white;
       min-height: 100vh;
-      background: url('/images/texture-bg.png') center/cover no-repeat;
+      background: url('/images/texture-bg.png') center/cover no-repeat fixed;
       display: flex;
       flex-direction: column;
       align-items: flex-start;
       position: relative;
+      padding-top: env(safe-area-inset-top);
+      padding-bottom: env(safe-area-inset-bottom);
+      padding-left: env(safe-area-inset-left);
+      padding-right: env(safe-area-inset-right);
     }
     h1 {
       font-size: 1.6rem;
