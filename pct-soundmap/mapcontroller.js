@@ -55,11 +55,15 @@ class MapController {
       // isOrange: true for orange play icon color (minimized popup), false for #333
       // Returns a cleanup function to remove listeners.
       _attachPlayPauseIcon(iconEl, audio, isOrange = false) {
-        const color = isOrange ? '#ff6b35' : '#333';
+        const getColor = () => {
+          if (isOrange) return '#ff6b35';
+          return document.body.classList.contains('night-mode') ? 'rgba(190, 200, 215, 0.9)' : '#333';
+        };
 
         const renderIcon = () => {
           // Guard: don't update if element is no longer in DOM
           if (!iconEl.isConnected) return;
+          const color = getColor();
           iconEl.innerHTML = '';
           if (audio.paused) {
             iconEl.style.cssText = `display:block;width:0;height:0;border-left:8px solid ${color};border-top:5px solid transparent;border-bottom:5px solid transparent;flex-shrink:0;cursor:pointer;`;
@@ -139,15 +143,20 @@ class MapController {
             }
 
 
-      setupMapLayers() {
+      setupMapLayers(night = false) {
         // Scale factor for cluster visuals — keeps circles and grouping consistent across screen sizes
         // Mobile uses a fixed scale of 1 (MBA reference) regardless of zoom
         // DPR correction: on DPR 1 screens, halve the cluster radius to match DPR 2 clustering
         const dpr = window.devicePixelRatio || 1;
         const dprCorrection = dpr >= 2 ? 1 : 0.75;
         const _clusterScale = uiController.isMobile ? 1 : Math.pow(2, CONFIG.getDefaultZoom() - 4.65);
-        const _r = (n) => Math.round(n * _clusterScale);          // visual size — no DPR correction
-        const _cr = (n) => Math.round(n * _clusterScale * dprCorrection); // cluster grouping radius only
+        const _r = (n) => Math.round(n * _clusterScale);
+        const _cr = (n) => Math.round(n * _clusterScale * dprCorrection);
+
+        const clusterColor = night ? '#0d1b2a' : '#51bbd6';
+        const clusterStroke = night ? '#3a6080' : '#197991';
+        const clusterOpacity = night ? 0.85 : 0.7;
+        const textColor = night ? '#c8dff0' : '#1a3a4a';
 
         map.addSource('audio', {
           type: 'geojson',
@@ -163,10 +172,10 @@ class MapController {
           source: 'audio',
           filter: ['has', 'point_count'],
           paint: {
-            'circle-color': '#51bbd6',
-            'circle-opacity': 0.7,
+            'circle-color': clusterColor,
+            'circle-opacity': clusterOpacity,
             'circle-stroke-width': 1,
-            'circle-stroke-color': '#197991',
+            'circle-stroke-color': clusterStroke,
             'circle-stroke-opacity': 0.75,
             'circle-radius': [
               'step',
@@ -189,7 +198,7 @@ class MapController {
             'text-size': Math.round(12 * (1 + ((_clusterScale - 1) * 0.15)))
           },
           paint: {
-            'text-color': '#1a3a4a'
+            'text-color': textColor
           }
         });
 
@@ -210,6 +219,10 @@ class MapController {
       }
 
       setupMapEvents() {
+        // Track whether user has manually moved the map
+        map.on('dragstart', () => { this._userHasMoved = true; });
+        map.on('touchstart', () => { if (!this.isPositioning) this._userHasMoved = true; });
+
         ['clusters', 'unclustered-point'].forEach(layer => {
           map.on('mouseenter', layer, () => map.getCanvas().style.cursor = 'pointer');
           map.on('mouseleave', layer, () => map.getCanvas().style.cursor = '');
@@ -217,6 +230,7 @@ class MapController {
 
         // Revert to original cluster logic - fit all points in view
         map.on('click', 'clusters', (e) => {
+          this._userHasMoved = true;
           const features = map.queryRenderedFeatures(e.point, { layers: ['clusters'] });
           if (!features.length) return;
           
@@ -304,6 +318,7 @@ class MapController {
         });
 
           map.on('click', 'unclustered-point', (e) => {
+            this._userHasMoved = true;
             const feature = e.features[0];
             if (!feature) return;
             const originalIndex = parseInt(feature.properties.originalIndex);
@@ -359,6 +374,51 @@ class MapController {
             atmosphereController.applyFallbackAtmosphere(atmosphereController.currentConditions);
           }
         });
+
+        // Search setup
+        this._searchQuery = '';
+        const searchInput = document.getElementById('searchInput');
+        const searchClear = document.getElementById('searchClear');
+        const searchToggleMobile = document.getElementById('searchToggleMobile');
+        const playlistSearch = document.getElementById('playlistSearch');
+
+        if (searchInput) {
+          searchInput.addEventListener('input', () => {
+            this._searchQuery = searchInput.value;
+            searchClear.classList.toggle('visible', this._searchQuery.length > 0);
+            this.updatePlaylistOnly();
+            if (audioController.currentIndex >= 0) {
+              this.updateActiveTrack(audioController.currentIndex, false, audioController.currentAudio);
+            }
+          });
+        }
+
+        if (searchClear) {
+          searchClear.addEventListener('click', () => {
+            searchInput.value = '';
+            this._searchQuery = '';
+            searchClear.classList.remove('visible');
+            this.updatePlaylistOnly();
+            if (audioController.currentIndex >= 0) {
+              this.updateActiveTrack(audioController.currentIndex, false, audioController.currentAudio);
+            }
+          });
+        }
+
+        if (searchToggleMobile && playlistSearch) {
+          searchToggleMobile.addEventListener('click', () => {
+            const isActive = playlistSearch.classList.toggle('active');
+            searchToggleMobile.classList.toggle('active', isActive);
+            if (isActive) {
+              searchInput.focus();
+            } else {
+              searchInput.value = '';
+              this._searchQuery = '';
+              searchClear.classList.remove('visible');
+              this.updatePlaylistOnly();
+            }
+          });
+        }
 
         map.on('moveend', () => {
           // On moveend, just update positions — don't query features yet
@@ -633,11 +693,28 @@ class MapController {
       updatePlaylistOnly() {
         const playlist = document.getElementById('playlist');
         playlist.innerHTML = '';
+
+        // Apply search filter if active
+        const query = (this._searchQuery || '').toLowerCase().trim();
+        const filteredData = query ? this.audioData.filter(track => {
+          const name = (track.name || '').toLowerCase();
+          const section = (track.section || '').toLowerCase();
+          const content = (track.content || '').toLowerCase();
+          return name.includes(query) || section.includes(query) || content.includes(query);
+        }) : this.audioData;
+
+        if (filteredData.length === 0) {
+          const empty = document.createElement('div');
+          empty.style.cssText = 'padding:16px 10px;font-size:12px;color:#999;text-align:center;';
+          empty.textContent = 'no results';
+          playlist.appendChild(empty);
+          return;
+        }
         
-        this.audioData.forEach((track, index) => {
+        filteredData.forEach((track, index) => {
           const div = document.createElement('div');
           div.className = 'track';
-          div.dataset.id = index;
+          div.dataset.id = this.audioData.indexOf(track); // keep original index for playback
           
           const trackInfo = document.createElement('div');
           trackInfo.className = 'track-info';
@@ -2206,6 +2283,16 @@ class MapController {
             if (this.animationTimeout) { clearTimeout(this.animationTimeout); this.animationTimeout = null; }
             this.positionMapForTrack(currentTrack, audioController.currentIndex);
             atmosphereController.applyAtmosphere(currentTrack);
+          } else if (this._userHasMoved) {
+            // User moved the map but hasn't selected a track — drop into 3D at current position
+            const center = map.getCenter();
+            map.flyTo({
+              center: [center.lng, center.lat],
+              zoom: CONFIG.ZOOM_3D,
+              pitch: 72.5,
+              bearing: map.getBearing(),
+              duration: 2000
+            });
           } else {
             map.flyTo({
               center: [-122.51405579303847, 41.31319925651451],
@@ -2264,6 +2351,7 @@ class MapController {
 
           resetMap() {
             audioController.stop();
+            this._userHasMoved = false;
             
             // Clear ALL pending animation timeouts
             if (this.animationTimeout) {
@@ -2467,13 +2555,13 @@ class MapController {
         fade.style.cssText = `
           position: fixed; inset: 0; background: rgba(8,10,14,0.97);
           z-index: 9999; opacity: 0; pointer-events: none;
-          transition: opacity 0.35s ease;
+          transition: opacity 0.2s ease;
         `;
         document.body.appendChild(fade);
 
         const fadeIn = () => new Promise(resolve => {
           fade.style.opacity = '1';
-          setTimeout(resolve, 350);
+          setTimeout(resolve, 200);
         });
 
         const fadeOut = () => { fade.style.opacity = '0'; };
@@ -2490,28 +2578,55 @@ class MapController {
         };
 
         const applyNightMode = async (night) => {
+          // Set fade color based on direction — Safari reads this for chrome tinting
+          fade.style.background = night ? 'rgba(8,10,14,0.97)' : 'rgba(255,255,255,0.97)';
           await fadeIn();
 
-          isNight = night;
-          document.body.classList.toggle('night-mode', night);
+          if (!night) {
+            document.body.classList.remove('night-mode');
+            await new Promise(r => setTimeout(r, 50));
+          }
 
-          const icon = night ? '○' : '<span class="moon-icon">☽</span>';
+          isNight = night;
+          if (night) document.body.classList.add('night-mode');
+
+          const icon = night ? '<span class="sun-icon">☼</span>' : '<span class="moon-icon">☽</span>';
           if (btnDesktop) btnDesktop.innerHTML = icon;
           if (btnMobile) btnMobile.innerHTML = icon;
+
+          // Re-render active track play/pause icon with new mode color
+          const activeIndicatorIcon = document.querySelector('.play-indicator span');
+          if (activeIndicatorIcon && audioController.currentAudio) {
+            activeIndicatorIcon.innerHTML = '';
+            activeIndicatorIcon.style.cssText = '';
+            this._attachPlayPauseIcon(activeIndicatorIcon, audioController.currentAudio, false);
+          }
 
           if (!uiController.is3DEnabled) {
             map.setStyle(night ? NIGHT_STYLE : DAY_STYLE);
             map.once('style.load', () => {
-              this.setupMapLayers();
-              applyClusterColors(night);
+              this.setupMapLayers(night);
               if (this._lastData && map.getSource('audio')) {
                 map.getSource('audio').setData(this._lastData);
               }
-              requestAnimationFrame(() => requestAnimationFrame(fadeOut));
+              requestAnimationFrame(() => {
+                if (map.getLayer('clusters')) map.setLayoutProperty('clusters', 'visibility', 'visible');
+                if (map.getLayer('cluster-count')) map.setLayoutProperty('cluster-count', 'visibility', 'visible');
+                requestAnimationFrame(fadeOut);
+              });
             });
           } else {
+            // In 3D mode — swap style in both directions, then re-enable 3D after load
             applyClusterColors(night);
-            fadeOut();
+            map.setStyle(night ? NIGHT_STYLE : DAY_STYLE);
+            map.once('style.load', () => {
+              this.setupMapLayers(night);
+              if (this._lastData && map.getSource('audio')) {
+                map.getSource('audio').setData(this._lastData);
+              }
+              this.enable3D();
+              requestAnimationFrame(fadeOut);
+            });
           }
         };
 

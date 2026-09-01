@@ -9,9 +9,13 @@
   <meta http-equiv="Expires" content="0" />
   <link href="https://api.mapbox.com/mapbox-gl-js/v3.8.0/mapbox-gl.css" rel="stylesheet" />
 <style>
-  body {
+  html, body {
+    height: 100%;
     margin: 0;
     padding: 0;
+  }
+
+  body {
     font-family: helvetica, sans-serif;
     color: #333;
     color-scheme: light;
@@ -285,7 +289,6 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    margin-left: auto;
     flex-shrink: 0;
     user-select: none;
   }
@@ -347,7 +350,6 @@
     justify-content: center;
     touch-action: none;
   }
-
   .info-overlay.visible {
     display: flex;
   }
@@ -498,6 +500,7 @@
     display: flex;
     flex-direction: column;
     gap: 8px;
+    width: fit-content;
   }
 
   .control-row {
@@ -856,7 +859,456 @@
     padding: 8px;
   }
 
-  /* Notification Messages */
+  /* Night mode button */
+  .night-mode-btn {
+    background: transparent;
+    border: 1px solid rgba(0,0,0,0.2);
+    border-radius: 4px;
+    cursor: pointer;
+    padding: 0;
+    color: #333;
+    line-height: 1;
+    transition: background 0.2s;
+    width: 24px;
+    height: 24px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    flex-shrink: 0;
+  }
+  .night-mode-btn:hover {
+    background: rgba(0,0,0,0.06);
+  }
+  .night-mode-btn .moon-icon {
+    display: inline-block;
+    font-size: 13px;
+    transform: rotate(45deg);
+  }
+  .night-mode-btn .sun-icon {
+    display: inline-block;
+    font-size: 19px;
+    line-height: 1;
+    vertical-align: -2px;
+  }
+  .mobile-kofi-btn {
+    display: none;
+  }
+  body.is-mobile .mobile-kofi-btn {
+    position: fixed;
+    top: 146px;
+    right: 15px;
+    z-index: 1001;
+    display: none;
+    background: rgba(255, 255, 255, 0.5);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+    width: 36px;
+    height: 36px;
+    box-sizing: border-box;
+    border-radius: 5px;
+    border: 1px solid #ccc;
+    align-items: center;
+    justify-content: center;
+    font-size: 16px;
+    line-height: 1;
+    padding: 0;
+    color: #333;
+    text-decoration: none;
+  }
+  body.is-mobile:not(.mobile-menu-open) .mobile-kofi-btn {
+    display: flex;
+  }
+  body.is-mobile.mobile-menu-open .mobile-kofi-btn {
+    display: none !important;
+  }
+  body.night-mode.is-mobile .mobile-kofi-btn {
+    background: rgba(20, 22, 28, 0.85) !important;
+    border-color: rgba(255,255,255,0.15) !important;
+    color: rgba(220, 100, 100, 0.9) !important;
+  }
+  .mobile-night-btn {
+    display: none;
+  }
+  body.is-mobile .mobile-night-btn {
+    position: fixed;
+    top: 62px;
+    right: 15px;
+    z-index: 1001;
+    display: none;
+    background: rgba(255, 255, 255, 0.5);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+    width: 36px;
+    height: 36px;
+    border-radius: 5px;
+    border: 1px solid #ccc;
+    align-items: center;
+    justify-content: center;
+    font-size: 16px;
+  }
+  body.is-mobile:not(.mobile-menu-open) .mobile-night-btn {
+    display: flex;
+  }
+  body.is-mobile .mobile-night-btn .moon-icon {
+    font-size: 18px;
+  }
+  body.is-mobile .mobile-night-btn .sun-icon {
+    font-size: 24px;
+  }
+  body.is-mobile.mobile-menu-open .mobile-night-btn {
+    display: none !important;
+  }
+
+  /* Night mode global overrides */
+  body.night-mode,
+  html:has(body.night-mode) {
+    background-color: #0a0e16;
+  }
+  /* Info dialog */
+  body.night-mode .info-dialog {
+    background: rgba(20, 22, 28, 0.95) !important;
+  }
+  body.night-mode .info-dialog p,
+  body.night-mode .info-dedication,
+  body.night-mode .info-dialog a,
+  body.night-mode .welcome-title,
+  body.night-mode .welcome-dedication,
+  body.night-mode .welcome-status {
+    color: rgba(190, 200, 215, 0.9) !important;
+  }
+  body.night-mode .info-dialog-header {
+    background: rgba(28, 30, 38, 0.95) !important;
+    border-bottom-color: rgba(255,255,255,0.08) !important;
+  }
+  body.night-mode .info-nav-link {
+    color: rgba(140, 160, 185, 0.8) !important;
+  }
+  body.night-mode .info-nav-link:hover,
+  body.night-mode .info-nav-link.active {
+    color: rgba(190, 200, 215, 0.9) !important;
+  }
+  body.night-mode .info-nav-sep {
+    color: rgba(255,255,255,0.15) !important;
+  }
+  body.night-mode .info-dialog-close {
+    color: rgba(190, 200, 215, 0.9) !important;
+    border-color: rgba(255,255,255,0.15) !important;
+    background: transparent !important;
+  }
+  body.night-mode .info-divider {
+    border-top-color: rgba(255,255,255,0.08) !important;
+  }
+  /* Play/pause icons and time in player infobox */
+  body.night-mode .play-triangle,
+  body.night-mode .play-triangle-lg {
+    border-left-color: rgba(190, 200, 215, 0.9) !important;
+  }
+  body.night-mode .pause-bar {
+    background-color: rgba(190, 200, 215, 0.9) !important;
+  }
+  body.night-mode .popup-time-display {
+    color: rgba(190, 200, 215, 0.9) !important;
+  }
+  /* Badge pause bars */
+  body.night-mode .badge-pill .pause-bar {
+    background-color: rgba(190, 200, 215, 0.9) !important;
+  }
+  body.night-mode .badge-pill .play-triangle {
+    border-left-color: rgba(190, 200, 215, 0.9) !important;
+  }
+
+  /* Player infobox — all text matches title color */
+  body.night-mode .custom-popup .popup-title,
+  body.night-mode .custom-popup .popup-meta,
+  body.night-mode .custom-popup .popup-notes-toggle,
+  body.night-mode .custom-popup .popup-notes-content {
+    color: rgba(190, 200, 215, 0.9) !important;
+  }
+  /* Player infobox buttons — inverted */
+  body.night-mode .popup-nav-btn,
+  body.night-mode .popup-playpause-btn {
+    background: rgba(190, 200, 215, 0.18) !important;
+    border-color: rgba(255,255,255,0.15) !important;
+    color: rgba(190, 200, 215, 0.9) !important;
+  }
+  body.night-mode .popup-nav-btn:hover,
+  body.night-mode .popup-playpause-btn:hover {
+    background: rgba(190, 200, 215, 0.28) !important;
+    color: rgba(220, 230, 245, 1) !important;
+  }
+  body.night-mode .popup-controls {
+    border-top-color: rgba(255,255,255,0.08) !important;
+  }
+  /* Badge play/pause lighter */
+  body.night-mode .badge-triangle {
+    border-left-color: rgba(190, 200, 215, 0.9) !important;
+  }
+  /* Playlist track hover and active — flip colors */
+  body.night-mode .track:hover {
+    background-color: rgba(190, 200, 215, 0.85) !important;
+  }
+  body.night-mode .active-track {
+    background-color: rgba(165, 180, 200, 0.65) !important;
+  }
+  body.night-mode .popup-minimize {
+    color: rgba(190, 200, 215, 0.9) !important;
+    border-color: rgba(255,255,255,0.15) !important;
+  }
+  body.night-mode .popup-minimize:hover {
+    background-color: rgba(190, 200, 215, 0.1) !important;
+    color: rgba(220, 230, 245, 1) !important;
+  }
+  body.night-mode .nav-arrow {
+    color: rgba(190, 200, 215, 0.9) !important;
+    border-color: rgba(255,255,255,0.15) !important;
+    background: transparent !important;
+  }
+  body.night-mode .nav-arrow:hover {
+    background: rgba(190, 200, 215, 0.1) !important;
+    color: rgba(220, 230, 245, 1) !important;
+  }
+  body.night-mode .nav-arrow:disabled {
+    color: rgba(190, 200, 215, 0.3) !important;
+    border-color: rgba(255,255,255,0.06) !important;
+  }
+  /* Mini infobox */
+  body.night-mode .mini-infobox-pill {
+    background-color: rgba(20, 22, 28, 0.92) !important;
+    border-color: rgba(255,255,255,0.12) !important;
+    color: rgba(190, 200, 215, 0.9) !important;
+  }
+  body.night-mode .mini-infobox-chevron {
+    background-color: rgba(190, 200, 215, 0.18) !important;
+    border-color: rgba(255,255,255,0.12) !important;
+    color: rgba(190, 200, 215, 0.9) !important;
+  }
+  body.night-mode .mini-infobox-chevron:hover {
+    background-color: rgba(190, 200, 215, 0.28) !important;
+    color: rgba(220, 230, 245, 1) !important;
+  }
+  body.night-mode .mini-infobox.minimized-popup .mini-infobox-pill {
+    background-color: rgba(20, 22, 28, 0.92) !important;
+    border-color: rgba(255,255,255,0.12) !important;
+  }
+  body.night-mode .mini-infobox.minimized-popup .mini-infobox-chevron {
+    background-color: rgba(190, 200, 215, 0.18) !important;
+    border-color: rgba(255,255,255,0.12) !important;
+  }
+  body.night-mode .mini-infobox-pill .play-icon {
+    border-left-color: rgba(190, 200, 215, 0.9) !important;
+  }
+  /* Playing badge */
+  body.night-mode .badge-pill {
+    background-color: rgba(190, 200, 215, 0.18) !important;
+    border-color: rgba(255,255,255,0.12) !important;
+  }
+  body.night-mode .badge-pill:hover {
+    background-color: rgba(190, 200, 215, 0.28) !important;
+  }
+  body.night-mode .badge-body {
+    background-color: rgba(20, 22, 28, 0.92) !important;
+    border-color: rgba(255,255,255,0.12) !important;
+    color: rgba(190, 200, 215, 0.9) !important;
+  }
+  body.night-mode .badge-body:hover {
+    background-color: rgba(35, 40, 52, 0.95) !important;
+  }
+  body.night-mode .badge-time {
+    color: rgba(140, 160, 185, 0.8) !important;
+  }
+  /* Scroll arrows */
+  body.night-mode .scroll-arrow {
+    color: rgba(190, 200, 215, 0.9) !important;
+  }
+  body.night-mode .scroll-arrow.disabled {
+    color: rgba(190, 200, 215, 0.2) !important;
+  }
+  /* Playlist collapse toggle tab — dark bg only when collapsed */
+  body.night-mode .playlist-toggle {
+    color: rgba(190, 200, 215, 0.9) !important;
+    background-color: transparent !important;
+    box-shadow: none !important;
+  }
+  body.night-mode .playlist-wrapper.collapsed .playlist-toggle {
+    background-color: rgba(20, 22, 28, 0.92) !important;
+    color: rgba(190, 200, 215, 0.9) !important;
+    box-shadow: 2px 0 5px rgba(0, 0, 0, 0.4) !important;
+  }
+  body.night-mode .custom-popup {
+    background-color: rgba(20, 22, 28, 0.92) !important;
+    color: rgba(190, 200, 215, 0.9) !important;
+  }
+  body.night-mode .custom-popup::after {
+    border-top-color: rgba(20, 22, 28, 0.92) !important;
+  }
+  body.night-mode .custom-popup.playing-popup {
+    background-color: rgba(28, 32, 42, 0.92) !important;
+  }
+  body.night-mode .custom-popup.playing-popup::after {
+    border-top-color: rgba(28, 32, 42, 0.92) !important;
+  }
+  body.night-mode .mini-infobox-pill {
+    background-color: rgba(20, 22, 28, 0.92) !important;
+    color: rgba(190, 200, 215, 0.9) !important;
+  }
+  body.night-mode .mini-infobox-pill:hover {
+    background-color: rgba(35, 40, 52, 0.95) !important;
+  }
+  /* Playing badge */
+  body.night-mode #playing-badge {
+    background-color: rgba(20, 22, 28, 0.92) !important;
+    color: rgba(190, 200, 215, 0.9) !important;
+  }
+
+  body.night-mode .playlist-wrapper {
+    background-color: rgba(20, 22, 28, 0.95) !important;
+  }
+  body.night-mode .playlist-title-byline {
+    color: rgba(190, 200, 215, 0.9) !important;
+  }
+  body.night-mode .playlist-footer,
+  body.night-mode .playlist-footer-byline,
+  body.night-mode .support-link {
+    color: rgba(190, 200, 215, 0.9) !important;
+  }
+  body.night-mode .mobile-menu-close::before,
+  body.night-mode .mobile-menu-close::after {
+    background-color: rgba(190, 200, 215, 0.9) !important;
+  }
+  body.night-mode.is-mobile .hamburger-menu,
+  body.night-mode.is-mobile .info-btn,
+  body.night-mode.is-mobile .mobile-night-btn,
+  body.night-mode.is-mobile .mobile-kofi-btn {
+    background: rgba(20, 22, 28, 0.85) !important;
+    border-color: rgba(255,255,255,0.15) !important;
+    color: rgba(190, 200, 215, 0.9) !important;
+    width: 36px !important;
+    height: 36px !important;
+  }
+  body.night-mode.is-mobile .hamburger-menu span {
+    background-color: rgba(190, 200, 215, 0.9) !important;
+  }
+  body.night-mode .control-panel {
+    background-color: rgba(20, 22, 28, 0.95) !important;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.5) !important;
+  }
+  body.night-mode .playlist-title,
+  body.night-mode .track,
+  body.night-mode .track-info,
+  body.night-mode .track-mile {
+    color: rgba(190, 200, 215, 0.9) !important;
+  }
+  body.night-mode .track:hover .track-info,
+  body.night-mode .track:hover .track-mile,
+  body.night-mode .active-track .track-info,
+  body.night-mode .active-track .track-mile {
+    color: rgba(14, 18, 28, 1) !important;
+  }
+  body.night-mode .track {
+    border-bottom-color: rgba(255,255,255,0.07) !important;
+  }
+  body.night-mode .track:has(.track-mile-zone:hover) {
+    background-color: transparent !important;
+  }
+  body.night-mode .track-mile:hover {
+    color: rgba(190, 200, 215, 0.9) !important;
+    text-decoration: underline;
+  }
+  body.night-mode .control-panel-container {
+    background-color: transparent !important;
+  }
+  body.night-mode .control-btn,
+  body.night-mode .sort-btn {
+    color: rgba(190, 200, 215, 0.9) !important;
+    border-color: rgba(255,255,255,0.15) !important;
+    background-color: transparent !important;
+  }
+  body.night-mode .sort-btn.active {
+    background-color: rgba(190, 200, 215, 0.18) !important;
+    color: rgba(220, 230, 245, 1) !important;
+  }
+  body.night-mode .night-mode-btn {
+    color: rgba(190, 200, 215, 0.9) !important;
+    border-color: rgba(255,255,255,0.15) !important;
+    background-color: transparent !important;
+  }
+  body.night-mode .info-btn-inline {
+    color: rgba(190, 200, 215, 0.9) !important;
+    border-color: rgba(255,255,255,0.15) !important;
+    background-color: transparent !important;
+  }
+
+  /* Search bar */
+  .playlist-search {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: 6px 10px 4px;
+    border-bottom: 1px solid rgba(0,0,0,0.08);
+  }
+  .search-input {
+    flex: 1;
+    border: 1px solid #ccc;
+    border-radius: 3px;
+    padding: 4px 8px;
+    font-size: 11px;
+    font-family: helvetica, sans-serif;
+    color: #333;
+    background: white;
+    outline: none;
+    min-width: 0;
+  }
+  .search-input:focus {
+    border-color: #999;
+  }
+  .search-input::placeholder {
+    color: #aaa;
+  }
+  .search-clear {
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    font-size: 16px;
+    color: #999;
+    padding: 0 2px;
+    line-height: 1;
+    display: none;
+    flex-shrink: 0;
+  }
+  .search-clear.visible {
+    display: block;
+  }
+  .search-clear:hover {
+    color: #333;
+  }
+  /* Night mode search */
+  body.night-mode .playlist-search {
+    border-bottom-color: rgba(255,255,255,0.07);
+  }
+  body.night-mode .search-input {
+    background: rgba(20,22,28,0.8);
+    border-color: rgba(255,255,255,0.15);
+    color: rgba(190,200,215,0.9);
+  }
+  body.night-mode .search-input::placeholder {
+    color: rgba(190,200,215,0.35);
+  }
+  body.night-mode .search-clear {
+    color: rgba(190,200,215,0.5);
+  }
+  body.night-mode .search-clear:hover {
+    color: rgba(190,200,215,0.9);
+  }
+  /* Mobile search — hidden until search icon tapped */
+  body.is-mobile .playlist-search {
+    display: none;
+  }
+  body.is-mobile .playlist-search.active {
+    display: flex;
+  }
   .notification {
     position: fixed;
     top: 50%;
@@ -969,7 +1421,7 @@
   /* ── Mobile layout — gated on device detection, not window width ── */
 
   body.is-mobile .control-panel-container { display: none; }
-  body.is-mobile .info-btn { position: fixed; top: 62px; right: 15px; z-index: 1001; display: none; background: rgba(255, 255, 255, 0.5); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2); }
+  body.is-mobile .info-btn { position: fixed; top: 104px; right: 15px; z-index: 1001; display: none; background: rgba(255, 255, 255, 0.5); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2); }
   body.is-mobile.mobile-menu-open .info-btn { display: none !important; }
   body.is-mobile:not(.mobile-menu-open) .info-btn { display: flex; }
 
@@ -1419,6 +1871,8 @@
     <span></span>
   </button>
   <button class="info-btn" id="infoBtnMobile" title="About this map">i</button>
+  <button class="night-mode-btn mobile-night-btn" id="nightModeBtnMobile" title="Night mode on/off"><span class="moon-icon">☽</span></button>
+  <a class="mobile-kofi-btn" href="https://ko-fi.com/thmkly" target="_blank" title="Support this project">❤&#xFE0E;</a>
 
   <div class="playlist-wrapper" id="playlistWrapper">
     <button class="playlist-toggle" id="playlistToggle" title="Collapse playlist">◀</button>
@@ -1432,8 +1886,14 @@
           <button class="control-btn sort-btn" id="sortSoboMobile" title="Southbound playlist">SOBO</button>
           <button class="control-btn sort-btn" id="sortDateMobile" title="Chronological playlist">STEREO</button>
           <button class="control-btn sort-btn" id="sortRandomMobile" title="Random playback">RANDOM</button>
+          <button class="control-btn search-toggle-btn" id="searchToggleMobile" title="Search recordings">&#x2315;</button>
         </div>
       </div>
+    </div>
+    <!-- Search bar -->
+    <div class="playlist-search" id="playlistSearch">
+      <input type="text" id="searchInput" class="search-input" placeholder="search recordings..." autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" />
+      <button class="search-clear" id="searchClear" title="Clear search">×</button>
     </div>
     <!-- Track list -->
     <div class="scroll-arrow up" id="scrollUp" title="Scroll up">▲</div>
@@ -1468,6 +1928,7 @@
         <button class="control-btn sort-btn" id="sortSobo" title="Southbound playlist">SOBO</button>
         <button class="control-btn sort-btn" id="sortDate" title="Chronological playlist">STEREO</button>
         <button class="control-btn sort-btn" id="sortRandom" title="Random playback">RANDOM</button>
+        <button class="night-mode-btn" id="nightModeBtn" title="Night mode on/off"><span class="moon-icon">☽</span></button>
         <button class="info-btn-inline" id="infoBtnDesktop" title="About this map">i</button>
       </div>
     </div>
@@ -1509,7 +1970,7 @@
           <div style="height:8px;"></div>
         </div>
         <div class="info-page" id="info-page-contact">
-          <p>Want to collaborate, license this work, or just say hey? Contact me <a href="mailto:thmkly@proton.me"><strong>here</strong></a>.</p>
+          <p>Interested in collaborating? Want to license this work? Have a species ID? Something wonky on the map? Just want to say hi? <a href="mailto:thmkly@proton.me"><strong>Drop me a line!</strong></a></p>
           <div style="height:8px;"></div>
         </div>
         </div><!-- end info-pages-container -->
