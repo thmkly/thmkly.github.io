@@ -225,21 +225,30 @@ class UIController {
           const header = wrapper.querySelector('.playlist-header');
           const playlist = wrapper.querySelector('#playlist');
           const footer = wrapper.querySelector('.playlist-footer');
+          const searchBar = wrapper.querySelector('.playlist-search');
           const scrollUp = document.getElementById('scrollUp');
           const scrollDown = document.getElementById('scrollDown');
           if (!header || !playlist || !footer) return;
 
           const headerH = header.offsetHeight;
           const footerH = footer.offsetHeight;
+          const searchH = searchBar ? searchBar.offsetHeight : 0;
+          const topMargin = 20;
+          const maxH = window.innerHeight - topMargin - 20;
 
-          // Measure total track height
+          // Use stored full-list height if search is active, so playlist doesn't shrink
           const tracks = playlist.querySelectorAll('.track');
           let trackH = 0;
           tracks.forEach(t => { trackH += t.offsetHeight; });
 
-          const totalH = headerH + trackH + footerH;
-          const topMargin = 20;
-          const maxH = window.innerHeight - topMargin - 20;
+          // Store max track height when not searching (full list)
+          const isSearching = !!(mapController && mapController._searchQuery);
+          if (!isSearching || !this._fullPlaylistTrackH) {
+            this._fullPlaylistTrackH = trackH;
+          }
+          const effectiveTrackH = isSearching ? this._fullPlaylistTrackH : trackH;
+
+          const totalH = headerH + searchH + effectiveTrackH + footerH;
           const finalH = Math.min(totalH, maxH);
           wrapper.style.bottom = `${window.innerHeight - topMargin - finalH}px`;
 
