@@ -15,6 +15,13 @@ class UIController {
       this.playlistToggle = document.getElementById('playlistToggle');
       this.scrollUp = document.getElementById('scrollUp');
       this.scrollDown = document.getElementById('scrollDown');
+
+      // Prevent touch events inside playlist from reaching the map on mobile
+      if (this.playlistWrapper) {
+        this.playlistWrapper.addEventListener('touchstart', e => e.stopPropagation(), { passive: true });
+        this.playlistWrapper.addEventListener('touchmove', e => e.stopPropagation(), { passive: true });
+        this.playlistWrapper.addEventListener('touchend', e => e.stopPropagation(), { passive: true });
+      }
       
       this.setupEventListeners();
       this.setupResizeListener();
