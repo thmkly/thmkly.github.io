@@ -219,6 +219,10 @@ class MapController {
       }
 
       setupMapEvents() {
+        // Track whether user has manually moved the map
+        map.on('dragstart', () => { this._userHasMoved = true; });
+        map.on('touchstart', () => { if (!this.isPositioning) this._userHasMoved = true; });
+
         ['clusters', 'unclustered-point'].forEach(layer => {
           map.on('mouseenter', layer, () => map.getCanvas().style.cursor = 'pointer');
           map.on('mouseleave', layer, () => map.getCanvas().style.cursor = '');
@@ -226,6 +230,7 @@ class MapController {
 
         // Revert to original cluster logic - fit all points in view
         map.on('click', 'clusters', (e) => {
+          this._userHasMoved = true;
           const features = map.queryRenderedFeatures(e.point, { layers: ['clusters'] });
           if (!features.length) return;
           
@@ -313,6 +318,7 @@ class MapController {
         });
 
           map.on('click', 'unclustered-point', (e) => {
+            this._userHasMoved = true;
             const feature = e.features[0];
             if (!feature) return;
             const originalIndex = parseInt(feature.properties.originalIndex);
@@ -360,13 +366,22 @@ class MapController {
         
         // Re-apply atmosphere when page becomes visible (ONLY in 3D mode)
         document.addEventListener('visibilitychange', () => {
-          if (!document.hidden && uiController.is3DEnabled && typeof atmosphereController !== 'undefined' && atmosphereController.currentConditions) {
-            // Re-apply the current atmosphere conditions
-            atmosphereController.applyEnhancedSky(atmosphereController.currentConditions);
-            atmosphereController.applyEnhancedFog(atmosphereController.currentConditions);
-            atmosphereController.applyEnhanced3DEffects(atmosphereController.currentConditions);
-            atmosphereController.applyFallbackAtmosphere(atmosphereController.currentConditions);
+          if (!document.hidden) {
+            // Force resize when tab becomes visible — fixes iOS Safari tab restore scaling
+            setTimeout(() => map.resize(), 100);
+            if (uiController.is3DEnabled && typeof atmosphereController !== 'undefined' && atmosphereController.currentConditions) {
+              // Re-apply the current atmosphere conditions
+              atmosphereController.applyEnhancedSky(atmosphereController.currentConditions);
+              atmosphereController.applyEnhancedFog(atmosphereController.currentConditions);
+              atmosphereController.applyEnhanced3DEffects(atmosphereController.currentConditions);
+              atmosphereController.applyFallbackAtmosphere(atmosphereController.currentConditions);
+            }
           }
+        });
+
+        // iOS Safari back-forward cache restore
+        window.addEventListener('pageshow', (e) => {
+          if (e.persisted) setTimeout(() => map.resize(), 100);
         });
 
         map.on('moveend', () => {
@@ -2215,6 +2230,16 @@ class MapController {
             if (this.animationTimeout) { clearTimeout(this.animationTimeout); this.animationTimeout = null; }
             this.positionMapForTrack(currentTrack, audioController.currentIndex);
             atmosphereController.applyAtmosphere(currentTrack);
+          } else if (this._userHasMoved) {
+            // User moved the map but hasn't selected a track — drop into 3D at current position
+            const center = map.getCenter();
+            map.flyTo({
+              center: [center.lng, center.lat],
+              zoom: CONFIG.ZOOM_3D,
+              pitch: 72.5,
+              bearing: map.getBearing(),
+              duration: 2000
+            });
           } else {
             map.flyTo({
               center: [-122.51405579303847, 41.31319925651451],
@@ -2273,6 +2298,7 @@ class MapController {
 
           resetMap() {
             audioController.stop();
+            this._userHasMoved = false;
             
             // Clear ALL pending animation timeouts
             if (this.animationTimeout) {
