@@ -406,18 +406,7 @@ class MapController {
         }
 
         if (searchToggleMobile && playlistSearch) {
-          searchToggleMobile.addEventListener('click', () => {
-            const isActive = playlistSearch.classList.toggle('active');
-            searchToggleMobile.classList.toggle('active', isActive);
-            if (isActive) {
-              searchInput.focus();
-            } else {
-              searchInput.value = '';
-              this._searchQuery = '';
-              searchClear.classList.remove('visible');
-              this.updatePlaylistOnly();
-            }
-          });
+          // no-op — search bar always visible on mobile
         }
 
         map.on('moveend', () => {
