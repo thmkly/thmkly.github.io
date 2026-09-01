@@ -103,6 +103,7 @@
 
   .playlist {
     overflow-y: auto;
+    height: 85vh;
     max-height: 85vh;
     padding: 5px;
     cursor: grab;
@@ -1245,24 +1246,28 @@
   .playlist-search {
     display: flex;
     align-items: center;
-    gap: 4px;
-    padding: 6px 10px 4px;
+    gap: 6px;
+    padding: 6px 10px 6px;
     border-bottom: 1px solid rgba(0,0,0,0.08);
+  }
+  .search-icon {
+    font-size: 13px;
+    color: #aaa;
+    flex-shrink: 0;
+    line-height: 1;
+    user-select: none;
   }
   .search-input {
     flex: 1;
-    border: 1px solid #ccc;
-    border-radius: 3px;
-    padding: 4px 8px;
+    border: none;
+    border-radius: 0;
+    padding: 4px 0;
     font-size: 11px;
     font-family: helvetica, sans-serif;
     color: #333;
-    background: white;
+    background: transparent;
     outline: none;
     min-width: 0;
-  }
-  .search-input:focus {
-    border-color: #999;
   }
   .search-input::placeholder {
     color: #aaa;
@@ -1288,9 +1293,10 @@
   body.night-mode .playlist-search {
     border-bottom-color: rgba(255,255,255,0.07);
   }
+  body.night-mode .search-icon {
+    color: rgba(190,200,215,0.4);
+  }
   body.night-mode .search-input {
-    background: rgba(20,22,28,0.8);
-    border-color: rgba(255,255,255,0.15);
     color: rgba(190,200,215,0.9);
   }
   body.night-mode .search-input::placeholder {
@@ -1302,7 +1308,7 @@
   body.night-mode .search-clear:hover {
     color: rgba(190,200,215,0.9);
   }
-  /* Mobile search — hidden until search icon tapped */
+  /* Mobile search */
   body.is-mobile .search-input {
     font-size: 16px;
   }
@@ -1891,6 +1897,7 @@
     </div>
     <!-- Search bar -->
     <div class="playlist-search" id="playlistSearch">
+      <span class="search-icon">&#x2315;</span>
       <input type="text" id="searchInput" class="search-input" placeholder="what do you want to hear?" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" />
       <button class="search-clear" id="searchClear" title="Clear search">×</button>
     </div>
