@@ -327,17 +327,24 @@ class UIController {
         if (!force && !this.shouldScrollToActive()) return;
         const trackH = activeTrack.offsetHeight;
         const playlistH = playlist.clientHeight;
+        const trackTop = activeTrack.offsetTop - playlist.offsetTop;
+        const targetScroll = Math.max(0, trackTop - (playlistH / 2) + (trackH / 2));
+
         if (this.isMobile) {
-          // iOS Safari doesn't support scrollTo with behavior:smooth reliably
-          // Use offsetTop directly for consistent mobile scrolling
-          const trackTop = activeTrack.offsetTop - playlist.offsetTop;
-          playlist.scrollTop = Math.max(0, trackTop - (playlistH / 2) + (trackH / 2));
+          // Smooth manual scroll for mobile since iOS doesn't support behavior:smooth reliably
+          const startScroll = playlist.scrollTop;
+          const distance = targetScroll - startScroll;
+          const duration = 300;
+          const startTime = performance.now();
+          const ease = t => t < 0.5 ? 2 * t * t : -1 + (4 - 2 * t) * t;
+          const step = (now) => {
+            const elapsed = now - startTime;
+            const progress = Math.min(elapsed / duration, 1);
+            playlist.scrollTop = startScroll + distance * ease(progress);
+            if (progress < 1) requestAnimationFrame(step);
+          };
+          requestAnimationFrame(step);
         } else {
-          const playlistRect = playlist.getBoundingClientRect();
-          const activeRect = activeTrack.getBoundingClientRect();
-          const currentScrollTop = playlist.scrollTop;
-          const trackOffsetFromPlaylistTop = activeRect.top - playlistRect.top;
-          const targetScroll = currentScrollTop + trackOffsetFromPlaylistTop - (playlistH / 2) + (trackH / 2);
           playlist.scrollTo({ top: targetScroll, behavior: 'smooth' });
         }
       }

@@ -626,7 +626,9 @@ class MapController {
             this.currentPopup.remove();
             this.currentPopup = null;
             const coords = [currentlyPlayingTrack.lng, currentlyPlayingTrack.lat];
+            this._rebuildingPopup = true; // flag to preserve mini infobox during rebuild
             setTimeout(() => {
+              this._rebuildingPopup = false;
               this.showPopup(coords, currentlyPlayingTrack, currentAudio, currentIndex, false, true);
             }, 150);
           }
@@ -887,7 +889,7 @@ class MapController {
         const shouldMinimize = fromMiniPill || this.userPreferredPopupState === 'mini';
 
         // Demote any existing minimized popup back to a regular white mini box
-        if (this.minimizedPopup) {
+        if (this.minimizedPopup && !this._rebuildingPopup) {
           const oldMin = this.minimizedPopup;
           // Clean up icon listener and move handler
           if (oldMin._cleanupIcon) { oldMin._cleanupIcon(); oldMin._cleanupIcon = null; }
