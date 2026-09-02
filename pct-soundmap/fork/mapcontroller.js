@@ -388,9 +388,6 @@ class MapController {
             this._searchQuery = newQuery;
             searchClear.classList.toggle('visible', newQuery.trim().length > 0);
             this.updatePlaylistOnly();
-            if (audioController.currentIndex >= 0 && audioController.currentAudio) {
-              this.updateActiveTrack(audioController.currentIndex, false, audioController.currentAudio);
-            }
           });
           // Prevent touch events on search input from reaching the map
           searchInput.addEventListener('touchstart', e => e.stopPropagation(), { passive: true });
@@ -620,23 +617,7 @@ class MapController {
         
         // Update prev/next button states in existing popup to reflect new sort order
         if (this.currentPopup && currentlyPlayingTrack) {
-          const currentIndex = audioController.currentIndex;
-          const sortedPosition = this.audioData.indexOf(currentlyPlayingTrack);
-          const popupContainer = this.currentPopup._container;
-          if (popupContainer) {
-            const prevBtn = popupContainer.querySelector('.popup-nav-btn:first-of-type');
-            const nextBtn = popupContainer.querySelector('.popup-nav-btn:last-of-type');
-            if (prevBtn) {
-              prevBtn.disabled = audioController.playMode === 'random'
-                ? audioController.playHistory.length === 0
-                : sortedPosition === 0;
-            }
-            if (nextBtn) {
-              nextBtn.disabled = audioController.playMode === 'random'
-                ? false
-                : sortedPosition === this.audioData.length - 1;
-            }
-          }
+          this.updatePopupNavButtons(currentlyPlayingTrack);
         }
       }
 
@@ -804,6 +785,17 @@ class MapController {
           });
           
           playlist.appendChild(div);
+
+          // Apply active track state directly to avoid secondary updateActiveTrack re-render
+          const fullIndex = this.audioData.indexOf(track);
+          if (fullIndex === audioController.currentIndex && audioController.currentAudio) {
+            div.classList.add('active-track');
+            const indicator = div.querySelector('.play-indicator');
+            if (indicator) {
+              const iconEl = indicator.querySelector('span') || indicator;
+              this._attachPlayPauseIcon(iconEl, audioController.currentAudio, false);
+            }
+          }
         });
         
         // Dynamically size the mobile playlist to fit content
@@ -2675,5 +2667,24 @@ class MapController {
         const toFullIndex = localIdx => this.audioData.indexOf(data[localIdx]);
         const toLocalIndex = fullIdx => data.indexOf(this.audioData[fullIdx]);
         return { data, toFullIndex, toLocalIndex };
+      }
+
+      updatePopupNavButtons(track) {
+        if (!this.currentPopup || !track) return;
+        const sortedPosition = this.audioData.indexOf(track);
+        const popupContainer = this.currentPopup._container;
+        if (!popupContainer) return;
+        const prevBtn = popupContainer.querySelector('.popup-nav-btn:first-of-type');
+        const nextBtn = popupContainer.querySelector('.popup-nav-btn:last-of-type');
+        if (prevBtn) {
+          prevBtn.disabled = audioController.playMode === 'random'
+            ? audioController.playHistory.length === 0
+            : sortedPosition === 0;
+        }
+        if (nextBtn) {
+          nextBtn.disabled = audioController.playMode === 'random'
+            ? false
+            : sortedPosition === this.audioData.length - 1;
+        }
       }
     }
