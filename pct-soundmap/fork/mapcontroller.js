@@ -388,6 +388,9 @@ class MapController {
             this._searchQuery = newQuery;
             searchClear.classList.toggle('visible', newQuery.trim().length > 0);
             this.updatePlaylistOnly();
+            if (audioController.currentIndex >= 0 && audioController.currentAudio) {
+              this.updateActiveTrack(audioController.currentIndex, false, audioController.currentAudio);
+            }
           });
           // Prevent touch events on search input from reaching the map
           searchInput.addEventListener('touchstart', e => e.stopPropagation(), { passive: true });
@@ -607,7 +610,9 @@ class MapController {
         
         // Restore the active track highlighting after playlist update
         if (currentlyPlayingTrack) {
-          this.updateActiveTrack(audioController.currentIndex);
+          this.updateActiveTrack(audioController.currentIndex, false, audioController.currentAudio);
+          // Scroll active track into view after sort
+          setTimeout(() => uiController.scrollActiveTrackIntoView(), 100);
         }
         
         // Set scroll position based on sort mode
@@ -623,7 +628,7 @@ class MapController {
             const coords = [currentlyPlayingTrack.lng, currentlyPlayingTrack.lat];
             setTimeout(() => {
               this.showPopup(coords, currentlyPlayingTrack, currentAudio, currentIndex, false, true);
-            }, 50);
+            }, 150);
           }
         }
       }
@@ -792,11 +797,6 @@ class MapController {
           });
           
           playlist.appendChild(div);
-
-          // Apply active track class inline without full updateActiveTrack re-render
-          if (this.audioData.indexOf(track) === audioController.currentIndex) {
-            div.classList.add('active-track');
-          }
         });
         
         // Dynamically size the mobile playlist to fit content
