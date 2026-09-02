@@ -75,6 +75,8 @@ class UIController {
         // Global spacebar handler - prevent focus on audio elements
         document.addEventListener('keydown', (e) => {
           if (e.code === 'Space' && audioController.currentAudio) {
+            // Don't intercept spacebar if user is typing in search
+            if (document.activeElement && document.activeElement.id === 'searchInput') return;
             e.preventDefault();
             audioController.togglePlayPause();
             // Blur any focused audio elements

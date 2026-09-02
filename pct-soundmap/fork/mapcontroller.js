@@ -2087,7 +2087,7 @@ class MapController {
             prevBtn.textContent = '‹ prev';
             prevBtn.disabled = preview || (audioController.playMode === 'random'
               ? audioController.playHistory.length === 0
-              : index === 0);
+              : audioController.currentIndex === -1 || (index === 0 && audioController.playHistory.length === 0));
             prevBtn.addEventListener('click', () => audioController.playPrevious(this.audioData));
             controls.appendChild(prevBtn);
         
@@ -2136,7 +2136,7 @@ class MapController {
             const nextBtn = document.createElement('button');
             nextBtn.className = 'popup-nav-btn';
             nextBtn.textContent = 'next ›';
-            nextBtn.disabled = preview || index === this.audioData.length - 1;
+            nextBtn.disabled = preview;
             nextBtn.addEventListener('click', () => audioController.playNext(this.audioData, true));
             controls.appendChild(nextBtn);
         
