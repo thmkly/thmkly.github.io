@@ -387,7 +387,22 @@ class MapController {
             const newQuery = searchInput.value.trimStart();
             this._searchQuery = newQuery;
             searchClear.classList.toggle('visible', newQuery.trim().length > 0);
+
+            // Remember active track's position relative to playlist viewport before re-render
+            const playlist = document.getElementById('playlist');
+            const activeEl = playlist?.querySelector('.track.active-track');
+            const activeOffsetBefore = activeEl ? activeEl.getBoundingClientRect().top - playlist.getBoundingClientRect().top : null;
+
             this.updatePlaylistOnly();
+
+            // After re-render, restore active track's visual position if it's still visible
+            if (activeOffsetBefore !== null) {
+              const newActiveEl = playlist.querySelector('.track.active-track');
+              if (newActiveEl) {
+                const newOffset = newActiveEl.getBoundingClientRect().top - playlist.getBoundingClientRect().top;
+                playlist.scrollTop += newOffset - activeOffsetBefore;
+              }
+            }
           });
           // Prevent touch events on search input from reaching the map
           searchInput.addEventListener('touchstart', e => e.stopPropagation(), { passive: true });
