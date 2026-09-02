@@ -1900,7 +1900,7 @@
     <!-- Search bar -->
     <div class="playlist-search" id="playlistSearch">
       <span class="search-icon">&#x2315;</span>
-      <input type="text" id="searchInput" class="search-input" placeholder="what do you want to hear?" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" />
+      <input type="text" id="searchInput" class="search-input" placeholder="water, crickets, washington, trinity alps" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" />
       <button class="search-clear" id="searchClear" title="Clear search">×</button>
     </div>
     <!-- Track list -->
@@ -2233,6 +2233,10 @@
             const desktopRandom = document.getElementById('sortRandom');
             if (desktopRandom) desktopRandom.classList.add('active');
             audioController.playMode = 'random';
+            if (window.mapController && audioController.currentIndex >= 0) {
+              const currentTrack = mapController.audioData[audioController.currentIndex];
+              mapController.updatePopupNavButtons(currentTrack);
+            }
           });
         }
       }

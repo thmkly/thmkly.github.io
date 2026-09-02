@@ -57,6 +57,10 @@ class UIController {
             const sortRandomMobile = document.getElementById('sortRandomMobile');
             if (sortRandomMobile) sortRandomMobile.classList.add('active');
             audioController.playMode = 'random';
+            if (window.mapController && audioController.currentIndex >= 0) {
+              const currentTrack = mapController.audioData[audioController.currentIndex];
+              mapController.updatePopupNavButtons(currentTrack);
+            }
           });
         }
 
@@ -75,6 +79,8 @@ class UIController {
         // Global spacebar handler - prevent focus on audio elements
         document.addEventListener('keydown', (e) => {
           if (e.code === 'Space' && audioController.currentAudio) {
+            // Don't intercept spacebar if user is typing in search
+            if (document.activeElement && document.activeElement.id === 'searchInput') return;
             e.preventDefault();
             audioController.togglePlayPause();
             // Blur any focused audio elements
@@ -199,6 +205,7 @@ class UIController {
             wrapper.classList.add('mobile-expanded');
             document.body.classList.add('mobile-menu-open');
             document.body.style.overflow = 'hidden';
+            document.body.style.height = window.innerHeight + 'px';
             if (hamburger) hamburger.classList.add('open');
 
             // Scroll active track into view if navigation came from map/lock screen
@@ -210,6 +217,7 @@ class UIController {
             wrapper.classList.remove('mobile-expanded');
             document.body.classList.remove('mobile-menu-open');
             document.body.style.overflow = '';
+            document.body.style.height = '';
             if (hamburger) hamburger.classList.remove('open');
           }
         }
@@ -223,6 +231,7 @@ class UIController {
           wrapper.classList.remove('mobile-expanded');
           document.body.classList.remove('mobile-menu-open');
           document.body.style.overflow = '';
+          document.body.style.height = '';
           if (hamburger) hamburger.classList.remove('open');
         }
 
@@ -322,17 +331,24 @@ class UIController {
         if (!force && !this.shouldScrollToActive()) return;
         const trackH = activeTrack.offsetHeight;
         const playlistH = playlist.clientHeight;
+        const trackTop = activeTrack.offsetTop - playlist.offsetTop;
+        const targetScroll = Math.max(0, trackTop - (playlistH / 2) + (trackH / 2));
+
         if (this.isMobile) {
-          // iOS Safari doesn't support scrollTo with behavior:smooth reliably
-          // Use offsetTop directly for consistent mobile scrolling
-          const trackTop = activeTrack.offsetTop - playlist.offsetTop;
-          playlist.scrollTop = Math.max(0, trackTop - (playlistH / 2) + (trackH / 2));
+          // Smooth manual scroll for mobile since iOS doesn't support behavior:smooth reliably
+          const startScroll = playlist.scrollTop;
+          const distance = targetScroll - startScroll;
+          const duration = 300;
+          const startTime = performance.now();
+          const ease = t => t < 0.5 ? 2 * t * t : -1 + (4 - 2 * t) * t;
+          const step = (now) => {
+            const elapsed = now - startTime;
+            const progress = Math.min(elapsed / duration, 1);
+            playlist.scrollTop = startScroll + distance * ease(progress);
+            if (progress < 1) requestAnimationFrame(step);
+          };
+          requestAnimationFrame(step);
         } else {
-          const playlistRect = playlist.getBoundingClientRect();
-          const activeRect = activeTrack.getBoundingClientRect();
-          const currentScrollTop = playlist.scrollTop;
-          const trackOffsetFromPlaylistTop = activeRect.top - playlistRect.top;
-          const targetScroll = currentScrollTop + trackOffsetFromPlaylistTop - (playlistH / 2) + (trackH / 2);
           playlist.scrollTo({ top: targetScroll, behavior: 'smooth' });
         }
       }

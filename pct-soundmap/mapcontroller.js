@@ -384,11 +384,24 @@ class MapController {
 
         if (searchInput) {
           searchInput.addEventListener('input', () => {
-            this._searchQuery = searchInput.value;
-            searchClear.classList.toggle('visible', this._searchQuery.length > 0);
+            const newQuery = searchInput.value.trimStart();
+            this._searchQuery = newQuery;
+            searchClear.classList.toggle('visible', newQuery.trim().length > 0);
+
+            // Remember active track's position relative to playlist viewport before re-render
+            const playlist = document.getElementById('playlist');
+            const activeEl = playlist?.querySelector('.track.active-track');
+            const activeOffsetBefore = activeEl ? activeEl.getBoundingClientRect().top - playlist.getBoundingClientRect().top : null;
+
             this.updatePlaylistOnly();
-            if (audioController.currentIndex >= 0) {
-              this.updateActiveTrack(audioController.currentIndex, false, audioController.currentAudio);
+
+            // After re-render, restore active track's visual position if it's still visible
+            if (activeOffsetBefore !== null) {
+              const newActiveEl = playlist.querySelector('.track.active-track');
+              if (newActiveEl) {
+                const newOffset = newActiveEl.getBoundingClientRect().top - playlist.getBoundingClientRect().top;
+                playlist.scrollTop += newOffset - activeOffsetBefore;
+              }
             }
           });
           // Prevent touch events on search input from reaching the map
@@ -410,6 +423,8 @@ class MapController {
             this.updatePlaylistOnly();
             if (audioController.currentIndex >= 0) {
               this.updateActiveTrack(audioController.currentIndex, false, audioController.currentAudio);
+              // Scroll active track into view after list restores
+              setTimeout(() => uiController.scrollActiveTrackIntoView(), 50);
             }
           });
         }
@@ -607,15 +622,17 @@ class MapController {
         
         // Restore the active track highlighting after playlist update
         if (currentlyPlayingTrack) {
-          this.updateActiveTrack(audioController.currentIndex);
+          this.updateActiveTrack(audioController.currentIndex, false, audioController.currentAudio);
+          // Scroll active track into view after sort
+          setTimeout(() => uiController.scrollActiveTrackIntoView(), 100);
         }
         
         // Set scroll position based on sort mode
         this.setPlaylistScrollPosition();
         
-        // Update popup if one is open to show correct mileage
+        // Update prev/next button states in existing popup to reflect new sort order
         if (this.currentPopup && currentlyPlayingTrack) {
-          this.refreshPopupMileage(currentlyPlayingTrack);
+          this.updatePopupNavButtons(currentlyPlayingTrack);
         }
       }
 
@@ -690,7 +707,6 @@ class MapController {
 
       updatePlaylistOnly() {
         const playlist = document.getElementById('playlist');
-        playlist.innerHTML = '';
 
         // Apply search filter if active
         const query = (this._searchQuery || '').toLowerCase().trim();
@@ -701,6 +717,12 @@ class MapController {
           return name.includes(query) || section.includes(query) || content.includes(query);
         }) : this.audioData;
 
+        // Save existing active track element to re-use it (avoids play/pause icon flash)
+        const existingActiveEl = playlist.querySelector('.track.active-track');
+        const activeFullIndex = audioController.currentIndex;
+
+        playlist.innerHTML = '';
+
         if (filteredData.length === 0) {
           const empty = document.createElement('div');
           empty.style.cssText = 'padding:16px 10px;font-size:12px;color:#999;text-align:center;';
@@ -710,6 +732,14 @@ class MapController {
         }
         
         filteredData.forEach((track, index) => {
+          const fullIndex = this.audioData.indexOf(track);
+          
+          // Re-use existing active track element to preserve play/pause icon and highlight
+          if (fullIndex === activeFullIndex && existingActiveEl) {
+            playlist.appendChild(existingActiveEl);
+            return;
+          }
+
           const div = document.createElement('div');
           div.className = 'track';
           div.dataset.id = this.audioData.indexOf(track); // keep original index for playback
@@ -2083,9 +2113,12 @@ class MapController {
             const prevBtn = document.createElement('button');
             prevBtn.className = 'popup-nav-btn';
             prevBtn.textContent = '‹ prev';
+            // Disabled if: random with no history, or at position 0 in current sorted playlist
+            const currentSortedIndex = this.audioData.indexOf(this.audioData[audioController.currentIndex]);
+            const sortedPosition = this.audioData.indexOf(track);
             prevBtn.disabled = preview || (audioController.playMode === 'random'
               ? audioController.playHistory.length === 0
-              : index === 0);
+              : sortedPosition === 0);
             prevBtn.addEventListener('click', () => audioController.playPrevious(this.audioData));
             controls.appendChild(prevBtn);
         
@@ -2134,7 +2167,9 @@ class MapController {
             const nextBtn = document.createElement('button');
             nextBtn.className = 'popup-nav-btn';
             nextBtn.textContent = 'next ›';
-            nextBtn.disabled = preview || index === this.audioData.length - 1;
+            nextBtn.disabled = preview || (audioController.playMode === 'random'
+              ? false
+              : sortedPosition === this.audioData.length - 1);
             nextBtn.addEventListener('click', () => audioController.playNext(this.audioData, true));
             controls.appendChild(nextBtn);
         
@@ -2633,5 +2668,40 @@ class MapController {
 
         this.isNightMode = () => isNight;
         this.applyNightModeStyle = () => { if (isNight) applyNightMode(true); };
+      }
+
+      // Returns the active playlist — filtered if search is active, full otherwise
+      // Also returns helpers for index translation
+      getActivePlaylist() {
+        const query = (this._searchQuery || '').toLowerCase().trim();
+        if (!query) return { data: this.audioData, toFullIndex: i => i, toLocalIndex: i => i };
+        const data = this.audioData.filter(track => {
+          const name = (track.name || '').toLowerCase();
+          const section = (track.section || '').toLowerCase();
+          const content = (track.content || '').toLowerCase();
+          return name.includes(query) || section.includes(query) || content.includes(query);
+        });
+        const toFullIndex = localIdx => this.audioData.indexOf(data[localIdx]);
+        const toLocalIndex = fullIdx => data.indexOf(this.audioData[fullIdx]);
+        return { data, toFullIndex, toLocalIndex };
+      }
+
+      updatePopupNavButtons(track) {
+        if (!this.currentPopup || !track) return;
+        const sortedPosition = this.audioData.indexOf(track);
+        const popupContainer = this.currentPopup._container;
+        if (!popupContainer) return;
+        const prevBtn = popupContainer.querySelector('.popup-nav-btn:first-of-type');
+        const nextBtn = popupContainer.querySelector('.popup-nav-btn:last-of-type');
+        if (prevBtn) {
+          prevBtn.disabled = audioController.playMode === 'random'
+            ? audioController.playHistory.length === 0
+            : sortedPosition === 0;
+        }
+        if (nextBtn) {
+          nextBtn.disabled = audioController.playMode === 'random'
+            ? false
+            : sortedPosition === this.audioData.length - 1;
+        }
       }
     }
