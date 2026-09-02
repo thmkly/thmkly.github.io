@@ -396,12 +396,8 @@ class MapController {
           searchInput.addEventListener('touchend', e => e.stopPropagation(), { passive: true });
           if (uiController.isMobile) {
             searchInput.addEventListener('focus', () => {
+              // Re-lock height at current viewport size before keyboard appears
               document.body.style.height = window.innerHeight + 'px';
-              document.body.style.overflow = 'hidden';
-            });
-            searchInput.addEventListener('blur', () => {
-              document.body.style.height = '';
-              document.body.style.overflow = '';
             });
           }
         }
@@ -738,8 +734,7 @@ class MapController {
             trackMile.addEventListener('click', (e) => {
               e.stopPropagation();
               e.preventDefault();
-              this.positionMapForTrack(track, index);
-              // Re-apply active track highlight in case flyTo disturbs it
+              this.positionMapForTrack(track, this.audioData.indexOf(track));
               setTimeout(() => this.updateActiveTrack(audioController.currentIndex, false, audioController.currentAudio), 50);
             });
           }
@@ -769,8 +764,9 @@ class MapController {
           }
 
           div.addEventListener('click', (e) => {
+            const audioIndex = this.audioData.indexOf(track);
             // If clicking the currently playing track, toggle pause/play
-            if (index === audioController.currentIndex && audioController.currentAudio) {
+            if (audioIndex === audioController.currentIndex && audioController.currentAudio) {
               if (audioController.currentAudio.paused) {
                 audioController.currentAudio.play();
               } else {
@@ -783,7 +779,7 @@ class MapController {
             if (uiController.isMobile && uiController.mobilePlaylistExpanded) {
               uiController.collapseMobileMenu();
             }
-            this.playAudio(index, false, false);
+            this.playAudio(audioIndex, false, false);
           });
           
           playlist.appendChild(div);
