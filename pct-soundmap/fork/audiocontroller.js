@@ -206,7 +206,15 @@ class AudioController {
     let nextFullIndex;
 
     if (this.playMode === 'random') {
-      const randomLocal = Math.floor(Math.random() * activeData.length);
+      let randomLocal = Math.floor(Math.random() * activeData.length);
+      // If more than one result, retry to avoid landing on current track
+      if (activeData.length > 1) {
+        let attempts = 0;
+        while (toFullIndex(randomLocal) === this.currentIndex && attempts < 10) {
+          randomLocal = Math.floor(Math.random() * activeData.length);
+          attempts++;
+        }
+      }
       nextFullIndex = toFullIndex(randomLocal);
     } else {
       const localCurrent = toLocalIndex(this.currentIndex);
