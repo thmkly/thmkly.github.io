@@ -618,19 +618,24 @@ class MapController {
         // Set scroll position based on sort mode
         this.setPlaylistScrollPosition();
         
-        // Rebuild popup if one is open to reflect new sort order
+        // Update prev/next button states in existing popup to reflect new sort order
         if (this.currentPopup && currentlyPlayingTrack) {
           const currentIndex = audioController.currentIndex;
-          const currentAudio = audioController.currentAudio;
-          if (currentIndex >= 0 && currentlyPlayingTrack) {
-            this.currentPopup.remove();
-            this.currentPopup = null;
-            const coords = [currentlyPlayingTrack.lng, currentlyPlayingTrack.lat];
-            this._rebuildingPopup = true; // flag to preserve mini infobox during rebuild
-            setTimeout(() => {
-              this._rebuildingPopup = false;
-              this.showPopup(coords, currentlyPlayingTrack, currentAudio, currentIndex, false, true);
-            }, 150);
+          const sortedPosition = this.audioData.indexOf(currentlyPlayingTrack);
+          const popupContainer = this.currentPopup._container;
+          if (popupContainer) {
+            const prevBtn = popupContainer.querySelector('.popup-nav-btn:first-of-type');
+            const nextBtn = popupContainer.querySelector('.popup-nav-btn:last-of-type');
+            if (prevBtn) {
+              prevBtn.disabled = audioController.playMode === 'random'
+                ? audioController.playHistory.length === 0
+                : sortedPosition === 0;
+            }
+            if (nextBtn) {
+              nextBtn.disabled = audioController.playMode === 'random'
+                ? false
+                : sortedPosition === this.audioData.length - 1;
+            }
           }
         }
       }
@@ -889,7 +894,7 @@ class MapController {
         const shouldMinimize = fromMiniPill || this.userPreferredPopupState === 'mini';
 
         // Demote any existing minimized popup back to a regular white mini box
-        if (this.minimizedPopup && !this._rebuildingPopup) {
+        if (this.minimizedPopup) {
           const oldMin = this.minimizedPopup;
           // Clean up icon listener and move handler
           if (oldMin._cleanupIcon) { oldMin._cleanupIcon(); oldMin._cleanupIcon = null; }
