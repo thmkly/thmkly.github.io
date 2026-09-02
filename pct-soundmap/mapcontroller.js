@@ -391,6 +391,19 @@ class MapController {
               this.updateActiveTrack(audioController.currentIndex, false, audioController.currentAudio);
             }
           });
+          // Prevent touch events on search input from reaching the map
+          searchInput.addEventListener('touchstart', e => e.stopPropagation(), { passive: true });
+          searchInput.addEventListener('touchend', e => e.stopPropagation(), { passive: true });
+          if (uiController.isMobile) {
+            searchInput.addEventListener('focus', () => {
+              document.body.style.height = window.innerHeight + 'px';
+              document.body.style.overflow = 'hidden';
+            });
+            searchInput.addEventListener('blur', () => {
+              document.body.style.height = '';
+              document.body.style.overflow = '';
+            });
+          }
         }
 
         if (searchClear) {
