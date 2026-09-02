@@ -410,6 +410,8 @@ class MapController {
             this.updatePlaylistOnly();
             if (audioController.currentIndex >= 0) {
               this.updateActiveTrack(audioController.currentIndex, false, audioController.currentAudio);
+              // Scroll active track into view after list restores
+              setTimeout(() => uiController.scrollActiveTrackIntoView(), 50);
             }
           });
         }
