@@ -692,7 +692,6 @@ class MapController {
 
       updatePlaylistOnly() {
         const playlist = document.getElementById('playlist');
-        playlist.innerHTML = '';
 
         // Apply search filter if active
         const query = (this._searchQuery || '').toLowerCase().trim();
@@ -703,6 +702,12 @@ class MapController {
           return name.includes(query) || section.includes(query) || content.includes(query);
         }) : this.audioData;
 
+        // Save existing active track element to re-use it (avoids play/pause icon flash)
+        const existingActiveEl = playlist.querySelector('.track.active-track');
+        const activeFullIndex = audioController.currentIndex;
+
+        playlist.innerHTML = '';
+
         if (filteredData.length === 0) {
           const empty = document.createElement('div');
           empty.style.cssText = 'padding:16px 10px;font-size:12px;color:#999;text-align:center;';
@@ -712,6 +717,14 @@ class MapController {
         }
         
         filteredData.forEach((track, index) => {
+          const fullIndex = this.audioData.indexOf(track);
+          
+          // Re-use existing active track element to preserve play/pause icon and highlight
+          if (fullIndex === activeFullIndex && existingActiveEl) {
+            playlist.appendChild(existingActiveEl);
+            return;
+          }
+
           const div = document.createElement('div');
           div.className = 'track';
           div.dataset.id = this.audioData.indexOf(track); // keep original index for playback
@@ -785,17 +798,6 @@ class MapController {
           });
           
           playlist.appendChild(div);
-
-          // Apply active track state directly to avoid secondary updateActiveTrack re-render
-          const fullIndex = this.audioData.indexOf(track);
-          if (fullIndex === audioController.currentIndex && audioController.currentAudio) {
-            div.classList.add('active-track');
-            const indicator = div.querySelector('.play-indicator');
-            if (indicator) {
-              const iconEl = indicator.querySelector('span') || indicator;
-              this._attachPlayPauseIcon(iconEl, audioController.currentAudio, false);
-            }
-          }
         });
         
         // Dynamically size the mobile playlist to fit content
