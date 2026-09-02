@@ -57,6 +57,10 @@ class UIController {
             const sortRandomMobile = document.getElementById('sortRandomMobile');
             if (sortRandomMobile) sortRandomMobile.classList.add('active');
             audioController.playMode = 'random';
+            if (window.mapController && audioController.currentIndex >= 0) {
+              const currentTrack = mapController.audioData[audioController.currentIndex];
+              mapController.updatePopupNavButtons(currentTrack);
+            }
           });
         }
 
