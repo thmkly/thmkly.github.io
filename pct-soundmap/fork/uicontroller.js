@@ -15,6 +15,13 @@ class UIController {
       this.playlistToggle = document.getElementById('playlistToggle');
       this.scrollUp = document.getElementById('scrollUp');
       this.scrollDown = document.getElementById('scrollDown');
+
+      // Prevent touch events inside playlist from reaching the map on mobile
+      if (this.playlistWrapper) {
+        this.playlistWrapper.addEventListener('touchstart', e => e.stopPropagation(), { passive: true });
+        this.playlistWrapper.addEventListener('touchmove', e => e.stopPropagation(), { passive: true });
+        this.playlistWrapper.addEventListener('touchend', e => e.stopPropagation(), { passive: true });
+      }
       
       this.setupEventListeners();
       this.setupResizeListener();
@@ -192,6 +199,7 @@ class UIController {
             wrapper.classList.add('mobile-expanded');
             document.body.classList.add('mobile-menu-open');
             document.body.style.overflow = 'hidden';
+            document.body.style.height = window.innerHeight + 'px';
             if (hamburger) hamburger.classList.add('open');
 
             // Scroll active track into view if navigation came from map/lock screen
@@ -203,6 +211,7 @@ class UIController {
             wrapper.classList.remove('mobile-expanded');
             document.body.classList.remove('mobile-menu-open');
             document.body.style.overflow = '';
+            document.body.style.height = '';
             if (hamburger) hamburger.classList.remove('open');
           }
         }
@@ -216,6 +225,7 @@ class UIController {
           wrapper.classList.remove('mobile-expanded');
           document.body.classList.remove('mobile-menu-open');
           document.body.style.overflow = '';
+          document.body.style.height = '';
           if (hamburger) hamburger.classList.remove('open');
         }
 
@@ -225,21 +235,30 @@ class UIController {
           const header = wrapper.querySelector('.playlist-header');
           const playlist = wrapper.querySelector('#playlist');
           const footer = wrapper.querySelector('.playlist-footer');
+          const searchBar = wrapper.querySelector('.playlist-search');
           const scrollUp = document.getElementById('scrollUp');
           const scrollDown = document.getElementById('scrollDown');
           if (!header || !playlist || !footer) return;
 
           const headerH = header.offsetHeight;
           const footerH = footer.offsetHeight;
+          const searchH = searchBar ? searchBar.offsetHeight : 0;
+          const topMargin = 20;
+          const maxH = window.innerHeight - topMargin - 20;
 
-          // Measure total track height
+          // Use stored full-list height if search is active, so playlist doesn't shrink
           const tracks = playlist.querySelectorAll('.track');
           let trackH = 0;
           tracks.forEach(t => { trackH += t.offsetHeight; });
 
-          const totalH = headerH + trackH + footerH;
-          const topMargin = 20;
-          const maxH = window.innerHeight - topMargin - 20;
+          // Store max track height when not searching (full list)
+          const isSearching = !!(mapController && mapController._searchQuery);
+          if (!isSearching || !this._fullPlaylistTrackH) {
+            this._fullPlaylistTrackH = trackH;
+          }
+          const effectiveTrackH = isSearching ? this._fullPlaylistTrackH : trackH;
+
+          const totalH = headerH + searchH + effectiveTrackH + footerH;
           const finalH = Math.min(totalH, maxH);
           wrapper.style.bottom = `${window.innerHeight - topMargin - finalH}px`;
 

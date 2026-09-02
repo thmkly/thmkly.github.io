@@ -366,23 +366,57 @@ class MapController {
         
         // Re-apply atmosphere when page becomes visible (ONLY in 3D mode)
         document.addEventListener('visibilitychange', () => {
-          if (!document.hidden) {
-            // Force resize when tab becomes visible — fixes iOS Safari tab restore scaling
-            setTimeout(() => map.resize(), 100);
-            if (uiController.is3DEnabled && typeof atmosphereController !== 'undefined' && atmosphereController.currentConditions) {
-              // Re-apply the current atmosphere conditions
-              atmosphereController.applyEnhancedSky(atmosphereController.currentConditions);
-              atmosphereController.applyEnhancedFog(atmosphereController.currentConditions);
-              atmosphereController.applyEnhanced3DEffects(atmosphereController.currentConditions);
-              atmosphereController.applyFallbackAtmosphere(atmosphereController.currentConditions);
-            }
+          if (!document.hidden && uiController.is3DEnabled && typeof atmosphereController !== 'undefined' && atmosphereController.currentConditions) {
+            // Re-apply the current atmosphere conditions
+            atmosphereController.applyEnhancedSky(atmosphereController.currentConditions);
+            atmosphereController.applyEnhancedFog(atmosphereController.currentConditions);
+            atmosphereController.applyEnhanced3DEffects(atmosphereController.currentConditions);
+            atmosphereController.applyFallbackAtmosphere(atmosphereController.currentConditions);
           }
         });
 
-        // iOS Safari back-forward cache restore
-        window.addEventListener('pageshow', (e) => {
-          if (e.persisted) setTimeout(() => map.resize(), 100);
-        });
+        // Search setup
+        this._searchQuery = '';
+        const searchInput = document.getElementById('searchInput');
+        const searchClear = document.getElementById('searchClear');
+        const searchToggleMobile = document.getElementById('searchToggleMobile');
+        const playlistSearch = document.getElementById('playlistSearch');
+
+        if (searchInput) {
+          searchInput.addEventListener('input', () => {
+            this._searchQuery = searchInput.value;
+            searchClear.classList.toggle('visible', this._searchQuery.length > 0);
+            this.updatePlaylistOnly();
+            if (audioController.currentIndex >= 0) {
+              this.updateActiveTrack(audioController.currentIndex, false, audioController.currentAudio);
+            }
+          });
+          // Prevent touch events on search input from reaching the map
+          searchInput.addEventListener('touchstart', e => e.stopPropagation(), { passive: true });
+          searchInput.addEventListener('touchend', e => e.stopPropagation(), { passive: true });
+          if (uiController.isMobile) {
+            searchInput.addEventListener('focus', () => {
+              // Re-lock height at current viewport size before keyboard appears
+              document.body.style.height = window.innerHeight + 'px';
+            });
+          }
+        }
+
+        if (searchClear) {
+          searchClear.addEventListener('click', () => {
+            searchInput.value = '';
+            this._searchQuery = '';
+            searchClear.classList.remove('visible');
+            this.updatePlaylistOnly();
+            if (audioController.currentIndex >= 0) {
+              this.updateActiveTrack(audioController.currentIndex, false, audioController.currentAudio);
+            }
+          });
+        }
+
+        if (searchToggleMobile && playlistSearch) {
+          // no-op — search bar always visible on mobile
+        }
 
         map.on('moveend', () => {
           // On moveend, just update positions — don't query features yet
@@ -657,11 +691,28 @@ class MapController {
       updatePlaylistOnly() {
         const playlist = document.getElementById('playlist');
         playlist.innerHTML = '';
+
+        // Apply search filter if active
+        const query = (this._searchQuery || '').toLowerCase().trim();
+        const filteredData = query ? this.audioData.filter(track => {
+          const name = (track.name || '').toLowerCase();
+          const section = (track.section || '').toLowerCase();
+          const content = (track.content || '').toLowerCase();
+          return name.includes(query) || section.includes(query) || content.includes(query);
+        }) : this.audioData;
+
+        if (filteredData.length === 0) {
+          const empty = document.createElement('div');
+          empty.style.cssText = 'padding:16px 10px;font-size:12px;color:#999;text-align:center;';
+          empty.textContent = 'no results';
+          playlist.appendChild(empty);
+          return;
+        }
         
-        this.audioData.forEach((track, index) => {
+        filteredData.forEach((track, index) => {
           const div = document.createElement('div');
           div.className = 'track';
-          div.dataset.id = index;
+          div.dataset.id = this.audioData.indexOf(track); // keep original index for playback
           
           const trackInfo = document.createElement('div');
           trackInfo.className = 'track-info';
@@ -683,8 +734,7 @@ class MapController {
             trackMile.addEventListener('click', (e) => {
               e.stopPropagation();
               e.preventDefault();
-              this.positionMapForTrack(track, index);
-              // Re-apply active track highlight in case flyTo disturbs it
+              this.positionMapForTrack(track, this.audioData.indexOf(track));
               setTimeout(() => this.updateActiveTrack(audioController.currentIndex, false, audioController.currentAudio), 50);
             });
           }
@@ -714,8 +764,9 @@ class MapController {
           }
 
           div.addEventListener('click', (e) => {
+            const audioIndex = this.audioData.indexOf(track);
             // If clicking the currently playing track, toggle pause/play
-            if (index === audioController.currentIndex && audioController.currentAudio) {
+            if (audioIndex === audioController.currentIndex && audioController.currentAudio) {
               if (audioController.currentAudio.paused) {
                 audioController.currentAudio.play();
               } else {
@@ -728,7 +779,7 @@ class MapController {
             if (uiController.isMobile && uiController.mobilePlaylistExpanded) {
               uiController.collapseMobileMenu();
             }
-            this.playAudio(index, false, false);
+            this.playAudio(audioIndex, false, false);
           });
           
           playlist.appendChild(div);

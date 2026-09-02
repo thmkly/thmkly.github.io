@@ -1,31 +1,12 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
   <meta charset="utf-8" />
   <title>a sound map of the pacific crest trail, 2023, by stereo</title>
-  <meta name="description" content="An interactive sound map of the Pacific Crest Trail — 196 geolocated field recordings from a 2,650-mile thru-hike in 2023, by stereo." />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-
-  <!-- Open Graph -->
-  <meta property="og:title" content="a sound map of the pacific crest trail, 2023, by stereo" />
-  <meta property="og:description" content="196 geolocated field recordings from a 2,650-mile thru-hike. Mexico to Canada." />
-  <meta property="og:image" content="https://thomasmkelly.com/images/OG-2D-overview.png" />
-  <meta property="og:image:width" content="1200" />
-  <meta property="og:image:height" content="630" />
-  <meta property="og:url" content="https://thomasmkelly.com/pct-soundmap/" />
-  <meta property="og:type" content="website" />
-
-  <!-- Twitter/X -->
-  <meta name="twitter:card" content="summary_large_image" />
-  <meta name="twitter:title" content="a sound map of the pacific crest trail, 2023, by stereo" />
-  <meta name="twitter:description" content="196 geolocated field recordings from a 2,650-mile thru-hike. Mexico to Canada." />
-  <meta name="twitter:image" content="https://thomasmkelly.com/images/OG-2D-overview.png" />
-
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
   <meta http-equiv="Pragma" content="no-cache" />
   <meta http-equiv="Expires" content="0" />
-  <link rel="icon" type="image/png" href="/images/favicon.png" />
-  <link rel="apple-touch-icon" href="/images/favicon-180.png" />
   <link href="https://api.mapbox.com/mapbox-gl-js/v3.8.0/mapbox-gl.css" rel="stylesheet" />
 <style>
   html, body {
@@ -122,6 +103,7 @@
 
   .playlist {
     overflow-y: auto;
+    height: 85vh;
     max-height: 85vh;
     padding: 5px;
     cursor: grab;
@@ -1260,7 +1242,80 @@
     background-color: transparent !important;
   }
 
-  /* Notification Messages */
+  /* Search bar */
+  .playlist-search {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 10px 6px;
+    border-bottom: 1px solid rgba(0,0,0,0.08);
+  }
+  .search-icon {
+    font-size: 16px;
+    color: #aaa;
+    flex-shrink: 0;
+    line-height: 1;
+    user-select: none;
+  }
+  .search-input {
+    flex: 1;
+    border: none;
+    border-radius: 0;
+    padding: 4px 0;
+    font-size: 11px;
+    font-family: helvetica, sans-serif;
+    color: #333;
+    background: transparent;
+    outline: none;
+    min-width: 0;
+  }
+  .search-input::placeholder {
+    color: #aaa;
+    font-style: italic;
+  }
+  .search-clear {
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    font-size: 16px;
+    color: #999;
+    padding: 0 2px;
+    line-height: 1;
+    display: none;
+    flex-shrink: 0;
+  }
+  .search-clear.visible {
+    display: block;
+  }
+  .search-clear:hover {
+    color: #333;
+  }
+  /* Night mode search */
+  body.night-mode .playlist-search {
+    border-bottom-color: rgba(255,255,255,0.07);
+  }
+  body.night-mode .search-icon {
+    color: rgba(190,200,215,0.4);
+  }
+  body.night-mode .search-input {
+    color: rgba(190,200,215,0.9);
+  }
+  body.night-mode .search-input::placeholder {
+    color: rgba(190,200,215,0.35);
+  }
+  body.night-mode .search-clear {
+    color: rgba(190,200,215,0.5);
+  }
+  body.night-mode .search-clear:hover {
+    color: rgba(190,200,215,0.9);
+  }
+  /* Mobile search */
+  body.is-mobile .search-input {
+    font-size: 16px;
+  }
+  body.is-mobile .playlist-search {
+    display: flex;
+  }
   .notification {
     position: fixed;
     top: 50%;
@@ -1407,6 +1462,7 @@
     opacity: 1;
     pointer-events: auto;
     overflow: visible;
+    touch-action: pan-y;
   }
 
   body.is-mobile .playlist-wrapper.mobile-expanded {
@@ -1840,6 +1896,12 @@
           <button class="control-btn sort-btn" id="sortRandomMobile" title="Random playback">RANDOM</button>
         </div>
       </div>
+    </div>
+    <!-- Search bar -->
+    <div class="playlist-search" id="playlistSearch">
+      <span class="search-icon">&#x2315;</span>
+      <input type="text" id="searchInput" class="search-input" placeholder="what do you want to hear?" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" />
+      <button class="search-clear" id="searchClear" title="Clear search">×</button>
     </div>
     <!-- Track list -->
     <div class="scroll-arrow up" id="scrollUp" title="Scroll up">▲</div>
