@@ -200,55 +200,46 @@ class AudioController {
     }
     this.lastPlayNext = now;
 
+    const { data: activeData, toFullIndex, toLocalIndex } = 
+      window.mapController ? window.mapController.getActivePlaylist() : { data: audioData, toFullIndex: i => i, toLocalIndex: i => i };
 
+    let nextFullIndex;
 
-    let nextIndex;
-    
     if (this.playMode === 'random') {
-      nextIndex = Math.floor(Math.random() * audioData.length);
+      const randomLocal = Math.floor(Math.random() * activeData.length);
+      nextFullIndex = toFullIndex(randomLocal);
     } else {
-      // Always go DOWN the playlist (top→bottom, index 0→higher)
-      // This works for all modes since the playlist is now arranged correctly:
-      // - NOBO: Mexico at top→Canada at bottom (playing Mexico→Canada)
-      // - SOBO: Canada at top→Mexico at bottom (playing Canada→Mexico)  
-      // - STEREO: Earliest at top→Latest at bottom (playing chronologically)
-      nextIndex = this.currentIndex + 1;
-      if (nextIndex >= audioData.length) {
-        nextIndex = 0; // Wrap to beginning
-      }
+      const localCurrent = toLocalIndex(this.currentIndex);
+      const localNext = localCurrent === -1 ? 0 : localCurrent + 1;
+      const wrappedLocal = localNext >= activeData.length ? 0 : localNext;
+      nextFullIndex = toFullIndex(wrappedLocal);
     }
-    
-    if (nextIndex !== this.currentIndex) {
+
+    if (nextFullIndex !== this.currentIndex && nextFullIndex >= 0) {
       if (window.mapController) {
-        // fromUser=true means manual button click — triggers fade
-        window.mapController.playAudio(nextIndex, !fromUser);
+        window.mapController.playAudio(nextFullIndex, !fromUser);
       }
     }
   }
 
   playPrevious(audioData) {
-    let prevIndex;
-    
+    const { data: activeData, toFullIndex, toLocalIndex } = 
+      window.mapController ? window.mapController.getActivePlaylist() : { data: audioData, toFullIndex: i => i, toLocalIndex: i => i };
+
+    let prevFullIndex;
+
     if (this.playMode === 'random') {
-      // In random mode, only go back if there's history
-      if (this.playHistory.length === 0) {
-        return; // Do nothing if no history
-      }
-      prevIndex = this.playHistory.pop();
-      // FIXED: Set flag to prevent re-adding current track to history
+      if (this.playHistory.length === 0) return;
+      prevFullIndex = this.playHistory.pop();
       this.isNavigatingBack = true;
     } else {
-      // Always go UP the playlist (bottom→top, higher index→0)
-      // This works for all modes since the playlist is now arranged correctly
-      prevIndex = this.currentIndex - 1;
-      if (prevIndex < 0) {
-        prevIndex = audioData.length - 1; // Wrap to end
-      }
+      const localCurrent = toLocalIndex(this.currentIndex);
+      const localPrev = localCurrent <= 0 ? activeData.length - 1 : localCurrent - 1;
+      prevFullIndex = toFullIndex(localPrev);
     }
-    
-    // Pass false to indicate manual navigation
+
     if (window.mapController) {
-      window.mapController.playAudio(prevIndex, false, true);
+      window.mapController.playAudio(prevFullIndex, false, true);
     }
   }
 

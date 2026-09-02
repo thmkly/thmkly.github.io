@@ -319,6 +319,15 @@ class MapController {
 
           map.on('click', 'unclustered-point', (e) => {
             this._userHasMoved = true;
+            // Clear search filter when user clicks a map point
+            if (this._searchQuery) {
+              this._searchQuery = '';
+              const searchInput = document.getElementById('searchInput');
+              const searchClear = document.getElementById('searchClear');
+              if (searchInput) searchInput.value = '';
+              if (searchClear) searchClear.classList.remove('visible');
+              this.updatePlaylistOnly();
+            }
             const feature = e.features[0];
             if (!feature) return;
             const originalIndex = parseInt(feature.properties.originalIndex);
@@ -2633,5 +2642,21 @@ class MapController {
 
         this.isNightMode = () => isNight;
         this.applyNightModeStyle = () => { if (isNight) applyNightMode(true); };
+      }
+
+      // Returns the active playlist — filtered if search is active, full otherwise
+      // Also returns helpers for index translation
+      getActivePlaylist() {
+        const query = (this._searchQuery || '').toLowerCase().trim();
+        if (!query) return { data: this.audioData, toFullIndex: i => i, toLocalIndex: i => i };
+        const data = this.audioData.filter(track => {
+          const name = (track.name || '').toLowerCase();
+          const section = (track.section || '').toLowerCase();
+          const content = (track.content || '').toLowerCase();
+          return name.includes(query) || section.includes(query) || content.includes(query);
+        });
+        const toFullIndex = localIdx => this.audioData.indexOf(data[localIdx]);
+        const toLocalIndex = fullIdx => data.indexOf(this.audioData[fullIdx]);
+        return { data, toFullIndex, toLocalIndex };
       }
     }
