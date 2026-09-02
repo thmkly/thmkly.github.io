@@ -383,16 +383,11 @@ class MapController {
         const playlistSearch = document.getElementById('playlistSearch');
 
         if (searchInput) {
-          let searchDebounce = null;
           searchInput.addEventListener('input', () => {
             const newQuery = searchInput.value.trimStart();
-            const newTrimmed = newQuery.trim();
             this._searchQuery = newQuery;
-            searchClear.classList.toggle('visible', newTrimmed.length > 0);
-            clearTimeout(searchDebounce);
-            searchDebounce = setTimeout(() => {
-              this.updatePlaylistOnly();
-            }, 120);
+            searchClear.classList.toggle('visible', newQuery.trim().length > 0);
+            this.updatePlaylistOnly();
           });
           // Prevent touch events on search input from reaching the map
           searchInput.addEventListener('touchstart', e => e.stopPropagation(), { passive: true });
@@ -788,6 +783,11 @@ class MapController {
           });
           
           playlist.appendChild(div);
+
+          // Apply active track class inline without full updateActiveTrack re-render
+          if (this.audioData.indexOf(track) === audioController.currentIndex) {
+            div.classList.add('active-track');
+          }
         });
         
         // Dynamically size the mobile playlist to fit content
