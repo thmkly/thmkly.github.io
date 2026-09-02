@@ -319,6 +319,11 @@ class MapController {
 
           map.on('click', 'unclustered-point', (e) => {
             this._userHasMoved = true;
+            // If search is active and clicked track is not in filtered results, scroll playlist to top
+            if (this._searchQuery) {
+              const playlist = document.getElementById('playlist');
+              if (playlist) playlist.scrollTop = 0;
+            }
             const feature = e.features[0];
             if (!feature) return;
             const originalIndex = parseInt(feature.properties.originalIndex);

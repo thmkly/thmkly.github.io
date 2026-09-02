@@ -203,24 +203,35 @@ class AudioController {
     const { data: activeData, toFullIndex, toLocalIndex } = 
       window.mapController ? window.mapController.getActivePlaylist() : { data: audioData, toFullIndex: i => i, toLocalIndex: i => i };
 
+    // If current track is not in filtered results, use full playlist for next
+    const localCurrent = toLocalIndex(this.currentIndex);
+    const useFullPlaylist = window.mapController?._searchQuery && localCurrent === -1;
+
     let nextFullIndex;
 
     if (this.playMode === 'random') {
-      let randomLocal = Math.floor(Math.random() * activeData.length);
-      // If more than one result, retry to avoid landing on current track
-      if (activeData.length > 1) {
-        let attempts = 0;
-        while (toFullIndex(randomLocal) === this.currentIndex && attempts < 10) {
-          randomLocal = Math.floor(Math.random() * activeData.length);
-          attempts++;
+      if (useFullPlaylist) {
+        nextFullIndex = Math.floor(Math.random() * audioData.length);
+      } else {
+        let randomLocal = Math.floor(Math.random() * activeData.length);
+        if (activeData.length > 1) {
+          let attempts = 0;
+          while (toFullIndex(randomLocal) === this.currentIndex && attempts < 10) {
+            randomLocal = Math.floor(Math.random() * activeData.length);
+            attempts++;
+          }
         }
+        nextFullIndex = toFullIndex(randomLocal);
       }
-      nextFullIndex = toFullIndex(randomLocal);
     } else {
-      const localCurrent = toLocalIndex(this.currentIndex);
-      const localNext = localCurrent === -1 ? 0 : localCurrent + 1;
-      const wrappedLocal = localNext >= activeData.length ? 0 : localNext;
-      nextFullIndex = toFullIndex(wrappedLocal);
+      if (useFullPlaylist) {
+        nextFullIndex = this.currentIndex + 1;
+        if (nextFullIndex >= audioData.length) nextFullIndex = 0;
+      } else {
+        const localNext = localCurrent === -1 ? 0 : localCurrent + 1;
+        const wrappedLocal = localNext >= activeData.length ? 0 : localNext;
+        nextFullIndex = toFullIndex(wrappedLocal);
+      }
     }
 
     if (nextFullIndex !== this.currentIndex && nextFullIndex >= 0) {
@@ -234,6 +245,9 @@ class AudioController {
     const { data: activeData, toFullIndex, toLocalIndex } = 
       window.mapController ? window.mapController.getActivePlaylist() : { data: audioData, toFullIndex: i => i, toLocalIndex: i => i };
 
+    const localCurrent = toLocalIndex(this.currentIndex);
+    const useFullPlaylist = window.mapController?._searchQuery && localCurrent === -1;
+
     let prevFullIndex;
 
     if (this.playMode === 'random') {
@@ -241,9 +255,13 @@ class AudioController {
       prevFullIndex = this.playHistory.pop();
       this.isNavigatingBack = true;
     } else {
-      const localCurrent = toLocalIndex(this.currentIndex);
-      const localPrev = localCurrent <= 0 ? activeData.length - 1 : localCurrent - 1;
-      prevFullIndex = toFullIndex(localPrev);
+      if (useFullPlaylist) {
+        prevFullIndex = this.currentIndex - 1;
+        if (prevFullIndex < 0) prevFullIndex = audioData.length - 1;
+      } else {
+        const localPrev = localCurrent <= 0 ? activeData.length - 1 : localCurrent - 1;
+        prevFullIndex = toFullIndex(localPrev);
+      }
     }
 
     if (window.mapController) {
