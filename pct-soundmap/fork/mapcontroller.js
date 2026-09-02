@@ -319,15 +319,6 @@ class MapController {
 
           map.on('click', 'unclustered-point', (e) => {
             this._userHasMoved = true;
-            // Clear search filter when user clicks a map point
-            if (this._searchQuery) {
-              this._searchQuery = '';
-              const searchInput = document.getElementById('searchInput');
-              const searchClear = document.getElementById('searchClear');
-              if (searchInput) searchInput.value = '';
-              if (searchClear) searchClear.classList.remove('visible');
-              this.updatePlaylistOnly();
-            }
             const feature = e.features[0];
             if (!feature) return;
             const originalIndex = parseInt(feature.properties.originalIndex);
