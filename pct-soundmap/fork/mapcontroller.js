@@ -383,13 +383,16 @@ class MapController {
         const playlistSearch = document.getElementById('playlistSearch');
 
         if (searchInput) {
+          let searchDebounce = null;
           searchInput.addEventListener('input', () => {
-            this._searchQuery = searchInput.value;
-            searchClear.classList.toggle('visible', this._searchQuery.length > 0);
-            this.updatePlaylistOnly();
-            if (audioController.currentIndex >= 0) {
-              this.updateActiveTrack(audioController.currentIndex, false, audioController.currentAudio);
-            }
+            const newQuery = searchInput.value.trimStart();
+            const newTrimmed = newQuery.trim();
+            this._searchQuery = newQuery;
+            searchClear.classList.toggle('visible', newTrimmed.length > 0);
+            clearTimeout(searchDebounce);
+            searchDebounce = setTimeout(() => {
+              this.updatePlaylistOnly();
+            }, 120);
           });
           // Prevent touch events on search input from reaching the map
           searchInput.addEventListener('touchstart', e => e.stopPropagation(), { passive: true });
