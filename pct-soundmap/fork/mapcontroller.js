@@ -613,9 +613,18 @@ class MapController {
         // Set scroll position based on sort mode
         this.setPlaylistScrollPosition();
         
-        // Update popup if one is open to show correct mileage
+        // Rebuild popup if one is open to reflect new sort order
         if (this.currentPopup && currentlyPlayingTrack) {
-          this.refreshPopupMileage(currentlyPlayingTrack);
+          const currentIndex = audioController.currentIndex;
+          const currentAudio = audioController.currentAudio;
+          if (currentIndex >= 0 && currentlyPlayingTrack) {
+            this.currentPopup.remove();
+            this.currentPopup = null;
+            const coords = [currentlyPlayingTrack.lng, currentlyPlayingTrack.lat];
+            setTimeout(() => {
+              this.showPopup(coords, currentlyPlayingTrack, currentAudio, currentIndex, false, true);
+            }, 50);
+          }
         }
       }
 
@@ -2088,9 +2097,12 @@ class MapController {
             const prevBtn = document.createElement('button');
             prevBtn.className = 'popup-nav-btn';
             prevBtn.textContent = '‹ prev';
+            // Disabled if: random with no history, or at position 0 in current sorted playlist
+            const currentSortedIndex = this.audioData.indexOf(this.audioData[audioController.currentIndex]);
+            const sortedPosition = this.audioData.indexOf(track);
             prevBtn.disabled = preview || (audioController.playMode === 'random'
               ? audioController.playHistory.length === 0
-              : index === 0);
+              : sortedPosition === 0);
             prevBtn.addEventListener('click', () => audioController.playPrevious(this.audioData));
             controls.appendChild(prevBtn);
         
@@ -2141,7 +2153,7 @@ class MapController {
             nextBtn.textContent = 'next ›';
             nextBtn.disabled = preview || (audioController.playMode === 'random'
               ? false
-              : index === this.audioData.length - 1);
+              : sortedPosition === this.audioData.length - 1);
             nextBtn.addEventListener('click', () => audioController.playNext(this.audioData, true));
             controls.appendChild(nextBtn);
         
