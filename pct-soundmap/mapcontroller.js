@@ -395,13 +395,17 @@ class MapController {
 
             this.updatePlaylistOnly();
 
-            // After re-render, restore active track's visual position if it's still visible
-            if (activeOffsetBefore !== null) {
-              const newActiveEl = playlist.querySelector('.track.active-track');
-              if (newActiveEl) {
-                const newOffset = newActiveEl.getBoundingClientRect().top - playlist.getBoundingClientRect().top;
-                playlist.scrollTop += newOffset - activeOffsetBefore;
-              }
+            // After re-render, check if active track needs its highlight restored
+            const newActiveEl = playlist.querySelector('.track.active-track');
+            if (!newActiveEl && audioController.currentIndex >= 0 && audioController.currentAudio) {
+              // Active track is in filtered results but lost its highlight — restore it
+              setTimeout(() => {
+                this.updateActiveTrack(audioController.currentIndex, false, audioController.currentAudio);
+              }, 0);
+            } else if (activeOffsetBefore !== null && newActiveEl) {
+              // Restore visual scroll position
+              const newOffset = newActiveEl.getBoundingClientRect().top - playlist.getBoundingClientRect().top;
+              playlist.scrollTop += newOffset - activeOffsetBefore;
             }
           });
           // Prevent touch events on search input from reaching the map
