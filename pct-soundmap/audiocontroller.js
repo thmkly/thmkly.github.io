@@ -203,9 +203,10 @@ class AudioController {
     const { data: activeData, toFullIndex, toLocalIndex } = 
       window.mapController ? window.mapController.getActivePlaylist() : { data: audioData, toFullIndex: i => i, toLocalIndex: i => i };
 
-    // If current track is not in filtered results, use full playlist for next
+    // If filterPlayback is on, always use filtered playlist
+    // If current track is not in filtered results, use full playlist (unless filterPlayback forces it)
     const localCurrent = toLocalIndex(this.currentIndex);
-    const useFullPlaylist = window.mapController?._searchQuery && localCurrent === -1;
+    const useFullPlaylist = !window.mapController?._filterPlayback && window.mapController?._searchQuery && localCurrent === -1;
 
     let nextFullIndex;
 
@@ -246,7 +247,7 @@ class AudioController {
       window.mapController ? window.mapController.getActivePlaylist() : { data: audioData, toFullIndex: i => i, toLocalIndex: i => i };
 
     const localCurrent = toLocalIndex(this.currentIndex);
-    const useFullPlaylist = window.mapController?._searchQuery && localCurrent === -1;
+    const useFullPlaylist = !window.mapController?._filterPlayback && window.mapController?._searchQuery && localCurrent === -1;
 
     let prevFullIndex;
 
