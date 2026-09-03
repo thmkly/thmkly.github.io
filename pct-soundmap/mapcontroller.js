@@ -388,24 +388,28 @@ class MapController {
             this._searchQuery = newQuery;
             searchClear.classList.toggle('visible', newQuery.trim().length > 0);
 
-            // Remember active track's position relative to playlist viewport before re-render
             const playlist = document.getElementById('playlist');
             const activeEl = playlist?.querySelector('.track.active-track');
             const activeOffsetBefore = activeEl ? activeEl.getBoundingClientRect().top - playlist.getBoundingClientRect().top : null;
 
             this.updatePlaylistOnly();
 
-            // After re-render, check if active track needs its highlight restored
-            const newActiveEl = playlist.querySelector('.track.active-track');
-            if (!newActiveEl && audioController.currentIndex >= 0 && audioController.currentAudio) {
-              // Active track is in filtered results but lost its highlight — restore it
-              setTimeout(() => {
+            // Restore active track state only if needed (avoids dance/flash)
+            if (audioController.currentIndex >= 0 && audioController.currentAudio) {
+              const newActiveEl = playlist.querySelector('.track.active-track');
+              if (!newActiveEl) {
+                // Active track is in list but lost its highlight — restore without scrolling
                 this.updateActiveTrack(audioController.currentIndex, false, audioController.currentAudio);
-              }, 0);
-            } else if (activeOffsetBefore !== null && newActiveEl) {
-              // Restore visual scroll position
-              const newOffset = newActiveEl.getBoundingClientRect().top - playlist.getBoundingClientRect().top;
-              playlist.scrollTop += newOffset - activeOffsetBefore;
+              }
+            }
+
+            // Restore scroll position so active track stays visually anchored
+            if (activeOffsetBefore !== null) {
+              const newActiveEl = playlist.querySelector('.track.active-track');
+              if (newActiveEl) {
+                const newOffset = newActiveEl.getBoundingClientRect().top - playlist.getBoundingClientRect().top;
+                playlist.scrollTop += newOffset - activeOffsetBefore;
+              }
             }
           });
           // Prevent touch events on search input from reaching the map
