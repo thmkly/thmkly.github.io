@@ -1662,6 +1662,12 @@
   body.is-mobile #playlist { -webkit-overflow-scrolling: touch; }
   body.is-mobile .playlist-wrapper .playlist .track:last-child { border-bottom: none; margin-bottom: 0 !important; padding-bottom: 5px !important; }
   body.is-mobile .playlist-wrapper .track:hover { background-color: transparent; }
+  @media (hover: none) {
+    .track:hover { background-color: transparent !important; }
+    body.night-mode .track:hover { background-color: transparent !important; }
+    body.night-mode .track:hover .track-info,
+    body.night-mode .track:hover .track-mile { color: rgba(190, 200, 215, 0.9) !important; }
+  }
   body.is-mobile .playlist-wrapper .track.touch-active { background-color: rgba(255, 242, 232, 0.85); }
   body.is-mobile .playlist-wrapper .scroll-arrow {
     display: none;
