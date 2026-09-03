@@ -2114,7 +2114,12 @@ class MapController {
             if (track.notes?.trim() || track.gear?.trim()) {
               const notesContent = document.createElement('div');
               notesContent.className = 'popup-notes-content';
-              notesContent.textContent = track.notes || '';
+
+              if (track.notes?.trim()) {
+                const notesText = document.createElement('div');
+                notesText.textContent = track.notes;
+                notesContent.appendChild(notesText);
+              }
 
               if (track.gear?.trim()) {
                 const gearEl = document.createElement('div');
