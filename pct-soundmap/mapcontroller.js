@@ -2110,11 +2110,18 @@ class MapController {
             metaLine.textContent = metaText;
             container.appendChild(metaLine);
         
-            // Notes (collapsible)
-            if (track.notes?.trim()) {
+            // Notes (collapsible) — includes gear below narrative
+            if (track.notes?.trim() || track.gear?.trim()) {
               const notesContent = document.createElement('div');
               notesContent.className = 'popup-notes-content';
-              notesContent.textContent = track.notes;
+              notesContent.textContent = track.notes || '';
+
+              if (track.gear?.trim()) {
+                const gearEl = document.createElement('div');
+                gearEl.className = 'popup-gear';
+                gearEl.textContent = track.gear;
+                notesContent.appendChild(gearEl);
+              }
 
               const notesToggle = document.createElement('button');
               notesToggle.className = 'popup-notes-toggle';
@@ -2142,13 +2149,6 @@ class MapController {
               container.appendChild(notesToggle);
             }
 
-            // Gear
-            if (track.gear?.trim()) {
-              const gearEl = document.createElement('div');
-              gearEl.className = 'popup-gear';
-              gearEl.textContent = track.gear;
-              container.appendChild(gearEl);
-            }
             const controls = document.createElement('div');
             controls.className = 'popup-controls';
         
