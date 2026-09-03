@@ -392,8 +392,11 @@ class MapController {
             const filterRow = document.getElementById('searchFilterRow');
             if (filterRow) filterRow.classList.toggle('visible', newQuery.trim().length > 0);
             if (!newQuery.trim()) {
-              const filterCheckbox = document.getElementById('filterPlayback');
-              if (filterCheckbox) filterCheckbox.checked = false;
+              const filterCheckboxEl = document.getElementById('filterCheckboxEl');
+              if (filterCheckboxEl) {
+                filterCheckboxEl.classList.remove('checked');
+                filterCheckboxEl.setAttribute('aria-checked', 'false');
+              }
               this._filterPlayback = false;
             }
 
@@ -421,11 +424,20 @@ class MapController {
             }
           });
 
-          // Filter playback checkbox
-          const filterCheckbox = document.getElementById('filterPlayback');
+          // Filter playback custom checkbox
+          const filterCheckbox = document.getElementById('filterCheckboxEl');
           if (filterCheckbox) {
-            filterCheckbox.addEventListener('change', () => {
-              this._filterPlayback = filterCheckbox.checked;
+            const toggleFilter = () => {
+              const isChecked = filterCheckbox.classList.toggle('checked');
+              filterCheckbox.setAttribute('aria-checked', isChecked);
+              this._filterPlayback = isChecked;
+            };
+            filterCheckbox.addEventListener('click', toggleFilter);
+            filterCheckbox.addEventListener('keydown', (e) => {
+              if (e.code === 'Space' || e.code === 'Enter') {
+                e.preventDefault();
+                toggleFilter();
+              }
             });
           }
           // Prevent touch events on search input from reaching the map
@@ -447,8 +459,11 @@ class MapController {
             searchClear.classList.remove('visible');
             const filterRow = document.getElementById('searchFilterRow');
             if (filterRow) filterRow.classList.remove('visible');
-            const filterCheckbox = document.getElementById('filterPlayback');
-            if (filterCheckbox) filterCheckbox.checked = false;
+            const filterCheckboxEl = document.getElementById('filterCheckboxEl');
+            if (filterCheckboxEl) {
+              filterCheckboxEl.classList.remove('checked');
+              filterCheckboxEl.setAttribute('aria-checked', 'false');
+            }
             this.updatePlaylistOnly();
             if (audioController.currentIndex >= 0) {
               this.updateActiveTrack(audioController.currentIndex, false, audioController.currentAudio);
