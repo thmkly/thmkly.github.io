@@ -622,15 +622,7 @@ class MapController {
         const playlist = document.getElementById('playlist');
         playlist.innerHTML = `
           <div class="loading-placeholder">
-            <div style="color: #cc0000; margin-bottom: 10px;">${message}</div>
-            <button onclick="location.reload()" style="
-              padding: 8px 16px;
-              background: #5c3a2e;
-              color: white;
-              border: none;
-              border-radius: 4px;
-              cursor: pointer;
-            ">Reload Page</button>
+            <div style="color: #333; font-size: 12px;">error loading sounds — reload page</div>
           </div>
         `;
         // Also make sure playlist wrapper is visible in case of error
