@@ -228,6 +228,10 @@ class AudioController {
       if (useFullPlaylist) {
         nextFullIndex = this.currentIndex + 1;
         if (nextFullIndex >= audioData.length) nextFullIndex = 0;
+      } else if (window.mapController?._filterPlayback && localCurrent === -1) {
+        // Outside filtered results with filter on — find next filtered result after current position
+        const nextFiltered = activeData.find((t, i) => audioData.indexOf(t) > this.currentIndex);
+        nextFullIndex = nextFiltered ? audioData.indexOf(nextFiltered) : toFullIndex(0);
       } else {
         const localNext = localCurrent === -1 ? 0 : localCurrent + 1;
         const wrappedLocal = localNext >= activeData.length ? 0 : localNext;

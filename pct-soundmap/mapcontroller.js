@@ -425,15 +425,17 @@ class MapController {
           });
 
           // Filter playback custom checkbox
-          const filterCheckbox = document.getElementById('filterCheckboxEl');
-          if (filterCheckbox) {
+          const filterCheckboxEl = document.getElementById('filterCheckboxEl');
+          const filterLabel = document.getElementById('searchFilterLabel');
+          if (filterCheckboxEl) {
             const toggleFilter = () => {
-              const isChecked = filterCheckbox.classList.toggle('checked');
-              filterCheckbox.setAttribute('aria-checked', isChecked);
+              const isChecked = filterCheckboxEl.classList.toggle('checked');
+              filterCheckboxEl.setAttribute('aria-checked', isChecked);
               this._filterPlayback = isChecked;
             };
-            filterCheckbox.addEventListener('click', toggleFilter);
-            filterCheckbox.addEventListener('keydown', (e) => {
+            filterCheckboxEl.addEventListener('click', (e) => { e.stopPropagation(); toggleFilter(); });
+            if (filterLabel) filterLabel.addEventListener('click', toggleFilter);
+            filterCheckboxEl.addEventListener('keydown', (e) => {
               if (e.code === 'Space' || e.code === 'Enter') {
                 e.preventDefault();
                 toggleFilter();
