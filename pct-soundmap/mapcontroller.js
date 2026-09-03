@@ -388,6 +388,15 @@ class MapController {
             this._searchQuery = newQuery;
             searchClear.classList.toggle('visible', newQuery.trim().length > 0);
 
+            // Show/hide filter checkbox row
+            const filterRow = document.getElementById('searchFilterRow');
+            if (filterRow) filterRow.classList.toggle('visible', newQuery.trim().length > 0);
+            if (!newQuery.trim()) {
+              const filterCheckbox = document.getElementById('filterPlayback');
+              if (filterCheckbox) filterCheckbox.checked = false;
+              this._filterPlayback = false;
+            }
+
             const playlist = document.getElementById('playlist');
             const activeEl = playlist?.querySelector('.track.active-track');
             const activeOffsetBefore = activeEl ? activeEl.getBoundingClientRect().top - playlist.getBoundingClientRect().top : null;
@@ -398,7 +407,6 @@ class MapController {
             if (audioController.currentIndex >= 0 && audioController.currentAudio) {
               const newActiveEl = playlist.querySelector('.track.active-track');
               if (!newActiveEl) {
-                // Active track is in list but lost its highlight — restore without scrolling
                 this.updateActiveTrack(audioController.currentIndex, false, audioController.currentAudio);
               }
             }
@@ -412,6 +420,14 @@ class MapController {
               }
             }
           });
+
+          // Filter playback checkbox
+          const filterCheckbox = document.getElementById('filterPlayback');
+          if (filterCheckbox) {
+            filterCheckbox.addEventListener('change', () => {
+              this._filterPlayback = filterCheckbox.checked;
+            });
+          }
           // Prevent touch events on search input from reaching the map
           searchInput.addEventListener('touchstart', e => e.stopPropagation(), { passive: true });
           searchInput.addEventListener('touchend', e => e.stopPropagation(), { passive: true });
@@ -427,11 +443,15 @@ class MapController {
           searchClear.addEventListener('click', () => {
             searchInput.value = '';
             this._searchQuery = '';
+            this._filterPlayback = false;
             searchClear.classList.remove('visible');
+            const filterRow = document.getElementById('searchFilterRow');
+            if (filterRow) filterRow.classList.remove('visible');
+            const filterCheckbox = document.getElementById('filterPlayback');
+            if (filterCheckbox) filterCheckbox.checked = false;
             this.updatePlaylistOnly();
             if (audioController.currentIndex >= 0) {
               this.updateActiveTrack(audioController.currentIndex, false, audioController.currentAudio);
-              // Scroll active track into view after list restores
               setTimeout(() => uiController.scrollActiveTrackIntoView(), 50);
             }
           });
@@ -2682,7 +2702,7 @@ class MapController {
       // Also returns helpers for index translation
       getActivePlaylist() {
         const query = (this._searchQuery || '').toLowerCase().trim();
-        if (!query) return { data: this.audioData, toFullIndex: i => i, toLocalIndex: i => i };
+        if (!query || !this._filterPlayback) return { data: this.audioData, toFullIndex: i => i, toLocalIndex: i => i };
         const data = this.audioData.filter(track => {
           const name = (track.name || '').toLowerCase();
           const section = (track.section || '').toLowerCase();

@@ -1309,8 +1309,42 @@
   body.night-mode .search-clear:hover {
     color: rgba(190,200,215,0.9);
   }
-  /* Mobile search */
-  body.is-mobile .search-input {
+  .search-filter-row {
+    display: none;
+    padding: 4px 10px 5px;
+    border-bottom: 1px solid rgba(0,0,0,0.06);
+  }
+  .search-filter-row.visible {
+    display: block;
+  }
+  .search-filter-label {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    cursor: pointer;
+    font-size: 10px;
+    color: #888;
+    user-select: none;
+  }
+  .search-filter-label:hover {
+    color: #555;
+  }
+  .search-filter-checkbox {
+    cursor: pointer;
+    margin: 0;
+    width: 11px;
+    height: 11px;
+    flex-shrink: 0;
+  }
+  body.night-mode .search-filter-row {
+    border-bottom-color: rgba(255,255,255,0.06);
+  }
+  body.night-mode .search-filter-label {
+    color: rgba(190,200,215,0.45);
+  }
+  body.night-mode .search-filter-label:hover {
+    color: rgba(190,200,215,0.8);
+  }
     font-size: 16px;
   }
   body.is-mobile .playlist-search {
@@ -1902,6 +1936,12 @@
       <span class="search-icon">&#x2315;</span>
       <input type="text" id="searchInput" class="search-input" placeholder="water, crickets, washington, trinity alps" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" />
       <button class="search-clear" id="searchClear" title="Clear search">×</button>
+    </div>
+    <div class="search-filter-row" id="searchFilterRow">
+      <label class="search-filter-label">
+        <input type="checkbox" id="filterPlayback" class="search-filter-checkbox" />
+        <span>play search results only</span>
+      </label>
     </div>
     <!-- Track list -->
     <div class="scroll-arrow up" id="scrollUp" title="Scroll up">▲</div>
