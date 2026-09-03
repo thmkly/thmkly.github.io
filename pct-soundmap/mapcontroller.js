@@ -2124,7 +2124,8 @@ class MapController {
               if (track.gear?.trim()) {
                 const gearEl = document.createElement('div');
                 gearEl.className = 'popup-gear';
-                gearEl.textContent = track.gear;
+                gearEl.textContent = `gear used: ${track.gear}`;
+                gearEl.style.marginTop = '10px';
                 notesContent.appendChild(gearEl);
               }
 
