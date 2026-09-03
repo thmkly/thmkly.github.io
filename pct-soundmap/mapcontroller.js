@@ -2141,8 +2141,14 @@ class MapController {
               container.appendChild(notesContent);
               container.appendChild(notesToggle);
             }
-        
-            // Controls row
+
+            // Gear
+            if (track.gear?.trim()) {
+              const gearEl = document.createElement('div');
+              gearEl.className = 'popup-gear';
+              gearEl.textContent = track.gear;
+              container.appendChild(gearEl);
+            }
             const controls = document.createElement('div');
             controls.className = 'popup-controls';
         
