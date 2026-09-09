@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <title>a sound map of the pacific crest trail, 2023, by stereo</title>
   <meta name="description" content="An interactive sound map of the Pacific Crest Trail — 196 geolocated field recordings from a 2,650-mile thru-hike in 2023, by stereo." />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
   <!-- Open Graph -->
   <meta property="og:title" content="a sound map of the pacific crest trail, 2023, by stereo" />
@@ -119,6 +119,7 @@
 
   .playlist {
     overflow-y: auto;
+    height: 85vh;
     max-height: 85vh;
     padding: 5px;
     cursor: grab;
@@ -1477,11 +1478,7 @@
     background-color: #333;
     transition: all 0.3s;
   }
-
-  /* Waveform replaces hamburger lines on mobile */
-  .waveform-bars {
-    display: none;
-  }
+  .waveform-bars { display: none; }
   .wb {
     display: block;
     width: 2px;
@@ -1489,14 +1486,13 @@
     border-radius: 1px;
     flex-shrink: 0;
   }
-  body.is-mobile .ham-line {
-    display: none;
-  }
+  body.is-mobile .ham-line { display: none; }
   body.is-mobile .waveform-bars {
     display: flex;
     align-items: center;
     gap: 2px;
     height: 18px;
+    padding: 0 3px;
   }
   body.night-mode.is-mobile .wb {
     background-color: rgba(190, 200, 215, 0.9);
@@ -1835,7 +1831,6 @@
     color: #555;
     margin-top: 4px;
     margin-bottom: 8px;
-    white-space: pre-wrap;
   }
 
   .popup-notes-content.expanded {
@@ -1867,8 +1862,6 @@
     border-radius: 4px;
     background: white;
     color: #333;
-    -webkit-appearance: none;
-    appearance: none;
   }
 
   .popup-nav-btn:hover {
