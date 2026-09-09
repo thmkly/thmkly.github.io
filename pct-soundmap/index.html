@@ -23,6 +23,8 @@
 
   <link rel="icon" type="image/png" href="/images/favicon-32.png" />
   <link rel="apple-touch-icon" href="/images/favicon-180.png" />
+  <script>if(/iphone|ipad|ipod|android|mobile|blackberry|iemobile|wpdesktop/i.test(navigator.userAgent))document.documentElement.classList.add('is-mobile');</script>
+  <style>html.is-mobile .control-panel-container,html.is-mobile .playlist-wrapper{display:none;}</style>
 
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
   <meta http-equiv="Pragma" content="no-cache" />
@@ -1205,7 +1207,7 @@
     width: 36px !important;
     height: 36px !important;
   }
-  body.night-mode.is-mobile .hamburger-menu span {
+  body.night-mode.is-mobile .hamburger-menu .ham-line {
     background-color: rgba(190, 200, 215, 0.9) !important;
   }
   body.night-mode .control-panel {
@@ -1399,8 +1401,6 @@
   body.night-mode .search-filter-label:hover {
     color: rgba(190,200,215,0.8);
   }
-    font-size: 16px;
-  }
   body.is-mobile .playlist-search {
     display: flex;
   }
@@ -1470,13 +1470,18 @@
     background-color: rgba(255, 255, 255, 0.7);
   }
 
-  .hamburger-menu span {
+  .hamburger-menu .ham-line {
     display: block;
     width: 22px;
     height: 2px;
     background-color: #333;
     transition: all 0.3s;
   }
+  .waveform-bars { display: none; }
+  .wb { display: block; width: 2px; background-color: #333; border-radius: 1px; flex-shrink: 0; }
+  body.is-mobile .ham-line { display: none; }
+  body.is-mobile .waveform-bars { display: flex; align-items: center; gap: 2px; height: 18px; padding: 0 3px; }
+  body.night-mode.is-mobile .wb { background-color: rgba(190, 200, 215, 0.9); }
 
   /* Mobile close button */
   .mobile-menu-close {
@@ -1536,9 +1541,9 @@
   body.is-mobile .hamburger-menu { display: flex; }
   body.is-mobile.mobile-menu-open .hamburger-menu { display: none; }
 
-  body.is-mobile .hamburger-menu.open span:nth-child(1) { transform: rotate(45deg) translate(5px, 5px); }
-  body.is-mobile .hamburger-menu.open span:nth-child(2) { opacity: 0; }
-  body.is-mobile .hamburger-menu.open span:nth-child(3) { transform: rotate(-45deg) translate(5px, -5px); }
+  body.is-mobile .hamburger-menu.open .ham-line:nth-child(1) { transform: rotate(45deg) translate(5px, 5px); }
+  body.is-mobile .hamburger-menu.open .ham-line:nth-child(2) { opacity: 0; }
+  body.is-mobile .hamburger-menu.open .ham-line:nth-child(3) { transform: rotate(-45deg) translate(5px, -5px); }
 
   body.is-mobile .playlist-wrapper {
     position: fixed;
@@ -1993,13 +1998,22 @@
   
   <!-- Hamburger menu button for mobile -->
   <button class="hamburger-menu" id="hamburgerMenu" title="Menu">
-    <span></span>
-    <span></span>
-    <span></span>
+    <span class="ham-line"></span>
+    <span class="ham-line"></span>
+    <span class="ham-line"></span>
+    <span class="waveform-bars">
+      <span class="wb" style="height:4px"></span>
+      <span class="wb" style="height:9px"></span>
+      <span class="wb" style="height:14px"></span>
+      <span class="wb" style="height:7px"></span>
+      <span class="wb" style="height:11px"></span>
+      <span class="wb" style="height:5px"></span>
+      <span class="wb" style="height:9px"></span>
+    </span>
   </button>
   <button class="info-btn" id="infoBtnMobile" title="About this map">i</button>
   <button class="night-mode-btn mobile-night-btn" id="nightModeBtnMobile" title="Night mode on/off"><span class="moon-icon">☽</span></button>
-  <a class="mobile-kofi-btn" href="https://ko-fi.com/thmkly" target="_blank" title="Support this project">❤&#xFE0E;</a>
+  <a class="mobile-kofi-btn" href="https://ko-fi.com/thmkly" target="_blank" title="Support this project"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg></a>
 
   <div class="playlist-wrapper" id="playlistWrapper">
     <button class="playlist-toggle" id="playlistToggle" title="Collapse playlist">◀</button>
