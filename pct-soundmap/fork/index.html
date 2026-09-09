@@ -1205,7 +1205,7 @@
     width: 36px !important;
     height: 36px !important;
   }
-  body.night-mode.is-mobile .hamburger-menu span {
+  body.night-mode.is-mobile .hamburger-menu .ham-line {
     background-color: rgba(190, 200, 215, 0.9) !important;
   }
   body.night-mode .control-panel {
@@ -1470,7 +1470,7 @@
     background-color: rgba(255, 255, 255, 0.7);
   }
 
-  .hamburger-menu span {
+  .hamburger-menu .ham-line {
     display: block;
     width: 22px;
     height: 2px;
@@ -1561,9 +1561,9 @@
   body.is-mobile .hamburger-menu { display: flex; }
   body.is-mobile.mobile-menu-open .hamburger-menu { display: none; }
 
-  body.is-mobile .hamburger-menu.open span:nth-child(1) { transform: rotate(45deg) translate(5px, 5px); }
-  body.is-mobile .hamburger-menu.open span:nth-child(2) { opacity: 0; }
-  body.is-mobile .hamburger-menu.open span:nth-child(3) { transform: rotate(-45deg) translate(5px, -5px); }
+  body.is-mobile .hamburger-menu.open .ham-line:nth-child(1) { transform: rotate(45deg) translate(5px, 5px); }
+  body.is-mobile .hamburger-menu.open .ham-line:nth-child(2) { opacity: 0; }
+  body.is-mobile .hamburger-menu.open .ham-line:nth-child(3) { transform: rotate(-45deg) translate(5px, -5px); }
 
   body.is-mobile .playlist-wrapper {
     position: fixed;
