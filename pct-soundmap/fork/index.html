@@ -23,6 +23,8 @@
 
   <link rel="icon" type="image/png" href="/images/favicon-32.png" />
   <link rel="apple-touch-icon" href="/images/favicon-180.png" />
+  <script>if(/iphone|ipad|ipod|android|mobile|blackberry|iemobile|wpdesktop/i.test(navigator.userAgent))document.documentElement.classList.add('is-mobile');</script>
+  <style>html.is-mobile .control-panel-container,html.is-mobile .playlist-wrapper{display:none;}</style>
 
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
   <meta http-equiv="Pragma" content="no-cache" />
@@ -127,7 +129,6 @@
     -webkit-user-select: none;
     -moz-user-select: none;
     -ms-user-select: none;
-    touch-action: pan-y;
   }
 
   .playlist.dragging {
@@ -1479,24 +1480,10 @@
     transition: all 0.3s;
   }
   .waveform-bars { display: none; }
-  .wb {
-    display: block;
-    width: 2px;
-    background-color: #333;
-    border-radius: 1px;
-    flex-shrink: 0;
-  }
+  .wb { display: block; width: 2px; background-color: #333; border-radius: 1px; flex-shrink: 0; }
   body.is-mobile .ham-line { display: none; }
-  body.is-mobile .waveform-bars {
-    display: flex;
-    align-items: center;
-    gap: 2px;
-    height: 18px;
-    padding: 0 3px;
-  }
-  body.night-mode.is-mobile .wb {
-    background-color: rgba(190, 200, 215, 0.9);
-  }
+  body.is-mobile .waveform-bars { display: flex; align-items: center; gap: 2px; height: 18px; padding: 0 3px; }
+  body.night-mode.is-mobile .wb { background-color: rgba(190, 200, 215, 0.9); }
 
   /* Mobile close button */
   .mobile-menu-close {
