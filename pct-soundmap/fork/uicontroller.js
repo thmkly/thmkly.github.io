@@ -8,7 +8,6 @@ class UIController {
       this.clusterPlaylist = null;
       this.isMobile = this._detectMobile();
       document.body.classList.toggle('is-mobile', this.isMobile);
-      if (this.isMobile) document.documentElement.classList.remove('is-mobile-pre');
       
       // Cache DOM references
       this.playlist = document.getElementById('playlist');

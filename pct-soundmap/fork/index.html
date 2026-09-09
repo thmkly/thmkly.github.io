@@ -23,22 +23,12 @@
 
   <link rel="icon" type="image/png" href="/images/favicon-32.png" />
   <link rel="apple-touch-icon" href="/images/favicon-180.png" />
-  <script>
-    // Apply is-mobile synchronously before render to prevent desktop flash
-    if (/iphone|ipad|ipod|android|mobile|blackberry|iemobile|wpdesktop/i.test(navigator.userAgent)) {
-      document.documentElement.classList.add('is-mobile-pre');
-    }
-  </script>
 
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
   <meta http-equiv="Pragma" content="no-cache" />
   <meta http-equiv="Expires" content="0" />
   <link href="https://api.mapbox.com/mapbox-gl-js/v3.8.0/mapbox-gl.css" rel="stylesheet" />
 <style>
-  /* Prevent desktop flash on mobile before JS runs */
-  html.is-mobile-pre .control-panel-container { display: none !important; }
-  html.is-mobile-pre .playlist-wrapper { display: none !important; }
-
   body {
     margin: 0;
     padding: 0;
