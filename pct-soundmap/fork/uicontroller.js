@@ -23,6 +23,13 @@ class UIController {
         this.playlistWrapper.addEventListener('touchend', e => e.stopPropagation(), { passive: true });
       }
       
+      // Prevent pinch-to-zoom on mobile (iOS ignores user-scalable=no)
+      if (this.isMobile) {
+        document.addEventListener('touchmove', (e) => {
+          if (e.touches.length > 1) e.preventDefault();
+        }, { passive: false });
+      }
+
       this.setupEventListeners();
       this.setupResizeListener();
     }

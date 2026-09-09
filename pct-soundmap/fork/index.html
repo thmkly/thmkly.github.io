@@ -1483,12 +1483,11 @@
     display: none;
   }
   .wb {
-    display: inline-block;
+    display: block;
     width: 2px;
     background-color: #333;
     border-radius: 1px;
-    vertical-align: middle;
-    margin: 0 1px;
+    flex-shrink: 0;
   }
   body.is-mobile .ham-line {
     display: none;
@@ -1497,9 +1496,7 @@
     display: flex;
     align-items: center;
     gap: 2px;
-    height: 16px;
-    overflow: hidden;
-    max-width: 26px;
+    height: 18px;
   }
   body.night-mode.is-mobile .wb {
     background-color: rgba(190, 200, 215, 0.9);
