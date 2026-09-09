@@ -388,14 +388,33 @@ class MapController {
             this._searchQuery = newQuery;
             searchClear.classList.toggle('visible', newQuery.trim().length > 0);
 
-            // Remember active track's position relative to playlist viewport before re-render
+            // Show/hide filter checkbox row
+            const filterRow = document.getElementById('searchFilterRow');
+            if (filterRow) filterRow.classList.toggle('visible', newQuery.trim().length > 0);
+            if (!newQuery.trim()) {
+              const filterCheckboxEl = document.getElementById('filterCheckboxEl');
+              if (filterCheckboxEl) {
+                filterCheckboxEl.classList.remove('checked');
+                filterCheckboxEl.setAttribute('aria-checked', 'false');
+              }
+              this._filterPlayback = false;
+            }
+
             const playlist = document.getElementById('playlist');
             const activeEl = playlist?.querySelector('.track.active-track');
             const activeOffsetBefore = activeEl ? activeEl.getBoundingClientRect().top - playlist.getBoundingClientRect().top : null;
 
             this.updatePlaylistOnly();
 
-            // After re-render, restore active track's visual position if it's still visible
+            // Restore active track state only if needed (avoids dance/flash)
+            if (audioController.currentIndex >= 0 && audioController.currentAudio) {
+              const newActiveEl = playlist.querySelector('.track.active-track');
+              if (!newActiveEl) {
+                this.updateActiveTrack(audioController.currentIndex, false, audioController.currentAudio);
+              }
+            }
+
+            // Restore scroll position so active track stays visually anchored
             if (activeOffsetBefore !== null) {
               const newActiveEl = playlist.querySelector('.track.active-track');
               if (newActiveEl) {
@@ -404,6 +423,25 @@ class MapController {
               }
             }
           });
+
+          // Filter playback custom checkbox
+          const filterCheckboxEl = document.getElementById('filterCheckboxEl');
+          const filterLabel = document.getElementById('searchFilterLabel');
+          if (filterCheckboxEl) {
+            const toggleFilter = () => {
+              const isChecked = filterCheckboxEl.classList.toggle('checked');
+              filterCheckboxEl.setAttribute('aria-checked', isChecked);
+              this._filterPlayback = isChecked;
+            };
+            filterCheckboxEl.addEventListener('click', (e) => { e.stopPropagation(); toggleFilter(); });
+            if (filterLabel) filterLabel.addEventListener('click', toggleFilter);
+            filterCheckboxEl.addEventListener('keydown', (e) => {
+              if (e.code === 'Space' || e.code === 'Enter') {
+                e.preventDefault();
+                toggleFilter();
+              }
+            });
+          }
           // Prevent touch events on search input from reaching the map
           searchInput.addEventListener('touchstart', e => e.stopPropagation(), { passive: true });
           searchInput.addEventListener('touchend', e => e.stopPropagation(), { passive: true });
@@ -419,11 +457,18 @@ class MapController {
           searchClear.addEventListener('click', () => {
             searchInput.value = '';
             this._searchQuery = '';
+            this._filterPlayback = false;
             searchClear.classList.remove('visible');
+            const filterRow = document.getElementById('searchFilterRow');
+            if (filterRow) filterRow.classList.remove('visible');
+            const filterCheckboxEl = document.getElementById('filterCheckboxEl');
+            if (filterCheckboxEl) {
+              filterCheckboxEl.classList.remove('checked');
+              filterCheckboxEl.setAttribute('aria-checked', 'false');
+            }
             this.updatePlaylistOnly();
             if (audioController.currentIndex >= 0) {
               this.updateActiveTrack(audioController.currentIndex, false, audioController.currentAudio);
-              // Scroll active track into view after list restores
               setTimeout(() => uiController.scrollActiveTrackIntoView(), 50);
             }
           });
@@ -577,15 +622,7 @@ class MapController {
         const playlist = document.getElementById('playlist');
         playlist.innerHTML = `
           <div class="loading-placeholder">
-            <div style="color: #cc0000; margin-bottom: 10px;">${message}</div>
-            <button onclick="location.reload()" style="
-              padding: 8px 16px;
-              background: #5c3a2e;
-              color: white;
-              border: none;
-              border-radius: 4px;
-              cursor: pointer;
-            ">Reload Page</button>
+            <div style="color: #333; font-size: 12px;">error loading sounds — reload page</div>
           </div>
         `;
         // Also make sure playlist wrapper is visible in case of error
@@ -2073,11 +2110,24 @@ class MapController {
             metaLine.textContent = metaText;
             container.appendChild(metaLine);
         
-            // Notes (collapsible)
-            if (track.notes?.trim()) {
+            // Notes (collapsible) — includes gear below narrative
+            if (track.notes?.trim() || track.gear?.trim()) {
               const notesContent = document.createElement('div');
               notesContent.className = 'popup-notes-content';
-              notesContent.textContent = track.notes;
+
+              if (track.notes?.trim()) {
+                const notesText = document.createElement('div');
+                notesText.textContent = track.notes;
+                notesContent.appendChild(notesText);
+              }
+
+              if (track.gear?.trim()) {
+                const gearEl = document.createElement('div');
+                gearEl.className = 'popup-gear';
+                gearEl.textContent = `gear used: ${track.gear}`;
+                gearEl.style.marginTop = '10px';
+                notesContent.appendChild(gearEl);
+              }
 
               const notesToggle = document.createElement('button');
               notesToggle.className = 'popup-notes-toggle';
@@ -2104,8 +2154,7 @@ class MapController {
               container.appendChild(notesContent);
               container.appendChild(notesToggle);
             }
-        
-            // Controls row
+
             const controls = document.createElement('div');
             controls.className = 'popup-controls';
         
@@ -2674,7 +2723,7 @@ class MapController {
       // Also returns helpers for index translation
       getActivePlaylist() {
         const query = (this._searchQuery || '').toLowerCase().trim();
-        if (!query) return { data: this.audioData, toFullIndex: i => i, toLocalIndex: i => i };
+        if (!query || !this._filterPlayback) return { data: this.audioData, toFullIndex: i => i, toLocalIndex: i => i };
         const data = this.audioData.filter(track => {
           const name = (track.name || '').toLowerCase();
           const section = (track.section || '').toLowerCase();
