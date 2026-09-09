@@ -366,14 +366,22 @@ class MapController {
         
         // Re-apply atmosphere when page becomes visible (ONLY in 3D mode)
         document.addEventListener('visibilitychange', () => {
-          if (!document.hidden && uiController.is3DEnabled && typeof atmosphereController !== 'undefined' && atmosphereController.currentConditions) {
-            // Re-apply the current atmosphere conditions
-            atmosphereController.applyEnhancedSky(atmosphereController.currentConditions);
-            atmosphereController.applyEnhancedFog(atmosphereController.currentConditions);
-            atmosphereController.applyEnhanced3DEffects(atmosphereController.currentConditions);
-            atmosphereController.applyFallbackAtmosphere(atmosphereController.currentConditions);
+          if (!document.hidden) {
+            setTimeout(() => map.resize(), 100);
+            if (uiController.is3DEnabled && typeof atmosphereController !== 'undefined' && atmosphereController.currentConditions) {
+              // Re-apply the current atmosphere conditions
+              atmosphereController.applyEnhancedSky(atmosphereController.currentConditions);
+              atmosphereController.applyEnhancedFog(atmosphereController.currentConditions);
+              atmosphereController.applyEnhanced3DEffects(atmosphereController.currentConditions);
+              atmosphereController.applyFallbackAtmosphere(atmosphereController.currentConditions);
+            }
           }
         });
+
+        // On mobile, resize map after keyboard dismisses (e.g. after tapping a search result)
+        if (uiController.isMobile) {
+          window.addEventListener('resize', () => setTimeout(() => map.resize(), 100));
+        }
 
         // Search setup
         this._searchQuery = '';
@@ -481,7 +489,11 @@ class MapController {
         map.on('moveend', () => {
           // On moveend, just update positions — don't query features yet
           // State decisions happen in idle when map is truly stable
-          if (this.isPositioning) return;
+          if (this.isPositioning) {
+            // On mobile, resize after flyTo completes to fix iOS keyboard dismiss race condition
+            if (uiController.isMobile) setTimeout(() => map.resize(), 50);
+            return;
+          }
           uiController.updateMiniInfoBoxPositions();
           if (this.currentPopup?.updatePosition) this.currentPopup.updatePosition();
           if (this.previewPopup?.updatePosition) this.previewPopup.updatePosition();
