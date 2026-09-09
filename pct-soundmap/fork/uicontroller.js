@@ -9,6 +9,13 @@ class UIController {
       this.isMobile = this._detectMobile();
       document.body.classList.toggle('is-mobile', this.isMobile);
       document.documentElement.classList.remove('is-mobile');
+
+      // Prevent pinch-to-zoom on mobile UI elements (iOS ignores user-scalable=no)
+      if (this.isMobile) {
+        document.addEventListener('touchmove', (e) => {
+          if (e.touches.length > 1) e.preventDefault();
+        }, { passive: false });
+      }
       
       // Cache DOM references
       this.playlist = document.getElementById('playlist');
