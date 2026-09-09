@@ -2170,6 +2170,11 @@ class MapController {
             const controls = document.createElement('div');
             controls.className = 'popup-controls';
         
+            // Button group for equal sizing
+            const btnGroup = document.createElement('div');
+            btnGroup.style.cssText = 'display:flex;gap:6px;flex:1;';
+            controls.appendChild(btnGroup);
+
             // Prev button
             const prevBtn = document.createElement('button');
             prevBtn.className = 'popup-nav-btn';
@@ -2181,7 +2186,7 @@ class MapController {
               ? audioController.playHistory.length === 0
               : sortedPosition === 0);
             prevBtn.addEventListener('click', () => audioController.playPrevious(this.audioData));
-            controls.appendChild(prevBtn);
+            btnGroup.appendChild(prevBtn);
         
             // Play/Pause button
             const audioForControls = audio || audioController.currentAudio;
@@ -2221,7 +2226,7 @@ class MapController {
                   audioForControls.paused ? audioForControls.play() : audioForControls.pause();
                 });
               }
-              controls.appendChild(playPauseBtn);
+              btnGroup.appendChild(playPauseBtn);
             }
         
             // Next button
@@ -2232,7 +2237,7 @@ class MapController {
               ? false
               : sortedPosition === this.audioData.length - 1);
             nextBtn.addEventListener('click', () => audioController.playNext(this.audioData, true));
-            controls.appendChild(nextBtn);
+            btnGroup.appendChild(nextBtn);
         
             // Time display
             const audioForDisplay = audio || audioController.currentAudio;
