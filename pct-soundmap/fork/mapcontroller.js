@@ -2110,17 +2110,30 @@ class MapController {
             container.appendChild(title);
         
             // Meta line: timestamp · mile · elevation · section
-            const metaLine = document.createElement('div');
-            metaLine.className = 'popup-meta';
-            let metaText = this.formatTimestamp(track.timestamp);
+            // Timestamp line
+            const metaTimestamp = document.createElement('div');
+            metaTimestamp.className = 'popup-meta';
+            metaTimestamp.textContent = this.formatTimestamp(track.timestamp);
+            container.appendChild(metaTimestamp);
+
+            // Mile + elevation line
+            const metaMile = document.createElement('div');
+            metaMile.className = 'popup-meta';
+            let mileText = '';
             if (track.mile && track.mile.toString().trim().toLowerCase() !== 'n/a') {
               const displayMile = this.getDisplayMile(track);
-              if (displayMile !== null) metaText += ` • mi.${displayMile}`;
+              if (displayMile !== null) mileText += `mi.${displayMile}`;
             }
-            if (track.elevation) metaText += ` • ${track.elevation} ft`;
-            if (track.section)   metaText += ` • ${track.section}`;
-            metaLine.textContent = metaText;
-            container.appendChild(metaLine);
+            if (track.elevation) mileText += `${mileText ? ' • ' : ''}${track.elevation} ft`;
+            if (mileText) { metaMile.textContent = mileText; container.appendChild(metaMile); }
+
+            // Section line
+            if (track.section) {
+              const metaSection = document.createElement('div');
+              metaSection.className = 'popup-meta';
+              metaSection.textContent = track.section;
+              container.appendChild(metaSection);
+            }
         
             // Notes (collapsible) — includes gear below narrative
             if (track.notes?.trim() || track.gear?.trim()) {
@@ -2137,7 +2150,6 @@ class MapController {
                 const gearEl = document.createElement('div');
                 gearEl.className = 'popup-gear';
                 gearEl.textContent = `gear used: ${track.gear}`;
-                gearEl.style.marginTop = '10px';
                 notesContent.appendChild(gearEl);
               }
 
