@@ -2294,6 +2294,9 @@
             link.classList.add('active');
             document.querySelectorAll('.info-page').forEach(p => p.classList.remove('active'));
             document.getElementById('info-page-' + page).classList.add('active');
+            // Scroll to top of dialog body when switching tabs
+            const infoBodyEl = document.getElementById('infoDialogBody');
+            if (infoBodyEl) infoBodyEl.scrollTop = 0;
             updateInfoScrollArrows();
           });
         });
