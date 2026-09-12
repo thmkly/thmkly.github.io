@@ -2037,7 +2037,7 @@ class MapController {
             const container = document.createElement('div');
             container.className = preview ? 'custom-popup' : 'custom-popup playing-popup';
             container.style.position = 'absolute';
-            container.style.width = '320px';
+            container.style.width = '270px';
             container.style.zIndex = '500';
             // Also set on the parent mapboxgl-popup element
             const popupEl = container.closest('.mapboxgl-popup');
