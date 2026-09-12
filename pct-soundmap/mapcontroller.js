@@ -366,14 +366,22 @@ class MapController {
         
         // Re-apply atmosphere when page becomes visible (ONLY in 3D mode)
         document.addEventListener('visibilitychange', () => {
-          if (!document.hidden && uiController.is3DEnabled && typeof atmosphereController !== 'undefined' && atmosphereController.currentConditions) {
-            // Re-apply the current atmosphere conditions
-            atmosphereController.applyEnhancedSky(atmosphereController.currentConditions);
-            atmosphereController.applyEnhancedFog(atmosphereController.currentConditions);
-            atmosphereController.applyEnhanced3DEffects(atmosphereController.currentConditions);
-            atmosphereController.applyFallbackAtmosphere(atmosphereController.currentConditions);
+          if (!document.hidden) {
+            setTimeout(() => map.resize(), 100);
+            if (uiController.is3DEnabled && typeof atmosphereController !== 'undefined' && atmosphereController.currentConditions) {
+              // Re-apply the current atmosphere conditions
+              atmosphereController.applyEnhancedSky(atmosphereController.currentConditions);
+              atmosphereController.applyEnhancedFog(atmosphereController.currentConditions);
+              atmosphereController.applyEnhanced3DEffects(atmosphereController.currentConditions);
+              atmosphereController.applyFallbackAtmosphere(atmosphereController.currentConditions);
+            }
           }
         });
+
+        // On mobile, resize map after keyboard dismisses (e.g. after tapping a search result)
+        if (uiController.isMobile) {
+          window.addEventListener('resize', () => setTimeout(() => map.resize(), 100));
+        }
 
         // Search setup
         this._searchQuery = '';
@@ -481,7 +489,11 @@ class MapController {
         map.on('moveend', () => {
           // On moveend, just update positions — don't query features yet
           // State decisions happen in idle when map is truly stable
-          if (this.isPositioning) return;
+          if (this.isPositioning) {
+            // On mobile, resize after flyTo completes to fix iOS keyboard dismiss race condition
+            if (uiController.isMobile) setTimeout(() => map.resize(), 50);
+            return;
+          }
           uiController.updateMiniInfoBoxPositions();
           if (this.currentPopup?.updatePosition) this.currentPopup.updatePosition();
           if (this.previewPopup?.updatePosition) this.previewPopup.updatePosition();
@@ -2098,17 +2110,30 @@ class MapController {
             container.appendChild(title);
         
             // Meta line: timestamp · mile · elevation · section
-            const metaLine = document.createElement('div');
-            metaLine.className = 'popup-meta';
-            let metaText = this.formatTimestamp(track.timestamp);
+            // Timestamp line
+            const metaTimestamp = document.createElement('div');
+            metaTimestamp.className = 'popup-meta';
+            metaTimestamp.textContent = this.formatTimestamp(track.timestamp);
+            container.appendChild(metaTimestamp);
+
+            // Mile + elevation line
+            const metaMile = document.createElement('div');
+            metaMile.className = 'popup-meta';
+            let mileText = '';
             if (track.mile && track.mile.toString().trim().toLowerCase() !== 'n/a') {
               const displayMile = this.getDisplayMile(track);
-              if (displayMile !== null) metaText += ` • mi.${displayMile}`;
+              if (displayMile !== null) mileText += `mi.${displayMile}`;
             }
-            if (track.elevation) metaText += ` • ${track.elevation} ft`;
-            if (track.section)   metaText += ` • ${track.section}`;
-            metaLine.textContent = metaText;
-            container.appendChild(metaLine);
+            if (track.elevation) mileText += `${mileText ? ' • ' : ''}${track.elevation} ft`;
+            if (mileText) { metaMile.textContent = mileText; container.appendChild(metaMile); }
+
+            // Section line
+            if (track.section) {
+              const metaSection = document.createElement('div');
+              metaSection.className = 'popup-meta';
+              metaSection.textContent = track.section;
+              container.appendChild(metaSection);
+            }
         
             // Notes (collapsible) — includes gear below narrative
             if (track.notes?.trim() || track.gear?.trim()) {
@@ -2125,7 +2150,6 @@ class MapController {
                 const gearEl = document.createElement('div');
                 gearEl.className = 'popup-gear';
                 gearEl.textContent = `gear used: ${track.gear}`;
-                gearEl.style.marginTop = '10px';
                 notesContent.appendChild(gearEl);
               }
 
@@ -2158,6 +2182,11 @@ class MapController {
             const controls = document.createElement('div');
             controls.className = 'popup-controls';
         
+            // Button group for equal sizing
+            const btnGroup = document.createElement('div');
+            btnGroup.style.cssText = 'display:flex;gap:6px;flex:1;';
+            controls.appendChild(btnGroup);
+
             // Prev button
             const prevBtn = document.createElement('button');
             prevBtn.className = 'popup-nav-btn';
@@ -2169,7 +2198,7 @@ class MapController {
               ? audioController.playHistory.length === 0
               : sortedPosition === 0);
             prevBtn.addEventListener('click', () => audioController.playPrevious(this.audioData));
-            controls.appendChild(prevBtn);
+            btnGroup.appendChild(prevBtn);
         
             // Play/Pause button
             const audioForControls = audio || audioController.currentAudio;
@@ -2209,7 +2238,7 @@ class MapController {
                   audioForControls.paused ? audioForControls.play() : audioForControls.pause();
                 });
               }
-              controls.appendChild(playPauseBtn);
+              btnGroup.appendChild(playPauseBtn);
             }
         
             // Next button
@@ -2220,7 +2249,7 @@ class MapController {
               ? false
               : sortedPosition === this.audioData.length - 1);
             nextBtn.addEventListener('click', () => audioController.playNext(this.audioData, true));
-            controls.appendChild(nextBtn);
+            btnGroup.appendChild(nextBtn);
         
             // Time display
             const audioForDisplay = audio || audioController.currentAudio;
