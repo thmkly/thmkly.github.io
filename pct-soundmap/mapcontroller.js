@@ -2037,7 +2037,7 @@ class MapController {
             const container = document.createElement('div');
             container.className = preview ? 'custom-popup' : 'custom-popup playing-popup';
             container.style.position = 'absolute';
-            container.style.width = '320px';
+            container.style.width = '270px';
             container.style.zIndex = '500';
             // Also set on the parent mapboxgl-popup element
             const popupEl = container.closest('.mapboxgl-popup');
@@ -2117,15 +2117,18 @@ class MapController {
             container.appendChild(metaTimestamp);
 
             // Mile + elevation line
-            const metaMile = document.createElement('div');
-            metaMile.className = 'popup-meta';
             let mileText = '';
             if (track.mile && track.mile.toString().trim().toLowerCase() !== 'n/a') {
               const displayMile = this.getDisplayMile(track);
               if (displayMile !== null) mileText += `mi.${displayMile}`;
             }
             if (track.elevation) mileText += `${mileText ? ' • ' : ''}${track.elevation} ft`;
-            if (mileText) { metaMile.textContent = mileText; container.appendChild(metaMile); }
+            if (mileText) {
+              const metaMile = document.createElement('div');
+              metaMile.className = 'popup-meta';
+              metaMile.textContent = mileText;
+              container.appendChild(metaMile);
+            }
 
             // Section line
             if (track.section) {
