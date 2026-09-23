@@ -14,6 +14,14 @@ class MapController {
        this.hasInitiallyLoaded = false;
        this.clusterPicker = null; // Store active cluster picker
        this.clusterPickerTracks = null; // Store track indices in current picker [index1, index2, ...]
+
+       // Likes + playback filters
+       this.likesEnabled = !uiController.isMobile; // Desktop only until the mobile pass
+       this._likes = new Set();        // Recording IDs (strings) hearted on this device
+       this._sharedIds = null;         // Set of recording IDs while viewing a shared list, else null
+       this._playbackFilter = null;    // null | 'search' | 'liked' (ignored while viewing a shared list)
+       this._searchQuery = '';
+
        this.setupMap();
      }
 
@@ -396,17 +404,9 @@ class MapController {
             this._searchQuery = newQuery;
             searchClear.classList.toggle('visible', newQuery.trim().length > 0);
 
-            // Show/hide filter checkbox row
-            const filterRow = document.getElementById('searchFilterRow');
-            if (filterRow) filterRow.classList.toggle('visible', newQuery.trim().length > 0);
-            if (!newQuery.trim()) {
-              const filterCheckboxEl = document.getElementById('filterCheckboxEl');
-              if (filterCheckboxEl) {
-                filterCheckboxEl.classList.remove('checked');
-                filterCheckboxEl.setAttribute('aria-checked', 'false');
-              }
-              this._filterPlayback = false;
-            }
+            // Clearing the text ends search playback; liked playback is unaffected
+            if (!newQuery.trim() && this._playbackFilter === 'search') this._playbackFilter = null;
+            this.refreshFilterRows();
 
             const playlist = document.getElementById('playlist');
             const activeEl = playlist?.querySelector('.track.active-track');
@@ -432,24 +432,8 @@ class MapController {
             }
           });
 
-          // Filter playback custom checkbox
-          const filterCheckboxEl = document.getElementById('filterCheckboxEl');
-          const filterLabel = document.getElementById('searchFilterLabel');
-          if (filterCheckboxEl) {
-            const toggleFilter = () => {
-              const isChecked = filterCheckboxEl.classList.toggle('checked');
-              filterCheckboxEl.setAttribute('aria-checked', isChecked);
-              this._filterPlayback = isChecked;
-            };
-            filterCheckboxEl.addEventListener('click', (e) => { e.stopPropagation(); toggleFilter(); });
-            if (filterLabel) filterLabel.addEventListener('click', toggleFilter);
-            filterCheckboxEl.addEventListener('keydown', (e) => {
-              if (e.code === 'Space' || e.code === 'Enter') {
-                e.preventDefault();
-                toggleFilter();
-              }
-            });
-          }
+          // Search, liked, and shared-list rows (checkboxes, share, clear)
+          this.setupFilterRows();
           // Prevent touch events on search input from reaching the map
           searchInput.addEventListener('touchstart', e => e.stopPropagation(), { passive: true });
           searchInput.addEventListener('touchend', e => e.stopPropagation(), { passive: true });
@@ -465,15 +449,9 @@ class MapController {
           searchClear.addEventListener('click', () => {
             searchInput.value = '';
             this._searchQuery = '';
-            this._filterPlayback = false;
+            if (this._playbackFilter === 'search') this._playbackFilter = null;
             searchClear.classList.remove('visible');
-            const filterRow = document.getElementById('searchFilterRow');
-            if (filterRow) filterRow.classList.remove('visible');
-            const filterCheckboxEl = document.getElementById('filterCheckboxEl');
-            if (filterCheckboxEl) {
-              filterCheckboxEl.classList.remove('checked');
-              filterCheckboxEl.setAttribute('aria-checked', 'false');
-            }
+            this.refreshFilterRows();
             this.updatePlaylistOnly();
             if (audioController.currentIndex >= 0) {
               this.updateActiveTrack(audioController.currentIndex, false, audioController.currentAudio);
@@ -587,6 +565,9 @@ class MapController {
                 // Set up data in NOBO order by default (Mexico at bottom, Canada at top)
                 this.audioData = this.sortByMileAndDate([...this.originalAudioData], 'nobo');
                 
+                // Load saved hearts and any shared-list link before the first render
+                this.initLikes();
+
                 this.sortAndUpdatePlaylist();
                 this.updateMapData();
                 
@@ -757,14 +738,8 @@ class MapController {
       updatePlaylistOnly() {
         const playlist = document.getElementById('playlist');
 
-        // Apply search filter if active
-        const query = (this._searchQuery || '').toLowerCase().trim();
-        const filteredData = query ? this.audioData.filter(track => {
-          const name = (track.name || '').toLowerCase();
-          const section = (track.section || '').toLowerCase();
-          const content = (track.content || '').toLowerCase();
-          return name.includes(query) || section.includes(query) || content.includes(query);
-        }) : this.audioData;
+        // Which sounds to show: search, liked view, or shared list
+        const filteredData = this.getVisibleTracks();
 
         // Save existing active track element to re-use it (avoids play/pause icon flash)
         const existingActiveEl = playlist.querySelector('.track.active-track');
@@ -795,7 +770,13 @@ class MapController {
           
           const trackInfo = document.createElement('div');
           trackInfo.className = 'track-info';
-          trackInfo.textContent = track.name.replace(/^[^\s]+\s+-\s+/, '');
+          // Title and heart share one inline span so the heart follows the last word
+          const trackTitle = document.createElement('span');
+          trackTitle.className = 'track-title';
+          trackTitle.textContent = track.name.replace(/^[^\s]+\s+-\s+/, '');
+          const likeBtn = this.createLikeButton(track);
+          if (likeBtn) trackTitle.appendChild(likeBtn);
+          trackInfo.appendChild(trackTitle);
           
           const trackMileZone = document.createElement('div');
           trackMileZone.className = 'track-mile-zone';
@@ -2107,6 +2088,8 @@ class MapController {
             title.addEventListener('click', () => {
               this.positionMapForTrack(track, index);
             });
+            const popupLikeBtn = this.createLikeButton(track);
+            if (popupLikeBtn) title.appendChild(popupLikeBtn);
             container.appendChild(title);
         
             // Meta line: timestamp · mile · elevation · section
@@ -2751,20 +2734,361 @@ class MapController {
         this.applyNightModeStyle = () => { if (isNight) applyNightMode(true); };
       }
 
-      // Returns the active playlist — filtered if search is active, full otherwise
-      // Also returns helpers for index translation
+      // ── Filters: search, liked, shared list ──────────────────────────────
+
+      // Permanent recording ID from the spreadsheet "id" column (digits only), or null
+      getTrackId(track) {
+        if (!track || track.id === undefined || track.id === null) return null;
+        const id = String(track.id).trim();
+        return /^\d{1,6}$/.test(id) ? id : null;
+      }
+
+      matchesQuery(track, query) {
+        const q = (query || '').toLowerCase().trim();
+        if (!q) return true;
+        const name = (track.name || '').toLowerCase();
+        const section = (track.section || '').toLowerCase();
+        const content = (track.content || '').toLowerCase();
+        return name.includes(q) || section.includes(q) || content.includes(q);
+      }
+
+      isLiked(track) {
+        const id = this.getTrackId(track);
+        return id !== null && this._likes.has(id);
+      }
+
+      isInSharedList(track) {
+        return !!this._sharedIds && this._sharedIds.has(this.getTrackId(track));
+      }
+
+      // What the playlist shows. Typed search text always controls the view;
+      // the liked box only changes the view when nothing is typed.
+      getVisibleTracks() {
+        const query = (this._searchQuery || '').trim();
+        const base = this._sharedIds ? this.audioData.filter(t => this.isInSharedList(t)) : this.audioData;
+        if (query) return base.filter(t => this.matchesQuery(t, query));
+        if (!this._sharedIds && this._playbackFilter === 'liked') return base.filter(t => this.isLiked(t));
+        return base;
+      }
+
+      // What playback is limited to, or null for the full playlist
+      getPlaybackTracks() {
+        let data = null;
+        if (this._sharedIds) {
+          data = this.audioData.filter(t => this.isInSharedList(t));
+        } else if (this._playbackFilter === 'liked') {
+          data = this.audioData.filter(t => this.isLiked(t));
+        } else if (this._playbackFilter === 'search' && (this._searchQuery || '').trim()) {
+          data = this.audioData.filter(t => this.matchesQuery(t, this._searchQuery));
+        }
+        return data && data.length ? data : null;
+      }
+
+      isPlaybackRestricted() {
+        return this.getPlaybackTracks() !== null;
+      }
+
+      // Returns the active playback list plus helpers for index translation
       getActivePlaylist() {
-        const query = (this._searchQuery || '').toLowerCase().trim();
-        if (!query || !this._filterPlayback) return { data: this.audioData, toFullIndex: i => i, toLocalIndex: i => i };
-        const data = this.audioData.filter(track => {
-          const name = (track.name || '').toLowerCase();
-          const section = (track.section || '').toLowerCase();
-          const content = (track.content || '').toLowerCase();
-          return name.includes(query) || section.includes(query) || content.includes(query);
-        });
+        const data = this.getPlaybackTracks();
+        if (!data) return { data: this.audioData, toFullIndex: i => i, toLocalIndex: i => i };
         const toFullIndex = localIdx => this.audioData.indexOf(data[localIdx]);
         const toLocalIndex = fullIdx => data.indexOf(this.audioData[fullIdx]);
         return { data, toFullIndex, toLocalIndex };
+      }
+
+      // Re-render the playlist and keep the playing track highlighted
+      rerenderPlaylistKeepingActive(resetScroll = false) {
+        const playlist = document.getElementById('playlist');
+        this.updatePlaylistOnly();
+        if (audioController.currentIndex >= 0 && audioController.currentAudio &&
+            !playlist.querySelector('.track.active-track')) {
+          this.updateActiveTrack(audioController.currentIndex, false, audioController.currentAudio);
+        }
+        if (resetScroll) {
+          if (playlist.querySelector('.track.active-track')) {
+            setTimeout(() => uiController.scrollActiveTrackIntoView(true), 50);
+          } else {
+            playlist.scrollTop = 0;
+          }
+        }
+      }
+
+      // Show/hide and check/uncheck the search, liked, and shared-list rows from current state
+      refreshFilterRows() {
+        const hasQuery = (this._searchQuery || '').trim().length > 0;
+        const shared = !!this._sharedIds;
+        if (this._likes.size === 0 && this._playbackFilter === 'liked') this._playbackFilter = null;
+        if (!hasQuery && this._playbackFilter === 'search') this._playbackFilter = null;
+
+        const setRow = (id, visible) => {
+          const el = document.getElementById(id);
+          if (el) el.classList.toggle('visible', visible);
+        };
+        const setBox = (id, checked) => {
+          const el = document.getElementById(id);
+          if (!el) return;
+          el.classList.toggle('checked', checked);
+          el.setAttribute('aria-checked', checked ? 'true' : 'false');
+        };
+
+        setRow('searchFilterRow', hasQuery && !shared);
+        setBox('filterCheckboxEl', this._playbackFilter === 'search');
+
+        setRow('likedFilterRow', this.likesEnabled && !shared && this._likes.size > 0);
+        setBox('likedCheckboxEl', this._playbackFilter === 'liked');
+        const actions = document.getElementById('likedActions');
+        if (actions) actions.classList.toggle('visible', this._playbackFilter === 'liked');
+        if (this._playbackFilter !== 'liked') this.setClearConfirm(false);
+
+        setRow('sharedListRow', this.likesEnabled && shared);
+      }
+
+      // Wire up the checkbox rows, share/clear links, shared-list row, and share dialog
+      setupFilterRows() {
+        const bindCheckbox = (boxId, labelId, onToggle) => {
+          const box = document.getElementById(boxId);
+          const label = document.getElementById(labelId);
+          if (!box) return;
+          box.addEventListener('click', (e) => { e.stopPropagation(); onToggle(); });
+          if (label) label.addEventListener('click', onToggle);
+          box.addEventListener('keydown', (e) => {
+            if (e.code === 'Space' || e.code === 'Enter') {
+              e.preventDefault();
+              e.stopPropagation();
+              onToggle();
+            }
+          });
+        };
+        const onClick = (id, fn) => {
+          const el = document.getElementById(id);
+          if (el) el.addEventListener('click', (e) => { e.stopPropagation(); fn(); });
+        };
+
+        // Search box: changes playback only (the typed text already filters the list)
+        bindCheckbox('filterCheckboxEl', 'searchFilterLabel', () => {
+          this._playbackFilter = this._playbackFilter === 'search' ? null : 'search';
+          this.refreshFilterRows();
+        });
+
+        // Liked box: changes playback, and changes the list when nothing is typed
+        bindCheckbox('likedCheckboxEl', 'likedFilterLabel', () => {
+          this._playbackFilter = this._playbackFilter === 'liked' ? null : 'liked';
+          this.refreshFilterRows();
+          if (!(this._searchQuery || '').trim()) this.rerenderPlaylistKeepingActive(true);
+        });
+
+        onClick('likedShareLink', () => this.openShareDialog());
+        onClick('likedClearLink', () => this.setClearConfirm(true));
+        onClick('likedClearNo', () => this.setClearConfirm(false));
+        onClick('likedClearYes', () => this.clearLikes());
+        onClick('sharedAddAll', () => this.addSharedToLikes());
+        onClick('sharedExit', () => this.exitSharedList());
+        onClick('shareDialogClose', () => this.closeShareDialog());
+        onClick('shareCopyBtn', () => this.copyShareLink());
+        const overlay = document.getElementById('shareOverlay');
+        if (overlay) overlay.addEventListener('click', (e) => {
+          if (e.target === overlay) this.closeShareDialog();
+        });
+      }
+
+      // ── Likes ───────────────────────────────────────────────────────────
+
+      // Load saved hearts, then check the URL for a shared list (?liked=4.17.88)
+      initLikes() {
+        if (!this.likesEnabled) return;
+        const validIds = new Set(this.originalAudioData.map(t => this.getTrackId(t)).filter(Boolean));
+
+        try {
+          const saved = JSON.parse(localStorage.getItem('pctSoundmapLikes') || '[]');
+          if (Array.isArray(saved)) {
+            saved.forEach(id => { id = String(id); if (validIds.has(id)) this._likes.add(id); });
+          }
+        } catch (e) { /* storage unavailable or unreadable: start with no hearts */ }
+
+        // Only IDs that match real recordings are accepted; anything else is ignored
+        const param = new URLSearchParams(window.location.search).get('liked');
+        if (param) {
+          const ids = param.split('.').slice(0, 500).map(s => s.trim()).filter(id => validIds.has(id));
+          if (ids.length) this._sharedIds = new Set(ids);
+        }
+
+        this.refreshFilterRows();
+      }
+
+      saveLikes() {
+        try {
+          localStorage.setItem('pctSoundmapLikes', JSON.stringify([...this._likes]));
+        } catch (e) { /* storage unavailable (e.g. private browsing): hearts last for this visit only */ }
+      }
+
+      createLikeButton(track) {
+        if (!this.likesEnabled) return null;
+        const id = this.getTrackId(track);
+        if (id === null) return null;
+        const btn = document.createElement('span');
+        btn.className = 'like-btn';
+        btn.dataset.likeId = id;
+        btn.setAttribute('role', 'button');
+        btn.tabIndex = 0;
+        btn.innerHTML = '<svg viewBox="0 0 24 24" width="12" height="12" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>';
+        this.setLikeButtonState(btn, this._likes.has(id));
+        // Stop propagation so a heart never starts playback or re-centers the map
+        const activate = (e) => { e.stopPropagation(); e.preventDefault(); this.toggleLike(track); };
+        btn.addEventListener('click', activate);
+        btn.addEventListener('keydown', (e) => { if (e.code === 'Space' || e.code === 'Enter') activate(e); });
+        return btn;
+      }
+
+      setLikeButtonState(btn, liked) {
+        btn.classList.toggle('liked', liked);
+        btn.setAttribute('aria-pressed', liked ? 'true' : 'false');
+        btn.setAttribute('aria-label', liked ? 'Unlike' : 'Like');
+        btn.title = liked ? 'Unlike' : 'Like';
+        const svg = btn.querySelector('svg');
+        if (svg) svg.setAttribute('fill', liked ? 'currentColor' : 'none');
+      }
+
+      toggleLike(track) {
+        const id = this.getTrackId(track);
+        if (id === null) return;
+        const nowLiked = !this._likes.has(id);
+        if (nowLiked) this._likes.add(id); else this._likes.delete(id);
+        this.saveLikes();
+
+        // Update every heart for this recording (playlist row, playing and preview infoboxes)
+        document.querySelectorAll(`.like-btn[data-like-id="${id}"]`).forEach(btn => this.setLikeButtonState(btn, nowLiked));
+
+        // In the liked view, an unhearted sound leaves the list; unhearting the last one closes the view
+        const inLikedView = !this._sharedIds && this._playbackFilter === 'liked' && !(this._searchQuery || '').trim();
+        this.refreshFilterRows();
+        if (inLikedView && !nowLiked) this.rerenderPlaylistKeepingActive(this._likes.size === 0);
+      }
+
+      setClearConfirm(show) {
+        const normal = document.getElementById('likedActionsNormal');
+        const confirm = document.getElementById('likedActionsConfirm');
+        if (normal) normal.style.display = show ? 'none' : '';
+        if (confirm) confirm.style.display = show ? '' : 'none';
+      }
+
+      clearLikes() {
+        const inLikedView = this._playbackFilter === 'liked' && !(this._searchQuery || '').trim();
+        this._likes.clear();
+        this.saveLikes();
+        document.querySelectorAll('.like-btn.liked').forEach(btn => this.setLikeButtonState(btn, false));
+        if (this._playbackFilter === 'liked') this._playbackFilter = null;
+        this.setClearConfirm(false);
+        this.refreshFilterRows();
+        if (inLikedView) this.rerenderPlaylistKeepingActive(true);
+      }
+
+      // ── Sharing ─────────────────────────────────────────────────────────
+
+      getShareUrl() {
+        const ids = [...this._likes].map(Number).sort((a, b) => a - b);
+        return `${window.location.origin}${window.location.pathname}?liked=${ids.join('.')}`;
+      }
+
+      // QR library loads only the first time someone opens the share dialog.
+      // The code is generated in the browser; the list is never sent anywhere.
+      loadQrLibrary() {
+        if (window.qrcode) return Promise.resolve();
+        if (this._qrLoading) return this._qrLoading;
+        this._qrLoading = new Promise((resolve, reject) => {
+          const s = document.createElement('script');
+          s.src = 'https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js';
+          s.async = true;
+          s.onload = () => {
+            if (window.qrcode) resolve();
+            else { this._qrLoading = null; reject(); }
+          };
+          s.onerror = () => { this._qrLoading = null; reject(); };
+          document.head.appendChild(s);
+        });
+        return this._qrLoading;
+      }
+
+      openShareDialog() {
+        const overlay = document.getElementById('shareOverlay');
+        const input = document.getElementById('shareLinkInput');
+        const qrBox = document.getElementById('shareQr');
+        if (!overlay || !input || !qrBox) return;
+        const url = this.getShareUrl();
+        const token = (this._shareToken = (this._shareToken || 0) + 1);
+        input.value = url;
+        this.resetCopyButton();
+        qrBox.classList.remove('qr-error');
+        qrBox.textContent = '';
+        overlay.classList.add('visible');
+
+        this.loadQrLibrary().then(() => {
+          if (token !== this._shareToken) return;
+          const qr = window.qrcode(0, 'M');
+          qr.addData(url);
+          qr.make();
+          qrBox.innerHTML = qr.createSvgTag({ cellSize: 4, margin: 0, scalable: true });
+        }).catch(() => {
+          if (token !== this._shareToken) return;
+          qrBox.classList.add('qr-error');
+          qrBox.textContent = 'QR code unavailable. The link below still works.';
+        });
+      }
+
+      closeShareDialog() {
+        const overlay = document.getElementById('shareOverlay');
+        if (overlay) overlay.classList.remove('visible');
+      }
+
+      resetCopyButton() {
+        const btn = document.getElementById('shareCopyBtn');
+        if (btn) btn.textContent = 'copy';
+      }
+
+      copyShareLink() {
+        const input = document.getElementById('shareLinkInput');
+        const btn = document.getElementById('shareCopyBtn');
+        if (!input || !btn) return;
+        const done = () => {
+          btn.textContent = 'copied';
+          clearTimeout(this._copyTimer);
+          this._copyTimer = setTimeout(() => this.resetCopyButton(), 1800);
+        };
+        const fallback = () => {
+          input.select();
+          try { if (document.execCommand('copy')) done(); } catch (e) { /* leave the link selected for manual copy */ }
+        };
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          navigator.clipboard.writeText(input.value).then(done, fallback);
+        } else {
+          fallback();
+        }
+      }
+
+      // Adds the shared sounds to this device's hearts. Only adds, never replaces.
+      addSharedToLikes() {
+        if (!this._sharedIds) return;
+        this._sharedIds.forEach(id => this._likes.add(id));
+        this.saveLikes();
+        document.querySelectorAll('.like-btn').forEach(btn => {
+          if (this._sharedIds.has(btn.dataset.likeId)) this.setLikeButtonState(btn, true);
+        });
+        const addBtn = document.getElementById('sharedAddAll');
+        if (addBtn) {
+          addBtn.textContent = 'added';
+          clearTimeout(this._addedTimer);
+          this._addedTimer = setTimeout(() => { addBtn.textContent = 'add to my liked sounds'; }, 1800);
+        }
+      }
+
+      // Leaves the shared view and returns to this device's own map and hearts
+      exitSharedList() {
+        this._sharedIds = null;
+        const url = new URL(window.location.href);
+        url.searchParams.delete('liked');
+        history.replaceState(null, '', url.pathname + url.search + url.hash);
+        this.refreshFilterRows();
+        this.rerenderPlaylistKeepingActive(true);
       }
 
       updatePopupNavButtons(track) {

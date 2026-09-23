@@ -1417,6 +1417,153 @@
     width: 15px;
     height: 15px;
   }
+
+  /* ── Likes: hearts ── */
+  /* Hearts take the row's text color, so night mode and highlighted rows follow automatically */
+  .like-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    vertical-align: -1px;
+    margin: -2px 0 -2px 3px;
+    padding: 2px;
+    color: inherit;
+    opacity: 0.35;
+    cursor: pointer;
+    line-height: 0;
+    border-radius: 3px;
+    transition: opacity 0.15s;
+  }
+  .like-btn:hover { opacity: 0.7; }
+  .like-btn.liked { opacity: 1; }
+  .like-btn.liked:hover { opacity: 0.75; }
+  .like-btn:focus-visible { outline: 1px solid currentColor; outline-offset: 1px; }
+  .popup-title .like-btn svg { width: 13px; height: 13px; }
+
+  /* ── Likes: liked row and shared-list row ── */
+  .search-filter-row.has-actions.visible {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+  }
+  .filter-actions {
+    display: none;
+    align-items: center;
+    flex-shrink: 0;
+    font-size: 12px;
+  }
+  .filter-actions.visible { display: inline-flex; }
+  .filter-text-link {
+    -webkit-appearance: none;
+    appearance: none;
+    background: none;
+    border: none;
+    padding: 0;
+    margin: 0;
+    font-family: helvetica, sans-serif;
+    font-size: 12px;
+    color: #5c3a2e;
+    text-decoration: underline;
+    cursor: pointer;
+  }
+  .filter-text-link:hover { color: #3d2519; }
+  .filter-sep { color: #bbb; margin: 0 5px; }
+  .filter-confirm-text { color: #666; margin-right: 5px; }
+  .shared-list-row { background: rgba(255, 242, 232, 0.85); }
+  .shared-list-label { font-size: 13px; color: #3d2519; }
+
+  /* ── Likes: share dialog (uses the info dialog frame) ── */
+  .share-dialog {
+    width: min(320px, 92vw);
+    max-height: none;
+  }
+  body.is-mobile .share-dialog {
+    height: auto;
+    max-height: 85vh;
+  }
+  .share-dialog-title {
+    font-size: 12px;
+    font-weight: bold;
+    color: #333;
+    letter-spacing: 0.03em;
+  }
+  .share-dialog-body {
+    padding: 16px 20px 18px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+  }
+  .info-dialog p.share-dialog-note {
+    margin: 0;
+    text-align: center;
+    font-size: 13px;
+    line-height: 1.5;
+  }
+  .share-qr {
+    width: 168px;
+    height: 168px;
+    padding: 10px;
+    box-sizing: border-box;
+    background: white;
+    border: 1px solid rgba(0, 0, 0, 0.08);
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .share-qr svg { width: 100%; height: 100%; display: block; }
+  .share-qr.qr-error { font-size: 12px; color: #888; text-align: center; line-height: 1.4; }
+  .share-link-row { display: flex; width: 100%; gap: 6px; }
+  .share-link-input {
+    flex: 1;
+    min-width: 0;
+    font-size: 12px;
+    font-family: helvetica, sans-serif;
+    color: #555;
+    padding: 6px 8px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    background: #fafafa;
+    outline: none;
+  }
+  .share-copy-btn {
+    -webkit-appearance: none;
+    appearance: none;
+    box-shadow: none;
+    font-size: 12px;
+    font-family: helvetica, sans-serif;
+    padding: 0 12px;
+    min-width: 64px;
+    border: 1px solid #bbb;
+    border-radius: 4px;
+    background: white;
+    color: #333;
+    cursor: pointer;
+  }
+  .share-copy-btn:hover { background: #f0f0f0; }
+
+  /* Likes: night mode (QR box stays white so it scans) */
+  body.night-mode .filter-text-link { color: rgba(190, 200, 215, 0.8); }
+  body.night-mode .filter-text-link:hover { color: rgba(190, 200, 215, 1); }
+  body.night-mode .filter-sep { color: rgba(255, 255, 255, 0.2); }
+  body.night-mode .filter-confirm-text { color: rgba(190, 200, 215, 0.6); }
+  body.night-mode .shared-list-row { background: rgba(255, 255, 255, 0.05); }
+  body.night-mode .shared-list-label { color: rgba(190, 200, 215, 0.9); }
+  body.night-mode .share-dialog-title { color: rgba(190, 200, 215, 0.9) !important; }
+  body.night-mode .share-link-input {
+    background: rgba(255, 255, 255, 0.05);
+    border-color: rgba(255, 255, 255, 0.15);
+    color: rgba(190, 200, 215, 0.9);
+  }
+  body.night-mode .share-copy-btn {
+    background: transparent;
+    border-color: rgba(255, 255, 255, 0.15);
+    color: rgba(190, 200, 215, 0.9);
+  }
+  body.night-mode .share-copy-btn:hover { background: rgba(255, 255, 255, 0.08); }
+  body.night-mode .share-qr.qr-error { background: transparent; color: rgba(190, 200, 215, 0.6); }
   .notification {
     position: fixed;
     top: 50%;
@@ -2048,6 +2195,30 @@
         <span>play search results only</span>
       </div>
     </div>
+    <!-- Liked sounds row: appears once anything is hearted -->
+    <div class="search-filter-row has-actions" id="likedFilterRow">
+      <div class="search-filter-label" id="likedFilterLabel">
+        <div class="custom-checkbox" id="likedCheckboxEl" role="checkbox" aria-checked="false" tabindex="0" aria-label="Play liked sounds only">
+          <svg class="check-icon" width="8" height="6" viewBox="0 0 8 6" fill="none"><polyline points="1,3 3,5 7,1" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </div>
+        <span>play liked sounds only</span>
+      </div>
+      <span class="filter-actions" id="likedActions">
+        <span id="likedActionsNormal">
+          <button type="button" class="filter-text-link" id="likedShareLink">share</button><span class="filter-sep">&middot;</span><button type="button" class="filter-text-link" id="likedClearLink">clear</button>
+        </span>
+        <span id="likedActionsConfirm" style="display:none">
+          <span class="filter-confirm-text">clear all?</span><button type="button" class="filter-text-link" id="likedClearYes">yes</button><span class="filter-sep">/</span><button type="button" class="filter-text-link" id="likedClearNo">no</button>
+        </span>
+      </span>
+    </div>
+    <!-- Shared list row: shown when someone opens a shared link -->
+    <div class="search-filter-row has-actions shared-list-row" id="sharedListRow">
+      <span class="shared-list-label">listening to a shared list</span>
+      <span class="filter-actions visible">
+        <button type="button" class="filter-text-link" id="sharedAddAll">add to my liked sounds</button><span class="filter-sep">&middot;</span><button type="button" class="filter-text-link" id="sharedExit">exit</button>
+      </span>
+    </div>
     <!-- Track list -->
     <div class="scroll-arrow up" id="scrollUp" title="Scroll up">▲</div>
     <div class="playlist" id="playlist">
@@ -2133,6 +2304,24 @@
         <div style="height: 20px; flex-shrink: 0;"></div>
       </div>
         <div class="info-scroll-arrow info-scroll-down" id="infoScrollDown">▼</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Share liked sounds dialog (same frame as the info dialog) -->
+  <div class="info-overlay" id="shareOverlay">
+    <div class="info-dialog share-dialog" role="dialog" aria-label="Share your liked sounds">
+      <div class="info-dialog-header">
+        <span class="share-dialog-title">share</span>
+        <button class="info-dialog-close" id="shareDialogClose" aria-label="Close">−</button>
+      </div>
+      <div class="share-dialog-body">
+        <p class="share-dialog-note">Open this link on another device, or send it to a friend.</p>
+        <div class="share-qr" id="shareQr"></div>
+        <div class="share-link-row">
+          <input type="text" class="share-link-input" id="shareLinkInput" readonly aria-label="Share link" />
+          <button type="button" class="share-copy-btn" id="shareCopyBtn">copy</button>
+        </div>
       </div>
     </div>
   </div>
