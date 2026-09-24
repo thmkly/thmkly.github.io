@@ -2761,6 +2761,13 @@ class MapController {
         return !!this._sharedIds && this._sharedIds.has(this.getTrackId(track));
       }
 
+      // True once at least one sound from the current shared list has been hearted individually
+      hasHeartedFromShared() {
+        if (!this._sharedIds) return false;
+        for (const id of this._sharedIds) if (this._likes.has(id)) return true;
+        return false;
+      }
+
       // What the playlist shows. Typed search text always controls the view;
       // the liked box only changes the view when nothing is typed.
       getVisibleTracks() {
@@ -2837,11 +2844,19 @@ class MapController {
 
         setRow('likedFilterRow', this.likesEnabled && !shared && this._likes.size > 0);
         setBox('likedCheckboxEl', this._playbackFilter === 'liked');
+        // Clear is available as soon as anything is hearted; share waits until the playlist is confirmed
         const actions = document.getElementById('likedActions');
-        if (actions) actions.classList.toggle('visible', this._playbackFilter === 'liked');
-        if (this._playbackFilter !== 'liked') this.setClearConfirm(false);
+        if (actions) actions.classList.toggle('visible', this._likes.size > 0);
+        const shareLink = document.getElementById('likedShareLink');
+        if (shareLink) shareLink.classList.toggle('visible', this._playbackFilter === 'liked');
+        const shareSep = document.getElementById('likedShareSep');
+        if (shareSep) shareSep.classList.toggle('visible', this._playbackFilter === 'liked');
+        if (this._likes.size === 0) this.setClearConfirm(false);
 
         setRow('sharedListRow', this.likesEnabled && shared);
+        // "Add to my liked sounds" only appears once something from the shared list has been hearted
+        const sharedAddLink = document.getElementById('sharedAddAll');
+        if (sharedAddLink) sharedAddLink.classList.toggle('visible', shared && this.hasHeartedFromShared());
       }
 
       // Wire up the checkbox rows, share/clear links, shared-list row, and share dialog

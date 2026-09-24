@@ -1468,6 +1468,14 @@
     cursor: pointer;
   }
   .filter-text-link:hover { color: #3d2519; }
+  #likedShareLink { display: none; }
+  #likedShareLink.visible { display: inline; }
+  #likedShareSep { display: none; }
+  #likedShareSep.visible { display: inline; }
+  #sharedAddAll { display: none; }
+  #sharedAddAll.visible { display: inline; }
+  #sharedAddAll.visible + #sharedSep { display: inline; }
+  #sharedSep { display: none; }
   .filter-sep { color: #bbb; margin: 0 5px; }
   .filter-confirm-text { color: #666; margin-right: 5px; }
   .shared-list-row { background: rgba(255, 242, 232, 0.85); }
@@ -2205,7 +2213,7 @@
       </div>
       <span class="filter-actions" id="likedActions">
         <span id="likedActionsNormal">
-          <button type="button" class="filter-text-link" id="likedShareLink">share</button><span class="filter-sep">&middot;</span><button type="button" class="filter-text-link" id="likedClearLink">clear</button>
+          <button type="button" class="filter-text-link" id="likedShareLink">share</button><span class="filter-sep" id="likedShareSep">&middot;</span><button type="button" class="filter-text-link" id="likedClearLink">clear</button>
         </span>
         <span id="likedActionsConfirm" style="display:none">
           <span class="filter-confirm-text">clear all?</span><button type="button" class="filter-text-link" id="likedClearYes">yes</button><span class="filter-sep">/</span><button type="button" class="filter-text-link" id="likedClearNo">no</button>
@@ -2216,7 +2224,7 @@
     <div class="search-filter-row has-actions shared-list-row" id="sharedListRow">
       <span class="shared-list-label">listening to a shared list</span>
       <span class="filter-actions visible">
-        <button type="button" class="filter-text-link" id="sharedAddAll">add to my liked sounds</button><span class="filter-sep">&middot;</span><button type="button" class="filter-text-link" id="sharedExit">exit</button>
+        <button type="button" class="filter-text-link" id="sharedAddAll">add to my liked sounds</button><span class="filter-sep" id="sharedSep">&middot;</span><button type="button" class="filter-text-link" id="sharedExit">exit</button>
       </span>
     </div>
     <!-- Track list -->
