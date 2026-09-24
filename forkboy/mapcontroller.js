@@ -2089,7 +2089,11 @@ class MapController {
               this.positionMapForTrack(track, index);
             });
             const popupLikeBtn = this.createLikeButton(track);
-            if (popupLikeBtn) title.appendChild(popupLikeBtn);
+            if (popupLikeBtn) {
+              // A non-breaking space keeps the heart glued to the title's last word
+              title.appendChild(document.createTextNode('\u00A0'));
+              title.appendChild(popupLikeBtn);
+            }
             container.appendChild(title);
         
             // Meta line: timestamp · mile · elevation · section
