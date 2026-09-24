@@ -2026,6 +2026,10 @@ class MapController {
             container._coords = coords;
             container.dataset.trackIndex = index;
             container.dataset.originalIndex = track.originalIndex;
+            // A custom popup sits over the map canvas with no built-in guard;
+            // without this, scrolling here zooms/pans the map underneath instead
+            container.addEventListener('wheel', (e) => e.stopPropagation(), { passive: true });
+            container.addEventListener('touchmove', (e) => e.stopPropagation(), { passive: true });
         
             // Minimize button — styled via .popup-minimize CSS class
             const minimizeBtn = document.createElement('button');

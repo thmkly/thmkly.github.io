@@ -603,6 +603,9 @@ class UIController {
         const infoBox = document.createElement('div');
         infoBox.className = 'mini-infobox';
         infoBox.dataset.trackIndex = trackIndex;
+        // No built-in guard on a custom element — without this, scrolling here zooms/pans the map underneath
+        infoBox.addEventListener('wheel', (e) => e.stopPropagation(), { passive: true });
+        infoBox.addEventListener('touchmove', (e) => e.stopPropagation(), { passive: true });
 
         // Main zone — play/pause icon + title, tap to play/pause
         const pill = document.createElement('div');
