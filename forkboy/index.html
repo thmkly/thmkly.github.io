@@ -1425,14 +1425,14 @@
     height: 15px;
   }
 
-  /* ── Likes: sprout ── */
-  /* Sprouts take the row's text color, so night mode and highlighted rows follow automatically */
+  /* ── Likes: dot ── */
+  /* Dots take the row's text color, so night mode and highlighted rows follow automatically */
   .like-btn {
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    vertical-align: -4px;
-    margin: -3px 0 -3px 3px;
+    vertical-align: -1px;
+    margin: -2px 0 -2px 3px;
     padding: 2px;
     color: inherit;
     opacity: 0.4;
@@ -1445,9 +1445,10 @@
   .like-btn.liked { opacity: 1; }
   .like-btn.liked:hover { opacity: 0.8; }
   .like-btn:focus-visible { outline: 1px solid currentColor; outline-offset: 1px; }
-  /* Ground line and stem stay outlined in both states; only the leaves fill in once kept */
-  .like-btn.liked .sprout-leaf { fill: currentColor; }
-  .popup-title .like-btn svg { width: 16px; height: 18px; }
+  /* Outline ring at rest; fills solid and grows slightly once kept */
+  .like-dot { fill: none; stroke: currentColor; stroke-width: 1.8px; r: 7.3px; }
+  .like-btn.liked .like-dot { fill: currentColor; stroke: none; r: 8px; }
+  .popup-title .like-btn svg { width: 14px; height: 14px; }
 
   /* ── Likes: liked row and shared-list row ── */
   .search-filter-row.has-actions.visible {
@@ -2206,19 +2207,19 @@
     </div>
     <div class="search-filter-row" id="searchFilterRow">
       <div class="search-filter-label" id="searchFilterLabel">
-        <div class="custom-checkbox" id="filterCheckboxEl" role="checkbox" aria-checked="false" tabindex="0" aria-label="Play just these">
+        <div class="custom-checkbox" id="filterCheckboxEl" role="checkbox" aria-checked="false" tabindex="0" aria-label="Play search results only">
           <svg class="check-icon" width="8" height="6" viewBox="0 0 8 6" fill="none"><polyline points="1,3 3,5 7,1" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
         </div>
-        <span>play just these</span>
+        <span>play search results only</span>
       </div>
     </div>
     <!-- Liked sounds row: appears once anything is hearted -->
     <div class="search-filter-row has-actions" id="likedFilterRow">
       <div class="search-filter-label" id="likedFilterLabel">
-        <div class="custom-checkbox" id="likedCheckboxEl" role="checkbox" aria-checked="false" tabindex="0" aria-label="Play my collection">
+        <div class="custom-checkbox" id="likedCheckboxEl" role="checkbox" aria-checked="false" tabindex="0" aria-label="Show my collection">
           <svg class="check-icon" width="8" height="6" viewBox="0 0 8 6" fill="none"><polyline points="1,3 3,5 7,1" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
         </div>
-        <span>play my collection</span>
+        <span>show my collection</span>
       </div>
       <span class="filter-actions" id="likedActions">
         <span id="likedActionsNormal">
