@@ -2954,7 +2954,7 @@ class MapController {
         btn.dataset.likeId = id;
         btn.setAttribute('role', 'button');
         btn.tabIndex = 0;
-        btn.innerHTML = '<svg viewBox="0 0 24 24" width="12" height="12" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>';
+        btn.innerHTML = '<svg viewBox="0 0 24 26" width="18" height="20" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" fill="none" aria-hidden="true"><path d="M4 22h16" opacity="0.5"/><path d="M12 22V11"/><path class="sprout-leaf" d="M12 13c0-4 3-6.3 6.3-6.3 0 4-2.4 6.3-6.3 6.3z"/><path class="sprout-leaf" d="M12 15.5c0-3.3-2.4-5-5-5 0 3.3 1.9 5 5 5z"/></svg>';
         this.setLikeButtonState(btn, this._likes.has(id));
         // Stop propagation so a heart never starts playback or re-centers the map
         const activate = (e) => { e.stopPropagation(); e.preventDefault(); this.toggleLike(track); };
@@ -2968,8 +2968,6 @@ class MapController {
         btn.setAttribute('aria-pressed', liked ? 'true' : 'false');
         btn.setAttribute('aria-label', liked ? 'Unlike' : 'Like');
         btn.title = liked ? 'Unlike' : 'Like';
-        const svg = btn.querySelector('svg');
-        if (svg) svg.setAttribute('fill', liked ? 'currentColor' : 'none');
       }
 
       toggleLike(track) {

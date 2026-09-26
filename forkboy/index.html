@@ -1425,27 +1425,29 @@
     height: 15px;
   }
 
-  /* ── Likes: hearts ── */
-  /* Hearts take the row's text color, so night mode and highlighted rows follow automatically */
+  /* ── Likes: sprout ── */
+  /* Sprouts take the row's text color, so night mode and highlighted rows follow automatically */
   .like-btn {
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    vertical-align: -1px;
-    margin: -2px 0 -2px 3px;
+    vertical-align: -4px;
+    margin: -3px 0 -3px 3px;
     padding: 2px;
     color: inherit;
-    opacity: 0.35;
+    opacity: 0.4;
     cursor: pointer;
     line-height: 0;
     border-radius: 3px;
     transition: opacity 0.15s;
   }
-  .like-btn:hover { opacity: 0.7; }
+  .like-btn:hover { opacity: 0.75; }
   .like-btn.liked { opacity: 1; }
-  .like-btn.liked:hover { opacity: 0.75; }
+  .like-btn.liked:hover { opacity: 0.8; }
   .like-btn:focus-visible { outline: 1px solid currentColor; outline-offset: 1px; }
-  .popup-title .like-btn svg { width: 13px; height: 13px; }
+  /* Ground line and stem stay outlined in both states; only the leaves fill in once kept */
+  .like-btn.liked .sprout-leaf { fill: currentColor; stroke: none; }
+  .popup-title .like-btn svg { width: 16px; height: 18px; }
 
   /* ── Likes: liked row and shared-list row ── */
   .search-filter-row.has-actions.visible {
