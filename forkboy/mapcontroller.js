@@ -2954,9 +2954,9 @@ class MapController {
         btn.dataset.likeId = id;
         btn.setAttribute('role', 'button');
         btn.tabIndex = 0;
-        btn.innerHTML = '<svg viewBox="0 0 24 24" width="13" height="13" aria-hidden="true"><circle class="like-dot" cx="12" cy="12"/></svg>';
+        btn.innerHTML = '<svg viewBox="0 0 24 24" width="13" height="13" aria-hidden="true"><path class="like-heart" d="M11.5 20.2c-2.5-2.2-7.3-6-7.9-9.9-0.4-2.7 1.4-4.7 3.8-4.4 1.2 0.15 2.1 0.95 2.7 2 0.9-1.6 2.4-3 4.4-2.8 3 0.3 5 3.2 4 6-1.1 3.1-4.6 6.1-7 9.1z"/></svg>';
         this.setLikeButtonState(btn, this._likes.has(id));
-        // Stop propagation so the dot never starts playback or re-centers the map
+        // Stop propagation so the heart never starts playback or re-centers the map
         const activate = (e) => { e.stopPropagation(); e.preventDefault(); this.toggleLike(track); };
         btn.addEventListener('click', activate);
         btn.addEventListener('keydown', (e) => { if (e.code === 'Space' || e.code === 'Enter') activate(e); });

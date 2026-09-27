@@ -1425,8 +1425,8 @@
     height: 15px;
   }
 
-  /* ── Likes: dot ── */
-  /* Dots take the row's text color, so night mode and highlighted rows follow automatically */
+  /* ── Likes: heart ── */
+  /* Hearts take the row's text color, so night mode and highlighted rows follow automatically */
   .like-btn {
     display: inline-flex;
     align-items: center;
@@ -1445,9 +1445,8 @@
   .like-btn.liked { opacity: 1; }
   .like-btn.liked:hover { opacity: 0.8; }
   .like-btn:focus-visible { outline: 1px solid currentColor; outline-offset: 1px; }
-  /* Outline ring at rest; fills solid and grows slightly once kept */
-  .like-dot { fill: none; stroke: currentColor; stroke-width: 1.8px; r: 7.3px; }
-  .like-btn.liked .like-dot { fill: currentColor; stroke: none; r: 8px; }
+  /* The shape is a single solid fill; the button's own opacity above does the rest/kept work */
+  .like-heart { fill: currentColor; }
   .popup-title .like-btn svg { width: 14px; height: 14px; }
 
   /* ── Likes: liked row and shared-list row ── */
