@@ -2966,8 +2966,8 @@ class MapController {
       setLikeButtonState(btn, liked) {
         btn.classList.toggle('liked', liked);
         btn.setAttribute('aria-pressed', liked ? 'true' : 'false');
-        btn.setAttribute('aria-label', liked ? 'Remove from my collection' : 'Add to my collection');
-        btn.title = liked ? 'Remove from my collection' : 'Add to my collection';
+        btn.setAttribute('aria-label', liked ? 'Remove from my favorites' : 'Add to my favorites');
+        btn.title = liked ? 'Remove from my favorites' : 'Add to my favorites';
       }
 
       toggleLike(track) {
