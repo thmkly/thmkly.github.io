@@ -1650,11 +1650,11 @@
     background-color: #333;
     transition: all 0.3s;
   }
-  .waveform-bars { display: none; }
-  .wb { display: block; width: 2px; background-color: #333; border-radius: 1px; flex-shrink: 0; }
+  .waveform-bars { display: none; color: #333; }
   body.is-mobile .ham-line { display: none; }
-  body.is-mobile .waveform-bars { display: flex; align-items: center; gap: 2px; height: 18px; padding: 0 3px; }
-  body.night-mode.is-mobile .wb { background-color: rgba(190, 200, 215, 0.9); }
+  body.is-mobile .waveform-bars { display: flex; align-items: center; justify-content: center; height: 18px; }
+  body.is-mobile .waveform-bars svg { display: block; }
+  body.night-mode.is-mobile .waveform-bars { color: rgba(190, 200, 215, 0.9); }
 
   /* Mobile close button */
   .mobile-menu-close {
@@ -2179,13 +2179,7 @@
     <span class="ham-line"></span>
     <span class="ham-line"></span>
     <span class="waveform-bars">
-      <span class="wb" style="height:4px"></span>
-      <span class="wb" style="height:9px"></span>
-      <span class="wb" style="height:14px"></span>
-      <span class="wb" style="height:7px"></span>
-      <span class="wb" style="height:11px"></span>
-      <span class="wb" style="height:5px"></span>
-      <span class="wb" style="height:9px"></span>
+      <svg width="28" height="18" viewBox="0 0 28 18" aria-hidden="true"><rect x="0.4" y="8.1" width="1.2" height="1.8" fill="currentColor"/><rect x="2.4" y="6.8" width="1.2" height="4.4" fill="currentColor"/><rect x="4.4" y="4.4" width="1.2" height="9.2" fill="currentColor"/><rect x="6.4" y="1.2" width="1.2" height="15.6" fill="currentColor"/><rect x="8.4" y="3.6" width="1.2" height="10.8" fill="currentColor"/><rect x="10.4" y="1.4" width="1.2" height="15.2" fill="currentColor"/><rect x="12.4" y="5" width="1.2" height="8" fill="currentColor"/><rect x="14.4" y="2.6" width="1.2" height="12.8" fill="currentColor"/><rect x="16.4" y="5.6" width="1.2" height="6.8" fill="currentColor"/><rect x="18.4" y="4" width="1.2" height="10" fill="currentColor"/><rect x="20.4" y="6.4" width="1.2" height="5.2" fill="currentColor"/><rect x="22.4" y="5.4" width="1.2" height="7.2" fill="currentColor"/><rect x="24.4" y="7.2" width="1.2" height="3.6" fill="currentColor"/><rect x="26.4" y="8" width="1.2" height="2" fill="currentColor"/></svg>
     </span>
   </button>
   <button class="info-btn" id="infoBtnMobile" title="About this map">i</button>
