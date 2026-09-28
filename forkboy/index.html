@@ -1263,6 +1263,12 @@
     color: rgba(190, 200, 215, 0.9) !important;
     text-decoration: underline;
   }
+  /* The row background snaps between light and dark as the mouse moves, so the mile text has to snap
+     with it. Its 0.15s color fade would leave it dark on a dark row (or light on a light one) for a
+     moment, which shows as a flash. */
+  body.night-mode .track-mile {
+    transition: none;
+  }
   body.night-mode .control-panel-container {
     background-color: transparent !important;
   }
