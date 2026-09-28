@@ -2386,19 +2386,32 @@
         }
       }
 
-      // Add custom attribution link
-      setTimeout(() => {
+      // Keep the "© Thomas Kelly" credit in the map's attribution.
+      // Mapbox rewrites the attribution text whenever the map style changes (night mode, 3D),
+      // which removes anything added by hand, so watch it and put the link back if it goes.
+      const addCreditLink = () => {
         const attrib = document.querySelector('.mapboxgl-ctrl-attrib-inner');
-        if (attrib) {
-          const link = document.createElement('a');
-          link.href = 'https://thomasmkelly.com';
-          link.target = '_blank';
-          link.rel = 'noopener noreferrer';
-          link.textContent = '© Thomas Kelly';
-          link.style.cssText = 'margin-right: 4px;';
-          attrib.insertBefore(link, attrib.firstChild);
+        if (!attrib || attrib.querySelector('.credit-link')) return;
+        const link = document.createElement('a');
+        link.className = 'credit-link';
+        link.href = 'https://thomasmkelly.com';
+        link.target = '_blank';
+        link.rel = 'noopener noreferrer';
+        link.textContent = '© Thomas Kelly';
+        link.style.cssText = 'margin-right: 4px;';
+        attrib.insertBefore(link, attrib.firstChild);
+      };
+      let creditTries = 0;
+      const watchCreditLink = () => {
+        const ctrl = document.querySelector('.mapboxgl-ctrl-attrib');
+        if (!ctrl) {
+          if (++creditTries < 20) setTimeout(watchCreditLink, 500);
+          return;
         }
-      }, 1000);
+        new MutationObserver(addCreditLink).observe(ctrl, { childList: true, subtree: true });
+        addCreditLink();
+      };
+      setTimeout(watchCreditLink, 1000);
 
       // Initialize controllers after DOM is ready
       audioController = new AudioController();
