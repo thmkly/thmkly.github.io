@@ -16,7 +16,8 @@ class MapController {
        this.clusterPickerTracks = null; // Store track indices in current picker [index1, index2, ...]
 
        // Likes + playback filters
-       this.likesEnabled = !uiController.isMobile; // Desktop only until the mobile pass
+       this.likesEnabled = true;          // Collection hearts on for desktop and mobile
+       this.sharedLinksEnabled = false;   // Shared-list links stay off until sharing ships (one flag controls all of it)
        this._likes = new Set();        // Recording IDs (strings) hearted on this device
        this._sharedIds = null;         // Set of recording IDs while viewing a shared list, else null
        this._playbackFilter = null;    // null | 'search' | 'liked' (ignored while viewing a shared list)
@@ -2917,7 +2918,7 @@ class MapController {
 
       // ── Likes ───────────────────────────────────────────────────────────
 
-      // Load saved hearts, then check the URL for a shared list (?liked=4.17.88)
+      // Load saved hearts. Shared-list links (?liked=4.17.88) are only read when sharing is enabled.
       initLikes() {
         if (!this.likesEnabled) return;
         const validIds = new Set(this.originalAudioData.map(t => this.getTrackId(t)).filter(Boolean));
@@ -2929,11 +2930,14 @@ class MapController {
           }
         } catch (e) { /* storage unavailable or unreadable: start with no hearts */ }
 
-        // Only IDs that match real recordings are accepted; anything else is ignored
-        const param = new URLSearchParams(window.location.search).get('liked');
-        if (param) {
-          const ids = param.split('.').slice(0, 500).map(s => s.trim()).filter(id => validIds.has(id));
-          if (ids.length) this._sharedIds = new Set(ids);
+        // Off for now: a ?liked= link is ignored and the normal map loads.
+        // When on, only IDs that match real recordings are accepted; anything else is ignored.
+        if (this.sharedLinksEnabled) {
+          const param = new URLSearchParams(window.location.search).get('liked');
+          if (param) {
+            const ids = param.split('.').slice(0, 500).map(s => s.trim()).filter(id => validIds.has(id));
+            if (ids.length) this._sharedIds = new Set(ids);
+          }
         }
 
         this.refreshFilterRows();
@@ -2966,8 +2970,8 @@ class MapController {
       setLikeButtonState(btn, liked) {
         btn.classList.toggle('liked', liked);
         btn.setAttribute('aria-pressed', liked ? 'true' : 'false');
-        btn.setAttribute('aria-label', liked ? 'Remove from my favorites' : 'Add to my favorites');
-        btn.title = liked ? 'Remove from my favorites' : 'Add to my favorites';
+        btn.setAttribute('aria-label', liked ? 'Remove from my collection' : 'Add to my collection');
+        btn.title = liked ? 'Remove from my collection' : 'Add to my collection';
       }
 
       toggleLike(track) {

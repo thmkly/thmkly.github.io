@@ -250,6 +250,8 @@ class UIController {
           const playlist = wrapper.querySelector('#playlist');
           const footer = wrapper.querySelector('.playlist-footer');
           const searchBar = wrapper.querySelector('.playlist-search');
+          const likedRow = document.getElementById('likedFilterRow');
+          const sharedRow = document.getElementById('sharedListRow');
           const scrollUp = document.getElementById('scrollUp');
           const scrollDown = document.getElementById('scrollDown');
           if (!header || !playlist || !footer) return;
@@ -257,6 +259,8 @@ class UIController {
           const headerH = header.offsetHeight;
           const footerH = footer.offsetHeight;
           const searchH = searchBar ? searchBar.offsetHeight : 0;
+          const likedRowH = (likedRow && likedRow.classList.contains('visible')) ? likedRow.offsetHeight : 0;
+          const sharedRowH = (sharedRow && sharedRow.classList.contains('visible')) ? sharedRow.offsetHeight : 0;
           const topMargin = 20;
           const maxH = window.innerHeight - topMargin - 20;
 
@@ -272,7 +276,7 @@ class UIController {
           }
           const effectiveTrackH = isSearching ? this._fullPlaylistTrackH : trackH;
 
-          const totalH = headerH + searchH + effectiveTrackH + footerH;
+          const totalH = headerH + searchH + likedRowH + sharedRowH + effectiveTrackH + footerH;
           const finalH = Math.min(totalH, maxH);
           wrapper.style.bottom = `${window.innerHeight - topMargin - finalH}px`;
 
