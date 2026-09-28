@@ -2083,18 +2083,12 @@ class MapController {
             // Title — click to fly back to this sound's location
             const title = document.createElement('h3');
             title.className = 'popup-title';
-            title.textContent = track.name;
             title.style.cursor = 'pointer';
             title.title = 'Re-center on this sound';
             title.addEventListener('click', () => {
               this.positionMapForTrack(track, index);
             });
-            const popupLikeBtn = this.createLikeButton(track);
-            if (popupLikeBtn) {
-              // A non-breaking space keeps the heart glued to the title's last word
-              title.appendChild(document.createTextNode('\u00A0'));
-              title.appendChild(popupLikeBtn);
-            }
+            this.setTitleWithHeart(title, track.name, this.createLikeButton(track));
             container.appendChild(title);
         
             // Meta line: timestamp · mile · elevation · section
@@ -2969,6 +2963,24 @@ class MapController {
         try {
           localStorage.setItem('pctSoundmapLikes', JSON.stringify([...this._likes]));
         } catch (e) { /* storage unavailable (e.g. private browsing): hearts last for this visit only */ }
+      }
+
+      // Fills a title with its text and, if given, the heart, keeping the heart on the same line as
+      // the last word: the two wrap together or not at all. A no-break space is not enough, because
+      // browsers allow a line break between a space and a box like the heart. Holding the last word
+      // and the heart in one no-wrap piece is what keeps them together.
+      setTitleWithHeart(titleEl, text, heartBtn) {
+        if (!heartBtn) { titleEl.textContent = text; return; }
+        const clean = String(text || '').replace(/\s+$/, '');
+        const parts = clean.match(/^([\s\S]*?)(\S+)$/);
+        const head = parts ? parts[1] : '';
+        const lastWord = parts ? parts[2] : clean;
+        if (head) titleEl.appendChild(document.createTextNode(head));
+        const keepTogether = document.createElement('span');
+        keepTogether.style.whiteSpace = 'nowrap';
+        keepTogether.appendChild(document.createTextNode(lastWord + '\u00A0'));
+        keepTogether.appendChild(heartBtn);
+        titleEl.appendChild(keepTogether);
       }
 
       createLikeButton(track) {
