@@ -250,6 +250,8 @@ class UIController {
           const playlist = wrapper.querySelector('#playlist');
           const footer = wrapper.querySelector('.playlist-footer');
           const searchBar = wrapper.querySelector('.playlist-search');
+          const likedRow = document.getElementById('likedFilterRow');
+          const sharedRow = document.getElementById('sharedListRow');
           const scrollUp = document.getElementById('scrollUp');
           const scrollDown = document.getElementById('scrollDown');
           if (!header || !playlist || !footer) return;
@@ -257,22 +259,29 @@ class UIController {
           const headerH = header.offsetHeight;
           const footerH = footer.offsetHeight;
           const searchH = searchBar ? searchBar.offsetHeight : 0;
+          const likedRowH = (likedRow && likedRow.classList.contains('visible')) ? likedRow.offsetHeight : 0;
+          const sharedRowH = (sharedRow && sharedRow.classList.contains('visible')) ? sharedRow.offsetHeight : 0;
           const topMargin = 20;
           const maxH = window.innerHeight - topMargin - 20;
 
-          // Use stored full-list height if search is active, so playlist doesn't shrink
+          // The panel keeps the height of the full list so it never shrinks when the list is narrowed:
+          // by typed search text, by the collection view, or by a shared list
           const tracks = playlist.querySelectorAll('.track');
           let trackH = 0;
           tracks.forEach(t => { trackH += t.offsetHeight; });
 
-          // Store max track height when not searching (full list)
-          const isSearching = !!(mapController && mapController._searchQuery);
-          if (!isSearching || !this._fullPlaylistTrackH) {
+          const mc = (typeof mapController !== 'undefined') ? mapController : null;
+          const isNarrowed = !!(mc && (
+            (mc._searchQuery || '').trim() ||
+            mc._playbackFilter === 'liked' ||
+            mc._sharedIds
+          ));
+          if (!isNarrowed || !this._fullPlaylistTrackH) {
             this._fullPlaylistTrackH = trackH;
           }
-          const effectiveTrackH = isSearching ? this._fullPlaylistTrackH : trackH;
+          const effectiveTrackH = isNarrowed ? this._fullPlaylistTrackH : trackH;
 
-          const totalH = headerH + searchH + effectiveTrackH + footerH;
+          const totalH = headerH + searchH + likedRowH + sharedRowH + effectiveTrackH + footerH;
           const finalH = Math.min(totalH, maxH);
           wrapper.style.bottom = `${window.innerHeight - topMargin - finalH}px`;
 
@@ -603,6 +612,9 @@ class UIController {
         const infoBox = document.createElement('div');
         infoBox.className = 'mini-infobox';
         infoBox.dataset.trackIndex = trackIndex;
+        // No built-in guard on a custom element — without this, scrolling here zooms/pans the map underneath
+        infoBox.addEventListener('wheel', (e) => e.stopPropagation(), { passive: true });
+        infoBox.addEventListener('touchmove', (e) => e.stopPropagation(), { passive: true });
 
         // Main zone — play/pause icon + title, tap to play/pause
         const pill = document.createElement('div');

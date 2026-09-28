@@ -212,6 +212,10 @@
     color: #5c3a2e;
   }
 
+  body.is-mobile .support-link {
+    font-size: 13px;
+  }
+
 
   .track {
     cursor: pointer;
@@ -244,6 +248,13 @@
     padding-right: 57px;
   }
 
+  .track-title {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    min-width: 0;
+  }
+
   .track-mile-zone {
     position: absolute;
     right: 0;
@@ -258,19 +269,21 @@
     pointer-events: none;
   }
 
-  .track-mile-zone .track-mile {
+  /* Where a row has a mile marker on desktop, the whole zone is the link, not just the text,
+     so moving down the column never flips a row between its row highlight and the link highlight */
+  .track-mile-zone.is-link {
     pointer-events: auto;
+    cursor: pointer;
   }
 
   .track-mile {
     font-size: 0.8em;
     color: #666;
     text-align: right;
-    cursor: pointer;
     transition: color 0.15s;
   }
 
-  .track-mile:hover {
+  .track-mile-zone.is-link:hover .track-mile {
     color: #5c3a2e;
     text-decoration: underline;
   }
@@ -1105,7 +1118,7 @@
     color: rgba(190, 200, 215, 0.9) !important;
   }
   body.night-mode .mini-infobox-chevron:hover {
-    background-color: rgba(190, 200, 215, 0.28) !important;
+    background-color: rgba(190, 200, 215, 0.36) !important;
     color: rgba(220, 230, 245, 1) !important;
   }
   body.night-mode .mini-infobox.minimized-popup .mini-infobox-pill {
@@ -1115,6 +1128,15 @@
   body.night-mode .mini-infobox.minimized-popup .mini-infobox-chevron {
     background-color: rgba(190, 200, 215, 0.18) !important;
     border-color: rgba(255,255,255,0.12) !important;
+  }
+  /* Hover for the minimized-player state: the rest rules above are more specific than the plain
+     hover rules, so these repeat the hover look at a higher specificity */
+  body.night-mode .mini-infobox.minimized-popup .mini-infobox-pill:hover {
+    background-color: rgba(58, 68, 88, 0.96) !important;
+  }
+  body.night-mode .mini-infobox.minimized-popup .mini-infobox-chevron:hover {
+    background-color: rgba(190, 200, 215, 0.36) !important;
+    color: rgba(220, 230, 245, 1) !important;
   }
   body.night-mode .mini-infobox-pill .play-icon {
     border-left-color: rgba(190, 200, 215, 0.9) !important;
@@ -1174,7 +1196,7 @@
     color: rgba(190, 200, 215, 0.9) !important;
   }
   body.night-mode .mini-infobox-pill:hover {
-    background-color: rgba(35, 40, 52, 0.95) !important;
+    background-color: rgba(58, 68, 88, 0.96) !important;
   }
   /* Playing badge */
   body.night-mode #playing-badge {
@@ -1232,9 +1254,20 @@
   body.night-mode .track:has(.track-mile-zone:hover) {
     background-color: transparent !important;
   }
-  body.night-mode .track-mile:hover {
+  /* In the link look the row has no tint, so the title (and its heart) must stay light on the dark panel.
+     The row hover and playing-row rules above would otherwise turn them dark, and they would vanish. */
+  body.night-mode .track:has(.track-mile-zone.is-link:hover) .track-info {
+    color: rgba(190, 200, 215, 0.9) !important;
+  }
+  body.night-mode .track-mile-zone.is-link:hover .track-mile {
     color: rgba(190, 200, 215, 0.9) !important;
     text-decoration: underline;
+  }
+  /* The row background snaps between light and dark as the mouse moves, so the mile text has to snap
+     with it. Its 0.15s color fade would leave it dark on a dark row (or light on a light one) for a
+     moment, which shows as a flash. */
+  body.night-mode .track-mile {
+    transition: none;
   }
   body.night-mode .control-panel-container {
     background-color: transparent !important;
@@ -1417,6 +1450,168 @@
     width: 15px;
     height: 15px;
   }
+  body.is-mobile .like-btn {
+    padding: 8px;
+    margin: -9px 0 -9px 1px;
+  }
+
+  /* ── Likes: heart ── */
+  /* Hearts take the row's text color, so night mode and highlighted rows follow automatically */
+  .like-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    vertical-align: -1px;
+    margin: -3px 0 -3px 3px;
+    padding: 2px;
+    color: inherit;
+    opacity: 0.55;
+    cursor: pointer;
+    line-height: 0;
+    border-radius: 3px;
+    transition: opacity 0.15s;
+  }
+  .like-btn:hover { opacity: 0.85; }
+  .like-btn.liked { opacity: 1; }
+  .like-btn.liked:hover { opacity: 0.8; }
+  .like-btn:focus-visible { outline: 1px solid currentColor; outline-offset: 1px; }
+  /* Outline at rest; fills solid once kept */
+  .like-heart { fill: none; stroke: currentColor; stroke-width: 1.7px; stroke-linejoin: round; }
+  .like-btn.liked .like-heart { fill: currentColor; stroke: none; }
+  .popup-title .like-btn svg { width: 16px; height: 16px; }
+
+  /* ── Likes: liked row and shared-list row ── */
+  .search-filter-row.has-actions.visible {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+  }
+  .filter-actions {
+    display: none;
+    align-items: center;
+    flex-shrink: 0;
+    font-size: 12px;
+  }
+  .filter-actions.visible { display: inline-flex; }
+  .filter-text-link {
+    -webkit-appearance: none;
+    appearance: none;
+    background: none;
+    border: none;
+    padding: 0;
+    margin: 0;
+    font-family: helvetica, sans-serif;
+    font-size: 12px;
+    color: #5c3a2e;
+    text-decoration: underline;
+    cursor: pointer;
+  }
+  .filter-text-link:hover { color: #3d2519; }
+  #likedShareLink { display: none; }
+  #likedShareLink.visible { display: inline; }
+  #likedShareSep { display: none; }
+  #likedShareSep.visible { display: inline; }
+  #sharedAddAll { display: none; }
+  #sharedAddAll.visible { display: inline; }
+  #sharedAddAll.visible + #sharedSep { display: inline; }
+  #sharedSep { display: none; }
+  .filter-sep { color: #bbb; margin: 0 5px; }
+  .filter-confirm-text { color: #666; margin-right: 5px; }
+  .shared-list-row { background: rgba(255, 242, 232, 0.85); }
+  .shared-list-label { font-size: 13px; color: #3d2519; }
+
+  /* ── Likes: share dialog (uses the info dialog frame) ── */
+  .share-dialog {
+    width: min(320px, 92vw);
+    max-height: none;
+  }
+  body.is-mobile .share-dialog {
+    height: auto;
+    max-height: 85vh;
+  }
+  .share-dialog-title {
+    font-size: 12px;
+    font-weight: bold;
+    color: #333;
+    letter-spacing: 0.03em;
+  }
+  .share-dialog-body {
+    padding: 16px 20px 18px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+  }
+  .info-dialog p.share-dialog-note {
+    margin: 0;
+    text-align: center;
+    font-size: 13px;
+    line-height: 1.5;
+  }
+  .share-qr {
+    width: 168px;
+    height: 168px;
+    padding: 10px;
+    box-sizing: border-box;
+    background: white;
+    border: 1px solid rgba(0, 0, 0, 0.08);
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .share-qr svg { width: 100%; height: 100%; display: block; }
+  .share-qr.qr-error { font-size: 12px; color: #888; text-align: center; line-height: 1.4; }
+  .share-link-row { display: flex; width: 100%; gap: 6px; }
+  .share-link-input {
+    flex: 1;
+    min-width: 0;
+    font-size: 12px;
+    font-family: helvetica, sans-serif;
+    color: #555;
+    padding: 6px 8px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    background: #fafafa;
+    outline: none;
+  }
+  .share-copy-btn {
+    -webkit-appearance: none;
+    appearance: none;
+    box-shadow: none;
+    font-size: 12px;
+    font-family: helvetica, sans-serif;
+    padding: 0 12px;
+    min-width: 64px;
+    border: 1px solid #bbb;
+    border-radius: 4px;
+    background: white;
+    color: #333;
+    cursor: pointer;
+  }
+  .share-copy-btn:hover { background: #f0f0f0; }
+
+  /* Likes: night mode (QR box stays white so it scans) */
+  body.night-mode .filter-text-link { color: rgba(190, 200, 215, 0.8); }
+  body.night-mode .filter-text-link:hover { color: rgba(190, 200, 215, 1); }
+  body.night-mode .filter-sep { color: rgba(255, 255, 255, 0.2); }
+  body.night-mode .filter-confirm-text { color: rgba(190, 200, 215, 0.6); }
+  body.night-mode .shared-list-row { background: rgba(255, 255, 255, 0.05); }
+  body.night-mode .shared-list-label { color: rgba(190, 200, 215, 0.9); }
+  body.night-mode .share-dialog-title { color: rgba(190, 200, 215, 0.9) !important; }
+  body.night-mode .share-link-input {
+    background: rgba(255, 255, 255, 0.05);
+    border-color: rgba(255, 255, 255, 0.15);
+    color: rgba(190, 200, 215, 0.9);
+  }
+  body.night-mode .share-copy-btn {
+    background: transparent;
+    border-color: rgba(255, 255, 255, 0.15);
+    color: rgba(190, 200, 215, 0.9);
+  }
+  body.night-mode .share-copy-btn:hover { background: rgba(255, 255, 255, 0.08); }
+  body.night-mode .share-qr.qr-error { background: transparent; color: rgba(190, 200, 215, 0.6); }
   .notification {
     position: fixed;
     top: 50%;
@@ -1477,11 +1672,11 @@
     background-color: #333;
     transition: all 0.3s;
   }
-  .waveform-bars { display: none; }
-  .wb { display: block; width: 2px; background-color: #333; border-radius: 1px; flex-shrink: 0; }
+  .waveform-bars { display: none; color: #333; }
   body.is-mobile .ham-line { display: none; }
-  body.is-mobile .waveform-bars { display: flex; align-items: center; gap: 2px; height: 18px; padding: 0 3px; }
-  body.night-mode.is-mobile .wb { background-color: rgba(190, 200, 215, 0.9); }
+  body.is-mobile .waveform-bars { display: flex; align-items: center; justify-content: center; height: 18px; }
+  body.is-mobile .waveform-bars svg { display: block; }
+  body.night-mode.is-mobile .waveform-bars { color: rgba(190, 200, 215, 0.9); }
 
   /* Mobile close button */
   .mobile-menu-close {
@@ -2006,13 +2201,7 @@
     <span class="ham-line"></span>
     <span class="ham-line"></span>
     <span class="waveform-bars">
-      <span class="wb" style="height:4px"></span>
-      <span class="wb" style="height:9px"></span>
-      <span class="wb" style="height:14px"></span>
-      <span class="wb" style="height:7px"></span>
-      <span class="wb" style="height:11px"></span>
-      <span class="wb" style="height:5px"></span>
-      <span class="wb" style="height:9px"></span>
+      <svg width="28" height="18" viewBox="0 0 28 18" aria-hidden="true"><rect x="0.4" y="8.1" width="1.2" height="1.8" fill="currentColor"/><rect x="2.4" y="6.8" width="1.2" height="4.4" fill="currentColor"/><rect x="4.4" y="4.4" width="1.2" height="9.2" fill="currentColor"/><rect x="6.4" y="1.2" width="1.2" height="15.6" fill="currentColor"/><rect x="8.4" y="3.6" width="1.2" height="10.8" fill="currentColor"/><rect x="10.4" y="1.4" width="1.2" height="15.2" fill="currentColor"/><rect x="12.4" y="5" width="1.2" height="8" fill="currentColor"/><rect x="14.4" y="2.6" width="1.2" height="12.8" fill="currentColor"/><rect x="16.4" y="5.6" width="1.2" height="6.8" fill="currentColor"/><rect x="18.4" y="4" width="1.2" height="10" fill="currentColor"/><rect x="20.4" y="6.4" width="1.2" height="5.2" fill="currentColor"/><rect x="22.4" y="5.4" width="1.2" height="7.2" fill="currentColor"/><rect x="24.4" y="7.2" width="1.2" height="3.6" fill="currentColor"/><rect x="26.4" y="8" width="1.2" height="2" fill="currentColor"/></svg>
     </span>
   </button>
   <button class="info-btn" id="infoBtnMobile" title="About this map">i</button>
@@ -2048,6 +2237,30 @@
         <span>play search results only</span>
       </div>
     </div>
+    <!-- Liked sounds row: appears once anything is hearted -->
+    <div class="search-filter-row has-actions" id="likedFilterRow">
+      <div class="search-filter-label" id="likedFilterLabel">
+        <div class="custom-checkbox" id="likedCheckboxEl" role="checkbox" aria-checked="false" tabindex="0" aria-label="Show my collection only">
+          <svg class="check-icon" width="8" height="6" viewBox="0 0 8 6" fill="none"><polyline points="1,3 3,5 7,1" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </div>
+        <span>show my collection only</span>
+      </div>
+      <span class="filter-actions" id="likedActions">
+        <span id="likedActionsNormal">
+          <button type="button" class="filter-text-link" id="likedClearLink">clear</button>
+        </span>
+        <span id="likedActionsConfirm" style="display:none">
+          <span class="filter-confirm-text">clear all?</span><button type="button" class="filter-text-link" id="likedClearYes">yes</button><span class="filter-sep">/</span><button type="button" class="filter-text-link" id="likedClearNo">no</button>
+        </span>
+      </span>
+    </div>
+    <!-- Shared list row: shown when someone opens a shared link -->
+    <div class="search-filter-row has-actions shared-list-row" id="sharedListRow">
+      <span class="shared-list-label">listening to a shared list</span>
+      <span class="filter-actions visible">
+        <button type="button" class="filter-text-link" id="sharedAddAll">add to my liked sounds</button><span class="filter-sep" id="sharedSep">&middot;</span><button type="button" class="filter-text-link" id="sharedExit">exit</button>
+      </span>
+    </div>
     <!-- Track list -->
     <div class="scroll-arrow up" id="scrollUp" title="Scroll up">▲</div>
     <div class="playlist" id="playlist">
@@ -2057,7 +2270,7 @@
     <!-- Playlist footer: support link -->
     <div class="playlist-footer">
       <div class="playlist-footer-byline">by stereo</div>
-      <a href="https://ko-fi.com/thmkly" target="_blank" rel="noopener noreferrer" class="support-link">support this project + my future work &#10084;&#xFE0E;</a>
+      <a href="https://ko-fi.com/thmkly" target="_blank" rel="noopener noreferrer" class="support-link">support this project + my future work</a>
     </div>
   </div>
 
@@ -2137,6 +2350,24 @@
     </div>
   </div>
 
+  <!-- Share liked sounds dialog (same frame as the info dialog) -->
+  <div class="info-overlay" id="shareOverlay">
+    <div class="info-dialog share-dialog" role="dialog" aria-label="Share your liked sounds">
+      <div class="info-dialog-header">
+        <span class="share-dialog-title">share</span>
+        <button class="info-dialog-close" id="shareDialogClose" aria-label="Close">−</button>
+      </div>
+      <div class="share-dialog-body">
+        <p class="share-dialog-note">Open this link on another device, or send it to a friend.</p>
+        <div class="share-qr" id="shareQr"></div>
+        <div class="share-link-row">
+          <input type="text" class="share-link-input" id="shareLinkInput" readonly aria-label="Share link" />
+          <button type="button" class="share-copy-btn" id="shareCopyBtn">copy</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <script src="config.js"></script>
   <script src="audiocontroller.js"></script>
   <script src="atmospherecontroller.js"></script>
@@ -2177,19 +2408,32 @@
         }
       }
 
-      // Add custom attribution link
-      setTimeout(() => {
+      // Keep the "© Thomas Kelly" credit in the map's attribution.
+      // Mapbox rewrites the attribution text whenever the map style changes (night mode, 3D),
+      // which removes anything added by hand, so watch it and put the link back if it goes.
+      const addCreditLink = () => {
         const attrib = document.querySelector('.mapboxgl-ctrl-attrib-inner');
-        if (attrib) {
-          const link = document.createElement('a');
-          link.href = 'https://thomasmkelly.com';
-          link.target = '_blank';
-          link.rel = 'noopener noreferrer';
-          link.textContent = '© Thomas Kelly';
-          link.style.cssText = 'margin-right: 4px;';
-          attrib.insertBefore(link, attrib.firstChild);
+        if (!attrib || attrib.querySelector('.credit-link')) return;
+        const link = document.createElement('a');
+        link.className = 'credit-link';
+        link.href = 'https://thomasmkelly.com';
+        link.target = '_blank';
+        link.rel = 'noopener noreferrer';
+        link.textContent = '© Thomas Kelly';
+        link.style.cssText = 'margin-right: 4px;';
+        attrib.insertBefore(link, attrib.firstChild);
+      };
+      let creditTries = 0;
+      const watchCreditLink = () => {
+        const ctrl = document.querySelector('.mapboxgl-ctrl-attrib');
+        if (!ctrl) {
+          if (++creditTries < 20) setTimeout(watchCreditLink, 500);
+          return;
         }
-      }, 1000);
+        new MutationObserver(addCreditLink).observe(ctrl, { childList: true, subtree: true });
+        addCreditLink();
+      };
+      setTimeout(watchCreditLink, 1000);
 
       // Initialize controllers after DOM is ready
       audioController = new AudioController();

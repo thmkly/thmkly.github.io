@@ -1,6 +1,9 @@
 // Configuration
 const CONFIG = {
   MAPBOX_TOKEN: window.MAPBOX_CONFIG?.token || 'pk.eyJ1IjoidGhta2x5IiwiYSI6ImNseXVyMjhueDA3YTQybW9mcHJrZGJ3YnEifQ.Nv-LsNg5eKIE6SeOVVJpYg',
+  // Where the map reads its recordings from: a file in the same folder as the page, like the scripts
+  DATA_URL: 'tracks.json',
+  // Where the data is kept up to date. The map no longer calls this; open it to export a fresh tracks.json
   GOOGLE_SCRIPT_URL: 'https://script.google.com/macros/s/AKfycby_r5ZmEKXTwNLEjjLlvk9PL50mvOKS8RferARanXtXdmG-uWxXIAAEkA6zRe5QKB44/exec',
   DEFAULT_CENTER: [-122.50276, 41.31727],
   DEFAULT_CENTER_MOBILE: [-119.80462182339255, 41.37182150227608],
