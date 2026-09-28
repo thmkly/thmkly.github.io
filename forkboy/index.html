@@ -1116,7 +1116,7 @@
     color: rgba(190, 200, 215, 0.9) !important;
   }
   body.night-mode .mini-infobox-chevron:hover {
-    background-color: rgba(190, 200, 215, 0.28) !important;
+    background-color: rgba(190, 200, 215, 0.36) !important;
     color: rgba(220, 230, 245, 1) !important;
   }
   body.night-mode .mini-infobox.minimized-popup .mini-infobox-pill {
@@ -1126,6 +1126,15 @@
   body.night-mode .mini-infobox.minimized-popup .mini-infobox-chevron {
     background-color: rgba(190, 200, 215, 0.18) !important;
     border-color: rgba(255,255,255,0.12) !important;
+  }
+  /* Hover for the minimized-player state: the rest rules above are more specific than the plain
+     hover rules, so these repeat the hover look at a higher specificity */
+  body.night-mode .mini-infobox.minimized-popup .mini-infobox-pill:hover {
+    background-color: rgba(58, 68, 88, 0.96) !important;
+  }
+  body.night-mode .mini-infobox.minimized-popup .mini-infobox-chevron:hover {
+    background-color: rgba(190, 200, 215, 0.36) !important;
+    color: rgba(220, 230, 245, 1) !important;
   }
   body.night-mode .mini-infobox-pill .play-icon {
     border-left-color: rgba(190, 200, 215, 0.9) !important;
@@ -1185,7 +1194,7 @@
     color: rgba(190, 200, 215, 0.9) !important;
   }
   body.night-mode .mini-infobox-pill:hover {
-    background-color: rgba(35, 40, 52, 0.95) !important;
+    background-color: rgba(58, 68, 88, 0.96) !important;
   }
   /* Playing badge */
   body.night-mode #playing-badge {
