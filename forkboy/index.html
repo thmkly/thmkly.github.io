@@ -1465,19 +1465,28 @@
     margin: -3px 0 -3px 3px;
     padding: 2px;
     color: inherit;
-    opacity: 0.55;
     cursor: pointer;
     line-height: 0;
     border-radius: 3px;
-    transition: opacity 0.15s;
   }
-  .like-btn:hover { opacity: 0.85; }
-  .like-btn.liked { opacity: 1; }
-  .like-btn.liked:hover { opacity: 0.8; }
   .like-btn:focus-visible { outline: 1px solid currentColor; outline-offset: 1px; }
-  /* Outline at rest; fills solid once kept */
-  .like-heart { fill: none; stroke: currentColor; stroke-width: 1.7px; stroke-linejoin: round; }
-  .like-btn.liked .like-heart { fill: currentColor; stroke: none; }
+  /* Three states: an outline at rest, a soft fill on hover, solid once kept.
+     All three share the same outline, so the heart never changes size between them.
+     Colors come from currentColor, so night mode and highlighted rows follow automatically. */
+  .like-heart {
+    fill: currentColor;
+    fill-opacity: 0;
+    stroke: currentColor;
+    stroke-opacity: 0.55;
+    stroke-width: 1.7px;
+    stroke-linejoin: round;
+  }
+  .like-btn.liked .like-heart { fill-opacity: 1; stroke-opacity: 1; }
+  /* Hover only where there is a mouse: on a phone, a tap would leave the heart stuck looking half-selected */
+  @media (hover: hover) {
+    .like-btn:not(.liked):hover .like-heart { fill-opacity: 0.4; }
+    .like-btn.liked:hover { opacity: 0.8; }   /* dims as one piece, so the fill and outline do not stack into a ring */
+  }
   .popup-title .like-btn svg { width: 16px; height: 16px; }
 
   /* ── Likes: liked row and shared-list row ── */
@@ -1491,7 +1500,7 @@
     display: none;
     align-items: center;
     flex-shrink: 0;
-    font-size: 12px;
+    font-size: 13px;
   }
   .filter-actions.visible { display: inline-flex; }
   .filter-text-link {
@@ -1502,7 +1511,7 @@
     padding: 0;
     margin: 0;
     font-family: helvetica, sans-serif;
-    font-size: 12px;
+    font-size: inherit;
     color: #5c3a2e;
     text-decoration: underline;
     cursor: pointer;
@@ -2270,7 +2279,7 @@
     <!-- Playlist footer: support link -->
     <div class="playlist-footer">
       <div class="playlist-footer-byline">by stereo</div>
-      <a href="https://ko-fi.com/thmkly" target="_blank" rel="noopener noreferrer" class="support-link">support this project + my future work</a>
+      <a href="https://ko-fi.com/thmkly" target="_blank" rel="noopener noreferrer" class="support-link">support this project + my ongoing work</a>
     </div>
   </div>
 
