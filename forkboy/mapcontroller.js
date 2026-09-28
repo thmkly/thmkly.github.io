@@ -401,12 +401,8 @@ class MapController {
 
         if (searchInput) {
           searchInput.addEventListener('input', () => {
-            const newQuery = searchInput.value.trimStart();
-            this._searchQuery = newQuery;
-            searchClear.classList.toggle('visible', newQuery.trim().length > 0);
-
-            // Clearing the text ends search playback; liked playback is unaffected
-            if (!newQuery.trim() && this._playbackFilter === 'search') this._playbackFilter = null;
+            // Typed text is a search of the whole map: it decides which playback box can stay checked
+            this.applySearchText(searchInput.value.trimStart());
             this.refreshFilterRows();
 
             const playlist = document.getElementById('playlist');
@@ -449,9 +445,7 @@ class MapController {
         if (searchClear) {
           searchClear.addEventListener('click', () => {
             searchInput.value = '';
-            this._searchQuery = '';
-            if (this._playbackFilter === 'search') this._playbackFilter = null;
-            searchClear.classList.remove('visible');
+            this.applySearchText('');
             this.refreshFilterRows();
             this.updatePlaylistOnly();
             if (audioController.currentIndex >= 0) {
@@ -2830,6 +2824,20 @@ class MapController {
         }
       }
 
+      // Everything typed text does to the state, in one place: it becomes the search query
+      // and decides which playback box can stay checked. Only one of the boxes is ever on.
+      //   no text  -> search playback has nothing to play, so the search box unchecks
+      //   any text -> it searches the whole map, so the collection box unchecks
+      applySearchText(text) {
+        const value = text || '';
+        const hasText = value.trim().length > 0;
+        this._searchQuery = value;
+        const clearBtn = document.getElementById('searchClear');
+        if (clearBtn) clearBtn.classList.toggle('visible', hasText);
+        if (!hasText && this._playbackFilter === 'search') this._playbackFilter = null;
+        if (hasText && this._playbackFilter === 'liked') this._playbackFilter = null;
+      }
+
       // Show/hide and check/uncheck the search, liked, and shared-list rows from current state
       refreshFilterRows() {
         const hasQuery = (this._searchQuery || '').trim().length > 0;
@@ -2895,11 +2903,18 @@ class MapController {
           this.refreshFilterRows();
         });
 
-        // Liked box: changes playback, and changes the list when nothing is typed
+        // Collection box: switches the list to your collection and plays it.
+        // Turning it on replaces any search, so it clears the typed text.
         bindCheckbox('likedCheckboxEl', 'likedFilterLabel', () => {
-          this._playbackFilter = this._playbackFilter === 'liked' ? null : 'liked';
+          const turningOn = this._playbackFilter !== 'liked';
+          this._playbackFilter = turningOn ? 'liked' : null;
+          if (turningOn) {
+            const input = document.getElementById('searchInput');
+            if (input) input.value = '';
+            this.applySearchText('');
+          }
           this.refreshFilterRows();
-          if (!(this._searchQuery || '').trim()) this.rerenderPlaylistKeepingActive(true);
+          this.rerenderPlaylistKeepingActive(true);
         });
 
         onClick('likedShareLink', () => this.openShareDialog());
