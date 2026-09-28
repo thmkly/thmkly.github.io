@@ -509,10 +509,12 @@ class MapController {
           // Show persistent loading notification (duration 0 = stays until hidden)
           showNotification('loading recordings...', 0);
           
-          const url = `${CONFIG.GOOGLE_SCRIPT_URL}?nocache=${Date.now()}`;
+          const url = CONFIG.DATA_URL;
           
-          // Simple fetch without extra headers to avoid CORS preflight
-          fetch(url)
+          // A static file on this site, so there are no cross-site rules to work around.
+          // 'no-cache' makes the browser check with the server on every load: a tiny "not modified"
+          // reply when nothing changed, and the new file the moment it is updated.
+          fetch(url, { cache: 'no-cache' })
             .then(response => {
               if (!response.ok) {
                 throw new Error(`HTTP error! status: ${response.status}`);
