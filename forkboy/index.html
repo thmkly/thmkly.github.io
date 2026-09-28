@@ -269,19 +269,21 @@
     pointer-events: none;
   }
 
-  .track-mile-zone .track-mile {
+  /* Where a row has a mile marker on desktop, the whole zone is the link, not just the text,
+     so moving down the column never flips a row between its row highlight and the link highlight */
+  .track-mile-zone.is-link {
     pointer-events: auto;
+    cursor: pointer;
   }
 
   .track-mile {
     font-size: 0.8em;
     color: #666;
     text-align: right;
-    cursor: pointer;
     transition: color 0.15s;
   }
 
-  .track-mile:hover {
+  .track-mile-zone.is-link:hover .track-mile {
     color: #5c3a2e;
     text-decoration: underline;
   }
@@ -1252,7 +1254,12 @@
   body.night-mode .track:has(.track-mile-zone:hover) {
     background-color: transparent !important;
   }
-  body.night-mode .track-mile:hover {
+  /* In the link look the row has no tint, so the title (and its heart) must stay light on the dark panel.
+     The row hover and playing-row rules above would otherwise turn them dark, and they would vanish. */
+  body.night-mode .track:has(.track-mile-zone.is-link:hover) .track-info {
+    color: rgba(190, 200, 215, 0.9) !important;
+  }
+  body.night-mode .track-mile-zone.is-link:hover .track-mile {
     color: rgba(190, 200, 215, 0.9) !important;
     text-decoration: underline;
   }

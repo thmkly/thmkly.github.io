@@ -732,6 +732,34 @@ class MapController {
         this._lastData = geojson;
       }
 
+      // The mile marker area at the right of a playlist row. On desktop, where a row has a mile marker,
+      // the whole area is the link (not just the text), so hovering down the column never flips a row
+      // between its row highlight and the link highlight. Clicking it flies to the sound without playing it.
+      createMileZone(track) {
+        const zone = document.createElement('div');
+        zone.className = 'track-mile-zone';
+
+        const label = document.createElement('div');
+        label.className = 'track-mile';
+        const displayMile = this.getDisplayMile(track);
+        const mile = displayMile !== null && displayMile.toString().trim().toLowerCase() !== 'n/a' ? `mi.${displayMile}` : '';
+        label.textContent = mile;
+
+        if (mile && !uiController.isMobile) {
+          zone.classList.add('is-link');
+          zone.title = 'Fly to location';
+          zone.addEventListener('click', (e) => {
+            e.stopPropagation();
+            e.preventDefault();
+            this.positionMapForTrack(track, this.audioData.indexOf(track));
+            setTimeout(() => this.updateActiveTrack(audioController.currentIndex, false, audioController.currentAudio), 50);
+          });
+        }
+
+        zone.appendChild(label);
+        return zone;
+      }
+
       updatePlaylistOnly() {
         const playlist = document.getElementById('playlist');
 
@@ -775,30 +803,8 @@ class MapController {
           if (likeBtn) trackTitle.appendChild(likeBtn);
           trackInfo.appendChild(trackTitle);
           
-          const trackMileZone = document.createElement('div');
-          trackMileZone.className = 'track-mile-zone';
-
-          const trackMile = document.createElement('div');
-          trackMile.className = 'track-mile';
-          const displayMile = this.getDisplayMile(track);
-          const mile = displayMile !== null && displayMile.toString().trim().toLowerCase() !== 'n/a' ? `mi.${displayMile}` : '';
-          trackMile.textContent = mile;
-
-          // Mile marker click — fly to location without triggering playback (desktop only)
-          if (mile && !uiController.isMobile) {
-            trackMile.title = 'Fly to location';
-            trackMile.style.cursor = 'pointer';
-            trackMile.addEventListener('click', (e) => {
-              e.stopPropagation();
-              e.preventDefault();
-              this.positionMapForTrack(track, this.audioData.indexOf(track));
-              setTimeout(() => this.updateActiveTrack(audioController.currentIndex, false, audioController.currentAudio), 50);
-            });
-          }
-
-          trackMileZone.appendChild(trackMile);
           div.appendChild(trackInfo);
-          div.appendChild(trackMileZone);
+          div.appendChild(this.createMileZone(track));
           
           // Touch feedback — flash highlight on tap, clear on scroll
           if (uiController.isMobile) {
