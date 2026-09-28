@@ -745,7 +745,7 @@ class MapController {
         if (filteredData.length === 0) {
           const empty = document.createElement('div');
           empty.style.cssText = 'padding:16px 10px;font-size:12px;color:#999;text-align:center;';
-          empty.textContent = 'no results';
+          empty.textContent = this.emptyListMessage();
           playlist.appendChild(empty);
           return;
         }
@@ -2771,14 +2771,19 @@ class MapController {
         return false;
       }
 
-      // What the playlist shows. Typed search text always controls the view;
-      // the liked box only changes the view when nothing is typed.
+      // What the playlist shows. The collection box picks the pool (your collection, or the
+      // whole map); typed text then searches inside whichever pool is showing.
       getVisibleTracks() {
         const query = (this._searchQuery || '').trim();
-        const base = this._sharedIds ? this.audioData.filter(t => this.isInSharedList(t)) : this.audioData;
-        if (query) return base.filter(t => this.matchesQuery(t, query));
-        if (!this._sharedIds && this._playbackFilter === 'liked') return base.filter(t => this.isLiked(t));
-        return base;
+        let pool = this._sharedIds ? this.audioData.filter(t => this.isInSharedList(t)) : this.audioData;
+        if (!this._sharedIds && this._playbackFilter === 'liked') pool = pool.filter(t => this.isLiked(t));
+        return query ? pool.filter(t => this.matchesQuery(t, query)) : pool;
+      }
+
+      // Shown when the list is empty. Inside the collection, an empty list means the word matched
+      // nothing there, not that it is missing from the map.
+      emptyListMessage() {
+        return (!this._sharedIds && this._playbackFilter === 'liked') ? 'nothing in your collection matches' : 'no results';
       }
 
       // What playback is limited to, or null for the full playlist
@@ -2787,7 +2792,7 @@ class MapController {
         if (this._sharedIds) {
           data = this.audioData.filter(t => this.isInSharedList(t));
         } else if (this._playbackFilter === 'liked') {
-          data = this.audioData.filter(t => this.isLiked(t));
+          data = this.getVisibleTracks(); // your collection, narrowed by any typed text: playback matches the list
         } else if (this._playbackFilter === 'search' && (this._searchQuery || '').trim()) {
           data = this.audioData.filter(t => this.matchesQuery(t, this._searchQuery));
         }
@@ -2824,10 +2829,9 @@ class MapController {
         }
       }
 
-      // Everything typed text does to the state, in one place: it becomes the search query
-      // and decides which playback box can stay checked. Only one of the boxes is ever on.
-      //   no text  -> search playback has nothing to play, so the search box unchecks
-      //   any text -> it searches the whole map, so the collection box unchecks
+      // What typed text does to the state, in one place: it becomes the search query.
+      // With no text, search playback has nothing to play, so the search box unchecks.
+      // The collection box is untouched: typed text searches inside whichever pool is showing.
       applySearchText(text) {
         const value = text || '';
         const hasText = value.trim().length > 0;
@@ -2835,7 +2839,6 @@ class MapController {
         const clearBtn = document.getElementById('searchClear');
         if (clearBtn) clearBtn.classList.toggle('visible', hasText);
         if (!hasText && this._playbackFilter === 'search') this._playbackFilter = null;
-        if (hasText && this._playbackFilter === 'liked') this._playbackFilter = null;
       }
 
       // Show/hide and check/uncheck the search, liked, and shared-list rows from current state
@@ -2856,8 +2859,16 @@ class MapController {
           el.setAttribute('aria-checked', checked ? 'true' : 'false');
         };
 
-        setRow('searchFilterRow', hasQuery && !shared);
+        // In the collection view the list and playback already match, so the search-results row hides
+        setRow('searchFilterRow', hasQuery && !shared && this._playbackFilter !== 'liked');
         setBox('filterCheckboxEl', this._playbackFilter === 'search');
+
+        // The search bar names what it searches: the whole map, or just your collection
+        const searchInputEl = document.getElementById('searchInput');
+        if (searchInputEl) {
+          if (this._defaultPlaceholder === undefined) this._defaultPlaceholder = searchInputEl.placeholder;
+          searchInputEl.placeholder = (!shared && this._playbackFilter === 'liked') ? 'search my collection' : this._defaultPlaceholder;
+        }
 
         setRow('likedFilterRow', this.likesEnabled && !shared && this._likes.size > 0);
         setBox('likedCheckboxEl', this._playbackFilter === 'liked');
@@ -2903,16 +2914,10 @@ class MapController {
           this.refreshFilterRows();
         });
 
-        // Collection box: switches the list to your collection and plays it.
-        // Turning it on replaces any search, so it clears the typed text.
+        // Collection box: picks the pool. On = your collection, off = the whole map.
+        // Any typed text stays and searches inside whichever pool is showing.
         bindCheckbox('likedCheckboxEl', 'likedFilterLabel', () => {
-          const turningOn = this._playbackFilter !== 'liked';
-          this._playbackFilter = turningOn ? 'liked' : null;
-          if (turningOn) {
-            const input = document.getElementById('searchInput');
-            if (input) input.value = '';
-            this.applySearchText('');
-          }
+          this._playbackFilter = this._playbackFilter === 'liked' ? null : 'liked';
           this.refreshFilterRows();
           this.rerenderPlaylistKeepingActive(true);
         });
@@ -3000,7 +3005,7 @@ class MapController {
         document.querySelectorAll(`.like-btn[data-like-id="${id}"]`).forEach(btn => this.setLikeButtonState(btn, nowLiked));
 
         // In the liked view, an unhearted sound leaves the list; unhearting the last one closes the view
-        const inLikedView = !this._sharedIds && this._playbackFilter === 'liked' && !(this._searchQuery || '').trim();
+        const inLikedView = !this._sharedIds && this._playbackFilter === 'liked';
         this.refreshFilterRows();
         if (inLikedView && !nowLiked) this.rerenderPlaylistKeepingActive(this._likes.size === 0);
       }
@@ -3013,7 +3018,7 @@ class MapController {
       }
 
       clearLikes() {
-        const inLikedView = this._playbackFilter === 'liked' && !(this._searchQuery || '').trim();
+        const inLikedView = this._playbackFilter === 'liked';
         this._likes.clear();
         this.saveLikes();
         document.querySelectorAll('.like-btn.liked').forEach(btn => this.setLikeButtonState(btn, false));
