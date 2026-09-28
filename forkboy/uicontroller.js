@@ -264,17 +264,22 @@ class UIController {
           const topMargin = 20;
           const maxH = window.innerHeight - topMargin - 20;
 
-          // Use stored full-list height if search is active, so playlist doesn't shrink
+          // The panel keeps the height of the full list so it never shrinks when the list is narrowed:
+          // by typed search text, by the collection view, or by a shared list
           const tracks = playlist.querySelectorAll('.track');
           let trackH = 0;
           tracks.forEach(t => { trackH += t.offsetHeight; });
 
-          // Store max track height when not searching (full list)
-          const isSearching = !!(mapController && mapController._searchQuery);
-          if (!isSearching || !this._fullPlaylistTrackH) {
+          const mc = (typeof mapController !== 'undefined') ? mapController : null;
+          const isNarrowed = !!(mc && (
+            (mc._searchQuery || '').trim() ||
+            mc._playbackFilter === 'liked' ||
+            mc._sharedIds
+          ));
+          if (!isNarrowed || !this._fullPlaylistTrackH) {
             this._fullPlaylistTrackH = trackH;
           }
-          const effectiveTrackH = isSearching ? this._fullPlaylistTrackH : trackH;
+          const effectiveTrackH = isNarrowed ? this._fullPlaylistTrackH : trackH;
 
           const totalH = headerH + searchH + likedRowH + sharedRowH + effectiveTrackH + footerH;
           const finalH = Math.min(totalH, maxH);
