@@ -2126,8 +2126,8 @@ class MapController {
               container.appendChild(metaSection);
             }
         
-            // Notes (collapsible) — includes gear below narrative
-            if (track.notes?.trim() || track.gear?.trim()) {
+            // Notes (collapsible) — includes gear and natural-soundscape flag below narrative
+            if (track.notes?.trim() || track.gear?.trim() || track.natural === true) {
               const notesContent = document.createElement('div');
               notesContent.className = 'popup-notes-content';
 
@@ -2142,6 +2142,13 @@ class MapController {
                 gearEl.className = 'popup-gear';
                 gearEl.textContent = `gear used: ${track.gear}`;
                 notesContent.appendChild(gearEl);
+              }
+
+              if (track.natural === true) {
+                const naturalEl = document.createElement('div');
+                naturalEl.className = 'popup-gear';
+                naturalEl.textContent = 'natural soundscape';
+                notesContent.appendChild(naturalEl);
               }
 
               const notesToggle = document.createElement('button');
@@ -3003,7 +3010,7 @@ class MapController {
         // Stop propagation so the heart never starts playback or re-centers the map
         const activate = (e) => { e.stopPropagation(); e.preventDefault(); this.toggleLike(track); };
         btn.addEventListener('click', activate);
-        btn.addEventListener('keydown', (e) => { if (e.code === 'Space' || e.code === 'Enter') activate(e); });
+        btn.addEventListener('keydown', (e) => { if (e.code === 'Enter') activate(e); });
         return btn;
       }
 
