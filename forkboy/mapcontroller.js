@@ -2145,15 +2145,22 @@ class MapController {
               }
 
               if (track.natural === true) {
-                const naturalEl = document.createElement('button');
-                naturalEl.type = 'button';
-                naturalEl.className = 'popup-natural-link';
-                naturalEl.textContent = 'natural soundscape';
-                naturalEl.addEventListener('click', (e) => {
+                const naturalRow = document.createElement('div');
+                naturalRow.className = 'popup-natural-row';
+                naturalRow.appendChild(document.createTextNode('natural soundscape'));
+
+                const naturalLink = document.createElement('button');
+                naturalLink.type = 'button';
+                naturalLink.className = 'popup-natural-link';
+                naturalLink.textContent = '(?)';
+                naturalLink.setAttribute('aria-label', 'What is a natural soundscape?');
+                naturalLink.addEventListener('click', (e) => {
                   e.stopPropagation();
                   this.openNaturalDialog();
                 });
-                notesContent.appendChild(naturalEl);
+                naturalRow.appendChild(naturalLink);
+
+                notesContent.appendChild(naturalRow);
               }
 
               const notesToggle = document.createElement('button');
