@@ -2125,9 +2125,30 @@ class MapController {
               metaSection.textContent = track.section;
               container.appendChild(metaSection);
             }
+
+            // Natural soundscape flag — sits with the metadata, always visible (not behind the
+            // field notes toggle), since it's a property of the recording, not a narrative note
+            if (track.natural === true) {
+              const naturalRow = document.createElement('div');
+              naturalRow.className = 'popup-natural-row';
+              naturalRow.appendChild(document.createTextNode('natural soundscape'));
+
+              const naturalLink = document.createElement('button');
+              naturalLink.type = 'button';
+              naturalLink.className = 'popup-natural-link';
+              naturalLink.textContent = '(?)';
+              naturalLink.setAttribute('aria-label', 'What is a natural soundscape?');
+              naturalLink.addEventListener('click', (e) => {
+                e.stopPropagation();
+                this.openNaturalDialog();
+              });
+              naturalRow.appendChild(naturalLink);
+
+              container.appendChild(naturalRow);
+            }
         
-            // Notes (collapsible) — includes gear and natural-soundscape flag below narrative
-            if (track.notes?.trim() || track.gear?.trim() || track.natural === true) {
+            // Notes (collapsible) — includes gear below narrative
+            if (track.notes?.trim() || track.gear?.trim()) {
               const notesContent = document.createElement('div');
               notesContent.className = 'popup-notes-content';
 
@@ -2142,25 +2163,6 @@ class MapController {
                 gearEl.className = 'popup-gear';
                 gearEl.textContent = `gear used: ${track.gear}`;
                 notesContent.appendChild(gearEl);
-              }
-
-              if (track.natural === true) {
-                const naturalRow = document.createElement('div');
-                naturalRow.className = 'popup-natural-row';
-                naturalRow.appendChild(document.createTextNode('natural soundscape'));
-
-                const naturalLink = document.createElement('button');
-                naturalLink.type = 'button';
-                naturalLink.className = 'popup-natural-link';
-                naturalLink.textContent = '(?)';
-                naturalLink.setAttribute('aria-label', 'What is a natural soundscape?');
-                naturalLink.addEventListener('click', (e) => {
-                  e.stopPropagation();
-                  this.openNaturalDialog();
-                });
-                naturalRow.appendChild(naturalLink);
-
-                notesContent.appendChild(naturalRow);
               }
 
               const notesToggle = document.createElement('button');
