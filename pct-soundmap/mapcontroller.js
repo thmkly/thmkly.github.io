@@ -2125,6 +2125,27 @@ class MapController {
               metaSection.textContent = track.section;
               container.appendChild(metaSection);
             }
+
+            // Natural soundscape flag — sits with the metadata, always visible (not behind the
+            // field notes toggle), since it's a property of the recording, not a narrative note
+            if (track.natural === true) {
+              const naturalRow = document.createElement('div');
+              naturalRow.className = 'popup-natural-row';
+              naturalRow.appendChild(document.createTextNode('natural soundscape'));
+
+              const naturalLink = document.createElement('button');
+              naturalLink.type = 'button';
+              naturalLink.className = 'popup-natural-link';
+              naturalLink.textContent = '(?)';
+              naturalLink.setAttribute('aria-label', 'What is a natural soundscape?');
+              naturalLink.addEventListener('click', (e) => {
+                e.stopPropagation();
+                this.openNaturalDialog();
+              });
+              naturalRow.appendChild(naturalLink);
+
+              container.appendChild(naturalRow);
+            }
         
             // Notes (collapsible) — includes gear below narrative
             if (track.notes?.trim() || track.gear?.trim()) {
@@ -2936,6 +2957,12 @@ class MapController {
         if (overlay) overlay.addEventListener('click', (e) => {
           if (e.target === overlay) this.closeShareDialog();
         });
+
+        onClick('naturalDialogClose', () => this.closeNaturalDialog());
+        const naturalOverlay = document.getElementById('naturalOverlay');
+        if (naturalOverlay) naturalOverlay.addEventListener('click', (e) => {
+          if (e.target === naturalOverlay) this.closeNaturalDialog();
+        });
       }
 
       // ── Likes ───────────────────────────────────────────────────────────
@@ -3003,7 +3030,7 @@ class MapController {
         // Stop propagation so the heart never starts playback or re-centers the map
         const activate = (e) => { e.stopPropagation(); e.preventDefault(); this.toggleLike(track); };
         btn.addEventListener('click', activate);
-        btn.addEventListener('keydown', (e) => { if (e.code === 'Space' || e.code === 'Enter') activate(e); });
+        btn.addEventListener('keydown', (e) => { if (e.code === 'Enter') activate(e); });
         return btn;
       }
 
@@ -3102,6 +3129,16 @@ class MapController {
 
       closeShareDialog() {
         const overlay = document.getElementById('shareOverlay');
+        if (overlay) overlay.classList.remove('visible');
+      }
+
+      openNaturalDialog() {
+        const overlay = document.getElementById('naturalOverlay');
+        if (overlay) overlay.classList.add('visible');
+      }
+
+      closeNaturalDialog() {
+        const overlay = document.getElementById('naturalOverlay');
         if (overlay) overlay.classList.remove('visible');
       }
 
