@@ -2059,9 +2059,15 @@
   .natural-dialog {
     width: min(360px, 92vw);
     max-height: none;
+    position: relative;
+  }
+  .natural-dialog-close {
+    position: absolute;
+    top: 10px;
+    right: 10px;
   }
   .natural-dialog-body {
-    padding: 20px 20px 18px;
+    padding: 20px 36px 18px 20px;
   }
   .natural-dialog-body p {
     margin: 0 0 12px;
@@ -2070,6 +2076,10 @@
   }
   .natural-dialog-body p:last-child {
     margin-bottom: 0;
+  }
+  body.is-mobile .natural-dialog {
+    height: auto;
+    max-height: 70vh;
   }
 
   .popup-controls {
@@ -2411,6 +2421,7 @@
   <!-- Natural soundscape explanation dialog (same frame as the info dialog) -->
   <div class="info-overlay" id="naturalOverlay">
     <div class="info-dialog natural-dialog" role="dialog" aria-label="What is a natural soundscape?">
+      <button class="info-dialog-close natural-dialog-close" id="naturalDialogClose" aria-label="Close">−</button>
       <div class="natural-dialog-body">
         <p><strong>What is a natural soundscape?</strong></p>
         <p>A natural soundscape is a pure nature recording, free of manmade sound.</p>
