@@ -2949,7 +2949,6 @@ class MapController {
           if (e.target === overlay) this.closeShareDialog();
         });
 
-        onClick('naturalDialogClose', () => this.closeNaturalDialog());
         const naturalOverlay = document.getElementById('naturalOverlay');
         if (naturalOverlay) naturalOverlay.addEventListener('click', (e) => {
           if (e.target === naturalOverlay) this.closeNaturalDialog();
