@@ -2145,9 +2145,14 @@ class MapController {
               }
 
               if (track.natural === true) {
-                const naturalEl = document.createElement('div');
-                naturalEl.className = 'popup-gear';
+                const naturalEl = document.createElement('button');
+                naturalEl.type = 'button';
+                naturalEl.className = 'popup-natural-link';
                 naturalEl.textContent = 'natural soundscape';
+                naturalEl.addEventListener('click', (e) => {
+                  e.stopPropagation();
+                  this.openNaturalDialog();
+                });
                 notesContent.appendChild(naturalEl);
               }
 
@@ -2943,6 +2948,12 @@ class MapController {
         if (overlay) overlay.addEventListener('click', (e) => {
           if (e.target === overlay) this.closeShareDialog();
         });
+
+        onClick('naturalDialogClose', () => this.closeNaturalDialog());
+        const naturalOverlay = document.getElementById('naturalOverlay');
+        if (naturalOverlay) naturalOverlay.addEventListener('click', (e) => {
+          if (e.target === naturalOverlay) this.closeNaturalDialog();
+        });
       }
 
       // ── Likes ───────────────────────────────────────────────────────────
@@ -3109,6 +3120,16 @@ class MapController {
 
       closeShareDialog() {
         const overlay = document.getElementById('shareOverlay');
+        if (overlay) overlay.classList.remove('visible');
+      }
+
+      openNaturalDialog() {
+        const overlay = document.getElementById('naturalOverlay');
+        if (overlay) overlay.classList.add('visible');
+      }
+
+      closeNaturalDialog() {
+        const overlay = document.getElementById('naturalOverlay');
         if (overlay) overlay.classList.remove('visible');
       }
 
