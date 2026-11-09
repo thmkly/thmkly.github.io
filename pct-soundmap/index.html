@@ -2101,38 +2101,6 @@
     max-height: 70vh;
   }
 
-  /* BANDCAMP FRIDAY PROMPT: remove this block, the #bcfOverlay markup, and the bcf script after today */
-  .bcf-dialog {
-    width: min(460px, 92vw);
-    max-height: 85vh;
-    position: relative;
-  }
-  .bcf-dialog-close {
-    position: absolute;
-    top: 10px;
-    right: 10px;
-  }
-  .bcf-dialog-body {
-    padding: 20px 20px 18px 20px;
-    overflow-y: auto;
-    overscroll-behavior: contain;
-  }
-  .bcf-dialog-body p {
-    margin: 0 0 12px;
-    font-size: 13px;
-    line-height: 1.5;
-  }
-  .bcf-dialog-body p:last-child { margin-bottom: 0; }
-  .bcf-dialog-body a { color: #5c3a2e; }
-  .bcf-dialog-body a:hover { color: #3d2519; }
-  .bcf-cta { font-weight: bold; }
-  body.night-mode .bcf-dialog-body a { color: rgba(190, 200, 215, 0.9); }
-  body.is-mobile .bcf-dialog {
-    height: auto;
-    max-height: 80vh;
-  }
-  /* END BANDCAMP FRIDAY PROMPT */
-
   .popup-controls {
     display: flex;
     align-items: center;
@@ -2486,34 +2454,6 @@
       </div>
     </div>
   </div>
-
-  <!-- BANDCAMP FRIDAY PROMPT (remove after today) -->
-  <div class="info-overlay" id="bcfOverlay">
-    <div class="info-dialog bcf-dialog" role="dialog" aria-label="Bandcamp Friday">
-      <button class="info-dialog-close bcf-dialog-close" id="bcfClose" aria-label="Close">−</button>
-      <div class="bcf-dialog-body">
-        <p>Hey everyone,</p>
-        <p>Today, the entire PCT Soundmap catalog <a href="https://thmkly.bandcamp.com" target="_blank" rel="noopener">is available on Bandcamp</a> for 60% off, just $48. To purchase, click through on an album, hit Buy Digital Discography, and you're all set. Your purchase includes digital download codes for offline listening.</p>
-        <p>It's a great day to pick up 200 field recordings from Mexico to Canada, and the 100% revenue share for Bandcamp Friday helps me continue my work recording sound in nature.</p>
-        <p class="bcf-cta"><a href="https://thmkly.bandcamp.com" target="_blank" rel="noopener">Purchase on Bandcamp</a></p>
-        <p>Thanks and hope this finds you well,<br>Tom</p>
-      </div>
-    </div>
-  </div>
-  <script>
-    (function () {
-      var ov = document.getElementById('bcfOverlay');
-      if (!ov) return;
-      function close() { ov.classList.remove('visible'); }
-      document.getElementById('bcfClose').addEventListener('click', close);
-      ov.addEventListener('click', function (e) { if (e.target === ov) close(); });
-      document.addEventListener('keydown', function (e) {
-        if (e.key === 'Escape' && ov.classList.contains('visible')) close();
-      });
-      ov.classList.add('visible');
-    })();
-  </script>
-  <!-- END BANDCAMP FRIDAY PROMPT -->
 
   <script src="config.js"></script>
   <script src="audiocontroller.js"></script>
